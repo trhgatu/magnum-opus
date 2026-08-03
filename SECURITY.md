@@ -1,9 +1,5 @@
 # Chính sách bảo mật (Security Policy)
 
-> **Phụ lục B — Báo cáo và xử lý lỗ hổng**
->
-> [Mục lục handbook](docs/README.md)
-
 Tài liệu này dành cho việc báo cáo lỗ hổng có trách nhiệm. Không tạo issue công khai chứa secret, dữ liệu khách hàng, exploit hoạt động hoặc chi tiết đủ để người khác tái hiện tấn công trước khi bản vá sẵn sàng.
 
 _English summary: please report vulnerabilities privately to the email below; do not open a public issue. We aim to acknowledge reports within 72 hours._
@@ -24,7 +20,7 @@ Trong phạm vi: code trong repo này (server, admin, client, packages), workflo
 
 ## Các lớp phòng thủ đang có
 
-Để người báo cáo đối chiếu nhanh: refresh token nằm trong HttpOnly cookie; access token thu hồi tức thời qua `tokenVersion`; rate limiting trên nhóm `/auth`; helmet; CORS allowlist (HTTP và Socket.IO dùng chung); secret scan (gitleaks) và audit dependency chạy trên mỗi commit; image được quét trivy trước khi publish. Chi tiết trong [docs/architecture.md](docs/architecture.md).
+Để người báo cáo đối chiếu nhanh: refresh token nằm trong HttpOnly cookie; access token thu hồi tức thời qua `tokenVersion`; rate limiting bảo vệ nhóm `/auth`; Helmet và CORS allowlist áp dụng cho HTTP lẫn Socket.IO; secret scan và dependency audit chạy trong CI; image được quét trước khi publish.
 
 ## Ngoại lệ dependency đang được chấp nhận
 

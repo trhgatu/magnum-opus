@@ -1,6 +1,6 @@
 name: Release
 
-# Quy trình phát hành tự động — xem docs/release-process.md để hiểu toàn bộ.
+# Automated release pipeline for versioned application artifacts.
 # Tóm tắt: mỗi lần main có commit mới, release-please tính phiên bản tiếp theo
 # từ lịch sử conventional commit và mở/cập nhật một "release PR" chứa CHANGELOG.
 # Merge PR đó = phát hành: tag vX.Y.Z + GitHub Release được tạo, và image trên

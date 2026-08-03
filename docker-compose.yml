@@ -1,13 +1,15 @@
+name: magnum-opus
+
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: starter-postgres
+    container_name: magnum-opus-postgres
     ports:
-      - '5433:5432'
+      - '5434:5432'
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: starter_db
+      POSTGRES_DB: magnum_opus
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -18,9 +20,9 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: starter-redis
+    container_name: magnum-opus-redis
     ports:
-      - '6380:6379'
+      - '6381:6379'
     volumes:
       - redis_data:/data
     healthcheck:
@@ -32,7 +34,7 @@ services:
   api:
     profiles: ['container-dev']
     image: node:20-alpine
-    container_name: starter-api-dev
+    container_name: magnum-opus-api-dev
     working_dir: /app
     volumes:
       - .:/app:delegated
@@ -54,7 +56,7 @@ services:
     env_file:
       - ./apps/server/.env
     environment:
-      DATABASE_URL: postgresql://postgres:password@postgres:5432/starter_db?schema=public
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/magnum_opus?schema=public
       REDIS_HOST: redis
       REDIS_PORT: 6379
     depends_on:
@@ -65,10 +67,10 @@ services:
 
   maildev:
     image: maildev/maildev:2.1.0
-    container_name: starter-maildev
+    container_name: magnum-opus-maildev
     ports:
-      - '1083:1080'
-      - '1025:1025'
+      - '1084:1080'
+      - '1026:1025'
     healthcheck:
       # The image default probes localhost, which resolves to IPv6 on some
       # Docker hosts while Maildev listens on IPv4. Pin the loopback family.

@@ -10,7 +10,7 @@ export default defineConfig({
     url: env('DATABASE_URL'),
     // Only needed by commands that replay the migration chain
     // (migrate diff --from-migrations, migrate dev). Point it at a disposable
-    // database, e.g. postgresql://postgres:password@localhost:5433/starter_shadow
+    // database, e.g. postgresql://postgres:password@localhost:5434/magnum_opus_shadow
     ...(process.env.SHADOW_DATABASE_URL
       ? { shadowDatabaseUrl: env('SHADOW_DATABASE_URL') }
       : {}),

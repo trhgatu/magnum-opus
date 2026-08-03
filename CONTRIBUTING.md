@@ -1,18 +1,12 @@
 # Đóng góp vào repo này
 
-> **Phụ lục A — Từ một thay đổi local đến pull request**
->
-> [Mục lục handbook](docs/README.md) · [Quy chuẩn viết tài liệu](docs/documentation-style-guide.md)
-
-Phụ lục này là checklist cộng tác, không thay thế handbook kiến trúc. Trước khi sửa một bounded context, đọc chương sở hữu context đó; trước khi thay đổi hạ tầng, cập nhật đồng thời chương deployment/operations tương ứng.
+Đây là checklist cộng tác của repository. Product intent và feature flow nằm trong [product map](product/README.md); tài liệu kỹ thuật nền tảng được duy trì tại repository starter.
 
 Tài liệu này mô tả quy trình làm việc bắt buộc — từ lúc clone đến lúc PR được merge. Đọc một lần trước PR đầu tiên; các quy tắc ở đây đều được máy móc cưỡng chế (hook, CI) nên biết trước sẽ đỡ mất thời gian.
 
 ## Bắt đầu
 
-Người mới: đi theo [Lộ trình học từ đầu](docs/getting-started-path.md) trước khi viết code — nó dẫn qua toàn bộ hệ thống kèm bài tập tự kiểm tra. Gặp thuật ngữ lạ thì tra [Bảng thuật ngữ](docs/glossary.md).
-
-Cài môi trường theo mục "Quick start" trong [README.md](README.md).
+Trước khi sửa một feature, đọc product flow tương ứng. Nếu flow chưa tồn tại, làm rõ trigger, business rules và trạng thái cuối trước khi bắt đầu triển khai.
 
 ## Quy trình một thay đổi
 
@@ -55,7 +49,7 @@ Hook `pre-commit` tự format file staged bằng prettier — không cần forma
 - Secret thật không bao giờ vào git — kể cả trong ví dụ, comment hay file baseline. `.env.example` chỉ chứa placeholder.
 - Migration đã merge là lịch sử bất biến — muốn đổi schema thì viết migration mới.
 - Thay đổi contract giữa backend và frontend (`@repo/contracts`, `@repo/types`, response shape) phải cập nhật cả hai phía trong cùng PR.
-- Tài liệu viết theo [quy ước văn phong](docs/glossary.md#quy-ước-viết-tài-liệu-của-repo): giữ thuật ngữ chuẩn ngành nhưng câu phải mô tả hành động cụ thể bằng tiếng Việt tự nhiên.
+- Tài liệu chỉ mô tả product intent, business rule và feature flow bằng tiếng Việt tự nhiên; không sao chép hướng dẫn cài đặt hoặc handbook kỹ thuật từ starter.
 
 ## Báo lỗi bảo mật
 
