@@ -1,0 +1,50 @@
+{
+  "name": "@repo/database",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rimraf dist",
+    "lint": "eslint . --max-warnings=0",
+    "check-types": "tsc --noEmit",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:verify-migrations": "prisma migrate deploy && prisma migrate diff --from-config-datasource --to-schema=prisma/schema.prisma --exit-code",
+    "db:seed": "pnpm --filter @repo/contracts build && prisma db seed",
+    "db:push": "prisma db push"
+  },
+  "dependencies": {
+    "@prisma/client": "^7.8.0",
+    "@repo/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "@prisma/adapter-pg": "^7.8.0",
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/bcrypt": "^6.0.0",
+    "@types/node": "^26.1.1",
+    "@types/pg": "^8.20.0",
+    "bcrypt": "^6.0.0",
+    "eslint": "^9.39.1",
+    "pg": "^8.22.0",
+    "prisma": "^7.8.0",
+    "tsup": "^8",
+    "tsx": "^4.20.0",
+    "typescript": "6.0.3"
+  }
+}

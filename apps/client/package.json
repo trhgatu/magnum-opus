@@ -1,0 +1,39 @@
+{
+  "name": "client",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3005",
+    "build": "next build",
+    "verify:performance": "node scripts/verify-performance-budget.mjs",
+    "start": "next start",
+    "lint": "eslint . --max-warnings=0",
+    "check-types": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "e2e": "playwright test",
+    "e2e:report": "playwright show-report"
+  },
+  "dependencies": {
+    "@repo/contracts": "workspace:*",
+    "@repo/types": "workspace:*",
+    "jose": "^6.0.11",
+    "next": "16.2.11",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "server-only": "^0.0.1"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
+    "@playwright/test": "1.58.2",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.11",
+    "tailwindcss": "^4",
+    "typescript": "6.0.3",
+    "vitest": "^4.1.10"
+  }
+}

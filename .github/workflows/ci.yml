@@ -1,0 +1,291 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TURBO_TELEMETRY_DISABLED: '1'
+
+jobs:
+  quality:
+    name: Lint, typecheck, unit tests, build
+    runs-on: ubuntu-latest
+    env:
+      # prisma generate chỉ cần URL đúng định dạng, không cần DB sống
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_placeholder?schema=public
+      # Admin production build phải có explicit public API origin và không được trỏ localhost.
+      VITE_API_URL: https://api.ci.example.invalid
+      # Client validates its server-only production configuration while Next.js
+      # collects route data. These values are isolated CI fixtures, not deploy secrets.
+      API_URL: https://api.ci.example.invalid
+      SESSION_SECRET: ci-only-session-secret-0123456789abcdef
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v4.4.0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter=@repo/database db:generate
+
+      - name: Validate production Compose manifest
+        run: pnpm verify:compose
+
+      - name: Validate environment contract examples
+        run: pnpm verify:env
+
+      - name: Validate documentation chapters and links
+        run: pnpm verify:docs
+
+      - name: Validate encrypted off-host backup contract
+        run: pnpm verify:backup
+
+      - name: Validate Prometheus alert rules
+        run: pnpm verify:alerts
+
+      - name: Lint
+        run: pnpm turbo run lint
+
+      - name: Typecheck
+        run: pnpm turbo run check-types
+
+      - name: Unit tests
+        run: pnpm turbo run test
+
+      - name: Build
+        run: pnpm turbo run build
+
+      - name: Verify Client JavaScript performance budget
+        run: pnpm --filter=client verify:performance
+
+      - name: Verify Admin production artifact
+        working-directory: apps/admin
+        run: node scripts/verify-production-build.mjs
+
+  e2e:
+    name: Backend E2E
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: starter_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v4.4.0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/starter_test?schema=public
+
+      - name: Generate Prisma client
+        run: pnpm --filter=@repo/database db:generate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/starter_test?schema=public
+
+      - name: Verify migration chain matches Prisma schema
+        run: pnpm verify:migrations
+        env:
+          # PostgreSQL service starts with a fresh database for every CI job.
+          # migrate deploy replays committed history; migrate diff exits 2 if
+          # the resulting database differs from schema.prisma.
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/starter_test?schema=public
+
+      - name: Build workspace dependencies of server
+        run: pnpm turbo run build --filter=server^...
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/starter_test?schema=public
+
+      - name: Create server .env.test
+        run: |
+          cat > apps/server/.env.test <<'EOF'
+          NODE_ENV=test
+          PORT=3001
+          JWT_ACCESS_SECRET=ci-only-access-secret-0123456789abcdef0123456789abcdef
+          JWT_REFRESH_SECRET=ci-only-refresh-secret-0123456789abcdef0123456789abcdef
+          METRICS_TOKEN=e2e-metrics-token
+          CORS_ORIGINS=http://localhost:5173
+          REDIS_HOST=localhost
+          REDIS_PORT=6379
+          DATABASE_URL=postgresql://postgres:postgres@localhost:5432/starter_test?schema=public
+          MAIL_HOST=localhost
+          MAIL_PORT=1025
+          MAIL_FROM=ci@example.com
+          EOF
+
+      - name: Run backend E2E
+        run: pnpm --filter=server test:e2e
+
+  admin-browser-e2e:
+    name: Frontend browser E2E
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: admin_browser_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/admin_browser_e2e?schema=public
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: 6379
+      SEED_ADMIN_EMAIL: admin.e2e@example.com
+      SEED_ADMIN_PASSWORD: AdminE2EPassword123!
+      E2E_ADMIN_EMAIL: admin.e2e@example.com
+      E2E_ADMIN_PASSWORD: AdminE2EPassword123!
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v4.4.0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter=@repo/database db:generate
+
+      - name: Build server workspace dependencies
+        run: pnpm turbo run build --filter=server^...
+
+      - name: Prepare browser test database
+        run: |
+          pnpm --filter=@repo/database db:deploy
+          pnpm --filter=@repo/database db:seed
+
+      - name: Install Chromium
+        run: pnpm --filter=admin exec playwright install --with-deps chromium
+
+      - name: Run Admin browser E2E
+        run: pnpm --filter=admin e2e
+
+      - name: Run Client browser E2E
+        run: pnpm --filter=client e2e
+
+      - name: Upload Playwright artifacts
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: admin-playwright-report
+          path: |
+            apps/admin/playwright-report
+            apps/admin/test-results
+            apps/client/playwright-report
+            apps/client/test-results
+          if-no-files-found: ignore
+          retention-days: 7
+
+  image:
+    name: Build ${{ matrix.image }} image, SBOM, vulnerability scan
+    runs-on: ubuntu-latest
+    # Chỉ publish khi code đã qua đủ quality gate và E2E
+    needs: [quality, e2e, admin-browser-e2e]
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: server
+            dockerfile: apps/server/Dockerfile
+          - image: client
+            dockerfile: apps/client/Dockerfile
+    steps:
+      - uses: actions/checkout@v6
+
+      # ghcr yêu cầu tên image chữ thường; tên repo có chữ hoa
+      - name: Resolve image name
+        run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}/${{ matrix.image }}" >> "$GITHUB_ENV"
+
+      # Use the Docker engine already installed on the hosted runner. A
+      # container-backed Buildx builder must first pull moby/buildkit from
+      # Docker Hub before our Dockerfile is evaluated.
+      - name: Build image locally for scanning
+        run: >-
+          docker build
+          --file ${{ matrix.dockerfile }}
+          --tag "$IMAGE:${{ github.sha }}"
+          .
+
+      - name: Generate SBOM (syft)
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ env.IMAGE }}:${{ github.sha }}
+          format: spdx-json
+          artifact-name: ${{ matrix.image }}-sbom.spdx.json
+
+      - name: Scan image for vulnerabilities (trivy)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE }}:${{ github.sha }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+
+      - name: Push immutable image to GHCR (main only)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker tag "$IMAGE:${{ github.sha }}" "$IMAGE:latest"
+          docker push "$IMAGE:${{ github.sha }}"
+          docker push "$IMAGE:latest"
