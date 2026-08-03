@@ -34,7 +34,7 @@ run('docker', [
 ]);
 
 // This database is intentionally disposable and never shares data with
-// starter_db. Recreate it on every run so tests cannot depend on old rows,
+// magnum_opus. Recreate it on every run so tests cannot depend on old rows,
 // sessions or outbox events.
 run('docker', [
   'compose',

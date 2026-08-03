@@ -97,7 +97,7 @@ const waitForHealthy = (container, timeoutSeconds = 90) => {
   }
 };
 
-console.log("Dựng môi trường local cho turborepo-advanced-starter");
+console.log("Dựng môi trường local cho Magnum Opus");
 
 step("Kiểm tra Docker");
 const docker = run("docker info", { allowFailure: true, quiet: true });
@@ -121,6 +121,28 @@ ensureEnvFile("apps/server/.env", "apps/server/.env.example", {
 ensureEnvFile("apps/client/.env.local", "apps/client/.env.example", {
   fill: { SESSION_SECRET: secret() },
 });
+ensureEnvFile(
+  "apps/client/.env.production.local",
+  "apps/client/.env.example",
+  {
+    fill: { SESSION_SECRET: secret() },
+    replace: {
+      "http://localhost:3001": "https://api.magnum-opus.example.invalid",
+    },
+  },
+);
+// Vite production builds intentionally reject localhost API origins. Keep this
+// build-only placeholder separate so development can continue using its safe
+// localhost fallback when VITE_API_URL is absent.
+ensureEnvFile(
+  "apps/admin/.env.production.local",
+  "apps/admin/.env.example",
+  {
+    replace: {
+      "https://api.example.com": "https://api.magnum-opus.example.invalid",
+    },
+  },
+);
 
 step("Khởi động hạ tầng (Postgres, Redis, Maildev)");
 run("docker compose up -d postgres redis maildev");
@@ -129,9 +151,9 @@ step("Cài dependency");
 run("pnpm install");
 
 step("Chờ database sẵn sàng");
-waitForHealthy("starter-postgres");
-waitForHealthy("starter-redis");
-waitForHealthy("starter-maildev");
+waitForHealthy("magnum-opus-postgres");
+waitForHealthy("magnum-opus-redis");
+waitForHealthy("magnum-opus-maildev");
 info("Postgres, Redis và Maildev đều healthy.");
 
 step("Sinh Prisma client và áp migration");
@@ -154,7 +176,7 @@ console.log(`
 
   Chạy tất cả:   pnpm dev
   Từng app:      pnpm dev:server (3001) · pnpm dev:admin (5173) · pnpm dev:client (3005)
-  Hộp thư local: http://localhost:1083 (Maildev)
+  Hộp thư local: http://localhost:1084 (Maildev)
 
   Đăng nhập admin: ${seedEmail}
   ${passwordNote}

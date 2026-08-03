@@ -47,7 +47,7 @@ jobs:
       - name: Validate environment contract examples
         run: pnpm verify:env
 
-      - name: Validate documentation chapters and links
+      - name: Validate product documentation links
         run: pnpm verify:docs
 
       - name: Validate encrypted off-host backup contract
