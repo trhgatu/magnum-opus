@@ -10,7 +10,7 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 mkdir -p "$test_dir/bin" "$test_dir/repository"
-backup_file="$test_dir/starter-test.dump"
+backup_file="$test_dir/magnum-opus-test.dump"
 password_file="$test_dir/restic-password"
 restic_log="$test_dir/restic.log"
 

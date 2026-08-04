@@ -27,8 +27,8 @@ if ! command -v restic >/dev/null 2>&1; then
   exit 1
 fi
 
-RESTIC_HOST=${RESTIC_HOST:-turborepo-starter}
-POSTGRES_DB=${POSTGRES_DB:-starter}
+RESTIC_HOST=${RESTIC_HOST:-magnum-opus}
+POSTGRES_DB=${POSTGRES_DB:-magnum_opus}
 
 # Requiring an existing repository keeps an incorrect URL or empty bucket from
 # being initialized silently during an unattended backup cycle.

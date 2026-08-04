@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Build from the repository root:
-# docker build -f apps/client/Dockerfile -t starter-client .
+# docker build -f apps/client/Dockerfile -t magnum-opus-client .
 
 FROM node:20-alpine AS base
 RUN corepack enable

@@ -26,6 +26,6 @@ Quay lại quan sát
 
 ## Trạng thái hiện tại
 
-Repository đang ở giai đoạn foundation. Nền tảng kỹ thuật được tạo từ `turborepo-advanced-starter`; nghiệp vụ của Forge OS sẽ được đánh giá và chuyển sang từng vertical slice, bắt đầu từ Journal.
+Repository đang ở giai đoạn foundation. Nền tảng kỹ thuật ban đầu được kế thừa từ một starter đã được kiểm chứng; nghiệp vụ của Forge OS sẽ được đánh giá và chuyển sang từng vertical slice, bắt đầu từ Journal.
 
 Tài liệu cài đặt, kiến trúc nền tảng, Docker, CI/CD và deployment được duy trì tại repository starter. Magnum Opus chỉ ghi lại product intent, business flow và hành vi của các tính năng.

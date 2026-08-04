@@ -10,9 +10,12 @@
     { "type": "docs", "section": "Tài liệu" },
     { "type": "test", "section": "Kiểm thử", "hidden": true },
     { "type": "ci", "section": "CI", "hidden": true },
-    { "type": "chore", "section": "Việc lặt vặt", "hidden": true }
+    { "type": "chore", "section": "Bảo trì", "hidden": true }
   ],
   "packages": {
-    ".": {}
+    ".": {
+      "component": "magnum-opus",
+      "package-name": "magnum-opus"
+    }
   }
 }

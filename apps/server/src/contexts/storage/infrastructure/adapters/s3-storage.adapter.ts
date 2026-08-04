@@ -26,7 +26,7 @@ export class S3StorageAdapter implements StoragePort {
 
     this.bucketName = this.configService.get<string>(
       'S3_BUCKET_NAME',
-      'turbostarter-bucket',
+      'magnum-opus-bucket',
     );
 
     this.s3Client = new S3Client({

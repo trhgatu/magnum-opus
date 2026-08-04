@@ -1,4 +1,4 @@
-name: ${COMPOSE_PROJECT_NAME:-turborepo-starter}
+name: ${COMPOSE_PROJECT_NAME:-magnum-opus}
 
 x-server-environment: &server-environment
   NODE_ENV: production
@@ -16,7 +16,7 @@ x-server-environment: &server-environment
   AUDIT_RETENTION_DAYS: ${AUDIT_RETENTION_DAYS:-0}
   LOG_LEVEL: ${LOG_LEVEL:-info}
   METRICS_TOKEN: ${METRICS_TOKEN:?METRICS_TOKEN is required}
-  BACKUP_STATUS_FILE: /var/lib/turborepo-backups/.last-success
+  BACKUP_STATUS_FILE: /var/lib/magnum-opus-backups/.last-success
   MAIL_HOST: ${MAIL_HOST:-}
   MAIL_PORT: ${MAIL_PORT:-587}
   MAIL_FROM: ${MAIL_FROM:-}
@@ -52,8 +52,8 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-starter}
-      POSTGRES_USER: ${POSTGRES_USER:-starter}
+      POSTGRES_DB: ${POSTGRES_DB:-magnum_opus}
+      POSTGRES_USER: ${POSTGRES_USER:-magnum_opus}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -121,7 +121,7 @@ services:
     command: ['node', 'dist/main.js']
     volumes:
       - uploads_data:/app/public/uploads
-      - ./backup-status:/var/lib/turborepo-backups:ro
+      - ./backup-status:/var/lib/magnum-opus-backups:ro
     expose:
       - '3001'
     healthcheck:

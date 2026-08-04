@@ -4,11 +4,11 @@ import type { Metadata } from "next";
 // Metadata được render sẵn ở phía server — đây là thứ SPA không làm được và
 // là lý do trang công khai nằm ở Next.js.
 export const metadata: Metadata = {
-  title: "Turborepo Advanced Starter — Client",
+  title: "Magnum Opus — Client",
   description:
     "Ứng dụng người dùng cuối, render phía server và lấy dữ liệu qua lớp BFF của Next.js.",
   openGraph: {
-    title: "Turborepo Advanced Starter — Client",
+    title: "Magnum Opus — Client",
     description:
       "Ứng dụng người dùng cuối, render phía server và lấy dữ liệu qua lớp BFF của Next.js.",
     type: "website",

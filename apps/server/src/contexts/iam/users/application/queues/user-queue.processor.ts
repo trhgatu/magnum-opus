@@ -50,7 +50,7 @@ export class UserQueueProcessor extends WorkerHost {
     });
     const fromEmail = this.configService.get<string>(
       'MAIL_FROM',
-      'no-reply@turbostarter.dev',
+      'no-reply@magnum-opus.local',
     );
 
     switch (job.name) {
@@ -64,7 +64,7 @@ export class UserQueueProcessor extends WorkerHost {
 
         const welcomeHtml = `
                     <div style="background-color: #09090b; color: #fafafa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 40px; border-radius: 12px; max-width: 600px; margin: 0 auto; border: 1px border #27272a;">
-                        <h2 style="color: #3b82f6; font-size: 24px; font-weight: 800; letter-spacing: -0.025em; margin-bottom: 16px;">Chào mừng tới Turborepo Starter Kit! 🎉</h2>
+                        <h2 style="color: #3b82f6; font-size: 24px; font-weight: 800; letter-spacing: -0.025em; margin-bottom: 16px;">Chào mừng tới Magnum Opus! 🎉</h2>
                         <p style="font-size: 14px; color: #a1a1aa; line-height: 1.6;">Tài khoản của bạn với email <strong>${email}</strong> đã được khởi tạo thành công trên hệ thống quản trị.</p>
                         <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid #27272a; padding: 20px; border-radius: 8px; margin: 24px 0;">
                             <p style="margin: 0; font-size: 13px; color: #e4e4e7;">Bây giờ bạn đã có quyền truy cập vào bảng quản trị và quản lý các tài nguyên hệ thống.</p>
@@ -76,7 +76,7 @@ export class UserQueueProcessor extends WorkerHost {
         await this.transporter.sendMail({
           from: fromEmail,
           to: email,
-          subject: 'Chào mừng thành viên mới - Turborepo Advanced Starter',
+          subject: 'Chào mừng thành viên mới - Magnum Opus',
           html: welcomeHtml,
         });
 

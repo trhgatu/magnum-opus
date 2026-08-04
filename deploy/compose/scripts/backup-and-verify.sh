@@ -81,7 +81,7 @@ else
     exit 1
   fi
 
-  POSTGRES_DB=${POSTGRES_DB:-starter}
+  POSTGRES_DB=${POSTGRES_DB:-magnum_opus}
 
   find "$backup_dir" -maxdepth 1 -type f \
     -name "${POSTGRES_DB}-*.dump" -mtime "+$BACKUP_RETENTION_DAYS" -print |

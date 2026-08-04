@@ -1,0 +1,11 @@
+﻿[Unit]
+Description=Check Magnum Opus PostgreSQL backup freshness hourly
+
+[Timer]
+OnBootSec=10m
+OnUnitActiveSec=1h
+Persistent=true
+Unit=magnum-opus-backup-health.service
+
+[Install]
+WantedBy=timers.target

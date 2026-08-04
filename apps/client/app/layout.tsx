@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Turborepo Advanced Starter",
-    template: "%s | Turborepo Advanced Starter",
+    default: "Magnum Opus",
+    template: "%s | Magnum Opus",
   },
   description:
     "Ứng dụng người dùng cuối render phía server, lấy dữ liệu qua lớp BFF của Next.js.",
