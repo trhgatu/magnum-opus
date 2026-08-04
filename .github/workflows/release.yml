@@ -1,9 +1,8 @@
 name: Release
 
-# Manual-only until Magnum Opus has its own package identity, initial version,
-# and release policy. Do not enable the push trigger inherited from the starter:
-# release-please would otherwise continue the starter's 1.1.x history.
-# When enabled, release-please calculates the next version from conventional
+# Magnum Opus now owns an independent package identity and starts at v0.1.0.
+# Keep this workflow manual until the first product release policy is approved.
+# When triggered, release-please calculates the next version from conventional
 # commits and opens or updates a release PR containing the changelog.
 # Merge PR đó = phát hành: tag vX.Y.Z + GitHub Release được tạo, và image trên
 # GHCR được gắn thêm tag phiên bản.

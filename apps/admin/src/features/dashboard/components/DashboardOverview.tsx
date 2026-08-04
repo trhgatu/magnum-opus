@@ -234,7 +234,7 @@ export const DashboardOverview = () => {
               Trạng thái hạ tầng
             </CardTitle>
             <CardDescription className="text-xs text-muted-foreground">
-              Các cấu phần lõi của Monorepo Starter
+              Các cấu phần lõi của Magnum Opus
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

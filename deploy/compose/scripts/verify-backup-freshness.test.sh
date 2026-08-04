@@ -19,7 +19,7 @@ EOF
 
 cat > "$status_file" <<'EOF'
 completed_at=2026-07-31T00:00:00Z
-backup_file=starter-test.dump
+backup_file=magnum-opus-test.dump
 offsite_enabled=true
 EOF
 

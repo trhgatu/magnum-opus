@@ -22,8 +22,8 @@ set -a
 . "$ENV_FILE"
 set +a
 
-POSTGRES_USER=${POSTGRES_USER:-starter}
-POSTGRES_DB=${POSTGRES_DB:-starter}
+POSTGRES_USER=${POSTGRES_USER:-magnum_opus}
+POSTGRES_DB=${POSTGRES_DB:-magnum_opus}
 VERIFY_DB="restore_verify_$(date -u +%Y%m%d%H%M%S)_$$"
 
 cleanup() {

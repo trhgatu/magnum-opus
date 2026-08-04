@@ -1,0 +1,19 @@
+[Unit]
+Description=Magnum Opus PostgreSQL backup and restore verification
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+User=magnum-opus
+Group=magnum-opus
+WorkingDirectory=/opt/magnum-opus
+ExecStart=/opt/magnum-opus/deploy/compose/scripts/backup-and-verify.sh
+
+# The job needs Docker access, its repository backup directory and outbound
+# network access when encrypted off-host backup is enabled.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/opt/magnum-opus/deploy/compose/backups /opt/magnum-opus/deploy/compose/backup-status

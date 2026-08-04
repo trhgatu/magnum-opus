@@ -1,0 +1,15 @@
+[Unit]
+Description=Verify Magnum Opus PostgreSQL backup freshness
+
+[Service]
+Type=oneshot
+User=magnum-opus
+Group=magnum-opus
+WorkingDirectory=/opt/magnum-opus
+ExecStart=/opt/magnum-opus/deploy/compose/scripts/verify-backup-freshness.sh
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadOnlyPaths=/opt/magnum-opus/deploy/compose/backup-status

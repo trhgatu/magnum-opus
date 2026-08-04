@@ -62,7 +62,7 @@ describe('MetricsService', () => {
     const statusFile = join(directory, '.last-success');
     await writeFile(
       statusFile,
-      'completed_at=2026-07-31T00:00:00Z\nbackup_file=starter.dump\n',
+      'completed_at=2026-07-31T00:00:00Z\nbackup_file=magnum-opus.dump\n',
     );
 
     const prisma = {

@@ -23,7 +23,7 @@ export function AccountShell({ children, user }: AccountShellProps) {
             href="/"
             className="shrink-0 font-semibold tracking-tight focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4"
           >
-            Starter Client
+            Magnum Opus
           </Link>
 
           <nav

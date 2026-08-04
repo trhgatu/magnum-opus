@@ -63,10 +63,8 @@ async function bootstrap() {
   // API documentation is a development/staging tool, not a production surface.
   if (configService.get<string>('NODE_ENV') !== 'production') {
     const config = new DocumentBuilder()
-      .setTitle('Turborepo Advanced Starter API')
-      .setDescription(
-        'The API documentation for the Turborepo Advanced Starter kit',
-      )
+      .setTitle('Magnum Opus API')
+      .setDescription('The API documentation for the Magnum Opus kit')
       .setVersion('1.0')
       .addBearerAuth()
       .build();

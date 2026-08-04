@@ -17,8 +17,8 @@ set -a
 . "$ENV_FILE"
 set +a
 
-POSTGRES_USER=${POSTGRES_USER:-starter}
-POSTGRES_DB=${POSTGRES_DB:-starter}
+POSTGRES_USER=${POSTGRES_USER:-magnum_opus}
+POSTGRES_DB=${POSTGRES_DB:-magnum_opus}
 timestamp=$(date -u +%Y%m%dT%H%M%SZ)
 backup_file="$BACKUP_DIR/${POSTGRES_DB}-${timestamp}.dump"
 
