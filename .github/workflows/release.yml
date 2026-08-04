@@ -1,14 +1,15 @@
 name: Release
 
-# Automated release pipeline for versioned application artifacts.
-# Tóm tắt: mỗi lần main có commit mới, release-please tính phiên bản tiếp theo
-# từ lịch sử conventional commit và mở/cập nhật một "release PR" chứa CHANGELOG.
+# Manual-only until Magnum Opus has its own package identity, initial version,
+# and release policy. Do not enable the push trigger inherited from the starter:
+# release-please would otherwise continue the starter's 1.1.x history.
+# When enabled, release-please calculates the next version from conventional
+# commits and opens or updates a release PR containing the changelog.
 # Merge PR đó = phát hành: tag vX.Y.Z + GitHub Release được tạo, và image trên
 # GHCR được gắn thêm tag phiên bản.
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: write
