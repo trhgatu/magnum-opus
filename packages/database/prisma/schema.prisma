@@ -7,19 +7,21 @@ generator client {
 }
 
 model User {
-  id           String  @id @default(uuid())
-  email        String  @unique
-  username     String
-  password     String
-  avatar       String?
-  isActive     Boolean @default(true)
-  isDeleted    Boolean @default(false)
-  tokenVersion Int     @default(0) @map("token_version")
+  id              String    @id @default(uuid())
+  email           String    @unique
+  username        String
+  password        String
+  avatar          String?
+  isActive        Boolean   @default(true)
+  isDeleted       Boolean   @default(false)
+  tokenVersion    Int       @default(0) @map("token_version")
   emailVerifiedAt DateTime? @map("email_verified_at")
 
-  userRoles           UserRole[]
-  notifications       Notification[]
-  passwordResetTokens PasswordResetToken[]
+  journalEntries JournalEntry[]
+
+  userRoles               UserRole[]
+  notifications           Notification[]
+  passwordResetTokens     PasswordResetToken[]
   emailVerificationTokens EmailVerificationToken[]
 
   createdAt DateTime @default(now())
@@ -179,4 +181,28 @@ model OutboxEvent {
 
   @@index([status, availableAt])
   @@map("outbox_events")
+}
+
+enum JournalEntryState {
+  DRAFT
+  SEALED
+  TRASHED
+}
+
+model JournalEntry {
+  id               String             @id @default(uuid())
+  ownerId          String             @map("owner_id")
+  title            String?            @db.VarChar(200)
+  content          String             @default("") @db.Text
+  state            JournalEntryState  @default(DRAFT)
+  stateBeforeTrash JournalEntryState? @map("state_before_trash")
+  revision         Int                @default(1)
+  trashedAt        DateTime?          @map("trashed_at")
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId, state, updatedAt(sort: Desc)])
+  @@map("journal_entries")
 }
