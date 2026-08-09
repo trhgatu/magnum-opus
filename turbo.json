@@ -1,6 +1,6 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
-  "globalDependencies": [".env"],
+  "globalDependencies": [".env", "pnpm-lock.yaml"],
   "globalEnv": [
     "NODE_ENV",
     "DATABASE_URL",

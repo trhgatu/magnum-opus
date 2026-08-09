@@ -34,6 +34,21 @@ Journal, mood, memory và reflection có thể chứa những phần nhạy cả
 
 Magnum Opus không dùng notification, streak hoặc phần thưởng để tạo áp lực quay lại. Một tương tác tốt phải giúp người dùng trở về đời sống thật rõ ràng hơn.
 
+## Ngôn ngữ trải nghiệm
+
+Giao diện phải tạo cảm giác bước vào một không gian riêng, yên và có chủ đích. Nó không mô phỏng phòng điều khiển, không chất đầy số liệu và không dùng biểu tượng giả kim như đồ trang trí phô trương. Hình ảnh giấy ấm, mực đậm và sắc vàng chỉ đóng vai trò gợi nhắc nhẹ rằng người dùng đang làm việc với “nguyên liệu” của chính đời mình.
+
+Thứ bậc thị giác luôn phục vụ một câu hỏi: người dùng cần chú ý vào điều gì ngay lúc này? Ở landing page, đó là lời hứa của sản phẩm. Ở Journal, đó là nội dung đang viết. Ở một trạng thái lỗi, đó là điều vừa xảy ra và hành động an toàn tiếp theo.
+
+Các nguyên tắc này phải luôn đúng:
+
+1. Nội dung đứng trước chrome. Editor không cạnh tranh sự chú ý với navigation hay dashboard.
+2. Màu sắc mang ý nghĩa nhất quán. Màu chính thể hiện hành động có chủ đích; màu lỗi chỉ dành cho cảnh báo và hành động phá hủy.
+3. Hành động không thể hoàn tác luôn có bước xác nhận riêng, nói rõ điều gì sẽ mất.
+4. Người dùng có thể hoàn thành flow bằng bàn phím, đọc được bằng screen reader và sử dụng trên màn hình nhỏ mà không mất chức năng.
+5. Chuyển động chỉ giải thích thay đổi trạng thái hoặc hướng sự chú ý; nó không tồn tại chỉ để làm giao diện “sống động”.
+6. Trạng thái loading, empty, error và success là một phần của trải nghiệm chính, không phải phần trang trí bổ sung sau cùng.
+
 ## Những điều Magnum Opus không cố trở thành
 
 - Một mạng xã hội trình diễn bản thân.

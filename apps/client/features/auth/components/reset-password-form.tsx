@@ -1,7 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { CheckCircle2 } from "lucide-react";
 import { useActionState } from "react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { resetPassword, type ResetPasswordState } from "../actions/auth";
 
 export function ResetPasswordForm({ token }: { token: string }) {
@@ -11,9 +16,14 @@ export function ResetPasswordForm({ token }: { token: string }) {
   );
   if (state.status === "success") {
     return (
-      <div role="status" className="flex flex-col gap-4">
-        <p>Mật khẩu đã được thay đổi. Tất cả thiết bị cũ đã đăng xuất.</p>
-        <Link className="underline" href="/login">
+      <div role="status" className="flex flex-col gap-5">
+        <Alert>
+          <CheckCircle2 aria-hidden="true" />
+          <AlertDescription>
+            Mật khẩu đã được thay đổi. Tất cả thiết bị cũ đã đăng xuất.
+          </AlertDescription>
+        </Alert>
+        <Link href="/login" className={buttonVariants()}>
           Đăng nhập bằng mật khẩu mới
         </Link>
       </div>
@@ -26,14 +36,17 @@ export function ResetPasswordForm({ token }: { token: string }) {
       ? state.fieldErrors?.confirmPassword?.[0]
       : undefined;
   return (
-    <form action={action} className="flex flex-col gap-4" noValidate>
+    <form action={action} className="flex flex-col gap-5" noValidate>
       <input type="hidden" name="token" value={token} />
       {state.status === "error" && state.formError ? (
-        <p role="alert">{state.formError}</p>
+        <Alert variant="destructive" role="alert">
+          <AlertDescription>{state.formError}</AlertDescription>
+        </Alert>
       ) : null}
-      <label className="flex flex-col gap-1 text-sm">
-        Mật khẩu mới
-        <input
+      <div className="space-y-2">
+        <Label htmlFor="new-password">Mật khẩu mới</Label>
+        <Input
+          id="new-password"
           name="password"
           type="password"
           autoComplete="new-password"
@@ -41,17 +54,18 @@ export function ResetPasswordForm({ token }: { token: string }) {
           minLength={12}
           aria-invalid={passwordError ? true : undefined}
           aria-describedby={passwordError ? "new-password-error" : undefined}
-          className="rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+          className="h-11 bg-card/60"
         />
         {passwordError ? (
-          <span id="new-password-error" className="text-xs text-red-700">
+          <p id="new-password-error" className="text-xs text-destructive">
             {passwordError}
-          </span>
+          </p>
         ) : null}
-      </label>
-      <label className="flex flex-col gap-1 text-sm">
-        Nhập lại mật khẩu mới
-        <input
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="confirm-new-password">Nhập lại mật khẩu mới</Label>
+        <Input
+          id="confirm-new-password"
           name="confirmPassword"
           type="password"
           autoComplete="new-password"
@@ -59,21 +73,17 @@ export function ResetPasswordForm({ token }: { token: string }) {
           minLength={12}
           aria-invalid={confirmError ? true : undefined}
           aria-describedby={confirmError ? "confirm-password-error" : undefined}
-          className="rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+          className="h-11 bg-card/60"
         />
         {confirmError ? (
-          <span id="confirm-password-error" className="text-xs text-red-700">
+          <p id="confirm-password-error" className="text-xs text-destructive">
             {confirmError}
-          </span>
+          </p>
         ) : null}
-      </label>
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-white dark:text-zinc-900"
-      >
+      </div>
+      <Button type="submit" disabled={pending} size="lg">
         {pending ? "Đang đổi mật khẩu…" : "Đổi mật khẩu"}
-      </button>
+      </Button>
     </form>
   );
 }

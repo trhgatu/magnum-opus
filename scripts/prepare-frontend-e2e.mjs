@@ -69,6 +69,10 @@ const withE2eEnvironment = [
   '--filter=@repo/database',
 ];
 
+// A clean install contains Prisma's runtime package but not the generated
+// client. Generate it here so the E2E entrypoint works without relying on a
+// previous build or a developer's local artifact.
+run(pnpm, [...withE2eEnvironment, 'db:generate'], pnpmOptions);
 run(pnpm, [...withE2eEnvironment, 'db:deploy'], pnpmOptions);
 run(pnpm, [...withE2eEnvironment, 'db:seed'], pnpmOptions);
 

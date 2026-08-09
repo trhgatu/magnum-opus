@@ -45,6 +45,14 @@ test.describe("Client accessibility contract", () => {
     await page.goto("/login");
 
     await page.keyboard.press("Tab");
+    await expect(
+      page.getByRole("link", { name: "Magnum Opus", exact: true }),
+    ).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(
+      page.getByRole("link", { name: "Về trang chủ", exact: true }),
+    ).toBeFocused();
+    await page.keyboard.press("Tab");
     await expect(page.getByLabel("Email")).toBeFocused();
     await page.keyboard.press("Tab");
     await expect(page.getByLabel("Mật khẩu", { exact: true })).toBeFocused();

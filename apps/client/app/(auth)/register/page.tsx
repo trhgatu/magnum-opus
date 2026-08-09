@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AuthHeading } from "@/components/system/auth-heading";
 import { RegisterForm } from "@/features/auth/components/register-form";
 
 export const metadata: Metadata = {
@@ -8,9 +9,12 @@ export const metadata: Metadata = {
 
 export default function RegisterPage() {
   return (
-    <main className="mx-auto flex max-w-sm flex-col gap-6 px-6 py-16">
-      <h1 className="text-2xl font-bold tracking-tight">Tạo tài khoản</h1>
+    <section className="flex flex-col gap-7">
+      <AuthHeading
+        title="Tạo tài khoản"
+        description="Bắt đầu một không gian riêng để viết, quan sát và chuyển hóa mỗi ngày."
+      />
       <RegisterForm />
-    </main>
+    </section>
   );
 }

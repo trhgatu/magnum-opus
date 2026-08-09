@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AuthHeading } from "@/components/system/auth-heading";
 import { RequestPasswordResetForm } from "@/features/auth/components/request-password-reset-form";
 
 export const metadata: Metadata = {
@@ -8,13 +9,12 @@ export const metadata: Metadata = {
 
 export default function ForgotPasswordPage() {
   return (
-    <main className="mx-auto flex max-w-sm flex-col gap-6 px-6 py-16">
-      <h1 className="text-2xl font-bold tracking-tight">Quên mật khẩu</h1>
-      <p className="text-sm text-zinc-600 dark:text-zinc-400">
-        Nhập email của bạn. Kết quả luôn giống nhau để người khác không thể dò
-        tài khoản.
-      </p>
+    <section className="flex flex-col gap-7">
+      <AuthHeading
+        title="Quên mật khẩu"
+        description="Nhập email đã dùng để đăng ký. Vì sự riêng tư, kết quả luôn giống nhau dù tài khoản có tồn tại hay không."
+      />
       <RequestPasswordResetForm />
-    </main>
+    </section>
   );
 }

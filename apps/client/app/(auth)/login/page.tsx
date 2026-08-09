@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AuthHeading } from "@/components/system/auth-heading";
 import { LoginForm } from "@/features/auth/components/login-form";
 
 export const metadata: Metadata = {
@@ -14,9 +15,12 @@ export default async function LoginPage({
   const { next } = await searchParams;
 
   return (
-    <main className="mx-auto flex max-w-sm flex-col gap-6 px-6 py-16">
-      <h1 className="text-2xl font-bold tracking-tight">Đăng nhập</h1>
+    <section className="flex flex-col gap-7">
+      <AuthHeading
+        title="Đăng nhập"
+        description="Tiếp tục từ nơi đã dừng lại. Không gian này vẫn đang chờ."
+      />
       <LoginForm next={next ?? "/me"} />
-    </main>
+    </section>
   );
 }

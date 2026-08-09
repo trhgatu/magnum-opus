@@ -1,11 +1,36 @@
 "use client";
 
 import type { JournalEntryResponse } from "@repo/contracts";
+import {
+  ArrowLeft,
+  Expand,
+  Eye,
+  LockKeyhole,
+  Minimize2,
+  PenLine,
+  RotateCcw,
+  Trash2,
+  Undo2,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   changeJournalEntryState,
   deleteJournalEntryPermanently,
@@ -136,12 +161,6 @@ export function JournalEditor({
   };
 
   const deletePermanently = async () => {
-    if (
-      !window.confirm(
-        "Xóa vĩnh viễn entry này? Hành động này không thể hoàn tác.",
-      )
-    )
-      return;
     setIsChangingState(true);
     const result = await deleteJournalEntryPermanently({
       id: entry.id,
@@ -170,130 +189,161 @@ export function JournalEditor({
     <article
       className={
         focusMode
-          ? "fixed inset-0 z-50 overflow-y-auto bg-white px-4 py-6 dark:bg-zinc-950 sm:px-8"
+          ? "fixed inset-0 z-50 overflow-y-auto bg-background px-4 py-6 sm:px-8"
           : ""
       }
     >
       <div className="mx-auto flex max-w-4xl flex-col gap-5">
-        <header className="flex flex-wrap items-center gap-2 border-b border-zinc-200 pb-4 dark:border-zinc-800">
-          <button
+        <header className="surface-glass sticky top-0 z-20 -mx-2 flex flex-wrap items-center gap-2 rounded-xl border px-2 py-2 shadow-sm">
+          <Button
             type="button"
             onClick={() => router.push("/journal")}
-            className="rounded-md px-2 py-1.5 text-sm text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-900"
+            variant="ghost"
           >
-            ← Journal
-          </button>
-          <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium dark:bg-zinc-900">
-            {entry.state}
-          </span>
+            <ArrowLeft data-icon="inline-start" aria-hidden="true" />← Journal
+          </Button>
+          <Badge variant="outline">{entry.state}</Badge>
           <span
             aria-live="polite"
             className={
               "text-xs " +
               (saveState === "error" || saveState === "conflict"
-                ? "text-red-700 dark:text-red-400"
-                : "text-zinc-500")
+                ? "text-destructive"
+                : "text-muted-foreground")
             }
           >
             {editable ? statusLabel : "Chỉ đọc"} · revision {revisionNumber}
           </span>
 
           <div className="ml-auto flex flex-wrap gap-2">
-            <div className="flex rounded-md bg-zinc-100 p-0.5 text-sm dark:bg-zinc-900">
-              <button
+            <div className="flex rounded-lg bg-muted p-0.5 text-sm">
+              <Button
                 type="button"
                 onClick={() => setViewMode("write")}
                 disabled={!editable}
                 aria-pressed={viewMode === "write"}
-                className="rounded px-2.5 py-1 aria-pressed:bg-white aria-pressed:shadow-sm disabled:opacity-40 dark:aria-pressed:bg-zinc-800"
+                variant="ghost"
+                size="sm"
+                className="aria-pressed:bg-card aria-pressed:shadow-sm"
               >
+                <PenLine aria-hidden="true" />
                 Viết
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
                 onClick={() => setViewMode("preview")}
                 aria-pressed={viewMode === "preview"}
-                className="rounded px-2.5 py-1 aria-pressed:bg-white aria-pressed:shadow-sm dark:aria-pressed:bg-zinc-800"
+                variant="ghost"
+                size="sm"
+                className="aria-pressed:bg-card aria-pressed:shadow-sm"
               >
+                <Eye aria-hidden="true" />
                 Xem trước
-              </button>
+              </Button>
             </div>
-            <button
+            <Button
               type="button"
               onClick={() => setFocusMode((value) => !value)}
-              className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
+              variant="outline"
             >
+              {focusMode ? (
+                <Minimize2 aria-hidden="true" />
+              ) : (
+                <Expand aria-hidden="true" />
+              )}
               {focusMode ? "Thoát focus" : "Focus"}
-            </button>
+            </Button>
             {entry.state === "DRAFT" ? (
-              <button
+              <Button
                 disabled={isChangingState}
                 type="button"
                 onClick={() => void changeState("seal")}
-                className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-900"
+                variant="outline"
               >
+                <LockKeyhole aria-hidden="true" />
                 Seal
-              </button>
+              </Button>
             ) : null}
             {entry.state === "SEALED" ? (
-              <button
+              <Button
                 disabled={isChangingState}
                 type="button"
                 onClick={() => void changeState("reopen")}
-                className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-900"
+                variant="outline"
               >
+                <Undo2 aria-hidden="true" />
                 Reopen
-              </button>
+              </Button>
             ) : null}
             {entry.state !== "TRASHED" ? (
-              <button
+              <Button
                 disabled={isChangingState}
                 type="button"
                 onClick={() => void changeState("trash")}
-                className="rounded-md px-3 py-1.5 text-sm text-red-700 hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-950"
+                variant="destructive"
               >
+                <Trash2 aria-hidden="true" />
                 Đưa vào Trash
-              </button>
+              </Button>
             ) : null}
             {entry.state === "TRASHED" ? (
-              <button
+              <Button
                 disabled={isChangingState}
                 type="button"
                 onClick={() => void changeState("restore")}
-                className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-900"
+                variant="outline"
               >
+                <RotateCcw aria-hidden="true" />
                 Khôi phục
-              </button>
+              </Button>
             ) : null}
             {entry.state === "TRASHED" ? (
-              <button
-                disabled={isChangingState}
-                type="button"
-                onClick={() => void deletePermanently()}
-                className="rounded-md bg-red-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-800 disabled:opacity-50"
-              >
-                Xóa vĩnh viễn
-              </button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button disabled={isChangingState} variant="destructive">
+                    <Trash2 aria-hidden="true" />
+                    Xóa vĩnh viễn
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Xóa vĩnh viễn entry?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Nội dung này sẽ biến mất khỏi Magnum Opus và không thể
+                      khôi phục. Chỉ tiếp tục khi nội dung này thực sự không còn
+                      cần thiết.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Giữ lại</AlertDialogCancel>
+                    <AlertDialogAction
+                      variant="destructive"
+                      onClick={() => void deletePermanently()}
+                    >
+                      Xóa vĩnh viễn
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             ) : null}
           </div>
         </header>
 
         {message ? (
-          <div
-            role="alert"
-            className="rounded-lg bg-red-50 p-3 text-sm text-red-800 dark:bg-red-950 dark:text-red-200"
-          >
-            {message}
+          <Alert variant="destructive" role="alert">
+            <AlertDescription>{message}</AlertDescription>
             {saveState === "error" ? (
-              <button
+              <Button
                 type="button"
                 onClick={() => void flush()}
-                className="ml-2 font-semibold underline"
+                variant="link"
+                size="sm"
+                className="mt-1 h-auto p-0 text-destructive"
               >
                 Thử lưu lại
-              </button>
+              </Button>
             ) : null}
-          </div>
+          </Alert>
         ) : null}
 
         <label className="sr-only" htmlFor="journal-title">
@@ -306,7 +356,7 @@ export function JournalEditor({
           readOnly={!editable}
           maxLength={200}
           placeholder="Tiêu đề không bắt buộc"
-          className="w-full bg-transparent text-3xl font-semibold tracking-tight outline-none placeholder:text-zinc-300 read-only:text-zinc-600 dark:placeholder:text-zinc-700 dark:read-only:text-zinc-400"
+          className="font-display w-full bg-transparent text-4xl font-semibold tracking-[-0.025em] outline-none placeholder:text-muted-foreground/35 read-only:text-muted-foreground sm:text-5xl"
         />
 
         {viewMode === "write" ? (
@@ -320,19 +370,21 @@ export function JournalEditor({
               onChange={(event) => setContent(event.target.value)}
               readOnly={!editable}
               autoFocus={editable}
-              placeholder="Điều gì đang sống động trong mày lúc này?"
-              className="min-h-[55vh] w-full resize-none bg-transparent text-base leading-8 outline-none placeholder:text-zinc-400 read-only:text-zinc-700 dark:read-only:text-zinc-300"
+              placeholder="Điều gì đang sống động lúc này?"
+              className="min-h-[55vh] w-full resize-none bg-transparent font-display text-lg leading-9 outline-none placeholder:text-muted-foreground/55 read-only:text-muted-foreground sm:text-xl"
             />
           </>
         ) : (
           <div
             aria-label="Bản xem trước nội dung"
-            className="min-h-[55vh] text-base leading-8 text-zinc-800 [&_a]:text-amber-700 [&_a]:underline [&_blockquote]:border-l-4 [&_blockquote]:border-zinc-300 [&_blockquote]:pl-4 [&_code]:rounded [&_code]:bg-zinc-100 [&_code]:px-1 [&_h1]:mb-5 [&_h1]:text-3xl [&_h1]:font-bold [&_h2]:mb-4 [&_h2]:mt-8 [&_h2]:text-2xl [&_h2]:font-semibold [&_h3]:mb-3 [&_h3]:mt-6 [&_h3]:text-xl [&_h3]:font-semibold [&_hr]:my-8 [&_li]:ml-6 [&_ol]:list-decimal [&_p]:mb-4 [&_pre]:mb-4 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-zinc-100 [&_pre]:p-4 [&_ul]:list-disc dark:text-zinc-200 dark:[&_a]:text-amber-400 dark:[&_code]:bg-zinc-900 dark:[&_pre]:bg-zinc-900"
+            className="min-h-[55vh] font-display text-lg leading-9 text-foreground [&_a]:text-primary [&_a]:underline [&_blockquote]:border-l-4 [&_blockquote]:border-primary/35 [&_blockquote]:pl-5 [&_blockquote]:italic [&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_h1]:mb-5 [&_h1]:text-4xl [&_h1]:font-semibold [&_h2]:mb-4 [&_h2]:mt-8 [&_h2]:text-3xl [&_h2]:font-semibold [&_h3]:mb-3 [&_h3]:mt-6 [&_h3]:text-2xl [&_h3]:font-semibold [&_hr]:my-8 [&_li]:ml-6 [&_ol]:list-decimal [&_p]:mb-4 [&_pre]:mb-4 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-muted [&_pre]:p-4 [&_ul]:list-disc sm:text-xl"
           >
             {content ? (
               <Markdown remarkPlugins={[remarkGfm]}>{content}</Markdown>
             ) : (
-              <p className="text-zinc-400">Entry này chưa có nội dung.</p>
+              <p className="text-muted-foreground">
+                Entry này chưa có nội dung.
+              </p>
             )}
           </div>
         )}

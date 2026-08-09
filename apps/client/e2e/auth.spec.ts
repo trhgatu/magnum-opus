@@ -151,13 +151,15 @@ test.describe("Client authentication boundary", () => {
 
     await expect(page).toHaveURL(/\/me$/);
     await expect(
-      page.getByRole("heading", { name: "Hồ sơ của tôi" }),
+      page.getByRole("heading", { name: "Hồ sơ cá nhân" }),
     ).toBeVisible();
     await expect(page.getByRole("banner")).toBeVisible();
     await expect(
       page.getByRole("navigation", { name: "Điều hướng tài khoản" }),
     ).toBeVisible();
-    await expect(page.getByText(ADMIN_EMAIL, { exact: true })).toBeVisible();
+    await expect(
+      page.getByLabel("Hồ sơ cá nhân").getByText(ADMIN_EMAIL, { exact: true }),
+    ).toBeVisible();
 
     const sessionCookie = (await page.context().cookies()).find(
       (cookie) => cookie.name === "client_session",
@@ -169,7 +171,9 @@ test.describe("Client authentication boundary", () => {
 
     await page.reload();
     await expect(page).toHaveURL(/\/me$/);
-    await expect(page.getByText(ADMIN_EMAIL, { exact: true })).toBeVisible();
+    await expect(
+      page.getByLabel("Hồ sơ cá nhân").getByText(ADMIN_EMAIL, { exact: true }),
+    ).toBeVisible();
     expect(browserRequests.some((url) => url.startsWith(API_URL))).toBe(false);
   });
 
@@ -179,7 +183,6 @@ test.describe("Client authentication boundary", () => {
     await login(page);
     await expect(page).toHaveURL(/\/me$/);
 
-    await page.getByLabel("Mở menu tài khoản").click();
     await page.getByRole("button", { name: "Đăng xuất" }).click();
 
     await expect(page).toHaveURL(/\/$/);
@@ -213,7 +216,6 @@ test.describe("Client authentication boundary", () => {
 
     await expect(page.getByRole("banner")).toBeVisible();
     await expect(page.locator("#account-content")).toBeVisible();
-    await page.getByLabel("Mở menu tài khoản").click();
     await expect(
       page.getByRole("link", { name: "Hồ sơ", exact: true }),
     ).toBeVisible();
@@ -245,7 +247,7 @@ test.describe("Client session lifecycle", () => {
 
     await expect(page).toHaveURL(/\/me$/);
     await expect(
-      page.getByRole("heading", { name: "Hồ sơ của tôi" }),
+      page.getByRole("heading", { name: "Hồ sơ cá nhân" }),
     ).toBeVisible();
     const refreshedCookie = (await context.cookies()).find(
       (cookie) => cookie.name === SESSION_COOKIE,
@@ -290,10 +292,10 @@ test.describe("Client session lifecycle", () => {
     await expect(page).toHaveURL(/\/me$/);
     await expect(secondPage).toHaveURL(/\/me$/);
     await expect(
-      page.getByRole("heading", { name: "Hồ sơ của tôi" }),
+      page.getByRole("heading", { name: "Hồ sơ cá nhân" }),
     ).toBeVisible();
     await expect(
-      secondPage.getByRole("heading", { name: "Hồ sơ của tôi" }),
+      secondPage.getByRole("heading", { name: "Hồ sơ cá nhân" }),
     ).toBeVisible();
   });
 });

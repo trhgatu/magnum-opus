@@ -2,6 +2,10 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { register, type RegisterState } from "../actions/auth";
 
 export function RegisterForm() {
@@ -13,13 +17,16 @@ export function RegisterForm() {
     field: "email" | "username" | "password" | "confirmPassword",
   ) => (state.status === "error" ? state.fieldErrors?.[field]?.[0] : undefined);
   return (
-    <form action={action} className="flex flex-col gap-4" noValidate>
+    <form action={action} className="flex flex-col gap-5" noValidate>
       {state.status === "error" && state.formError ? (
-        <p role="alert">{state.formError}</p>
+        <Alert variant="destructive" role="alert">
+          <AlertDescription>{state.formError}</AlertDescription>
+        </Alert>
       ) : null}
-      <label className="flex flex-col gap-1 text-sm">
-        Email
-        <input
+      <div className="space-y-2">
+        <Label htmlFor="register-email">Email</Label>
+        <Input
+          id="register-email"
           name="email"
           type="email"
           autoComplete="email"
@@ -28,15 +35,16 @@ export function RegisterForm() {
             state.status === "error" ? state.values?.email : undefined
           }
           aria-invalid={error("email") ? true : undefined}
-          className="rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+          className="h-11 bg-card/60"
         />
         {error("email") ? (
-          <span className="text-xs text-red-700">{error("email")}</span>
+          <p className="text-xs text-destructive">{error("email")}</p>
         ) : null}
-      </label>
-      <label className="flex flex-col gap-1 text-sm">
-        Tên hiển thị
-        <input
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="register-username">Tên hiển thị</Label>
+        <Input
+          id="register-username"
           name="username"
           autoComplete="username"
           required
@@ -45,52 +53,51 @@ export function RegisterForm() {
             state.status === "error" ? state.values?.username : undefined
           }
           aria-invalid={error("username") ? true : undefined}
-          className="rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+          className="h-11 bg-card/60"
         />
         {error("username") ? (
-          <span className="text-xs text-red-700">{error("username")}</span>
+          <p className="text-xs text-destructive">{error("username")}</p>
         ) : null}
-      </label>
-      <label className="flex flex-col gap-1 text-sm">
-        Mật khẩu
-        <input
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="register-password">Mật khẩu</Label>
+        <Input
+          id="register-password"
           name="password"
           type="password"
           autoComplete="new-password"
           required
           minLength={12}
           aria-invalid={error("password") ? true : undefined}
-          className="rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+          className="h-11 bg-card/60"
         />
         {error("password") ? (
-          <span className="text-xs text-red-700">{error("password")}</span>
+          <p className="text-xs text-destructive">{error("password")}</p>
         ) : null}
-      </label>
-      <label className="flex flex-col gap-1 text-sm">
-        Nhập lại mật khẩu
-        <input
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="register-confirm-password">Nhập lại mật khẩu</Label>
+        <Input
+          id="register-confirm-password"
           name="confirmPassword"
           type="password"
           autoComplete="new-password"
           required
           minLength={12}
           aria-invalid={error("confirmPassword") ? true : undefined}
-          className="rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+          className="h-11 bg-card/60"
         />
         {error("confirmPassword") ? (
-          <span className="text-xs text-red-700">
-            {error("confirmPassword")}
-          </span>
+          <p className="text-xs text-destructive">{error("confirmPassword")}</p>
         ) : null}
-      </label>
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-white dark:text-zinc-900"
-      >
+      </div>
+      <Button type="submit" disabled={pending} size="lg" className="w-full">
         {pending ? "Đang tạo tài khoản…" : "Tạo tài khoản"}
-      </button>
-      <Link href="/login" className="text-sm underline">
+      </Button>
+      <Link
+        href="/login"
+        className="text-center text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+      >
         Đã có tài khoản? Đăng nhập
       </Link>
     </form>
