@@ -55,7 +55,7 @@ test("completes the private Journal lifecycle through the BFF", async ({
   await expect(page).toHaveURL(/\/journal\?state=TRASHED$/);
   await page.getByRole("link", { name: new RegExp(title) }).click();
   await page.getByRole("button", { name: "Khôi phục" }).click();
-  await page.getByRole("button", { name: "← Journal" }).click();
+  await page.getByRole("button", { name: "Journal", exact: true }).click();
 
   await page.getByLabel("Tìm trong journal").fill(title);
   await page.getByRole("button", { name: "Tìm", exact: true }).click();
