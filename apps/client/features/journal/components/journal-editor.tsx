@@ -310,8 +310,8 @@ export function JournalEditor({
                     <AlertDialogTitle>Xóa vĩnh viễn entry?</AlertDialogTitle>
                     <AlertDialogDescription>
                       Nội dung này sẽ biến mất khỏi Magnum Opus và không thể
-                      khôi phục. Chỉ tiếp tục khi mày chắc chắn không còn cần
-                      nó.
+                      khôi phục. Chỉ tiếp tục khi nội dung này thực sự không còn
+                      cần thiết.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -370,7 +370,7 @@ export function JournalEditor({
               onChange={(event) => setContent(event.target.value)}
               readOnly={!editable}
               autoFocus={editable}
-              placeholder="Điều gì đang sống động trong mày lúc này?"
+              placeholder="Điều gì đang sống động lúc này?"
               className="min-h-[55vh] w-full resize-none bg-transparent font-display text-lg leading-9 outline-none placeholder:text-muted-foreground/55 read-only:text-muted-foreground sm:text-xl"
             />
           </>

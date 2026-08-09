@@ -69,7 +69,7 @@ export default async function JournalPage({ searchParams }: JournalPageProps) {
         id="journal-heading"
         eyebrow="Reflection"
         title="Journal"
-        description="Một nơi riêng tư để giữ lại điều đang sống động trong mày, trước khi nó trôi qua."
+        description="Một nơi riêng tư để giữ lại điều đang sống động, trước khi nó trôi qua."
         actions={
           <form action={createJournalEntry}>
             <CreateEntryButton />
@@ -134,7 +134,7 @@ export default async function JournalPage({ searchParams }: JournalPageProps) {
                 </Badge>
               </div>
               <p className="mt-3 line-clamp-3 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
-                {entry.content || "Một trang trắng đang chờ mày."}
+                {entry.content || "Một trang trắng đang chờ được viết."}
               </p>
               <time
                 className="mt-auto pt-6 font-mono text-[11px] text-muted-foreground"
@@ -153,7 +153,7 @@ export default async function JournalPage({ searchParams }: JournalPageProps) {
               ? "Thử một từ khóa khác hoặc bỏ bộ lọc hiện tại."
               : state === "TRASHED"
                 ? "Trash đang trống."
-                : "Bắt đầu bằng một dòng đang có trong đầu mày."
+                : "Bắt đầu bằng một dòng đang hiện diện trong tâm trí."
           }
         />
       )}

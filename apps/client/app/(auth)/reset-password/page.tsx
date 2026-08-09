@@ -17,7 +17,7 @@ export default async function ResetPasswordPage({
     <section className="flex flex-col gap-7">
       <AuthHeading
         title="Đặt lại mật khẩu"
-        description="Chọn một mật khẩu mới đủ dài và chỉ mày biết."
+        description="Chọn một mật khẩu mới đủ dài, an toàn và dễ ghi nhớ."
       />
       <ResetPasswordForm token={token} />
     </section>

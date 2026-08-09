@@ -18,7 +18,7 @@ export default async function LoginPage({
     <section className="flex flex-col gap-7">
       <AuthHeading
         title="Đăng nhập"
-        description="Tiếp tục từ nơi mày đã dừng lại. Không gian này vẫn đang chờ."
+        description="Tiếp tục từ nơi đã dừng lại. Không gian này vẫn đang chờ."
       />
       <LoginForm next={next ?? "/me"} />
     </section>

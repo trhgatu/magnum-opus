@@ -20,21 +20,21 @@ export const metadata: Metadata = {
 const principles = [
   {
     icon: BookOpenText,
-    title: "Ghi lại điều đang sống",
+    title: "Giữ lại điều đã sống",
     description:
-      "Journal giữ suy nghĩ ở đúng hình dạng của nó, trước khi thời gian làm mờ đi.",
+      "Journal lưu giữ suy nghĩ, ký ức và cảm xúc trước khi thời gian làm chúng phai mờ.",
   },
   {
     icon: Compass,
-    title: "Nhìn thấy phương hướng",
+    title: "Nhận ra những mẫu hình",
     description:
-      "Từ những dấu vết nhỏ, mày nhận ra điều gì đang nuôi dưỡng hoặc kéo mình lệch hướng.",
+      "Những dấu vết rời rạc dần hé lộ điều đang nuôi dưỡng hoặc khiến đời sống lệch hướng.",
   },
   {
     icon: Sparkles,
-    title: "Chuyển hóa bằng hành động",
+    title: "Chuyển hiểu biết thành lựa chọn",
     description:
-      "Reflection không dừng ở việc hiểu. Nó trở thành lựa chọn cho ngày tiếp theo.",
+      "Sự soi chiếu không dừng ở nhận thức, mà tiếp tục trong những lựa chọn của ngày kế tiếp.",
   },
 ];
 
@@ -74,28 +74,28 @@ export default function HomePage() {
 
       <section className="mx-auto flex max-w-5xl flex-col items-center px-5 pb-20 pt-20 text-center sm:px-8 sm:pb-28 sm:pt-28">
         <p className="mb-6 text-xs font-semibold uppercase tracking-[0.28em] text-primary">
-          The work of a lifetime
+          Nghệ thuật của sự chuyển hóa
         </p>
         <h1 className="text-balance font-display text-5xl font-semibold leading-[0.98] tracking-[-0.045em] sm:text-7xl lg:text-8xl">
-          Cuộc đời của mày
+          Đời sống là nguyên liệu
           <span className="mt-2 block italic text-primary">
-            là đại tác phẩm.
+            của một đại tác phẩm.
           </span>
         </h1>
         <p className="mt-8 max-w-2xl text-balance text-base leading-7 text-muted-foreground sm:text-lg">
-          Một không gian riêng để dừng lại, lắng nghe và biến những điều mơ hồ
-          thành một đời sống có chủ đích. Không bảng xếp hạng. Không áp lực phải
-          trở thành ai khác.
+          Magnum Opus là không gian riêng để ghi lại điều đã sống, nhận ra những
+          mẫu hình đang hình thành và chuyển sự thấu hiểu thành một đời sống có
+          chủ đích. Không bảng xếp hạng. Không áp lực trở thành một ai khác.
         </p>
         <div className="mt-9 flex flex-col gap-3 sm:flex-row">
           <Button asChild size="lg" className="min-w-40">
             <Link href="/register">
-              Tạo không gian của tôi
+              Mở không gian riêng
               <ArrowRight data-icon="inline-end" />
             </Link>
           </Button>
           <Button asChild size="lg" variant="outline" className="min-w-40">
-            <Link href="/me">Trở về không gian riêng</Link>
+            <Link href="/me">Tiếp tục hành trình</Link>
           </Button>
         </div>
       </section>

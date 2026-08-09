@@ -12,7 +12,7 @@ export default function ForgotPasswordPage() {
     <section className="flex flex-col gap-7">
       <AuthHeading
         title="Quên mật khẩu"
-        description="Nhập email của mày. Vì sự riêng tư, kết quả luôn giống nhau dù tài khoản có tồn tại hay không."
+        description="Nhập email đã dùng để đăng ký. Vì sự riêng tư, kết quả luôn giống nhau dù tài khoản có tồn tại hay không."
       />
       <RequestPasswordResetForm />
     </section>

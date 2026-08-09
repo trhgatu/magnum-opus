@@ -151,7 +151,7 @@ test.describe("Client authentication boundary", () => {
 
     await expect(page).toHaveURL(/\/me$/);
     await expect(
-      page.getByRole("heading", { name: "Hồ sơ của tôi" }),
+      page.getByRole("heading", { name: "Hồ sơ cá nhân" }),
     ).toBeVisible();
     await expect(page.getByRole("banner")).toBeVisible();
     await expect(
@@ -247,7 +247,7 @@ test.describe("Client session lifecycle", () => {
 
     await expect(page).toHaveURL(/\/me$/);
     await expect(
-      page.getByRole("heading", { name: "Hồ sơ của tôi" }),
+      page.getByRole("heading", { name: "Hồ sơ cá nhân" }),
     ).toBeVisible();
     const refreshedCookie = (await context.cookies()).find(
       (cookie) => cookie.name === SESSION_COOKIE,
@@ -292,10 +292,10 @@ test.describe("Client session lifecycle", () => {
     await expect(page).toHaveURL(/\/me$/);
     await expect(secondPage).toHaveURL(/\/me$/);
     await expect(
-      page.getByRole("heading", { name: "Hồ sơ của tôi" }),
+      page.getByRole("heading", { name: "Hồ sơ cá nhân" }),
     ).toBeVisible();
     await expect(
-      secondPage.getByRole("heading", { name: "Hồ sơ của tôi" }),
+      secondPage.getByRole("heading", { name: "Hồ sơ cá nhân" }),
     ).toBeVisible();
   });
 });

@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { getCurrentUser } from "@/features/account/api/current-user";
 
 export const metadata: Metadata = {
-  title: "Hồ sơ của tôi",
+  title: "Hồ sơ cá nhân",
   robots: { index: false, follow: false },
 };
 
@@ -20,7 +20,7 @@ export default async function MePage() {
       <PageHeading
         id="profile-heading"
         eyebrow="Tài khoản"
-        title="Hồ sơ của tôi"
+        title="Hồ sơ cá nhân"
         description="Thông tin định danh mà Magnum Opus đang sử dụng cho không gian riêng này."
       />
 

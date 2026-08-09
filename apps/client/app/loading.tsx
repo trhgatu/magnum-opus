@@ -10,7 +10,7 @@ export default function Loading() {
     >
       <div className="mb-8 flex items-center gap-3 text-muted-foreground">
         <BrandMark className="animate-pulse" />
-        <span className="text-sm">Đang mở không gian của mày…</span>
+        <span className="text-sm">Đang mở không gian…</span>
       </div>
       <div className="space-y-4" aria-hidden="true">
         <Skeleton className="h-10 w-2/3" />

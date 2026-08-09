@@ -17,7 +17,7 @@ export default async function CheckEmailPage({
     <section className="flex flex-col gap-7">
       <AuthHeading
         title="Kiểm tra email"
-        description="Liên kết xác minh có hiệu lực trong 24 giờ. Nếu chưa thấy, mày có thể yêu cầu gửi lại."
+        description="Liên kết xác minh có hiệu lực trong 24 giờ. Nếu chưa nhận được, có thể yêu cầu gửi lại."
       />
       <ResendVerificationForm email={email} />
     </section>
