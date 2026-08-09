@@ -16,7 +16,7 @@ export const createPinoHttpOptions = (
   environment: NodeJS.ProcessEnv = process.env,
 ) => ({
   level:
-    environment.LOG_LEVEL ??
+    environment.LOG_LEVEL?.trim() ||
     (environment.NODE_ENV === 'production' ? 'info' : 'debug'),
   // RequestContextInterceptor owns the single request-completed event.
   autoLogging: false,

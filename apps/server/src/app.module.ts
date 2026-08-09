@@ -13,6 +13,7 @@ import { MenuModule } from './contexts/menu/menu.module';
 import { RealtimeModule } from '@infrastructure/realtime/realtime.module';
 import { NotificationsModule } from './contexts/notifications/notifications.module';
 import { AuditModule } from './contexts/audit/audit.module';
+import { ReflectionModule } from './contexts/reflection/reflection.module';
 
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { AuditLogInterceptor } from '@presentation/interceptors/audit-log.interceptor';
@@ -51,6 +52,7 @@ import { createPinoHttpOptions } from '@infrastructure/observability/logger.conf
     RealtimeModule,
     NotificationsModule,
     AuditModule,
+    ReflectionModule,
     HealthModule,
   ],
   providers: [

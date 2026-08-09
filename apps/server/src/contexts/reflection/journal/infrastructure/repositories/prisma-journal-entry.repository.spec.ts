@@ -185,6 +185,9 @@ describe('PrismaJournalEntryRepository', () => {
       expect(journalEntry.findMany).toHaveBeenCalledWith({
         where: {
           ownerId: 'owner-1',
+          state: {
+            not: PrismaJournalEntryState.TRASHED,
+          },
         },
         orderBy: {
           updatedAt: 'desc',

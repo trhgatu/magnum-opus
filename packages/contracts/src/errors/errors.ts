@@ -142,6 +142,21 @@ export const Errors = {
     translationKey: 'exceptions.journal.entry.transition.invalid',
     statusCode: 409,
   },
+  JOURNAL_ENTRY_NOT_FOUND: {
+    code: 'JOURNAL_ENTRY_NOT_FOUND',
+    translationKey: 'exceptions.journal.entry.not.found',
+    statusCode: 404,
+  },
+  JOURNAL_ENTRY_REVISION_CONFLICT: {
+    code: 'JOURNAL_ENTRY_REVISION_CONFLICT',
+    translationKey: 'exceptions.journal.entry.revision.conflict',
+    statusCode: 409,
+  },
+  JOURNAL_ENTRY_PERMANENT_DELETE_FORBIDDEN: {
+    code: 'JOURNAL_ENTRY_PERMANENT_DELETE_FORBIDDEN',
+    translationKey: 'exceptions.journal.entry.permanent.delete.forbidden',
+    statusCode: 409,
+  },
 } as const;
 
 export type ErrorDefinition = (typeof Errors)[keyof typeof Errors];

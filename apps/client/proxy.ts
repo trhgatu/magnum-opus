@@ -7,7 +7,7 @@ import {
 } from "@/lib/session";
 import { refreshSessionSingleFlight } from "@/lib/refresh-session";
 
-const PROTECTED_PREFIXES = ["/me"];
+const PROTECTED_PREFIXES = ["/me", "/journal"];
 const REFRESH_THRESHOLD_SECONDS = 60;
 
 const loginUrlFor = (request: NextRequest): URL => {

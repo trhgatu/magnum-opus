@@ -76,11 +76,9 @@ export class PrismaJournalEntryRepository implements JournalEntryRepository {
 
     const where: Prisma.JournalEntryWhereInput = {
       ownerId,
-      ...(options.state
-        ? {
-            state: options.state as PrismaJournalEntryState,
-          }
-        : {}),
+      state: options.state
+        ? (options.state as PrismaJournalEntryState)
+        : { not: PrismaJournalEntryState.TRASHED },
       ...(search
         ? {
             OR: [
