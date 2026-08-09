@@ -1,18 +1,9 @@
 import type { User } from "@repo/types";
-import { BookOpenText, ChevronDown, UserRound } from "lucide-react";
+import { BookOpenText, LogOut, UserRound } from "lucide-react";
 import Link from "next/link";
 
 import { BrandMark } from "@/components/system/brand-mark";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { LogoutMenuItem } from "@/features/account/components/logout-menu-item";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { logout } from "@/features/auth/actions/auth";
 
 interface AccountShellProps {
@@ -47,63 +38,53 @@ export function AccountShell({ children, user }: AccountShellProps) {
             </span>
           </Link>
 
+          <div className="ml-auto hidden min-w-0 items-center gap-2 md:flex">
+            <span
+              aria-hidden="true"
+              className="grid size-7 shrink-0 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground"
+            >
+              {user.username.slice(0, 1).toUpperCase()}
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-xs font-medium">
+                @{user.username}
+              </span>
+              <span className="block max-w-44 truncate text-[11px] text-muted-foreground">
+                {user.email}
+              </span>
+            </span>
+          </div>
+
           <nav
             aria-label="Điều hướng tài khoản"
-            className="ml-auto hidden items-center gap-1 sm:flex"
+            className="ml-auto flex items-center gap-1 md:ml-0"
           >
             {navigation.map(({ href, label, icon: Icon }) => (
-              <Button key={href} asChild variant="ghost">
-                <Link href={href}>
-                  <Icon data-icon="inline-start" aria-hidden="true" />
-                  {label}
-                </Link>
-              </Button>
-            ))}
-          </nav>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                aria-label="Mở menu tài khoản"
-                className="ml-auto gap-2 bg-card/60 sm:ml-0"
+              <Link
+                key={href}
+                href={href}
+                aria-label={label}
+                className={buttonVariants({
+                  variant: "ghost",
+                  className: "px-2 sm:px-2.5",
+                })}
               >
-                <span
-                  aria-hidden="true"
-                  className="grid size-6 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground"
-                >
-                  {user.username.slice(0, 1).toUpperCase()}
-                </span>
-                <span className="hidden max-w-40 truncate sm:inline">
-                  @{user.username}
-                </span>
-                <ChevronDown className="size-3.5 text-muted-foreground" />
+                <Icon data-icon="inline-start" aria-hidden="true" />
+                <span className="hidden sm:inline">{label}</span>
+              </Link>
+            ))}
+            <form action={logout}>
+              <Button
+                type="submit"
+                variant="ghost"
+                aria-label="Đăng xuất"
+                className="px-2 text-destructive hover:text-destructive sm:px-2.5"
+              >
+                <LogOut aria-hidden="true" />
+                <span className="hidden sm:inline">Đăng xuất</span>
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64">
-              <DropdownMenuLabel className="font-normal">
-                <span className="block text-xs text-muted-foreground">
-                  Đăng nhập với
-                </span>
-                <span className="mt-1 block truncate text-sm font-medium">
-                  {user.email}
-                </span>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <div className="sm:hidden">
-                {navigation.map(({ href, label, icon: Icon }) => (
-                  <DropdownMenuItem key={href} asChild>
-                    <Link href={href}>
-                      <Icon aria-hidden="true" />
-                      {label}
-                    </Link>
-                  </DropdownMenuItem>
-                ))}
-                <DropdownMenuSeparator />
-              </div>
-              <LogoutMenuItem action={logout} />
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </form>
+          </nav>
         </div>
       </header>
 

@@ -6,7 +6,7 @@ import { EmptyState } from "@/components/system/empty-state";
 import { PageHeading } from "@/components/system/page-heading";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { createJournalEntry } from "@/features/journal/actions/journal";
 import { getJournalEntries } from "@/features/journal/api/journal";
 import { CreateEntryButton } from "@/features/journal/components/create-entry-button";
@@ -168,18 +168,20 @@ export default async function JournalPage({ searchParams }: JournalPageProps) {
           </span>
           <div className="flex gap-2">
             {page > 1 ? (
-              <Button asChild variant="outline">
-                <Link href={hrefFor({ page: page - 1, search, state })}>
-                  Trang trước
-                </Link>
-              </Button>
+              <Link
+                href={hrefFor({ page: page - 1, search, state })}
+                className={buttonVariants({ variant: "outline" })}
+              >
+                Trang trước
+              </Link>
             ) : null}
             {page < result.meta.totalPages ? (
-              <Button asChild variant="outline">
-                <Link href={hrefFor({ page: page + 1, search, state })}>
-                  Trang sau
-                </Link>
-              </Button>
+              <Link
+                href={hrefFor({ page: page + 1, search, state })}
+                className={buttonVariants({ variant: "outline" })}
+              >
+                Trang sau
+              </Link>
             ) : null}
           </div>
         </nav>

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
 import { useActionState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { resetPassword, type ResetPasswordState } from "../actions/auth";
@@ -23,9 +23,9 @@ export function ResetPasswordForm({ token }: { token: string }) {
             Mật khẩu đã được thay đổi. Tất cả thiết bị cũ đã đăng xuất.
           </AlertDescription>
         </Alert>
-        <Button asChild>
-          <Link href="/login">Đăng nhập bằng mật khẩu mới</Link>
-        </Button>
+        <Link href="/login" className={buttonVariants()}>
+          Đăng nhập bằng mật khẩu mới
+        </Link>
       </div>
     );
   }

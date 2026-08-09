@@ -4,7 +4,7 @@ import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
 import { useActionState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -26,9 +26,9 @@ export function ResendVerificationForm({ email }: { email: string }) {
             Nếu tài khoản cần xác minh, một liên kết mới đã được gửi.
           </AlertDescription>
         </Alert>
-        <Button asChild variant="outline">
-          <Link href="/login">Quay lại đăng nhập</Link>
-        </Button>
+        <Link href="/login" className={buttonVariants({ variant: "outline" })}>
+          Quay lại đăng nhập
+        </Link>
       </div>
     );
   const emailError =

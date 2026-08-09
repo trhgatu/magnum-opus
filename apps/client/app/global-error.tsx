@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import "./globals.css";
 
 export default function GlobalError({ reset }: { reset: () => void }) {
@@ -17,9 +16,13 @@ export default function GlobalError({ reset }: { reset: () => void }) {
           <p className="text-sm leading-6 text-muted-foreground">
             Không thể dựng giao diện lúc này. Hãy thử tải lại ứng dụng.
           </p>
-          <Button type="button" onClick={reset}>
+          <button
+            type="button"
+            onClick={reset}
+            className="inline-flex h-8 items-center justify-center rounded-lg bg-primary px-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
             Tải lại
-          </Button>
+          </button>
         </main>
       </body>
     </html>

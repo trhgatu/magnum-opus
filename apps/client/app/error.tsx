@@ -1,15 +1,15 @@
 "use client";
 
-import { AlertTriangle } from "lucide-react";
 import { BrandMark } from "@/components/system/brand-mark";
-import { Button } from "@/components/ui/button";
 
 export default function RouteError({ reset }: { reset: () => void }) {
   return (
     <main className="mx-auto flex min-h-[70vh] max-w-lg flex-col items-center justify-center gap-5 px-6 text-center">
       <BrandMark />
       <span className="grid size-11 place-items-center rounded-full bg-destructive/10 text-destructive">
-        <AlertTriangle className="size-5" aria-hidden="true" />
+        <span className="font-display text-xl font-semibold" aria-hidden="true">
+          !
+        </span>
       </span>
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-destructive">
         Không thể tải nội dung
@@ -20,9 +20,13 @@ export default function RouteError({ reset }: { reset: () => void }) {
       <p className="text-sm leading-6 text-muted-foreground">
         Vui lòng thử lại. Nếu lỗi tiếp tục xảy ra, hãy quay về trang chủ.
       </p>
-      <Button type="button" onClick={reset} size="lg">
+      <button
+        type="button"
+        onClick={reset}
+        className="inline-flex h-9 items-center justify-center rounded-lg bg-primary px-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      >
         Thử lại
-      </Button>
+      </button>
     </main>
   );
 }

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ArrowRight, BookOpenText, Compass, Sparkles } from "lucide-react";
 
 import { BrandMark } from "@/components/system/brand-mark";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 
 export const metadata: Metadata = {
   title: "Sống có chủ đích",
@@ -60,15 +60,16 @@ export default function HomePage() {
           </span>
         </Link>
         <div className="flex items-center gap-2">
-          <Button asChild variant="ghost">
-            <Link href="/login">Đăng nhập</Link>
-          </Button>
-          <Button asChild className="hidden sm:inline-flex">
-            <Link href="/register">
-              Bắt đầu
-              <ArrowRight data-icon="inline-end" />
-            </Link>
-          </Button>
+          <Link href="/login" className={buttonVariants({ variant: "ghost" })}>
+            Đăng nhập
+          </Link>
+          <Link
+            href="/register"
+            className={buttonVariants({ className: "hidden sm:inline-flex" })}
+          >
+            Bắt đầu
+            <ArrowRight data-icon="inline-end" />
+          </Link>
         </div>
       </nav>
 
@@ -88,15 +89,23 @@ export default function HomePage() {
           chủ đích. Không bảng xếp hạng. Không áp lực trở thành một ai khác.
         </p>
         <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-          <Button asChild size="lg" className="min-w-40">
-            <Link href="/register">
-              Mở không gian riêng
-              <ArrowRight data-icon="inline-end" />
-            </Link>
-          </Button>
-          <Button asChild size="lg" variant="outline" className="min-w-40">
-            <Link href="/me">Tiếp tục hành trình</Link>
-          </Button>
+          <Link
+            href="/register"
+            className={buttonVariants({ size: "lg", className: "min-w-40" })}
+          >
+            Mở không gian riêng
+            <ArrowRight data-icon="inline-end" />
+          </Link>
+          <Link
+            href="/me"
+            className={buttonVariants({
+              size: "lg",
+              variant: "outline",
+              className: "min-w-40",
+            })}
+          >
+            Tiếp tục hành trình
+          </Link>
         </div>
       </section>
 

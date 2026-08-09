@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { BrandMark } from "@/components/system/brand-mark";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 
 export default function NotFound() {
   return (
@@ -15,9 +15,12 @@ export default function NotFound() {
       <p className="text-sm leading-6 text-muted-foreground">
         Đường dẫn không tồn tại hoặc nội dung đã được di chuyển.
       </p>
-      <Button asChild variant="outline" size="lg">
-        <Link href="/">Về trang chủ</Link>
-      </Button>
+      <Link
+        href="/"
+        className={buttonVariants({ variant: "outline", size: "lg" })}
+      >
+        Về trang chủ
+      </Link>
     </main>
   );
 }

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
 import { useActionState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { verifyEmail, type VerifyEmailState } from "../actions/auth";
 
 export function VerifyEmailForm({ token }: { token: string }) {
@@ -19,9 +19,9 @@ export function VerifyEmailForm({ token }: { token: string }) {
           <CheckCircle2 aria-hidden="true" />
           <AlertDescription>Email đã được xác minh.</AlertDescription>
         </Alert>
-        <Button asChild>
-          <Link href="/login">Đăng nhập</Link>
-        </Button>
+        <Link href="/login" className={buttonVariants()}>
+          Đăng nhập
+        </Link>
       </div>
     );
   return (
