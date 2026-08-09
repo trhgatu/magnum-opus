@@ -1,8 +1,11 @@
 "use client";
 
 import type { JournalEntryState } from "@repo/contracts";
+import { Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export function JournalSearch({
   initialSearch,
@@ -32,21 +35,19 @@ export function JournalSearch({
       <label htmlFor="journal-search" className="sr-only">
         Tìm trong journal
       </label>
-      <input
+      <Input
         id="journal-search"
         name="search"
         type="search"
         value={search}
         onChange={(event) => setSearch(event.target.value)}
         placeholder="Tìm trong tiêu đề hoặc nội dung…"
-        className="min-w-0 flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-500 focus:ring-2 focus:ring-zinc-200 dark:border-zinc-700 dark:bg-zinc-950 dark:focus:ring-zinc-800"
+        className="min-w-0 flex-1 bg-card/65"
       />
-      <button
-        type="submit"
-        className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
-      >
+      <Button type="submit" variant="outline">
+        <Search data-icon="inline-start" aria-hidden="true" />
         Tìm
-      </button>
+      </Button>
     </form>
   );
 }

@@ -1,7 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { CheckCircle2 } from "lucide-react";
 import { useActionState } from "react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   requestPasswordReset,
   type RequestPasswordResetState,
@@ -15,14 +20,17 @@ export function RequestPasswordResetForm() {
 
   if (state.status === "success") {
     return (
-      <div role="status" className="flex flex-col gap-4">
-        <p>
-          Nếu tài khoản tồn tại, chúng tôi đã gửi một liên kết có hiệu lực trong
-          30 phút.
-        </p>
-        <Link className="underline" href="/login">
-          Quay lại đăng nhập
-        </Link>
+      <div role="status" className="flex flex-col gap-5">
+        <Alert>
+          <CheckCircle2 aria-hidden="true" />
+          <AlertDescription>
+            Nếu tài khoản tồn tại, chúng tôi đã gửi một liên kết có hiệu lực
+            trong 30 phút.
+          </AlertDescription>
+        </Alert>
+        <Button asChild variant="outline">
+          <Link href="/login">Quay lại đăng nhập</Link>
+        </Button>
       </div>
     );
   }
@@ -30,13 +38,16 @@ export function RequestPasswordResetForm() {
   const emailError =
     state.status === "error" ? state.fieldErrors?.email?.[0] : undefined;
   return (
-    <form action={action} className="flex flex-col gap-4" noValidate>
+    <form action={action} className="flex flex-col gap-5" noValidate>
       {state.status === "error" && state.formError ? (
-        <p role="alert">{state.formError}</p>
+        <Alert variant="destructive" role="alert">
+          <AlertDescription>{state.formError}</AlertDescription>
+        </Alert>
       ) : null}
-      <label className="flex flex-col gap-1 text-sm">
-        Email
-        <input
+      <div className="space-y-2">
+        <Label htmlFor="reset-email">Email</Label>
+        <Input
+          id="reset-email"
           name="email"
           type="email"
           autoComplete="email"
@@ -46,22 +57,21 @@ export function RequestPasswordResetForm() {
           }
           aria-invalid={emailError ? true : undefined}
           aria-describedby={emailError ? "reset-email-error" : undefined}
-          className="rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+          className="h-11 bg-card/60"
         />
         {emailError ? (
-          <span id="reset-email-error" className="text-xs text-red-700">
+          <p id="reset-email-error" className="text-xs text-destructive">
             {emailError}
-          </span>
+          </p>
         ) : null}
-      </label>
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-white dark:text-zinc-900"
-      >
+      </div>
+      <Button type="submit" disabled={pending} size="lg">
         {pending ? "Đang gửi…" : "Gửi liên kết đặt lại"}
-      </button>
-      <Link className="text-sm underline" href="/login">
+      </Button>
+      <Link
+        className="text-center text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+        href="/login"
+      >
         Quay lại đăng nhập
       </Link>
     </form>

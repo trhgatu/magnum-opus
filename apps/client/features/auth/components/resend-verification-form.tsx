@@ -1,7 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { CheckCircle2 } from "lucide-react";
 import { useActionState } from "react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   resendEmailVerification,
   type ResendVerificationState,
@@ -14,42 +19,46 @@ export function ResendVerificationForm({ email }: { email: string }) {
   >(resendEmailVerification, { status: "idle" });
   if (state.status === "success")
     return (
-      <div role="status" className="flex flex-col gap-4">
-        <p>Nếu tài khoản cần xác minh, một liên kết mới đã được gửi.</p>
-        <Link href="/login" className="underline">
-          Quay lại đăng nhập
-        </Link>
+      <div role="status" className="flex flex-col gap-5">
+        <Alert>
+          <CheckCircle2 aria-hidden="true" />
+          <AlertDescription>
+            Nếu tài khoản cần xác minh, một liên kết mới đã được gửi.
+          </AlertDescription>
+        </Alert>
+        <Button asChild variant="outline">
+          <Link href="/login">Quay lại đăng nhập</Link>
+        </Button>
       </div>
     );
   const emailError =
     state.status === "error" ? state.fieldErrors?.email?.[0] : undefined;
   return (
-    <form action={action} className="flex flex-col gap-4" noValidate>
+    <form action={action} className="flex flex-col gap-5" noValidate>
       {state.status === "error" && state.formError ? (
-        <p role="alert">{state.formError}</p>
+        <Alert variant="destructive" role="alert">
+          <AlertDescription>{state.formError}</AlertDescription>
+        </Alert>
       ) : null}
-      <label className="flex flex-col gap-1 text-sm">
-        Email
-        <input
+      <div className="space-y-2">
+        <Label htmlFor="verification-email">Email</Label>
+        <Input
+          id="verification-email"
           name="email"
           type="email"
           required
           autoComplete="email"
           defaultValue={state.status === "error" ? state.values?.email : email}
           aria-invalid={emailError ? true : undefined}
-          className="rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+          className="h-11 bg-card/60"
         />
         {emailError ? (
-          <span className="text-xs text-red-700">{emailError}</span>
+          <p className="text-xs text-destructive">{emailError}</p>
         ) : null}
-      </label>
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-white dark:text-zinc-900"
-      >
+      </div>
+      <Button type="submit" disabled={pending} size="lg">
         {pending ? "Đang gửi…" : "Gửi lại liên kết"}
-      </button>
+      </Button>
     </form>
   );
 }

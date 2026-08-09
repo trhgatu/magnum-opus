@@ -1,4 +1,8 @@
 import type { Metadata } from "next";
+import { CheckCircle2, Mail, Shield, UserRound } from "lucide-react";
+
+import { PageHeading } from "@/components/system/page-heading";
+import { Card, CardContent } from "@/components/ui/card";
 import { getCurrentUser } from "@/features/account/api/current-user";
 
 export const metadata: Metadata = {
@@ -12,27 +16,49 @@ export default async function MePage() {
   const user = await getCurrentUser();
 
   return (
-    <section className="flex flex-col gap-6" aria-labelledby="profile-heading">
-      <div className="flex flex-col gap-2">
-        <p className="text-sm font-medium text-zinc-500">Tài khoản</p>
-        <h1 id="profile-heading" className="text-2xl font-bold tracking-tight">
-          Hồ sơ của tôi
-        </h1>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          Thông tin định danh mà hệ thống đang sử dụng cho tài khoản này.
-        </p>
-      </div>
+    <section className="flex flex-col gap-8" aria-labelledby="profile-heading">
+      <PageHeading
+        id="profile-heading"
+        eyebrow="Tài khoản"
+        title="Hồ sơ của tôi"
+        description="Thông tin định danh mà Magnum Opus đang sử dụng cho không gian riêng này."
+      />
 
-      <dl className="grid grid-cols-1 gap-2 rounded-xl border border-zinc-200 bg-white p-5 text-sm shadow-sm sm:grid-cols-[9rem_1fr] sm:gap-y-4 dark:border-zinc-800 dark:bg-zinc-950">
-        <dt className="text-zinc-500">Email</dt>
-        <dd>{user.email}</dd>
-        <dt className="mt-2 text-zinc-500 sm:mt-0">Tên đăng nhập</dt>
-        <dd>{user.username}</dd>
-        <dt className="mt-2 text-zinc-500 sm:mt-0">Vai trò</dt>
-        <dd>{user.roles.join(", ") || "—"}</dd>
-        <dt className="mt-2 text-zinc-500 sm:mt-0">Trạng thái</dt>
-        <dd>{user.isActive ? "Đang hoạt động" : "Đã khóa"}</dd>
-      </dl>
+      <Card className="overflow-hidden bg-card/70 py-0">
+        <CardContent className="p-0">
+          <dl className="divide-y">
+            {[
+              { icon: Mail, label: "Email", value: user.email },
+              {
+                icon: UserRound,
+                label: "Tên đăng nhập",
+                value: "@" + user.username,
+              },
+              {
+                icon: Shield,
+                label: "Vai trò",
+                value: user.roles.join(", ") || "—",
+              },
+              {
+                icon: CheckCircle2,
+                label: "Trạng thái",
+                value: user.isActive ? "Đang hoạt động" : "Đã khóa",
+              },
+            ].map(({ icon: Icon, label, value }) => (
+              <div
+                key={label}
+                className="grid gap-2 px-5 py-5 sm:grid-cols-[12rem_1fr] sm:items-center sm:px-7"
+              >
+                <dt className="flex items-center gap-3 text-sm text-muted-foreground">
+                  <Icon className="size-4 text-primary" aria-hidden="true" />
+                  {label}
+                </dt>
+                <dd className="text-sm font-medium sm:text-right">{value}</dd>
+              </div>
+            ))}
+          </dl>
+        </CardContent>
+      </Card>
     </section>
   );
 }

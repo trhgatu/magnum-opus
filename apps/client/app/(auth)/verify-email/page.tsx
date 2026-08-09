@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AuthHeading } from "@/components/system/auth-heading";
 import { VerifyEmailForm } from "@/features/auth/components/verify-email-form";
 
 export const metadata: Metadata = {
@@ -13,9 +14,12 @@ export default async function VerifyEmailPage({
 }) {
   const { token = "" } = await searchParams;
   return (
-    <main className="mx-auto flex max-w-sm flex-col gap-6 px-6 py-16">
-      <h1 className="text-2xl font-bold tracking-tight">Xác minh email</h1>
+    <section className="flex flex-col gap-7">
+      <AuthHeading
+        title="Xác minh email"
+        description="Xác nhận địa chỉ email để bảo vệ quyền sở hữu không gian này."
+      />
       <VerifyEmailForm token={token} />
-    </main>
+    </section>
   );
 }

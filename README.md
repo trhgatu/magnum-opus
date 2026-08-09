@@ -26,6 +26,8 @@ Quay lại quan sát
 
 ## Trạng thái hiện tại
 
-Repository đang ở giai đoạn foundation. Nền tảng kỹ thuật ban đầu được kế thừa từ một starter đã được kiểm chứng; nghiệp vụ của Forge OS sẽ được đánh giá và chuyển sang từng vertical slice, bắt đầu từ Journal.
+Repository đã hoàn thành foundation sản phẩm và vertical slice đầu tiên là Journal v1. Nền tảng kỹ thuật ban đầu được kế thừa từ một starter đã được kiểm chứng; các capability của Forge OS sẽ tiếp tục được đánh giá rồi chuyển sang Magnum Opus từng slice, không port nguyên khối.
+
+Client hiện dùng một ngôn ngữ trải nghiệm thống nhất: yên, riêng tư, ưu tiên nội dung và không biến hành trình cá nhân thành dashboard năng suất. [Product vision](product/vision.md) ghi lại các nguyên tắc để những capability tiếp theo không tự phát minh một phong cách hoặc interaction contract khác.
 
 Tài liệu cài đặt, kiến trúc nền tảng, Docker, CI/CD và deployment được duy trì tại repository starter. Magnum Opus chỉ ghi lại product intent, business flow và hành vi của các tính năng.

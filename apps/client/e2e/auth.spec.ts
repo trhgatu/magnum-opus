@@ -180,7 +180,7 @@ test.describe("Client authentication boundary", () => {
     await expect(page).toHaveURL(/\/me$/);
 
     await page.getByLabel("Mở menu tài khoản").click();
-    await page.getByRole("button", { name: "Đăng xuất" }).click();
+    await page.getByRole("menuitem", { name: "Đăng xuất" }).click();
 
     await expect(page).toHaveURL(/\/$/);
     expect(
@@ -215,9 +215,11 @@ test.describe("Client authentication boundary", () => {
     await expect(page.locator("#account-content")).toBeVisible();
     await page.getByLabel("Mở menu tài khoản").click();
     await expect(
-      page.getByRole("link", { name: "Hồ sơ", exact: true }),
+      page.getByRole("menuitem", { name: "Hồ sơ", exact: true }),
     ).toBeVisible();
-    await expect(page.getByRole("button", { name: "Đăng xuất" })).toBeVisible();
+    await expect(
+      page.getByRole("menuitem", { name: "Đăng xuất" }),
+    ).toBeVisible();
 
     const layoutWidth = await page.evaluate(() => ({
       scrollWidth: document.documentElement.scrollWidth,
