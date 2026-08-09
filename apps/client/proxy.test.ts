@@ -51,6 +51,14 @@ describe("khi chưa có phiên", () => {
     expect(location.searchParams.get("next")).toBe("/me");
   });
 
+  it("bảo vệ toàn bộ bounded route Journal ngay từ Proxy", async () => {
+    const response = await proxy(requestFor("/journal/entry-id"));
+    expect(response.status).toBe(307);
+    const location = new URL(response.headers.get("location")!);
+    expect(location.pathname).toBe("/login");
+    expect(location.searchParams.get("next")).toBe("/journal/entry-id");
+  });
+
   it("cookie rác được coi như chưa đăng nhập", async () => {
     // Header HTTP chỉ chứa được byte Latin-1 nên chuỗi rác phải là ASCII.
     const response = await proxy(requestFor("/me", "@@not-a-session@@"));

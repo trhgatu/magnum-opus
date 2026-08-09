@@ -138,14 +138,42 @@ Kết quả: thao tác xóa thông thường có thể sửa sai; thao tác khô
 | `ownerId`          | Chủ sở hữu bắt buộc                  |
 | `title`            | Tiêu đề tùy chọn                     |
 | `content`          | Nội dung do người dùng viết          |
-| `state`            | `draft`, `sealed`, hoặc `trashed`    |
+| `state`            | `DRAFT`, `SEALED`, hoặc `TRASHED`    |
 | `stateBeforeTrash` | Trạng thái để khôi phục đúng         |
 | `revision`         | Chống xung đột autosave              |
 | `createdAt`        | Thời điểm server tạo entry           |
 | `updatedAt`        | Thời điểm revision gần nhất được lưu |
 | `trashedAt`        | Thời điểm vào Trash, nếu có          |
 
-## Events có ý nghĩa
+`ownerId` chỉ tồn tại bên trong server và database. API không trả field này cho client vì danh tính owner đã được xác định từ access token.
+
+## Hợp đồng API của v1
+
+Tất cả endpoint đều yêu cầu access token. Server luôn lấy `ownerId` từ token, không nhận `ownerId` do client gửi lên. Nhờ vậy, việc sửa request trên trình duyệt không thể biến entry của người khác thành entry của mình.
+
+| Hành động     | Endpoint                                         | Dữ liệu chính                                                 |
+| ------------- | ------------------------------------------------ | ------------------------------------------------------------- |
+| Tạo draft     | `POST /journal/entries`                          | `title?`, `content?`                                          |
+| Xem danh sách | `GET /journal/entries`                           | `page`, `limit`, `search?`, `state?`, `sortBy?`, `sortOrder?` |
+| Xem một entry | `GET /journal/entries/:id`                       | ID nằm trên URL                                               |
+| Autosave      | `PUT /journal/entries/:id`                       | `title`, `content`, `expectedRevision`                        |
+| Seal          | `PATCH /journal/entries/:id/seal`                | `expectedRevision`                                            |
+| Reopen        | `PATCH /journal/entries/:id/reopen`              | `expectedRevision`                                            |
+| Đưa vào Trash | `PATCH /journal/entries/:id/trash`               | `expectedRevision`                                            |
+| Khôi phục     | `PATCH /journal/entries/:id/restore`             | `expectedRevision`                                            |
+| Xóa vĩnh viễn | `DELETE /journal/entries/:id?expectedRevision=n` | Chỉ hợp lệ khi entry đang ở Trash                             |
+
+### Vì sao request thay đổi phải gửi `expectedRevision`?
+
+Giả sử cùng một entry đang được mở ở hai tab. Cả hai tab đều đọc revision 4. Tab A save trước và server tạo revision 5. Khi tab B vẫn gửi `expectedRevision: 4`, server trả lỗi conflict thay vì âm thầm ghi đè nội dung mới của tab A.
+
+Sau mỗi response thành công, client phải giữ lại `revision` mới nhất. Nếu nhận lỗi `JOURNAL_ENTRY_REVISION_CONFLICT`, client không được tự retry cùng nội dung như thể không có chuyện gì xảy ra; nó phải tải bản mới nhất hoặc cho người dùng chọn cách xử lý.
+
+### Ownership được biểu hiện như thế nào?
+
+Nếu user B yêu cầu ID của entry thuộc user A, API trả not found giống như entry không tồn tại. Response không tiết lộ rằng ID đó hợp lệ hoặc ai là owner. Quy tắc này áp dụng đồng nhất cho đọc, sửa, đổi trạng thái và xóa.
+
+## Events dành cho giai đoạn sau
 
 - `journal.entry-created`
 - `journal.entry-content-updated`
@@ -155,7 +183,17 @@ Kết quả: thao tác xóa thông thường có thể sửa sai; thao tác khô
 - `journal.entry-restored`
 - `journal.entry-permanently-deleted`
 
-V1 không dùng các event này để cộng XP. Chúng tạo audit trail và mở đường cho Timeline hoặc insight ở giai đoạn sau.
+Đây là vocabulary dự kiến, chưa phải event mà backend v1 đang phát. Chỉ thêm chúng khi có consumer thật như Timeline, audit trail hoặc insight. Việc phát event chưa có consumer sẽ làm outbox phức tạp hơn mà chưa tạo giá trị sản phẩm.
+
+## Trạng thái triển khai hiện tại
+
+Journal v1 đã hoàn thành vertical slice từ giao diện đến database.
+
+Ở client, người dùng có thể tạo entry, viết với autosave, xem Markdown preview, bật focus mode, tìm kiếm, lọc theo trạng thái và thực hiện đầy đủ vòng đời seal, reopen, trash, restore. Nội dung đang gõ được giữ tại browser khi save thất bại; revision conflict có thông báo riêng thay vì tự ghi đè dữ liệu mới hơn.
+
+Ở backend, slice gồm validation, authentication, ownership, command/query handlers, domain lifecycle, optimistic concurrency, Prisma repository và response presenter. Bài E2E cấp API chứng minh user B không thể truy cập entry của user A. Bài E2E trình duyệt chạy flow thật qua Next.js BFF và xác nhận access token không xuất hiện trong JavaScript, đồng thời browser không gọi trực tiếp backend.
+
+Đây là module tham chiếu cho feature tiếp theo: bắt đầu từ business language và state machine, giữ domain độc lập, đặt orchestration trong application, cô lập persistence sau repository port, rồi nối presentation và client bằng contract có kiểu rõ ràng. Không sao chép máy móc mọi file; module đơn giản hơn không cần lifecycle service, revision hay client editor nếu nghiệp vụ không yêu cầu.
 
 ## Trạng thái lỗi cần thiết kế
 

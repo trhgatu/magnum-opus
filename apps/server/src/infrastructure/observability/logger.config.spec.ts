@@ -1,6 +1,15 @@
 import { createPinoHttpOptions } from './logger.config';
 
 describe('logger configuration', () => {
+  it('uses the environment default when LOG_LEVEL is blank', () => {
+    expect(
+      createPinoHttpOptions({ NODE_ENV: 'test', LOG_LEVEL: '' }).level,
+    ).toBe('debug');
+    expect(
+      createPinoHttpOptions({ NODE_ENV: 'production', LOG_LEVEL: '   ' }).level,
+    ).toBe('info');
+  });
+
   it('redacts credentials and direct user identifiers', () => {
     const options = createPinoHttpOptions({ NODE_ENV: 'production' });
 

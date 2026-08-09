@@ -7,3 +7,4 @@ export * from './auth/system-roles.js';
 export * from './api/api-error.js';
 export * from './api/api-response.js';
 export * from './realtime/events.js';
+export * from './journal/journal-entry.js';

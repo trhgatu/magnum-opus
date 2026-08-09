@@ -36,6 +36,12 @@ export function AccountShell({ children, user }: AccountShellProps) {
             >
               Hồ sơ
             </Link>
+            <Link
+              href="/journal"
+              className="rounded-md px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-2 dark:text-zinc-200 dark:hover:bg-zinc-900"
+            >
+              Journal
+            </Link>
           </nav>
 
           <details className="relative">
@@ -63,6 +69,12 @@ export function AccountShell({ children, user }: AccountShellProps) {
                 className="block rounded-md px-3 py-2 text-sm hover:bg-zinc-100 focus-visible:outline-2 dark:hover:bg-zinc-900 sm:hidden"
               >
                 Hồ sơ
+              </Link>
+              <Link
+                href="/journal"
+                className="block rounded-md px-3 py-2 text-sm hover:bg-zinc-100 focus-visible:outline-2 dark:hover:bg-zinc-900 sm:hidden"
+              >
+                Journal
               </Link>
               <form action={logout}>
                 <button
