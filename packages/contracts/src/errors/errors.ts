@@ -130,6 +130,18 @@ export const Errors = {
     translationKey: 'errors.system_failure',
     statusCode: 500,
   },
+
+  // Journal
+  INVALID_JOURNAL_ENTRY_ID: {
+    code: 'INVALID_JOURNAL_ENTRY_ID',
+    translationKey: 'exceptions.journal.entry.id.invalid',
+    statusCode: 400,
+  },
+  INVALID_JOURNAL_ENTRY_TRANSITION: {
+    code: 'INVALID_JOURNAL_ENTRY_TRANSITION',
+    translationKey: 'exceptions.journal.entry.transition.invalid',
+    statusCode: 409,
+  },
 } as const;
 
 export type ErrorDefinition = (typeof Errors)[keyof typeof Errors];
