@@ -8,7 +8,20 @@ import {
   type JournalMutationResult,
 } from "@/features/journal/actions/journal";
 
-export type JournalSaveState = "saved" | "saving" | "error" | "conflict";
+export type JournalSaveState =
+  | "saved"
+  | "saving"
+  | "error"
+  | "conflict"
+  | "missing"
+  | "session"
+  | "remote_state";
+
+const terminalSaveStates = new Set<JournalSaveState>([
+  "missing",
+  "session",
+  "remote_state",
+]);
 
 interface DraftSnapshot {
   title: string | null;
@@ -72,6 +85,7 @@ export function useJournalDraft(
   }, []);
 
   const flush = useCallback((): Promise<boolean> => {
+    if (terminalSaveStates.has(saveState)) return Promise.resolve(false);
     if (entry.state !== "DRAFT") return Promise.resolve(true);
     if (activeSave.current) return activeSave.current;
 
@@ -81,20 +95,43 @@ export function useJournalDraft(
         setSaveState("saving");
         setMessage(undefined);
 
-        const result = await saveDraft({
-          id: entry.id,
-          title: snapshot.title,
-          content: snapshot.content,
-          expectedRevision: revisionRef.current,
-        });
+        let result: JournalMutationResult;
+        try {
+          result = await saveDraft({
+            id: entry.id,
+            title: snapshot.title,
+            content: snapshot.content,
+            expectedRevision: revisionRef.current,
+          });
+        } catch {
+          setSaveState("error");
+          setMessage(
+            "Không thể gửi nội dung tới server. Phần đang gõ vẫn được giữ; hãy kiểm tra kết nối rồi thử lại.",
+          );
+          return false;
+        }
 
         if (result.status === "error") {
           const conflict = result.code === "JOURNAL_ENTRY_REVISION_CONFLICT";
-          setSaveState(conflict ? "conflict" : "error");
+          const missing = result.code === "JOURNAL_ENTRY_NOT_FOUND";
+          const sessionExpired = result.kind === "unauthenticated";
+          setSaveState(
+            conflict
+              ? "conflict"
+              : missing
+                ? "missing"
+                : sessionExpired
+                  ? "session"
+                  : "error",
+          );
           setMessage(
             conflict
               ? "Entry đã thay đổi ở nơi khác. Nội dung đang gõ vẫn được giữ; hãy tải lại để đối chiếu trước khi tiếp tục."
-              : result.message,
+              : missing
+                ? "Entry không còn tồn tại trên server. Nội dung đang gõ vẫn được giữ trên màn hình."
+                : sessionExpired
+                  ? "Phiên đăng nhập đã hết hạn. Nội dung đang gõ vẫn được giữ trên màn hình."
+                  : result.message,
           );
           return false;
         }
@@ -115,7 +152,7 @@ export function useJournalDraft(
     });
     activeSave.current = promise;
     return promise;
-  }, [entry.id, entry.state, saveDraft]);
+  }, [entry.id, entry.state, saveDraft, saveState]);
 
   const acceptPersistedEntry = useCallback((next: JournalEntryResponse) => {
     const snapshot = snapshotOfEntry(next);
@@ -142,13 +179,31 @@ export function useJournalDraft(
     setMessage(undefined);
   }, []);
 
+  const preserveLocalOnto = useCallback((next: JournalEntryResponse) => {
+    const snapshot = snapshotOfEntry(next);
+    revisionRef.current = next.revision;
+    persistedDraft.current = snapshot;
+    setPersistedSnapshot(snapshot);
+    setEntry(next);
+    setRevision(next.revision);
+    setSaveState("remote_state");
+    setMessage(
+      "Entry đã đổi trạng thái ở nơi khác. Nội dung đang gõ vẫn được giữ trên màn hình để sao chép.",
+    );
+  }, []);
+
   const isDirty = !sameDraft(snapshotOf(title, content), persistedSnapshot);
 
   useEffect(() => {
-    if (entry.state !== "DRAFT" || !isDirty) return;
+    if (
+      entry.state !== "DRAFT" ||
+      !isDirty ||
+      terminalSaveStates.has(saveState)
+    )
+      return;
     const timer = window.setTimeout(() => void flush(), 800);
     return () => window.clearTimeout(timer);
-  }, [content, entry.state, flush, isDirty, title]);
+  }, [content, entry.state, flush, isDirty, saveState, title]);
 
   const getRevision = useCallback(() => revisionRef.current, []);
 
@@ -168,5 +223,6 @@ export function useJournalDraft(
     getRevision,
     acceptPersistedEntry,
     rebaseOnto,
+    preserveLocalOnto,
   };
 }

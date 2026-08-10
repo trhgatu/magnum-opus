@@ -1,0 +1,39 @@
+// @vitest-environment jsdom
+
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+
+import {
+  JournalDraftRecoveryAlert,
+  journalDraftText,
+} from "./journal-draft-recovery-alert";
+
+describe("JournalDraftRecoveryAlert", () => {
+  it("formats a recoverable Markdown document", () => {
+    expect(journalDraftText("  A title  ", "Body")).toBe("# A title\n\nBody");
+    expect(journalDraftText("   ", "Body")).toBe("Body");
+  });
+
+  it("copies the preserved local draft", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+
+    render(
+      <JournalDraftRecoveryAlert
+        reason="missing"
+        entryId="entry-id"
+        title="A title"
+        content="Body"
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Sao chép nội dung" }));
+
+    await waitFor(() =>
+      expect(writeText).toHaveBeenCalledWith("# A title\n\nBody"),
+    );
+    expect(screen.getByRole("button", { name: "Đã sao chép" })).toBeTruthy();
+  });
+});

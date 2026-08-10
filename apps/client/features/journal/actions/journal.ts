@@ -4,13 +4,19 @@ import type { JournalEntryResponse } from "@repo/contracts";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { ApiError, apiFetch, toPublicApiError } from "@/lib/api";
+import {
+  ApiError,
+  apiFetch,
+  type ApiErrorKind,
+  toPublicApiError,
+} from "@/lib/api";
 
 export type JournalLifecycleAction = "seal" | "reopen" | "trash" | "restore";
 
 interface JournalMutationError {
   status: "error";
   message: string;
+  kind?: ApiErrorKind;
   code?: string;
   correlationId?: string;
 }
@@ -26,6 +32,7 @@ const failure = (error: unknown): JournalMutationResult => {
   return {
     status: "error",
     message: publicError.message,
+    kind: publicError.kind,
     ...(error instanceof ApiError && error.code ? { code: error.code } : {}),
     ...(publicError.correlationId
       ? { correlationId: publicError.correlationId }

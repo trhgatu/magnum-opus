@@ -54,6 +54,9 @@ const saveStateLabel: Record<JournalSaveState, string> = {
   saved: "Đã lưu",
   conflict: "Có xung đột",
   error: "Lưu thất bại",
+  missing: "Entry không còn tồn tại",
+  session: "Phiên đã hết hạn",
+  remote_state: "Trạng thái đã đổi",
 };
 
 export function JournalEditorToolbar({
@@ -102,6 +105,9 @@ export function JournalEditorToolbar({
             !dirty ||
             saveState === "saving" ||
             saveState === "conflict" ||
+            saveState === "missing" ||
+            saveState === "session" ||
+            saveState === "remote_state" ||
             busy
           }
           variant="outline"
