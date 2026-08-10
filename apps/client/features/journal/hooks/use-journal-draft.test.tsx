@@ -157,4 +157,33 @@ describe("useJournalDraft", () => {
     expect(result.current.getRevision()).toBe(3);
     expect(result.current.isDirty).toBe(false);
   });
+
+  it("rebases local work onto a newer persisted revision", async () => {
+    const saveDraft = vi.fn().mockResolvedValue({
+      status: "success",
+      entry: { ...entry, content: "Local version", revision: 4 },
+    });
+    const { result } = renderHook(() => useJournalDraft(entry, { saveDraft }));
+
+    act(() => result.current.setContent("Local version"));
+    act(() =>
+      result.current.rebaseOnto({
+        ...entry,
+        content: "Remote version",
+        revision: 3,
+      }),
+    );
+
+    expect(result.current.content).toBe("Local version");
+    expect(result.current.getRevision()).toBe(3);
+    expect(result.current.isDirty).toBe(true);
+
+    await act(async () => expect(await result.current.flush()).toBe(true));
+    expect(saveDraft).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: "Local version",
+        expectedRevision: 3,
+      }),
+    );
+  });
 });

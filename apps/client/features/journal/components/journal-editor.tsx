@@ -2,19 +2,22 @@
 
 import type { JournalEntryResponse } from "@repo/contracts";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   changeJournalEntryState,
   deleteJournalEntryPermanently,
+  reloadJournalEntry,
   type JournalLifecycleAction,
 } from "@/features/journal/actions/journal";
+import { JournalConflictAlert } from "@/features/journal/components/journal-conflict-alert";
 import { JournalEditorToolbar } from "@/features/journal/components/journal-editor-toolbar";
 import type { JournalViewMode } from "@/features/journal/components/journal-editor-toolbar";
 import { JournalEntryContent } from "@/features/journal/components/journal-entry-content";
 import { useJournalDraft } from "@/features/journal/hooks/use-journal-draft";
+import { useJournalEditorShortcuts } from "@/features/journal/hooks/use-journal-editor-shortcuts";
 import { useUnsavedChangesWarning } from "@/hooks/use-unsaved-changes-warning";
 
 export function JournalEditor({
@@ -38,6 +41,7 @@ export function JournalEditor({
     retry,
     getRevision,
     acceptPersistedEntry,
+    rebaseOnto,
   } = useJournalDraft(initialEntry);
   const [lifecycleMessage, setLifecycleMessage] = useState<string>();
   const [focusMode, setFocusMode] = useState(false);
@@ -45,9 +49,69 @@ export function JournalEditor({
     initialEntry.state === "DRAFT" ? "write" : "preview",
   );
   const [isChangingState, setIsChangingState] = useState(false);
+  const [isResolvingConflict, setIsResolvingConflict] = useState(false);
 
   const message = lifecycleMessage ?? draftMessage;
+  const busy = isChangingState || isResolvingConflict;
   useUnsavedChangesWarning(isDirty);
+
+  const saveNow = useCallback(() => {
+    setLifecycleMessage(undefined);
+    void flush();
+  }, [flush]);
+
+  const togglePreview = useCallback(() => {
+    setViewMode((current) =>
+      current === "preview" && editable ? "write" : "preview",
+    );
+  }, [editable]);
+
+  const toggleFocus = useCallback(() => {
+    setFocusMode((current) => !current);
+  }, []);
+
+  const exitFocus = useCallback(() => setFocusMode(false), []);
+
+  useJournalEditorShortcuts({
+    enabled: editable && !busy && saveState !== "conflict",
+    focusMode,
+    onSave: saveNow,
+    onTogglePreview: togglePreview,
+    onToggleFocus: toggleFocus,
+    onExitFocus: exitFocus,
+  });
+
+  const resolveConflict = async (keepLocal: boolean) => {
+    setIsResolvingConflict(true);
+    setLifecycleMessage(undefined);
+    try {
+      const result = await reloadJournalEntry(entry.id);
+      if (result.status === "error") {
+        setLifecycleMessage(result.message);
+        return;
+      }
+
+      if (!keepLocal) {
+        acceptPersistedEntry(result.entry);
+        setViewMode(result.entry.state === "DRAFT" ? "write" : "preview");
+        return;
+      }
+
+      if (result.entry.state !== "DRAFT") {
+        acceptPersistedEntry(result.entry);
+        setViewMode("preview");
+        setLifecycleMessage(
+          "Entry mới nhất không còn là Draft nên nội dung đang gõ không thể ghi đè.",
+        );
+        return;
+      }
+
+      rebaseOnto(result.entry);
+      await flush();
+    } finally {
+      setIsResolvingConflict(false);
+    }
+  };
 
   const changeState = async (action: JournalLifecycleAction) => {
     setIsChangingState(true);
@@ -101,22 +165,31 @@ export function JournalEditor({
           state={entry.state}
           revision={revision}
           saveState={saveState}
+          dirty={isDirty}
           editable={editable}
           viewMode={viewMode}
           focusMode={focusMode}
-          busy={isChangingState}
+          busy={busy}
           onBack={() =>
             void flush().then((saved) => {
               if (saved) router.push("/journal");
             })
           }
+          onSave={saveNow}
           onViewModeChange={setViewMode}
-          onToggleFocus={() => setFocusMode((value) => !value)}
+          onToggleFocus={toggleFocus}
           onChangeState={(action) => void changeState(action)}
           onDeletePermanently={() => void deletePermanently()}
         />
 
-        {message ? (
+        {saveState === "conflict" ? (
+          <JournalConflictAlert
+            busy={isResolvingConflict}
+            recoveryError={lifecycleMessage}
+            onUseLatest={() => void resolveConflict(false)}
+            onKeepLocal={() => void resolveConflict(true)}
+          />
+        ) : message ? (
           <Alert variant="destructive" role="alert">
             <AlertDescription>{message}</AlertDescription>
             {saveState === "error" ? (

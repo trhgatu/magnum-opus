@@ -131,6 +131,17 @@ export function useJournalDraft(
     setMessage(undefined);
   }, []);
 
+  const rebaseOnto = useCallback((next: JournalEntryResponse) => {
+    const snapshot = snapshotOfEntry(next);
+    revisionRef.current = next.revision;
+    persistedDraft.current = snapshot;
+    setPersistedSnapshot(snapshot);
+    setEntry(next);
+    setRevision(next.revision);
+    setSaveState("saved");
+    setMessage(undefined);
+  }, []);
+
   const isDirty = !sameDraft(snapshotOf(title, content), persistedSnapshot);
 
   useEffect(() => {
@@ -156,5 +167,6 @@ export function useJournalDraft(
     retry: flush,
     getRevision,
     acceptPersistedEntry,
+    rebaseOnto,
   };
 }

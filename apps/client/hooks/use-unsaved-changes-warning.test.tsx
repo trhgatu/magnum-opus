@@ -1,9 +1,15 @@
 // @vitest-environment jsdom
 
-import { renderHook } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, renderHook } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { useUnsavedChangesWarning } from "./use-unsaved-changes-warning";
+
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+  document.body.replaceChildren();
+});
 
 describe("useUnsavedChangesWarning", () => {
   it("warns only while unsaved changes exist", () => {
@@ -23,5 +29,23 @@ describe("useUnsavedChangesWarning", () => {
     unmount();
     window.dispatchEvent(new Event("beforeunload", { cancelable: true }));
     expect(preventDefault).toHaveBeenCalledOnce();
+  });
+
+  it("blocks internal links when leaving would discard local work", () => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    const link = document.createElement("a");
+    link.href = "/journal";
+    document.body.append(link);
+    const { unmount } = renderHook(() => useUnsavedChangesWarning(true));
+
+    const click = new MouseEvent("click", { bubbles: true, cancelable: true });
+    link.dispatchEvent(click);
+
+    expect(confirm).toHaveBeenCalledOnce();
+    expect(click.defaultPrevented).toBe(true);
+
+    unmount();
+    link.remove();
+    confirm.mockRestore();
   });
 });

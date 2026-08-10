@@ -81,5 +81,9 @@ test.describe("Client accessibility contract", () => {
       page.getByRole("heading", { name: "Journal", exact: true }),
     ).toBeVisible();
     await expectNoWcagViolations(page);
+
+    await page.getByRole("button", { name: "Viết entry mới" }).click();
+    await expect(page.getByLabel("Tiêu đề")).toBeVisible();
+    await expectNoWcagViolations(page);
   });
 });

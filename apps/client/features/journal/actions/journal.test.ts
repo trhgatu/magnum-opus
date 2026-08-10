@@ -17,6 +17,7 @@ import { ApiError } from "@/lib/api";
 import {
   changeJournalEntryState,
   deleteJournalEntryPermanently,
+  reloadJournalEntry,
   updateJournalEntry,
 } from "./journal";
 
@@ -78,6 +79,16 @@ describe("Journal Server Actions", () => {
       status: "error",
       code: "JOURNAL_ENTRY_REVISION_CONFLICT",
     });
+  });
+
+  it("loads the latest entry for explicit conflict recovery", async () => {
+    apiFetch.mockResolvedValue(entry);
+
+    await expect(reloadJournalEntry(entry.id)).resolves.toEqual({
+      status: "success",
+      entry,
+    });
+    expect(apiFetch).toHaveBeenCalledWith("/journal/entries/" + entry.id);
   });
 
   it("uses an explicit lifecycle endpoint and revision", async () => {

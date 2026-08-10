@@ -90,3 +90,86 @@ test("supports Journal search, reset and state filters", async ({ page }) => {
     page.getByRole("link", { name: "Trash", exact: true }),
   ).toHaveAttribute("aria-current", "page");
 });
+
+test("recovers an explicit concurrent-edit conflict without losing local work", async ({
+  page,
+  context,
+}) => {
+  const title = `Concurrent reflection ${Date.now()}`;
+  const remoteContent = "Nội dung được lưu từ cửa sổ thứ hai.";
+  const localContent = "Nội dung được giữ lại từ cửa sổ đầu tiên.";
+
+  await login(page);
+  await page.goto("/journal");
+  await page.getByRole("button", { name: "Viết entry mới" }).click();
+  await page.getByLabel("Tiêu đề").fill(title);
+  await expect(page.getByText("Đã lưu · revision 2")).toBeVisible({
+    timeout: 10_000,
+  });
+
+  const secondPage = await context.newPage();
+  await secondPage.goto(page.url());
+  await secondPage.getByLabel("Nội dung", { exact: true }).fill(remoteContent);
+  await expect(secondPage.getByText("Đã lưu · revision 3")).toBeVisible({
+    timeout: 10_000,
+  });
+
+  await page.getByLabel("Nội dung", { exact: true }).fill(localContent);
+  await expect(
+    page.getByRole("heading", { name: "Entry đã được thay đổi ở nơi khác" }),
+  ).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByLabel("Nội dung", { exact: true })).toHaveValue(
+    localContent,
+  );
+
+  await page.getByRole("button", { name: "Ghi nội dung đang gõ" }).click();
+  await expect(page.getByText("Đã lưu · revision 4")).toBeVisible({
+    timeout: 10_000,
+  });
+  await page.reload();
+  await expect(page.getByLabel("Nội dung", { exact: true })).toHaveValue(
+    localContent,
+  );
+
+  await secondPage.close();
+});
+
+test("guards unsaved navigation and supports editor shortcuts", async ({
+  page,
+}) => {
+  await login(page);
+  await page.goto("/journal");
+  await page.getByRole("button", { name: "Viết entry mới" }).click();
+
+  await page
+    .getByLabel("Nội dung", { exact: true })
+    .fill("Một thay đổi chưa kịp autosave.");
+  await expect(page.getByRole("button", { name: "Lưu ngay" })).toBeEnabled();
+
+  page.once("dialog", async (dialog) => {
+    expect(dialog.message()).toContain("Nội dung chưa được lưu");
+    await dialog.dismiss();
+  });
+  await page.getByRole("link", { name: "Hồ sơ" }).click();
+  await expect(page).toHaveURL(/\/journal\/[0-9a-f-]+$/);
+
+  await page.keyboard.press("Control+s");
+  await expect(page.getByText("Đã lưu · revision 2")).toBeVisible({
+    timeout: 10_000,
+  });
+  await page.keyboard.press("Control+Shift+p");
+  await expect(page.getByLabel("Bản xem trước nội dung")).toBeVisible();
+  await page.keyboard.press("Control+Shift+f");
+  await expect(page.locator("article")).toHaveClass(/fixed/);
+  await page.keyboard.press("Escape");
+  await expect(page.locator("article")).not.toHaveClass(/fixed/);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.getByRole("button", { name: "Journal" })).toBeVisible();
+  await expect(page.getByLabel("Tiêu đề")).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+});
