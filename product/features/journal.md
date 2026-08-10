@@ -23,10 +23,12 @@ Người dùng có thể tạo một entry riêng tư, viết và lưu an toàn,
 - Tiêu đề không bắt buộc.
 - Nội dung văn bản hỗ trợ Markdown ở mức trình bày.
 - Autosave có trạng thái rõ ràng.
+- Phục hồi có chủ đích khi cùng một entry được sửa ở nhiều tab hoặc thiết bị.
 - Danh sách entry theo thời gian cập nhật gần nhất.
 - Tìm kiếm trong tiêu đề và nội dung.
 - Mở và tiếp tục chỉnh sửa entry.
 - Focus mode để giảm nhiễu khi viết.
+- Phím tắt cho lưu ngay, preview và focus mode.
 - Đưa entry vào thùng rác và khôi phục.
 - Xóa vĩnh viễn bằng một hành động xác nhận riêng.
 - Phân trang hoặc infinite loading để lịch sử không bị giới hạn giả tạo.
@@ -81,11 +83,30 @@ Privacy không phải một status. Trong v1, mọi trạng thái đều riêng 
 2. Hệ thống tạo một draft riêng tư và mở editor ngay.
 3. Người dùng có thể viết nội dung trước, không bị buộc đặt tiêu đề.
 4. Sau khi người dùng ngừng nhập trong một khoảng ngắn, autosave gửi phiên bản mới nhất.
-5. Giao diện hiển thị một trong ba trạng thái: `Saving`, `Saved`, hoặc `Save failed`.
+5. Giao diện hiển thị một trong bốn trạng thái: `Saving`, `Saved`, `Save failed`, hoặc `Conflict`.
 6. Chỉ hiển thị `Saved` sau khi server xác nhận.
 7. Nếu save thất bại, nội dung trên màn hình không bị mất và người dùng có thể retry.
+8. Nếu người dùng chọn một link khác khi nội dung chưa được lưu, giao diện yêu cầu xác nhận trước khi rời editor.
 
 Kết quả: entry tồn tại bền vững và có thể mở lại từ thiết bị khác sau khi save thành công.
+
+### Khi hai nơi cùng sửa một entry
+
+Nếu một tab hoặc thiết bị khác đã lưu trước, server từ chối request dùng revision cũ. Client giữ nguyên phần đang gõ và đưa ra hai lựa chọn rõ ràng:
+
+1. **Dùng bản mới nhất**: tải nội dung đã được server xác nhận và bỏ phần đang gõ ở tab hiện tại.
+2. **Ghi nội dung đang gõ**: tải revision mới nhất, sau đó ghi phần đang gõ lên revision đó bằng một request mới.
+
+Client không tự chọn thay người dùng vì cả hai hướng đều có thể làm mất một phiên bản nội dung. Nếu entry mới nhất đã được seal hoặc đưa vào Trash, client chuyển sang bản mới nhất ở chế độ đọc và không cho ghi đè lifecycle đó.
+
+Các phím tắt trong editor:
+
+| Phím tắt               | Hành động                            |
+| ---------------------- | ------------------------------------ |
+| `Ctrl/Cmd + S`         | Lưu ngay thay vì chờ autosave        |
+| `Ctrl/Cmd + Shift + P` | Chuyển giữa viết và Markdown preview |
+| `Ctrl/Cmd + Shift + F` | Bật hoặc tắt focus mode              |
+| `Escape`               | Thoát focus mode                     |
 
 ## Flow 2 — tìm và đọc lại
 
@@ -189,16 +210,16 @@ Nếu user B yêu cầu ID của entry thuộc user A, API trả not found giố
 
 Journal v1 đã hoàn thành vertical slice từ giao diện đến database.
 
-Ở client, người dùng có thể tạo entry, viết với autosave, xem Markdown preview, bật focus mode, tìm kiếm, lọc theo trạng thái và thực hiện đầy đủ vòng đời seal, reopen, trash, restore. Nội dung đang gõ được giữ tại browser khi save thất bại; revision conflict có thông báo riêng thay vì tự ghi đè dữ liệu mới hơn.
+Ở client, người dùng có thể tạo entry, viết với autosave, lưu ngay bằng phím tắt, xem Markdown preview, bật focus mode, tìm kiếm, lọc theo trạng thái và thực hiện đầy đủ vòng đời seal, reopen, trash, restore. Nội dung đang gõ được giữ tại browser khi save thất bại. Khi revision conflict xảy ra, giao diện giữ local content và yêu cầu người dùng chọn bản mới nhất hoặc chủ động ghi phần đang gõ lên revision mới.
 
 Ở backend, slice gồm validation, authentication, ownership, command/query handlers, domain lifecycle, optimistic concurrency, Prisma repository và response presenter. Bài E2E cấp API chứng minh user B không thể truy cập entry của user A. Bài E2E trình duyệt chạy flow thật qua Next.js BFF và xác nhận access token không xuất hiện trong JavaScript, đồng thời browser không gọi trực tiếp backend.
 
 Đây là module tham chiếu cho feature tiếp theo: bắt đầu từ business language và state machine, giữ domain độc lập, đặt orchestration trong application, cô lập persistence sau repository port, rồi nối presentation và client bằng contract có kiểu rõ ràng. Không sao chép máy móc mọi file; module đơn giản hơn không cần lifecycle service, revision hay client editor nếu nghiệp vụ không yêu cầu.
 
-## Trạng thái lỗi cần thiết kế
+## Resilience hiện tại và phần còn lại
 
 - Mất mạng trong khi autosave.
-- Hai tab chỉnh cùng một entry.
+- Hai tab chỉnh cùng một entry: đã có conflict recovery có chủ đích và E2E hai tab.
 - Entry đã bị trash hoặc xóa trên thiết bị khác.
 - Token hết hạn trong khi người dùng đang viết.
 - Tìm kiếm không có kết quả.

@@ -9,6 +9,7 @@ import {
   Minimize2,
   PenLine,
   RotateCcw,
+  Save,
   Trash2,
   Undo2,
 } from "lucide-react";
@@ -35,11 +36,13 @@ interface JournalEditorToolbarProps {
   state: JournalEntryState;
   revision: number;
   saveState: JournalSaveState;
+  dirty: boolean;
   editable: boolean;
   viewMode: JournalViewMode;
   focusMode: boolean;
   busy: boolean;
   onBack: () => void;
+  onSave: () => void;
   onViewModeChange: (mode: JournalViewMode) => void;
   onToggleFocus: () => void;
   onChangeState: (action: JournalLifecycleAction) => void;
@@ -57,18 +60,22 @@ export function JournalEditorToolbar({
   state,
   revision,
   saveState,
+  dirty,
   editable,
   viewMode,
   focusMode,
   busy,
   onBack,
+  onSave,
   onViewModeChange,
   onToggleFocus,
   onChangeState,
   onDeletePermanently,
 }: JournalEditorToolbarProps) {
   return (
-    <header className="surface-glass sticky top-0 z-20 -mx-2 flex flex-wrap items-center gap-2 rounded-xl border px-2 py-2 shadow-sm">
+    <header
+      className={`surface-glass sticky z-20 -mx-2 flex flex-wrap items-center gap-2 rounded-xl border px-2 py-2 shadow-sm ${focusMode ? "top-0" : "top-17"}`}
+    >
       <Button type="button" onClick={onBack} variant="ghost">
         <ArrowLeft data-icon="inline-start" aria-hidden="true" />
         Journal
@@ -77,7 +84,7 @@ export function JournalEditorToolbar({
       <span
         aria-live="polite"
         className={
-          "text-xs " +
+          "order-3 w-full px-2 text-xs sm:order-none sm:w-auto sm:px-0 " +
           (saveState === "error" || saveState === "conflict"
             ? "text-destructive"
             : "text-muted-foreground")
@@ -86,8 +93,26 @@ export function JournalEditorToolbar({
         {editable ? saveStateLabel[saveState] : "Chỉ đọc"} · revision {revision}
       </span>
 
-      <div className="ml-auto flex flex-wrap gap-2">
-        <div className="flex rounded-lg bg-muted p-0.5 text-sm">
+      <div className="ml-auto flex max-w-full items-center gap-2 overflow-x-auto pb-0.5 sm:pb-0">
+        <Button
+          type="button"
+          onClick={onSave}
+          disabled={
+            !editable ||
+            !dirty ||
+            saveState === "saving" ||
+            saveState === "conflict" ||
+            busy
+          }
+          variant="outline"
+          aria-label="Lưu ngay"
+          aria-keyshortcuts="Control+S Meta+S"
+          title="Lưu ngay (Ctrl+S)"
+        >
+          <Save aria-hidden="true" />
+          <span className="hidden sm:inline">Lưu ngay</span>
+        </Button>
+        <div className="flex shrink-0 rounded-lg bg-muted p-0.5 text-sm">
           <Button
             type="button"
             onClick={() => onViewModeChange("write")}
@@ -96,6 +121,7 @@ export function JournalEditorToolbar({
             variant="ghost"
             size="sm"
             className="aria-pressed:bg-card aria-pressed:shadow-sm"
+            aria-keyshortcuts="Control+Shift+P Meta+Shift+P"
           >
             <PenLine aria-hidden="true" />
             Viết
@@ -112,13 +138,23 @@ export function JournalEditorToolbar({
             Xem trước
           </Button>
         </div>
-        <Button type="button" onClick={onToggleFocus} variant="outline">
+        <Button
+          type="button"
+          onClick={onToggleFocus}
+          variant="outline"
+          className="shrink-0"
+          aria-label={focusMode ? "Thoát focus" : "Focus"}
+          aria-keyshortcuts="Control+Shift+F Meta+Shift+F"
+          title="Bật hoặc tắt Focus (Ctrl+Shift+F)"
+        >
           {focusMode ? (
             <Minimize2 aria-hidden="true" />
           ) : (
             <Expand aria-hidden="true" />
           )}
-          {focusMode ? "Thoát focus" : "Focus"}
+          <span className="hidden sm:inline">
+            {focusMode ? "Thoát focus" : "Focus"}
+          </span>
         </Button>
         {state === "DRAFT" ? (
           <Button

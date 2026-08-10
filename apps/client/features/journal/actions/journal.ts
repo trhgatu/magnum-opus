@@ -86,6 +86,23 @@ export async function updateJournalEntry(input: {
   }
 }
 
+export async function reloadJournalEntry(
+  id: string,
+): Promise<JournalMutationResult> {
+  if (!id) {
+    return { status: "error", message: "Dữ liệu bản ghi không hợp lệ." };
+  }
+
+  try {
+    const entry = await apiFetch<JournalEntryResponse>(
+      "/journal/entries/" + id,
+    );
+    return { status: "success", entry };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
 export async function changeJournalEntryState(input: {
   id: string;
   action: JournalLifecycleAction;
