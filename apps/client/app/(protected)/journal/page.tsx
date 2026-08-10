@@ -5,12 +5,14 @@ import Link from "next/link";
 import { EmptyState } from "@/components/system/empty-state";
 import { PageHeading } from "@/components/system/page-heading";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { createJournalEntry } from "@/features/journal/actions/journal";
 import { getJournalEntries } from "@/features/journal/api/journal";
 import { CreateEntryButton } from "@/features/journal/components/create-entry-button";
+import { JournalEntryCard } from "@/features/journal/components/journal-entry-card";
+import { JournalPagination } from "@/features/journal/components/journal-pagination";
 import { JournalSearch } from "@/features/journal/components/journal-search";
+import { JournalStateFilter } from "@/features/journal/components/journal-state-filter";
 
 export const metadata: Metadata = {
   title: "Journal",
@@ -35,25 +37,6 @@ const numberFrom = (value: string | string[] | undefined) => {
   return Number.isInteger(candidate) && candidate > 0 ? candidate : 1;
 };
 
-const hrefFor = (input: {
-  page?: number;
-  search?: string;
-  state?: JournalEntryState;
-}) => {
-  const params = new URLSearchParams();
-  if (input.page && input.page > 1) params.set("page", String(input.page));
-  if (input.search) params.set("search", input.search);
-  if (input.state) params.set("state", input.state);
-  const query = params.toString();
-  return query ? "/journal?" + query : "/journal";
-};
-
-const formatUpdatedAt = (value: string) =>
-  new Intl.DateTimeFormat("vi-VN", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-
 export default async function JournalPage({ searchParams }: JournalPageProps) {
   const params = await searchParams;
   const page = numberFrom(params.page);
@@ -62,6 +45,10 @@ export default async function JournalPage({ searchParams }: JournalPageProps) {
   ).trim();
   const state = stateFrom(params.state);
   const result = await getJournalEntries({ page, limit: 20, search, state });
+  const hasFilters = Boolean(search || state);
+  const createFailed = Array.isArray(params.createFailed)
+    ? params.createFailed[0] === "1"
+    : params.createFailed === "1";
 
   return (
     <section className="flex flex-col gap-8" aria-labelledby="journal-heading">
@@ -77,7 +64,7 @@ export default async function JournalPage({ searchParams }: JournalPageProps) {
         }
       />
 
-      {params.createFailed === "1" ? (
+      {createFailed ? (
         <Alert variant="destructive" role="alert">
           <AlertDescription>
             Chưa thể tạo entry mới. Hãy thử lại sau một lát.
@@ -87,63 +74,20 @@ export default async function JournalPage({ searchParams }: JournalPageProps) {
 
       <div className="grid gap-3 lg:grid-cols-[1fr_auto]">
         <JournalSearch initialSearch={search} state={state} />
-
-        <nav
-          aria-label="Lọc journal theo trạng thái"
-          className="flex flex-wrap gap-1 rounded-xl border bg-card/50 p-1 text-sm"
-        >
-          {(
-            [
-              [undefined, "Đang lưu giữ"],
-              ["DRAFT", "Draft"],
-              ["SEALED", "Sealed"],
-              ["TRASHED", "Trash"],
-            ] as const
-          ).map(([value, label]) => (
-            <Link
-              key={label}
-              href={hrefFor({ search, state: value })}
-              aria-current={state === value ? "page" : undefined}
-              className={
-                "rounded-lg px-3 py-1.5 transition-colors " +
-                (state === value
-                  ? "bg-primary font-medium text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground")
-              }
-            >
-              {label}
-            </Link>
-          ))}
-        </nav>
+        <JournalStateFilter search={search} state={state} />
       </div>
 
       {result.data.length ? (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {result.data.map((entry) => (
-            <Link
-              key={entry.id}
-              href={"/journal/" + entry.id}
-              className="group flex min-h-48 flex-col rounded-2xl border bg-card/65 p-6 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-[0_24px_60px_-38px_color-mix(in_oklch,var(--foreground)_50%,transparent)] focus-visible:outline-2 focus-visible:outline-offset-3"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <h2 className="font-display line-clamp-2 text-xl font-semibold tracking-tight transition-colors group-hover:text-primary">
-                  {entry.title || "Không có tiêu đề"}
-                </h2>
-                <Badge variant="outline" className="shrink-0">
-                  {entry.state}
-                </Badge>
-              </div>
-              <p className="mt-3 line-clamp-3 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
-                {entry.content || "Một trang trắng đang chờ được viết."}
-              </p>
-              <time
-                className="mt-auto pt-6 font-mono text-[11px] text-muted-foreground"
-                dateTime={entry.updatedAt}
-              >
-                Cập nhật {formatUpdatedAt(entry.updatedAt)}
-              </time>
-            </Link>
-          ))}
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground" aria-live="polite">
+            {result.meta.totalItems} entry
+            {hasFilters ? " phù hợp" : " đang được lưu giữ"}
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {result.data.map((entry) => (
+              <JournalEntryCard key={entry.id} entry={entry} />
+            ))}
+          </div>
         </div>
       ) : (
         <EmptyState
@@ -155,37 +99,25 @@ export default async function JournalPage({ searchParams }: JournalPageProps) {
                 ? "Trash đang trống."
                 : "Bắt đầu bằng một dòng đang hiện diện trong tâm trí."
           }
+          action={
+            hasFilters ? (
+              <Link
+                href="/journal"
+                className={buttonVariants({ variant: "outline" })}
+              >
+                Xóa tìm kiếm và bộ lọc
+              </Link>
+            ) : undefined
+          }
         />
       )}
 
-      {result.meta.totalPages > 1 ? (
-        <nav
-          aria-label="Phân trang Journal"
-          className="flex items-center justify-between text-sm"
-        >
-          <span className="text-muted-foreground">
-            Trang {result.meta.currentPage} / {result.meta.totalPages}
-          </span>
-          <div className="flex gap-2">
-            {page > 1 ? (
-              <Link
-                href={hrefFor({ page: page - 1, search, state })}
-                className={buttonVariants({ variant: "outline" })}
-              >
-                Trang trước
-              </Link>
-            ) : null}
-            {page < result.meta.totalPages ? (
-              <Link
-                href={hrefFor({ page: page + 1, search, state })}
-                className={buttonVariants({ variant: "outline" })}
-              >
-                Trang sau
-              </Link>
-            ) : null}
-          </div>
-        </nav>
-      ) : null}
+      <JournalPagination
+        page={result.meta.currentPage}
+        totalPages={result.meta.totalPages}
+        search={search}
+        state={state}
+      />
     </section>
   );
 }
