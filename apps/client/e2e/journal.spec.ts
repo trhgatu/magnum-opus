@@ -65,3 +65,28 @@ test("completes the private Journal lifecycle through the BFF", async ({
     browserRequests.some((url) => url.startsWith("http://127.0.0.1:3101")),
   ).toBe(false);
 });
+
+test("supports Journal search, reset and state filters", async ({ page }) => {
+  const missingEntry = `missing-entry-${Date.now()}`;
+
+  await login(page);
+  await page.goto("/journal");
+
+  await page.getByLabel("Tìm trong journal").fill(missingEntry);
+  await expect(page).toHaveURL(new RegExp(`search=${missingEntry}`));
+  await expect(
+    page.getByRole("heading", { name: "Chưa có entry phù hợp" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Xóa tìm kiếm và bộ lọc" }),
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "Xóa từ khóa tìm kiếm" }).click();
+  await expect(page).toHaveURL(/\/journal$/);
+
+  await page.getByRole("link", { name: "Trash", exact: true }).click();
+  await expect(page).toHaveURL(/\/journal\?state=TRASHED$/);
+  await expect(
+    page.getByRole("link", { name: "Trash", exact: true }),
+  ).toHaveAttribute("aria-current", "page");
+});

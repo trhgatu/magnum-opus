@@ -75,5 +75,11 @@ test.describe("Client accessibility contract", () => {
     await expect(skipLink).toBeFocused();
     await skipLink.press("Enter");
     await expect(page.locator("#account-content")).toBeFocused();
+
+    await page.goto("/journal");
+    await expect(
+      page.getByRole("heading", { name: "Journal", exact: true }),
+    ).toBeVisible();
+    await expectNoWcagViolations(page);
   });
 });
