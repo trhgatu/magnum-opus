@@ -13,6 +13,7 @@ import {
   type JournalLifecycleAction,
 } from "@/features/journal/actions/journal";
 import { JournalConflictAlert } from "@/features/journal/components/journal-conflict-alert";
+import { JournalDraftRecoveryAlert } from "@/features/journal/components/journal-draft-recovery-alert";
 import { JournalEditorToolbar } from "@/features/journal/components/journal-editor-toolbar";
 import type { JournalViewMode } from "@/features/journal/components/journal-editor-toolbar";
 import { JournalEntryContent } from "@/features/journal/components/journal-entry-content";
@@ -42,6 +43,7 @@ export function JournalEditor({
     getRevision,
     acceptPersistedEntry,
     rebaseOnto,
+    preserveLocalOnto,
   } = useJournalDraft(initialEntry);
   const [lifecycleMessage, setLifecycleMessage] = useState<string>();
   const [focusMode, setFocusMode] = useState(false);
@@ -53,6 +55,12 @@ export function JournalEditor({
 
   const message = lifecycleMessage ?? draftMessage;
   const busy = isChangingState || isResolvingConflict;
+  const recoveryReason =
+    saveState === "missing" ||
+    saveState === "session" ||
+    saveState === "remote_state"
+      ? saveState
+      : undefined;
   useUnsavedChangesWarning(isDirty);
 
   const saveNow = useCallback(() => {
@@ -73,7 +81,7 @@ export function JournalEditor({
   const exitFocus = useCallback(() => setFocusMode(false), []);
 
   useJournalEditorShortcuts({
-    enabled: editable && !busy && saveState !== "conflict",
+    enabled: editable && !busy && saveState !== "conflict" && !recoveryReason,
     focusMode,
     onSave: saveNow,
     onTogglePreview: togglePreview,
@@ -98,11 +106,8 @@ export function JournalEditor({
       }
 
       if (result.entry.state !== "DRAFT") {
-        acceptPersistedEntry(result.entry);
+        preserveLocalOnto(result.entry);
         setViewMode("preview");
-        setLifecycleMessage(
-          "Entry mới nhất không còn là Draft nên nội dung đang gõ không thể ghi đè.",
-        );
         return;
       }
 
@@ -182,7 +187,14 @@ export function JournalEditor({
           onDeletePermanently={() => void deletePermanently()}
         />
 
-        {saveState === "conflict" ? (
+        {recoveryReason ? (
+          <JournalDraftRecoveryAlert
+            reason={recoveryReason}
+            entryId={entry.id}
+            title={title}
+            content={content}
+          />
+        ) : saveState === "conflict" ? (
           <JournalConflictAlert
             busy={isResolvingConflict}
             recoveryError={lifecycleMessage}

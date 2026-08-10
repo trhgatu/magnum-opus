@@ -173,3 +173,117 @@ test("guards unsaved navigation and supports editor shortcuts", async ({
     ),
   ).toBe(true);
 });
+
+test("keeps the draft when the browser cannot reach the Server Action", async ({
+  page,
+}) => {
+  const localContent = "Nội dung được giữ trong lúc mất kết nối.";
+
+  await login(page);
+  await page.goto("/journal");
+  await page.getByRole("button", { name: "Viết entry mới" }).click();
+
+  await page.route("**/journal/**", async (route) => {
+    const request = route.request();
+    if (request.method() === "POST" && request.headers()["next-action"]) {
+      await route.abort("internetdisconnected");
+      return;
+    }
+    await route.continue();
+  });
+
+  await page.getByLabel("Nội dung", { exact: true }).fill(localContent);
+  await expect(page.getByText(/kiểm tra kết nối rồi thử lại/)).toBeVisible({
+    timeout: 10_000,
+  });
+  await expect(page.getByLabel("Nội dung", { exact: true })).toHaveValue(
+    localContent,
+  );
+
+  await page.unroute("**/journal/**");
+  await page.getByRole("button", { name: "Thử lưu lại" }).click();
+  await expect(page.getByText("Đã lưu · revision 2")).toBeVisible({
+    timeout: 10_000,
+  });
+});
+
+test("preserves local work when another tab moves the entry to Trash", async ({
+  page,
+  context,
+}) => {
+  const title = `Remote trash ${Date.now()}`;
+  const localContent = "Phần đang gõ chưa được phép biến mất.";
+
+  await login(page);
+  await page.goto("/journal");
+  await page.getByRole("button", { name: "Viết entry mới" }).click();
+  await page.getByLabel("Tiêu đề").fill(title);
+  await expect(page.getByText("Đã lưu · revision 2")).toBeVisible({
+    timeout: 10_000,
+  });
+
+  const secondPage = await context.newPage();
+  await secondPage.goto(page.url());
+  await secondPage.getByRole("button", { name: "Đưa vào Trash" }).click();
+  await expect(secondPage).toHaveURL(/\/journal\?state=TRASHED$/);
+
+  await page.getByLabel("Nội dung", { exact: true }).fill(localContent);
+  await expect(
+    page.getByRole("heading", { name: "Entry đã được thay đổi ở nơi khác" }),
+  ).toBeVisible({ timeout: 10_000 });
+  await page.getByRole("button", { name: "Ghi nội dung đang gõ" }).click();
+
+  await expect(
+    page.getByRole("heading", {
+      name: "Entry đã đổi trạng thái ở nơi khác",
+    }),
+  ).toBeVisible();
+  await expect(page.getByText(localContent)).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Sao chép nội dung" }),
+  ).toBeVisible();
+
+  await secondPage.close();
+});
+
+test("preserves local work when another tab permanently deletes the entry", async ({
+  page,
+  context,
+}) => {
+  const title = `Remote delete ${Date.now()}`;
+  const localContent = "Bản local sau khi entry đã bị xóa.";
+
+  await login(page);
+  await page.goto("/journal");
+  await page.getByRole("button", { name: "Viết entry mới" }).click();
+  await page.getByLabel("Tiêu đề").fill(title);
+  await expect(page.getByText("Đã lưu · revision 2")).toBeVisible({
+    timeout: 10_000,
+  });
+
+  const secondPage = await context.newPage();
+  await secondPage.goto(page.url());
+  await secondPage.getByRole("button", { name: "Đưa vào Trash" }).click();
+  await secondPage.getByRole("link", { name: new RegExp(title) }).click();
+  await secondPage.getByRole("button", { name: "Xóa vĩnh viễn" }).click();
+  await secondPage
+    .getByRole("button", { name: "Xóa vĩnh viễn" })
+    .last()
+    .click();
+  await expect(secondPage).toHaveURL(/\/journal\?state=TRASHED$/);
+
+  await page.getByLabel("Nội dung", { exact: true }).fill(localContent);
+  await expect(
+    page.getByRole("heading", {
+      name: "Entry không còn tồn tại trên server",
+    }),
+  ).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByLabel("Nội dung", { exact: true })).toHaveValue(
+    localContent,
+  );
+  await expect(
+    page.getByRole("button", { name: "Sao chép nội dung" }),
+  ).toBeVisible();
+
+  await secondPage.close();
+});

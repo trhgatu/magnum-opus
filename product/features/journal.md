@@ -216,16 +216,27 @@ Journal v1 đã hoàn thành vertical slice từ giao diện đến database.
 
 Đây là module tham chiếu cho feature tiếp theo: bắt đầu từ business language và state machine, giữ domain độc lập, đặt orchestration trong application, cô lập persistence sau repository port, rồi nối presentation và client bằng contract có kiểu rõ ràng. Không sao chép máy móc mọi file; module đơn giản hơn không cần lifecycle service, revision hay client editor nếu nghiệp vụ không yêu cầu.
 
-## Resilience hiện tại và phần còn lại
+## Khi việc lưu bị gián đoạn
 
-- Mất mạng trong khi autosave.
-- Hai tab chỉnh cùng một entry: đã có conflict recovery có chủ đích và E2E hai tab.
-- Entry đã bị trash hoặc xóa trên thiết bị khác.
-- Token hết hạn trong khi người dùng đang viết.
-- Tìm kiếm không có kết quả.
-- Trang danh sách hết dữ liệu hoặc load tiếp thất bại.
+Journal ưu tiên giữ lại phần đang viết. Giao diện chỉ báo `Saved` sau khi server đã xác nhận; việc nội dung còn xuất hiện trong ô soạn thảo chưa có nghĩa là nó đã được lưu.
 
-Trong mọi trường hợp, nội dung người dùng vừa nhập phải được ưu tiên bảo toàn và lỗi phải cho biết họ có thể làm gì tiếp theo.
+### Mất kết nối trong lúc autosave
+
+Nếu trình duyệt không gửi được yêu cầu lưu, nội dung vẫn nằm nguyên trong editor và trạng thái chuyển sang `Save failed`. Khi kết nối trở lại, người dùng chọn **Thử lưu lại**. Autosave không âm thầm xóa hoặc thay nội dung bằng bản cũ từ server.
+
+### Cùng một entry được mở ở hai nơi
+
+Nếu nơi khác đã lưu trước, Journal dừng autosave và báo xung đột. Người dùng có thể dùng bản mới nhất trên server hoặc giữ phần đang gõ để lưu lên revision mới. Journal không tự chọn vì cả hai quyết định đều có thể làm mất một phiên bản có ý nghĩa.
+
+### Entry bị đưa vào Trash hoặc xóa ở nơi khác
+
+Journal dừng autosave thay vì cố ghi đè trạng thái mới. Phần đang gõ vẫn còn trên màn hình và có thể được sao chép thành văn bản Markdown. Sau đó người dùng quay lại danh sách Journal hoặc đăng nhập lại nếu phiên làm việc đã kết thúc. Cách xử lý này bảo toàn nội dung ngay cả khi entry trên server không còn có thể chỉnh sửa.
+
+### Phiên đăng nhập hết hạn
+
+Trước khi mở trang được bảo vệ hoặc gửi một Server Action, lớp bảo vệ của client thử làm mới phiên đăng nhập bằng refresh cookie. Nếu không thể khôi phục phiên, editor giữ nguyên nội dung, dừng autosave và đưa ra hành động đăng nhập lại. Nhiều yêu cầu đồng thời dùng chung một lần refresh để tránh tạo một chuỗi refresh trùng lặp.
+
+Các hành vi mất kết nối, xung đột hai tab, remote Trash và remote delete đều có bài E2E chạy qua trình duyệt, Next.js BFF, API và database thật. Những trường hợp còn lại cần tiếp tục được theo dõi khi sản phẩm phát triển là lỗi tải thêm ở danh sách và trải nghiệm tìm kiếm không có kết quả.
 
 ## Tiêu chí hoàn thành vertical slice
 

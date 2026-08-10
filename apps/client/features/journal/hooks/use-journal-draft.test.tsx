@@ -105,6 +105,42 @@ describe("useJournalDraft", () => {
     expect(result.current.message).toContain("thay đổi ở nơi khác");
   });
 
+  it("keeps local content when the Server Action transport rejects", async () => {
+    const saveDraft = vi
+      .fn()
+      .mockRejectedValue(new TypeError("Failed to fetch"));
+    const { result } = renderHook(() => useJournalDraft(entry, { saveDraft }));
+
+    act(() => result.current.setContent("Offline version"));
+    await act(async () => expect(await result.current.flush()).toBe(false));
+
+    expect(result.current.content).toBe("Offline version");
+    expect(result.current.isDirty).toBe(true);
+    expect(result.current.saveState).toBe("error");
+    expect(result.current.message).toContain("kiểm tra kết nối");
+  });
+
+  it("stops retrying after the entry disappears from the server", async () => {
+    vi.useFakeTimers();
+    const saveDraft = vi.fn().mockResolvedValue({
+      status: "error",
+      code: "JOURNAL_ENTRY_NOT_FOUND",
+      kind: "not_found",
+      message: "Not found",
+    });
+    const { result } = renderHook(() => useJournalDraft(entry, { saveDraft }));
+
+    act(() => result.current.setContent("Only local now"));
+    await act(async () => expect(await result.current.flush()).toBe(false));
+    expect(result.current.saveState).toBe("missing");
+
+    act(() => result.current.setContent("Still local"));
+    await act(async () => vi.advanceTimersByTimeAsync(2_000));
+
+    expect(saveDraft).toHaveBeenCalledOnce();
+    expect(result.current.content).toBe("Still local");
+  });
+
   it("autosaves a dirty draft after the debounce window", async () => {
     vi.useFakeTimers();
     const saveDraft = vi.fn().mockResolvedValue({
@@ -185,5 +221,26 @@ describe("useJournalDraft", () => {
         expectedRevision: 3,
       }),
     );
+  });
+
+  it("preserves local work when the remote entry is no longer editable", () => {
+    const { result } = renderHook(() => useJournalDraft(entry));
+
+    act(() => result.current.setContent("Local version"));
+    act(() =>
+      result.current.preserveLocalOnto({
+        ...entry,
+        content: "Remote version",
+        state: "TRASHED",
+        stateBeforeTrash: "DRAFT",
+        revision: 3,
+        trashedAt: "2026-08-10T00:00:00.000Z",
+      }),
+    );
+
+    expect(result.current.content).toBe("Local version");
+    expect(result.current.entry.state).toBe("TRASHED");
+    expect(result.current.saveState).toBe("remote_state");
+    expect(result.current.isDirty).toBe(true);
   });
 });
