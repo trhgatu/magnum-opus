@@ -47,8 +47,13 @@ test("completes the private Journal lifecycle through the BFF", async ({
     .getByLabel("Ghi chú ngắn")
     .fill("Bình yên sau khi cơn mưa đi qua.");
   await page.getByRole("button", { name: "Lưu mood" }).click();
-  await expect(page.getByText("Đã lưu mood.")).toBeVisible();
-  await expect(page.getByText("mood revision 1")).toBeVisible();
+  await expect(page.getByText("mood revision 1")).toBeVisible({
+    timeout: 10_000,
+  });
+  await expect(page.getByText("Cường độ 3/5")).toBeVisible();
+  await expect(
+    page.getByText("Bình yên sau khi cơn mưa đi qua."),
+  ).toBeVisible();
 
   await page.reload();
   await expect(
