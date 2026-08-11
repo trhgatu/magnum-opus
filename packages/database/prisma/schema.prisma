@@ -189,6 +189,19 @@ enum JournalEntryState {
   TRASHED
 }
 
+enum MoodLabel {
+  JOYFUL
+  CALM
+  HOPEFUL
+  ENERGETIC
+  NEUTRAL
+  TIRED
+  ANXIOUS
+  SAD
+  ANGRY
+  OVERWHELMED
+}
+
 model JournalEntry {
   id               String             @id @default(uuid())
   ownerId          String             @map("owner_id")
@@ -201,8 +214,24 @@ model JournalEntry {
   createdAt        DateTime           @default(now()) @map("created_at")
   updatedAt        DateTime           @updatedAt @map("updated_at")
 
-  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner User  @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  mood  Mood?
 
   @@index([ownerId, state, updatedAt(sort: Desc)])
   @@map("journal_entries")
+}
+
+model Mood {
+  id             String    @id @default(uuid())
+  journalEntryId String    @unique @map("journal_entry_id")
+  label          MoodLabel
+  intensity      Int?
+  note           String?   @db.VarChar(500)
+  revision       Int       @default(1)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  journalEntry JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+
+  @@map("moods")
 }
