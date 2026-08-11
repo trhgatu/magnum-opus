@@ -1,6 +1,7 @@
 "use client";
 
-import type { JournalEntryResponse } from "@repo/contracts";
+import type { JournalEntryResponse, MoodResponse } from "@repo/contracts";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 
@@ -21,10 +22,28 @@ import { useJournalDraft } from "@/features/journal/hooks/use-journal-draft";
 import { useJournalEditorShortcuts } from "@/features/journal/hooks/use-journal-editor-shortcuts";
 import { useUnsavedChangesWarning } from "@/hooks/use-unsaved-changes-warning";
 
+const MoodPanel = dynamic(
+  () =>
+    import("@/features/mood/components/mood-panel").then(
+      (module) => module.MoodPanel,
+    ),
+  {
+    loading: () => (
+      <div
+        className="h-32 animate-pulse rounded-xl bg-muted/35"
+        role="status"
+        aria-label="Đang chuẩn bị Mood"
+      />
+    ),
+  },
+);
+
 export function JournalEditor({
   initialEntry,
+  initialMood,
 }: {
   initialEntry: JournalEntryResponse;
+  initialMood: MoodResponse | null;
 }) {
   const router = useRouter();
   const {
@@ -52,9 +71,11 @@ export function JournalEditor({
   );
   const [isChangingState, setIsChangingState] = useState(false);
   const [isResolvingConflict, setIsResolvingConflict] = useState(false);
+  const [isMoodBusy, setIsMoodBusy] = useState(false);
 
   const message = lifecycleMessage ?? draftMessage;
-  const busy = isChangingState || isResolvingConflict;
+  const lifecycleBusy = isChangingState || isResolvingConflict;
+  const busy = lifecycleBusy || isMoodBusy;
   const recoveryReason =
     saveState === "missing" ||
     saveState === "session" ||
@@ -225,6 +246,15 @@ export function JournalEditor({
           viewMode={viewMode}
           onTitleChange={setTitle}
           onContentChange={setContent}
+        />
+
+        <MoodPanel
+          key={`${initialMood?.id ?? "none"}:${initialMood?.revision ?? 0}:${entry.state}`}
+          journalEntryId={entry.id}
+          initialMood={initialMood}
+          editable={editable}
+          disabled={lifecycleBusy}
+          onBusyChange={setIsMoodBusy}
         />
       </div>
     </article>

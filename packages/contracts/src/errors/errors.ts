@@ -157,6 +157,37 @@ export const Errors = {
     translationKey: 'exceptions.journal.entry.permanent.delete.forbidden',
     statusCode: 409,
   },
+  // Mood
+  INVALID_MOOD_ID: {
+    code: 'INVALID_MOOD_ID',
+    translationKey: 'exceptions.mood.id.invalid',
+    statusCode: 400,
+  },
+  INVALID_MOOD_INTENSITY: {
+    code: 'INVALID_MOOD_INTENSITY',
+    translationKey: 'exceptions.mood.intensity.invalid',
+    statusCode: 400,
+  },
+  INVALID_MOOD_NOTE: {
+    code: 'INVALID_MOOD_NOTE',
+    translationKey: 'exceptions.mood.note.invalid',
+    statusCode: 400,
+  },
+  MOOD_REVISION_CONFLICT: {
+    code: 'MOOD_REVISION_CONFLICT',
+    translationKey: 'exceptions.mood.revision.conflict',
+    statusCode: 409,
+  },
+  MOOD_JOURNAL_ENTRY_NOT_EDITABLE: {
+    code: 'MOOD_JOURNAL_ENTRY_NOT_EDITABLE',
+    translationKey: 'exceptions.mood.journal.entry.not.editable',
+    statusCode: 409,
+  },
+  MOOD_NOT_FOUND: {
+    code: 'MOOD_NOT_FOUND',
+    translationKey: 'exceptions.mood.not.found',
+    statusCode: 404,
+  },
 } as const;
 
 export type ErrorDefinition = (typeof Errors)[keyof typeof Errors];

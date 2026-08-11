@@ -24,10 +24,14 @@ Quay lại quan sát
 - [Journey](product/journey.md): hành trình chuyển hóa xuyên suốt các capability.
 - [Features](product/features/README.md): trạng thái và flow của từng tính năng.
 
+## Engineering handbook
+
+[Engineering Handbook](docs/README.md) là lộ trình đọc kỹ thuật từ kiến trúc tổng thể đến từng module, runtime flow, CI/CD, bản đồ file và cách xây một vertical slice mới. Phần `product/` giải thích hệ thống cần phục vụ điều gì; phần `docs/` giải thích code hiện thực điều đó như thế nào.
+
 ## Trạng thái hiện tại
 
-Repository đã hoàn thành foundation sản phẩm và vertical slice đầu tiên là Journal v1. Nền tảng kỹ thuật ban đầu được kế thừa từ một starter đã được kiểm chứng; các capability của Forge OS sẽ tiếp tục được đánh giá rồi chuyển sang Magnum Opus từng slice, không port nguyên khối.
+Repository đã hoàn thành foundation sản phẩm cùng hai vertical slice Reflection đầu tiên: Journal v1 và Mood v1. Nền tảng kỹ thuật ban đầu được kế thừa từ một starter đã được kiểm chứng; các capability của Forge OS sẽ tiếp tục được đánh giá rồi chuyển sang Magnum Opus từng slice, không port nguyên khối.
 
 Client hiện dùng một ngôn ngữ trải nghiệm thống nhất: yên, riêng tư, ưu tiên nội dung và không biến hành trình cá nhân thành dashboard năng suất. [Product vision](product/vision.md) ghi lại các nguyên tắc để những capability tiếp theo không tự phát minh một phong cách hoặc interaction contract khác.
 
-Tài liệu cài đặt, kiến trúc nền tảng, Docker, CI/CD và deployment được duy trì tại repository starter. Magnum Opus chỉ ghi lại product intent, business flow và hành vi của các tính năng.
+Magnum Opus duy trì tài liệu kỹ thuật gắn trực tiếp với code hiện tại trong `docs/`. Những hướng dẫn nền tảng chung vẫn có thể được cải tiến ở starter, nhưng architecture, flow và quyết định riêng của Magnum Opus phải được cập nhật ngay tại repository này khi code thay đổi.

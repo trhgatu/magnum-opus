@@ -40,6 +40,31 @@ test("completes the private Journal lifecycle through the BFF", async ({
     content,
   );
 
+  await page.getByRole("button", { name: "Thêm mood" }).click();
+  await page.getByRole("button", { name: "Bình yên" }).click();
+  await page.getByRole("button", { name: "Cường độ 3" }).click();
+  await page
+    .getByLabel("Ghi chú ngắn")
+    .fill("Bình yên sau khi cơn mưa đi qua.");
+  await page.getByRole("button", { name: "Lưu mood" }).click();
+  await expect(page.getByText("mood revision 1")).toBeVisible({
+    timeout: 10_000,
+  });
+  await expect(page.getByText("Cường độ 3/5")).toBeVisible();
+  await expect(
+    page.getByText("Bình yên sau khi cơn mưa đi qua."),
+  ).toBeVisible();
+
+  await page.reload();
+  await expect(
+    page.getByText("Bình yên sau khi cơn mưa đi qua."),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Thay đổi" }).click();
+  await page.getByRole("button", { name: "Hy vọng" }).click();
+  await page.getByRole("button", { name: "Cường độ 4" }).click();
+  await page.getByRole("button", { name: "Lưu mood" }).click();
+  await expect(page.getByText("mood revision 2")).toBeVisible();
+
   await page.getByRole("button", { name: "Xem trước" }).click();
   await expect(
     page.getByRole("heading", { name: "Khoảnh khắc" }),
@@ -48,8 +73,19 @@ test("completes the private Journal lifecycle through the BFF", async ({
 
   await page.getByRole("button", { name: "Seal", exact: true }).click();
   await expect(page.getByLabel("Bản xem trước nội dung")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Thay đổi" }),
+  ).not.toBeVisible();
   await page.getByRole("button", { name: "Reopen", exact: true }).click();
   await expect(page.getByLabel("Nội dung", { exact: true })).toBeEditable();
+
+  await page.getByRole("button", { name: "Thay đổi" }).click();
+  await page.getByRole("button", { name: "Loại bỏ mood" }).click();
+  await page.getByRole("button", { name: "Loại bỏ", exact: true }).click();
+  await expect(page.getByText("Đã loại bỏ mood khỏi entry.")).toBeVisible();
+  await expect(
+    page.getByText("Entry này chưa lưu lại trạng thái cảm xúc."),
+  ).toBeVisible();
 
   await page.getByRole("button", { name: "Đưa vào Trash" }).click();
   await expect(page).toHaveURL(/\/journal\?state=TRASHED$/);

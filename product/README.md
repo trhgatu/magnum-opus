@@ -1,6 +1,6 @@
 # Product map
 
-Thư mục này là bản đồ sản phẩm của Magnum Opus. Nó không phải handbook kỹ thuật và không giải thích cách cài đặt repository.
+Thư mục này là bản đồ sản phẩm của Magnum Opus. Nó không phải handbook kỹ thuật và không giải thích cách cài đặt repository. Phần triển khai tương ứng được giải thích trong [Engineering Handbook](../docs/README.md).
 
 Đọc theo thứ tự:
 

@@ -1,8 +1,10 @@
+import type { JournalEntryResponse, MoodResponse } from "@repo/contracts";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { JournalEditor } from "@/features/journal/components/journal-editor";
 import { getJournalEntry } from "@/features/journal/api/journal";
+import { JournalEditor } from "@/features/journal/components/journal-editor";
+import { getMood } from "@/features/mood/api/mood";
 import { ApiError } from "@/lib/api";
 
 export const metadata: Metadata = {
@@ -16,13 +18,15 @@ export default async function JournalEntryPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  let entry;
+  let entry: JournalEntryResponse;
+  let mood: MoodResponse | null;
+
   try {
-    entry = await getJournalEntry(id);
+    [entry, mood] = await Promise.all([getJournalEntry(id), getMood(id)]);
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) notFound();
     throw error;
   }
 
-  return <JournalEditor initialEntry={entry} />;
+  return <JournalEditor initialEntry={entry} initialMood={mood} />;
 }
