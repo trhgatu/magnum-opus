@@ -82,10 +82,16 @@ test("completes the private Journal lifecycle through the BFF", async ({
   await page.getByRole("button", { name: "Thay đổi" }).click();
   await page.getByRole("button", { name: "Loại bỏ mood" }).click();
   await page.getByRole("button", { name: "Loại bỏ", exact: true }).click();
-  await expect(page.getByText("Đã loại bỏ mood khỏi entry.")).toBeVisible();
   await expect(
     page.getByText("Entry này chưa lưu lại trạng thái cảm xúc."),
   ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Thêm mood" })).toBeVisible();
+
+  await page.reload();
+  await expect(
+    page.getByText("Entry này chưa lưu lại trạng thái cảm xúc."),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Thêm mood" })).toBeVisible();
 
   await page.getByRole("button", { name: "Đưa vào Trash" }).click();
   await expect(page).toHaveURL(/\/journal\?state=TRASHED$/);
