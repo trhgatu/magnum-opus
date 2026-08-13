@@ -56,6 +56,8 @@ Chương này là bản đồ tra cứu. Khi gặp một file lạ, tìm suffix 
 | `ports/*.port.ts`                | Capability ngoài domain persistence: clock, mail, cache, queue, realtime. Infrastructure implements interface này.                                        |
 | `*.handler.spec.ts`              | Mock ports để test quyết định và thứ tự orchestration; không assert chi tiết Prisma.                                                                      |
 
+Trong Auth, `auth-token-issuer.port.ts`, `auth-policy.port.ts` và `opaque-token.port.ts` là ba ví dụ cụ thể. JWT/config/crypto adapters tương ứng nằm dưới `auth/infrastructure`; Passport strategies nằm dưới `auth/presentation/strategies` vì chúng nhận credential từ HTTP request.
+
 ### Infrastructure
 
 | Pattern                               | Ý nghĩa                                                                                                          |

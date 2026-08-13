@@ -1,10 +1,11 @@
-import { ConfigService } from '@nestjs/config';
 import { UserEntity } from '@iam/users/domain/user.entity';
 import type { UserRepository } from '@iam/users/domain/ports/user.repository';
 import type { IJobQueuePort } from '@shared/application/ports/job-queue.port';
 import type { PasswordResetTokenStore } from '../../ports/password-reset-token-store.port';
 import { RequestPasswordResetCommand } from '../request-password-reset.command';
 import { RequestPasswordResetHandler } from './request-password-reset.handler';
+import type { AuthPolicy } from '../../ports/auth-policy.port';
+import type { OpaqueToken } from '../../ports/opaque-token.port';
 
 const user = UserEntity.register({
   id: 'user-id',
@@ -21,11 +22,21 @@ describe('RequestPasswordResetHandler', () => {
     issue: jest.fn(),
   } as unknown as jest.Mocked<PasswordResetTokenStore>;
   const jobs = { addJob: jest.fn() } as unknown as jest.Mocked<IJobQueuePort>;
+  const authPolicy = {
+    passwordResetUrl: jest.fn(
+      (token: string) =>
+        `https://client.example.com/reset-password?token=${token}`,
+    ),
+  } as unknown as jest.Mocked<AuthPolicy>;
+  const opaqueToken = {
+    generate: jest.fn(() => ({ raw: 'raw-token', hash: 'hashed-token' })),
+  } as unknown as jest.Mocked<OpaqueToken>;
   const handler = new RequestPasswordResetHandler(
     users,
     tokens,
     jobs,
-    new ConfigService({ CLIENT_URL: 'https://client.example.com' }),
+    authPolicy,
+    opaqueToken,
   );
 
   beforeEach(() => jest.clearAllMocks());
@@ -50,8 +61,8 @@ describe('RequestPasswordResetHandler', () => {
     const payload = jobs.addJob.mock.calls[0][2] as { resetUrl: string };
     expect(jobs.addJob.mock.calls[0][3]).toEqual({ sensitive: true });
     const rawToken = new URL(payload.resetUrl).searchParams.get('token');
-    expect(rawToken).toHaveLength(43);
-    expect(storedHash).toHaveLength(64);
+    expect(rawToken).toBe('raw-token');
+    expect(storedHash).toBe('hashed-token');
     expect(payload.resetUrl).not.toContain(storedHash);
   });
 

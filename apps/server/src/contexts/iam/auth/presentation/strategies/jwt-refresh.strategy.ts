@@ -1,4 +1,4 @@
-import { Injectable, Inject, UnauthorizedException } from '@nestjs/common';
+﻿import { Injectable, Inject, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { Request } from 'express';
@@ -11,7 +11,7 @@ import {
   USER_REPOSITORY,
   type UserRepository,
 } from '@iam/users/domain/ports/user.repository';
-import { refreshTokenFromCookie } from '../../presentation/refresh-cookie';
+import { refreshTokenFromCookie } from '../refresh-cookie';
 
 @Injectable()
 export class JwtRefreshStrategy extends PassportStrategy(
@@ -26,8 +26,6 @@ export class JwtRefreshStrategy extends PassportStrategy(
     private readonly configService: ConfigService,
   ) {
     super({
-      // Cookie trước, bearer sau: trình duyệt (admin) dùng HttpOnly cookie;
-      // API client/mobile/E2E vẫn gửi được qua Authorization header.
       jwtFromRequest: ExtractJwt.fromExtractors([
         refreshTokenFromCookie,
         ExtractJwt.fromAuthHeaderAsBearerToken(),

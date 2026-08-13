@@ -1,4 +1,3 @@
-import { createHash } from 'crypto';
 import { Inject } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
 import {
@@ -19,6 +18,7 @@ import {
 } from '../../ports/password-reset-token-store.port';
 import { InvalidPasswordResetTokenException } from '../../../domain/exceptions/invalid-password-reset-token.exception';
 import { ResetPasswordCommand } from '../reset-password.command';
+import { OPAQUE_TOKEN, type OpaqueToken } from '../../ports/opaque-token.port';
 
 @CommandHandler(ResetPasswordCommand)
 export class ResetPasswordHandler implements ICommandHandler<
@@ -31,10 +31,11 @@ export class ResetPasswordHandler implements ICommandHandler<
     @Inject(USER_REPOSITORY) private readonly users: UserRepository,
     @Inject(PASSWORD_HASHER) private readonly hasher: PasswordHasher,
     @Inject(SESSION_STORE) private readonly sessions: ISessionStore,
+    @Inject(OPAQUE_TOKEN) private readonly opaqueToken: OpaqueToken,
   ) {}
 
   async execute(command: ResetPasswordCommand): Promise<void> {
-    const tokenHash = createHash('sha256').update(command.token).digest('hex');
+    const tokenHash = this.opaqueToken.hash(command.token);
     const userId = await this.tokens.consume(tokenHash, new Date());
     if (!userId) throw new InvalidPasswordResetTokenException();
 

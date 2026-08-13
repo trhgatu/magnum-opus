@@ -1,6 +1,4 @@
-import { createHash, randomBytes } from 'crypto';
 import { Inject, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
 import {
   USER_REPOSITORY,
@@ -19,6 +17,8 @@ import {
   type PasswordResetTokenStore,
 } from '../../ports/password-reset-token-store.port';
 import { RequestPasswordResetCommand } from '../request-password-reset.command';
+import { AUTH_POLICY, type AuthPolicy } from '../../ports/auth-policy.port';
+import { OPAQUE_TOKEN, type OpaqueToken } from '../../ports/opaque-token.port';
 
 const RESET_TOKEN_TTL_MS = 30 * 60 * 1_000;
 
@@ -34,7 +34,8 @@ export class RequestPasswordResetHandler implements ICommandHandler<
     @Inject(PASSWORD_RESET_TOKEN_STORE)
     private readonly tokens: PasswordResetTokenStore,
     @Inject(JOB_QUEUE_PORT) private readonly jobs: IJobQueuePort,
-    private readonly config: ConfigService,
+    @Inject(AUTH_POLICY) private readonly authPolicy: AuthPolicy,
+    @Inject(OPAQUE_TOKEN) private readonly opaqueToken: OpaqueToken,
   ) {}
 
   async execute(command: RequestPasswordResetCommand): Promise<void> {
@@ -44,25 +45,18 @@ export class RequestPasswordResetHandler implements ICommandHandler<
     if (!user?.isActive || user.isDeleted) return;
 
     try {
-      const rawToken = randomBytes(32).toString('base64url');
-      const tokenHash = createHash('sha256').update(rawToken).digest('hex');
+      const token = this.opaqueToken.generate();
       await this.tokens.issue(
         user.id,
-        tokenHash,
+        token.hash,
         new Date(Date.now() + RESET_TOKEN_TTL_MS),
       );
-
-      const resetUrl = new URL(
-        '/reset-password',
-        this.config.getOrThrow<string>('CLIENT_URL'),
-      );
-      resetUrl.searchParams.set('token', rawToken);
       await this.jobs.addJob(
         USER_QUEUE,
         USER_JOBS.SEND_PASSWORD_RESET_EMAIL,
         {
           email: user.email,
-          resetUrl: resetUrl.toString(),
+          resetUrl: this.authPolicy.passwordResetUrl(token.raw),
         },
         { sensitive: true },
       );

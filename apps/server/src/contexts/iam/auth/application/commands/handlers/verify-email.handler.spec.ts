@@ -3,6 +3,7 @@ import type { EmailVerificationTokenStore } from '../../ports/email-verification
 import { InvalidEmailVerificationTokenException } from '../../../domain/exceptions/invalid-email-verification-token.exception';
 import { VerifyEmailCommand } from '../verify-email.command';
 import { VerifyEmailHandler } from './verify-email.handler';
+import type { OpaqueToken } from '../../ports/opaque-token.port';
 
 describe('VerifyEmailHandler', () => {
   const tokens = {
@@ -11,7 +12,10 @@ describe('VerifyEmailHandler', () => {
   const users = {
     markEmailVerified: jest.fn(),
   } as unknown as jest.Mocked<UserRepository>;
-  const handler = new VerifyEmailHandler(tokens, users);
+  const opaqueToken = {
+    hash: jest.fn((raw: string) => `hash:${raw}`),
+  } as unknown as jest.Mocked<OpaqueToken>;
+  const handler = new VerifyEmailHandler(tokens, users, opaqueToken);
 
   beforeEach(() => jest.clearAllMocks());
 
@@ -29,6 +33,10 @@ describe('VerifyEmailHandler', () => {
     });
     users.markEmailVerified.mockResolvedValue(true);
     await handler.execute(new VerifyEmailCommand('valid-token'));
+    expect(tokens.consume).toHaveBeenCalledWith(
+      'hash:valid-token',
+      expect.any(Date),
+    );
     expect(users.markEmailVerified).toHaveBeenCalledWith(
       'user-id',
       'member@example.com',

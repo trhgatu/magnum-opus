@@ -62,6 +62,16 @@ tìm Journal theo entryId + ownerId
 
 Handler không viết Prisma query. Nó phụ thuộc `MoodRepository` để lưu Mood và `MoodJournalEntryReader` để kiểm tra quyền truy cập Journal. Module bind hai port này với các Prisma adapter tương ứng.
 
+Auth cũng tuân theo cùng một nguyên tắc. Login và refresh cần phát token, nhưng handler không biết `JwtService`, JWT secret hay tên biến môi trường. Application sở hữu port `AuthTokenIssuer`; adapter `JwtAuthTokenIssuer` nằm ở infrastructure và hiện thực port bằng Nest JWT cùng `ConfigService`.
+
+Các policy triển khai như “có bắt buộc xác minh email không?” hoặc “URL reset password bắt đầu từ domain frontend nào?” đi qua `AuthPolicy`. Việc sinh và băm token dùng một lần đi qua `OpaqueToken`. Nhờ đó test application dùng fake object nhỏ và không phải khởi tạo framework configuration hoặc crypto implementation.
+
+```text
+LoginCommandHandler ──► AuthTokenIssuer ◄── JwtAuthTokenIssuer
+RegisterHandler     ──► AuthPolicy      ◄── EnvironmentAuthPolicy
+Reset/verify flows  ──► OpaqueToken     ◄── CryptoOpaqueToken
+```
+
 ### Khi một module cần đọc dữ liệu của module khác
 
 Quan hệ nghiệp vụ không đồng nghĩa với việc handler được import repository hoặc aggregate của module bên cạnh. Ví dụ, khi tạo Memory từ Journal, use case chỉ cần biết Journal nguồn có dùng được hay không. Memory vì thế sở hữu một application port tên `MemorySourceJournalReader`.
@@ -89,6 +99,8 @@ Infrastructure trả lời “cơ chế cụ thể để thực hiện port là 
 ### Presentation
 
 Presentation là lớp biên. DTO kiểm tra hình dạng dữ liệu không tin cậy; guard kiểm tra authentication/permission; controller tạo command/query; presenter chuyển object nội bộ thành public contract.
+
+Passport strategy cũng là presentation adapter: nó nhận credential từ HTTP request, xác thực rồi tạo principal cho request context. Vì strategy là inbound adapter, nó được đặt trong `auth/presentation/strategies`; infrastructure không import helper đọc cookie từ presentation.
 
 ## Bounded contexts hiện tại
 
@@ -134,15 +146,17 @@ Nest module là nơi hợp lệ để biết cả port lẫn adapter:
 
 `apps/server/src/architecture/dependency-rules.spec.ts` quét source để CI từ chối các sai lệch:
 
-| Rule                                                        | Lý do                                                |
-| ----------------------------------------------------------- | ---------------------------------------------------- |
-| Domain không import application/infrastructure/presentation | Giữ business rules độc lập framework.                |
-| Shared domain không nhắc Prisma/Redis/BullMQ/Socket         | Không để delivery technology lọt vào core.           |
-| Application không import infrastructure/presentation        | Handler chỉ biết ports.                              |
-| Memory/Mood application không import Journal domain         | Quan hệ Journal đi qua reader port của consumer.     |
-| Domain port kết thúc `.repository.ts`                       | Repository là persistence của aggregate.             |
-| Application port kết thúc `.port.ts`                        | Email, cache, queue, reader… là outbound capability. |
-| Module file trùng tên thư mục                               | Composition root có vị trí dự đoán được.             |
+| Rule                                                          | Lý do                                                |
+| ------------------------------------------------------------- | ---------------------------------------------------- |
+| Domain không import application/infrastructure/presentation   | Giữ business rules độc lập framework.                |
+| Shared domain không nhắc Prisma/Redis/BullMQ/Socket           | Không để delivery technology lọt vào core.           |
+| Application không import infrastructure/presentation          | Handler chỉ biết ports.                              |
+| Auth application không import ConfigService/JwtService/crypto | Policy, token issuer và opaque token đi qua port.    |
+| Infrastructure không import presentation                      | Không tạo dependency ngược giữa outer adapters.      |
+| Memory/Mood application không import Journal domain           | Quan hệ Journal đi qua reader port của consumer.     |
+| Domain port kết thúc `.repository.ts`                         | Repository là persistence của aggregate.             |
+| Application port kết thúc `.port.ts`                          | Email, cache, queue, reader… là outbound capability. |
+| Module file trùng tên thư mục                                 | Composition root có vị trí dự đoán được.             |
 
 Architecture test không thay thế code review, nhưng biến boundary quan trọng thành một hợp đồng tự động.
 

@@ -1,4 +1,3 @@
-import { createHash } from 'crypto';
 import { Inject } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
 import {
@@ -11,6 +10,7 @@ import {
 } from '@iam/users/domain/ports/user.repository';
 import { InvalidEmailVerificationTokenException } from '../../../domain/exceptions/invalid-email-verification-token.exception';
 import { VerifyEmailCommand } from '../verify-email.command';
+import { OPAQUE_TOKEN, type OpaqueToken } from '../../ports/opaque-token.port';
 
 @CommandHandler(VerifyEmailCommand)
 export class VerifyEmailHandler implements ICommandHandler<
@@ -21,10 +21,11 @@ export class VerifyEmailHandler implements ICommandHandler<
     @Inject(EMAIL_VERIFICATION_TOKEN_STORE)
     private readonly tokens: EmailVerificationTokenStore,
     @Inject(USER_REPOSITORY) private readonly users: UserRepository,
+    @Inject(OPAQUE_TOKEN) private readonly opaqueToken: OpaqueToken,
   ) {}
 
   async execute(command: VerifyEmailCommand): Promise<void> {
-    const hash = createHash('sha256').update(command.token).digest('hex');
+    const hash = this.opaqueToken.hash(command.token);
     const subject = await this.tokens.consume(hash, new Date());
     if (!subject) throw new InvalidEmailVerificationTokenException();
     const verified = await this.users.markEmailVerified(

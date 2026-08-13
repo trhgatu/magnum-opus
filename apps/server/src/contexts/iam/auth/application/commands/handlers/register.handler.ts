@@ -14,7 +14,7 @@ import {
   PASSWORD_HASHER,
   type PasswordHasher,
 } from '@iam/users/application/ports/password-hasher.port';
-import { ConfigService } from '@nestjs/config';
+import { AUTH_POLICY, type AuthPolicy } from '../../ports/auth-policy.port';
 import { EmailVerificationService } from '../../services/email-verification.service';
 
 @CommandHandler(RegisterCommand)
@@ -27,7 +27,7 @@ export class RegisterHandler implements ICommandHandler<
     private readonly userRepository: UserRepository,
     @Inject(PASSWORD_HASHER)
     private readonly passwordHasher: PasswordHasher,
-    private readonly config: ConfigService,
+    @Inject(AUTH_POLICY) private readonly authPolicy: AuthPolicy,
     private readonly verification: EmailVerificationService,
   ) {}
 
@@ -48,10 +48,7 @@ export class RegisterHandler implements ICommandHandler<
       email,
       username,
       passwordHash,
-      emailVerifiedAt: this.config.get<boolean>(
-        'EMAIL_VERIFICATION_REQUIRED',
-        false,
-      )
+      emailVerifiedAt: this.authPolicy.isEmailVerificationRequired()
         ? null
         : new Date(),
     });
