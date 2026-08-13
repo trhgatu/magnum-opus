@@ -140,7 +140,7 @@ Nest module là nơi hợp lệ để biết cả port lẫn adapter:
 3. Test handler có thể thay token bằng fake repository mà không khởi động Postgres.
 4. Nếu sau này đổi persistence, domain và handler không cần đổi miễn adapter mới giữ đúng interface.
 
-`AppModule` là composition root lớn nhất của API. Nó đăng ký config, logging, metrics, database, Redis, queue, outbox và các contexts. `WorkerModule` cố ý nhỏ hơn: chỉ config, logging, BullMQ connection, queue và processor.
+`AppModule` là composition root lớn nhất của API. Nó đăng ký config, logging, metrics, database, Redis, queue, outbox và các contexts. `WorkerModule` cố ý nhỏ hơn: chỉ config, logging, BullMQ connection và các adapter/service cần để consume job. Với email job, module này nối `UserQueueProcessor → UserEmailJobService → UserMailer → NodemailerUserMailer`; chỉ composition root được biết đồng thời port và implementation.
 
 ## Quy tắc được executable hóa
 
@@ -152,6 +152,8 @@ Nest module là nơi hợp lệ để biết cả port lẫn adapter:
 | Shared domain không nhắc Prisma/Redis/BullMQ/Socket           | Không để delivery technology lọt vào core.           |
 | Application không import infrastructure/presentation          | Handler chỉ biết ports.                              |
 | Auth application không import ConfigService/JwtService/crypto | Policy, token issuer và opaque token đi qua port.    |
+| Application job không import BullMQ hoặc khai báo processor   | Transport queue chỉ tồn tại ở infrastructure.        |
+| Queue processor chỉ nằm trong infrastructure/processors       | Inbound adapter có một vị trí và ownership rõ ràng.  |
 | Infrastructure không import presentation                      | Không tạo dependency ngược giữa outer adapters.      |
 | Memory/Mood application không import Journal domain           | Quan hệ Journal đi qua reader port của consumer.     |
 | Domain port kết thúc `.repository.ts`                         | Repository là persistence của aggregate.             |

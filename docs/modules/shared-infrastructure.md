@@ -82,6 +82,8 @@ Redis có nhiều vai trò: session store, application cache và BullMQ backing 
 
 API process chỉ enqueue. Worker process consume. Queue payload phải là plain serializable object và chứa correlation ID nếu job bắt nguồn từ request, để log nối được từ HTTP sang background processing.
 
+Queue dùng hai loại contract ở hai cấp khác nhau. `JobQueuePort` là cơ chế enqueue dùng chung; còn tên job và payload thuộc feature, ví dụ `users/application/jobs/user-email.jobs.ts`. Consumer BullMQ là inbound adapter nên nằm trong `users/infrastructure/processors`. Sau khi kiểm tra dữ liệu không tin cậy từ Redis, processor gọi application service; application service gọi outbound port như `UserMailer`; adapter Nodemailer nằm ở infrastructure. Nhờ vậy đổi BullMQ hoặc nhà cung cấp email không kéo transport SDK vào application.
+
 ## Transactional outbox
 
 Outbox gồm:

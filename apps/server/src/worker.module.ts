@@ -3,8 +3,11 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
 import { validateEnvironment } from './config/environment';
 import { buildBullConnection } from '@infrastructure/queue/bull-connection';
-import { USER_QUEUE } from '@iam/users/application/queues/user-queue.constants';
-import { UserQueueProcessor } from '@iam/users/application/queues/user-queue.processor';
+import { USER_QUEUE } from '@iam/users/application/jobs/user-email.jobs';
+import { USER_MAILER } from '@iam/users/application/ports/user-mailer.port';
+import { UserEmailJobService } from '@iam/users/application/services/user-email-job.service';
+import { NodemailerUserMailer } from '@iam/users/infrastructure/mail/nodemailer-user-mailer';
+import { UserQueueProcessor } from '@iam/users/infrastructure/processors/user-queue.processor';
 import { LoggerModule } from 'nestjs-pino';
 import { createPinoHttpOptions } from '@infrastructure/observability/logger.config';
 
@@ -27,6 +30,13 @@ import { createPinoHttpOptions } from '@infrastructure/observability/logger.conf
     }),
     BullModule.registerQueue({ name: USER_QUEUE }),
   ],
-  providers: [UserQueueProcessor],
+  providers: [
+    UserQueueProcessor,
+    UserEmailJobService,
+    {
+      provide: USER_MAILER,
+      useClass: NodemailerUserMailer,
+    },
+  ],
 })
 export class WorkerModule {}

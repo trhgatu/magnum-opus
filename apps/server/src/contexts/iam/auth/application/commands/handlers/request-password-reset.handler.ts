@@ -11,7 +11,7 @@ import {
 import {
   USER_JOBS,
   USER_QUEUE,
-} from '@iam/users/application/queues/user-queue.constants';
+} from '@iam/users/application/jobs/user-email.jobs';
 import {
   PASSWORD_RESET_TOKEN_STORE,
   type PasswordResetTokenStore,

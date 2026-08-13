@@ -73,6 +73,39 @@ describe('architecture dependency rules', () => {
     expect(violations).toEqual([]);
   });
 
+  it('keeps application jobs independent from BullMQ processors and transport types', () => {
+    const applicationFiles = collectTypeScriptFiles(
+      join(sourceRoot, 'contexts'),
+    ).filter((file) => file.includes(`${join('', 'application')}`));
+    const violations = applicationFiles.flatMap((file) => {
+      const source = readFileSync(file, 'utf8');
+      const forbiddenImport = /from ['"](@nestjs\/bullmq|bullmq)['"]/g;
+      const processorDecorator = /@Processor\s*\(/g;
+
+      return [
+        ...[...source.matchAll(forbiddenImport)].map(
+          (match) => `${file}: ${match[0]}`,
+        ),
+        ...[...source.matchAll(processorDecorator)].map(
+          (match) => `${file}: ${match[0]}`,
+        ),
+      ];
+    });
+
+    expect(violations).toEqual([]);
+  });
+
+  it('places queue processors in infrastructure only', () => {
+    const processorFiles = collectTypeScriptFiles(
+      join(sourceRoot, 'contexts'),
+    ).filter((file) => basename(file).endsWith('.processor.ts'));
+    const misplaced = processorFiles.filter(
+      (file) => !file.includes(join('infrastructure', 'processors')),
+    );
+
+    expect(misplaced).toEqual([]);
+  });
+
   it('keeps infrastructure independent from presentation', () => {
     const infrastructureFiles = collectTypeScriptFiles(
       join(sourceRoot, 'contexts'),

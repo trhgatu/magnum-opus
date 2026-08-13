@@ -53,6 +53,7 @@ Chương này là bản đồ tra cứu. Khi gặp một file lạ, tìm suffix 
 | `*.query.ts`                     | Message mô tả nhu cầu đọc. Query không được âm thầm thay đổi domain state.                                                                                |
 | `queries/handlers/*.handler.ts`  | Một use case đọc. Có thể dùng repository hoặc reader projection tùy nhu cầu.                                                                              |
 | `services/*.service.ts`          | Application policy được nhiều command handler dùng chung, ví dụ mutation service xử lý optimistic concurrency nhất quán. Nó không phải chỗ gom mọi logic. |
+| `jobs/*.jobs.ts`                 | Vocabulary và payload job ổn định mà producer/application cùng hiểu. Không chứa `Job`, decorator hay processor của BullMQ.                                |
 | `ports/*.port.ts`                | Capability ngoài domain persistence: clock, mail, cache, queue, realtime. Infrastructure implements interface này.                                        |
 | `*.handler.spec.ts`              | Mock ports để test quyết định và thứ tự orchestration; không assert chi tiết Prisma.                                                                      |
 
@@ -67,6 +68,8 @@ Trong Auth, `auth-token-issuer.port.ts`, `auth-policy.port.ts` và `opaque-token
 | `*.reader.ts`                         | Query projection đọc thẳng shape tối ưu cho list/dashboard; không rehydrate aggregate nếu không cần behavior.    |
 | `*.store.ts`                          | Adapter giữ session/token/state kỹ thuật, thường trên Redis.                                                     |
 | `*.adapter.ts`                        | Implementation cụ thể của outbound port như S3, local storage hoặc BullMQ.                                       |
+| `processors/*.processor.ts`           | Inbound adapter consume queue job, validate transport payload rồi gọi application service.                       |
+| `mail/*.ts`                           | Outbound adapter implement mail port bằng provider cụ thể; config và template kỹ thuật ở đây.                    |
 | `*.repository.spec.ts`                | Chứng minh filter ownership, data mapping, concurrency predicate và mapping known database failures.             |
 
 ### Presentation và module

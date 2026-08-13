@@ -9,7 +9,7 @@ import { NotificationCreatedEvent } from '@/contexts/notifications/domain/events
 import {
   USER_JOBS,
   USER_QUEUE,
-} from '@iam/users/application/queues/user-queue.constants';
+} from '@iam/users/application/jobs/user-email.jobs';
 import { OutboxEventRouter } from './outbox-event.router';
 
 describe('OutboxEventRouter', () => {

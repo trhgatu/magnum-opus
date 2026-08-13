@@ -7,7 +7,7 @@ import {
 import {
   USER_JOBS,
   USER_QUEUE,
-} from '@iam/users/application/queues/user-queue.constants';
+} from '@iam/users/application/jobs/user-email.jobs';
 import {
   EMAIL_VERIFICATION_TOKEN_STORE,
   type EmailVerificationTokenStore,

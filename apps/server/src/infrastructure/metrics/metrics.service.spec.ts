@@ -4,7 +4,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { MetricsService } from './metrics.service';
-import { USER_QUEUE } from '@iam/users/application/queues/user-queue.constants';
+import { USER_QUEUE } from '@iam/users/application/jobs/user-email.jobs';
 
 describe('MetricsService', () => {
   it('exports bounded outbox and BullMQ operational metrics', async () => {

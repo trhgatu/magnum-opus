@@ -8,7 +8,7 @@ import { RedisService } from '../src/infrastructure/cache/redis.service';
 import { PrismaService } from '../src/infrastructure/database/prisma.service';
 import { getQueueToken } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { USER_QUEUE } from '../src/contexts/iam/users/application/queues/user-queue.constants';
+import { USER_QUEUE } from '../src/contexts/iam/users/application/jobs/user-email.jobs';
 import { ConfigService } from '@nestjs/config';
 
 describe('AuthController (E2E)', () => {
