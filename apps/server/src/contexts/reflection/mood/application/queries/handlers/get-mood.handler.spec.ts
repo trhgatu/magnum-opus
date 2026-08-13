@@ -1,23 +1,20 @@
-import { JournalEntryState } from '@/contexts/reflection/journal/domain/enums';
-import { JournalEntryNotFoundException } from '@/contexts/reflection/journal/domain/exceptions';
-import { JournalEntry } from '@/contexts/reflection/journal/domain/journal-entry.aggregate';
-import { JournalEntryId } from '@/contexts/reflection/journal/domain/value-objects';
-
 import { MoodLabel } from '../../../domain/enums';
+import { MoodJournalEntryNotFoundException } from '../../../domain/exceptions';
 import { Mood } from '../../../domain/mood.aggregate';
 import { MoodId } from '../../../domain/value-objects';
+import { MoodJournalEntryAccessStatus } from '../../ports/mood-journal-entry-reader.port';
 import { GetMoodQuery } from '../get-mood.query';
 import { GetMoodHandler } from './get-mood.handler';
 
 describe('GetMoodHandler', () => {
-  const journalEntryRepository = {
-    findByIdForOwner: jest.fn(),
+  const journalEntryReader = {
+    getAccessForOwner: jest.fn(),
   };
   const moodRepository = {
     findByJournalEntryIdForOwner: jest.fn(),
   };
   const handler = new GetMoodHandler(
-    journalEntryRepository as never,
+    journalEntryReader as never,
     moodRepository as never,
   );
 
@@ -25,9 +22,7 @@ describe('GetMoodHandler', () => {
 
   it('returns the Mood for an owned Journal entry', async () => {
     const mood = createMood();
-    journalEntryRepository.findByIdForOwner.mockResolvedValue(
-      createJournalEntry(),
-    );
+    journalEntryReader.getAccessForOwner.mockResolvedValue(editableAccess());
     moodRepository.findByJournalEntryIdForOwner.mockResolvedValue(mood);
 
     const result = await handler.execute(
@@ -39,9 +34,7 @@ describe('GetMoodHandler', () => {
   });
 
   it('returns null when the owned Journal entry has no Mood', async () => {
-    journalEntryRepository.findByIdForOwner.mockResolvedValue(
-      createJournalEntry(),
-    );
+    journalEntryReader.getAccessForOwner.mockResolvedValue(editableAccess());
     moodRepository.findByJournalEntryIdForOwner.mockResolvedValue(null);
 
     const result = await handler.execute(
@@ -53,31 +46,22 @@ describe('GetMoodHandler', () => {
   });
 
   it('returns not found before looking up Mood when the entry is not owned', async () => {
-    journalEntryRepository.findByIdForOwner.mockResolvedValue(null);
+    journalEntryReader.getAccessForOwner.mockResolvedValue({
+      status: MoodJournalEntryAccessStatus.NOT_FOUND,
+    });
 
     const result = await handler.execute(
       new GetMoodQuery('entry-1', 'different-owner'),
     );
 
     expect(result.isFailure).toBe(true);
-    expect(result.getError()).toBeInstanceOf(JournalEntryNotFoundException);
+    expect(result.getError()).toBeInstanceOf(MoodJournalEntryNotFoundException);
     expect(moodRepository.findByJournalEntryIdForOwner).not.toHaveBeenCalled();
   });
 });
 
-function createJournalEntry(): JournalEntry {
-  return JournalEntry.rehydrate({
-    id: new JournalEntryId('entry-1'),
-    ownerId: 'owner-1',
-    title: null,
-    content: '',
-    state: JournalEntryState.DRAFT,
-    stateBeforeTrash: null,
-    revision: 1,
-    trashedAt: null,
-    createdAt: new Date('2026-08-01T00:00:00.000Z'),
-    updatedAt: new Date('2026-08-01T00:00:00.000Z'),
-  });
+function editableAccess() {
+  return { status: MoodJournalEntryAccessStatus.EDITABLE } as const;
 }
 
 function createMood(): Mood {

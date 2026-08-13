@@ -19,6 +19,8 @@ model User {
 
   journalEntries JournalEntry[]
 
+  memories Memory[]
+
   userRoles               UserRole[]
   notifications           Notification[]
   passwordResetTokens     PasswordResetToken[]
@@ -202,6 +204,18 @@ enum MoodLabel {
   OVERWHELMED
 }
 
+enum MemoryState {
+  ACTIVE
+  TRASHED
+}
+
+enum MemoryDatePrecision {
+  DAY
+  MONTH
+  YEAR
+  UNKNOWN
+}
+
 model JournalEntry {
   id               String             @id @default(uuid())
   ownerId          String             @map("owner_id")
@@ -214,8 +228,9 @@ model JournalEntry {
   createdAt        DateTime           @default(now()) @map("created_at")
   updatedAt        DateTime           @updatedAt @map("updated_at")
 
-  owner User  @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  mood  Mood?
+  owner    User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  mood     Mood?
+  memories Memory[]
 
   @@index([ownerId, state, updatedAt(sort: Desc)])
   @@map("journal_entries")
@@ -234,4 +249,26 @@ model Mood {
   journalEntry JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
 
   @@map("moods")
+}
+
+model Memory {
+  id                   String              @id @default(uuid())
+  ownerId              String              @map("owner_id")
+  sourceJournalEntryId String?             @map("source_journal_entry_id")
+  title                String              @db.VarChar(200)
+  content              String              @db.Text
+  occurredOn           DateTime?           @map("occurred_on") @db.Date
+  occurredOnPrecision  MemoryDatePrecision @default(UNKNOWN) @map("occurred_on_precision")
+  state                MemoryState         @default(ACTIVE)
+  revision             Int                 @default(1)
+  trashedAt            DateTime?           @map("trashed_at")
+  createdAt            DateTime            @default(now()) @map("created_at")
+  updatedAt            DateTime            @updatedAt @map("updated_at")
+  owner                User                @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  sourceJournalEntry   JournalEntry?       @relation(fields: [sourceJournalEntryId], references: [id], onDelete: SetNull)
+
+  @@index([ownerId, state, occurredOn(sort: Desc)])
+  @@index([ownerId, state, updatedAt(sort: Desc)])
+  @@index([sourceJournalEntryId])
+  @@map("memories")
 }

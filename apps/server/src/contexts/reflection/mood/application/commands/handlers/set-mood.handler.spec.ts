@@ -1,22 +1,19 @@
-import { JournalEntryState } from '@/contexts/reflection/journal/domain/enums';
-import { JournalEntryNotFoundException } from '@/contexts/reflection/journal/domain/exceptions';
-import { JournalEntry } from '@/contexts/reflection/journal/domain/journal-entry.aggregate';
-import { JournalEntryId } from '@/contexts/reflection/journal/domain/value-objects';
-
 import { MoodLabel } from '../../../domain/enums';
 import {
   InvalidMoodIntensityException,
   MoodJournalEntryNotEditableException,
+  MoodJournalEntryNotFoundException,
   MoodRevisionConflictException,
 } from '../../../domain/exceptions';
 import { Mood } from '../../../domain/mood.aggregate';
 import { MoodId } from '../../../domain/value-objects';
+import { MoodJournalEntryAccessStatus } from '../../ports/mood-journal-entry-reader.port';
 import { SetMoodCommand } from '../set-mood.command';
 import { SetMoodHandler } from './set-mood.handler';
 
 describe('SetMoodHandler', () => {
-  const journalEntryRepository = {
-    findByIdForOwner: jest.fn(),
+  const journalEntryReader = {
+    getAccessForOwner: jest.fn(),
   };
 
   const moodRepository = {
@@ -26,7 +23,7 @@ describe('SetMoodHandler', () => {
   };
 
   const handler = new SetMoodHandler(
-    journalEntryRepository as never,
+    journalEntryReader as never,
     moodRepository as never,
   );
 
@@ -35,9 +32,7 @@ describe('SetMoodHandler', () => {
   });
 
   it('creates a Mood when the Draft has none', async () => {
-    journalEntryRepository.findByIdForOwner.mockResolvedValue(
-      createJournalEntry(),
-    );
+    journalEntryReader.getAccessForOwner.mockResolvedValue(editableAccess());
     moodRepository.findByJournalEntryIdForOwner.mockResolvedValue(null);
     moodRepository.create.mockResolvedValue(true);
 
@@ -61,9 +56,7 @@ describe('SetMoodHandler', () => {
 
   it('updates an existing Mood at the expected revision', async () => {
     const mood = createMood();
-    journalEntryRepository.findByIdForOwner.mockResolvedValue(
-      createJournalEntry(),
-    );
+    journalEntryReader.getAccessForOwner.mockResolvedValue(editableAccess());
     moodRepository.findByJournalEntryIdForOwner.mockResolvedValue(mood);
     moodRepository.update.mockResolvedValue(true);
 
@@ -85,9 +78,7 @@ describe('SetMoodHandler', () => {
 
   it('does not persist when normalized Mood values are unchanged', async () => {
     const mood = createMood();
-    journalEntryRepository.findByIdForOwner.mockResolvedValue(
-      createJournalEntry(),
-    );
+    journalEntryReader.getAccessForOwner.mockResolvedValue(editableAccess());
     moodRepository.findByJournalEntryIdForOwner.mockResolvedValue(mood);
 
     const result = await handler.execute(
@@ -107,21 +98,24 @@ describe('SetMoodHandler', () => {
   });
 
   it('returns not found when the owned Journal entry does not exist', async () => {
-    journalEntryRepository.findByIdForOwner.mockResolvedValue(null);
+    journalEntryReader.getAccessForOwner.mockResolvedValue({
+      status: MoodJournalEntryAccessStatus.NOT_FOUND,
+    });
 
     const result = await handler.execute(
       new SetMoodCommand('entry-1', 'owner-1', MoodLabel.CALM),
     );
 
     expect(result.isFailure).toBe(true);
-    expect(result.getError()).toBeInstanceOf(JournalEntryNotFoundException);
+    expect(result.getError()).toBeInstanceOf(MoodJournalEntryNotFoundException);
     expect(moodRepository.findByJournalEntryIdForOwner).not.toHaveBeenCalled();
   });
 
   it('rejects changes when the Journal entry is not a Draft', async () => {
-    journalEntryRepository.findByIdForOwner.mockResolvedValue(
-      createJournalEntry(JournalEntryState.SEALED),
-    );
+    journalEntryReader.getAccessForOwner.mockResolvedValue({
+      status: MoodJournalEntryAccessStatus.NOT_EDITABLE,
+      state: 'SEALED',
+    });
 
     const result = await handler.execute(
       new SetMoodCommand('entry-1', 'owner-1', MoodLabel.CALM),
@@ -136,9 +130,7 @@ describe('SetMoodHandler', () => {
 
   it('rejects a stale revision before mutating the Mood', async () => {
     const mood = createMood();
-    journalEntryRepository.findByIdForOwner.mockResolvedValue(
-      createJournalEntry(),
-    );
+    journalEntryReader.getAccessForOwner.mockResolvedValue(editableAccess());
     moodRepository.findByJournalEntryIdForOwner.mockResolvedValue(mood);
 
     const result = await handler.execute(
@@ -152,9 +144,7 @@ describe('SetMoodHandler', () => {
   });
 
   it('returns conflict when another request creates the Mood first', async () => {
-    journalEntryRepository.findByIdForOwner.mockResolvedValue(
-      createJournalEntry(),
-    );
+    journalEntryReader.getAccessForOwner.mockResolvedValue(editableAccess());
     moodRepository.findByJournalEntryIdForOwner.mockResolvedValue(null);
     moodRepository.create.mockResolvedValue(false);
 
@@ -167,9 +157,7 @@ describe('SetMoodHandler', () => {
   });
 
   it('returns conflict when another request updates the Mood first', async () => {
-    journalEntryRepository.findByIdForOwner.mockResolvedValue(
-      createJournalEntry(),
-    );
+    journalEntryReader.getAccessForOwner.mockResolvedValue(editableAccess());
     moodRepository.findByJournalEntryIdForOwner.mockResolvedValue(createMood());
     moodRepository.update.mockResolvedValue(false);
 
@@ -182,9 +170,7 @@ describe('SetMoodHandler', () => {
   });
 
   it('returns domain validation failures as Result failures', async () => {
-    journalEntryRepository.findByIdForOwner.mockResolvedValue(
-      createJournalEntry(),
-    );
+    journalEntryReader.getAccessForOwner.mockResolvedValue(editableAccess());
     moodRepository.findByJournalEntryIdForOwner.mockResolvedValue(null);
 
     const result = await handler.execute(
@@ -197,21 +183,8 @@ describe('SetMoodHandler', () => {
   });
 });
 
-function createJournalEntry(
-  state: JournalEntryState = JournalEntryState.DRAFT,
-): JournalEntry {
-  return JournalEntry.rehydrate({
-    id: new JournalEntryId('entry-1'),
-    ownerId: 'owner-1',
-    title: null,
-    content: '',
-    state,
-    stateBeforeTrash: null,
-    revision: 1,
-    trashedAt: null,
-    createdAt: new Date('2026-08-01T00:00:00.000Z'),
-    updatedAt: new Date('2026-08-01T00:00:00.000Z'),
-  });
+function editableAccess() {
+  return { status: MoodJournalEntryAccessStatus.EDITABLE } as const;
 }
 
 function createMood(): Mood {

@@ -188,6 +188,64 @@ export const Errors = {
     translationKey: 'exceptions.mood.not.found',
     statusCode: 404,
   },
+
+  // Memory
+  INVALID_MEMORY_ID: {
+    code: 'INVALID_MEMORY_ID',
+    translationKey: 'exceptions.memory.id.invalid',
+    statusCode: 400,
+  },
+
+  INVALID_MEMORY_OCCURRED_ON: {
+    code: 'INVALID_MEMORY_OCCURRED_ON',
+    translationKey: 'exceptions.memory.occurred.on.invalid',
+    statusCode: 400,
+  },
+
+  MEMORY_NOT_FOUND: {
+    code: 'MEMORY_NOT_FOUND',
+    translationKey: 'exceptions.memory.not.found',
+    statusCode: 404,
+  },
+
+  INVALID_MEMORY_TITLE: {
+    code: 'INVALID_MEMORY_TITLE',
+    translationKey: 'exceptions.memory.title.invalid',
+    statusCode: 400,
+  },
+
+  INVALID_MEMORY_CONTENT: {
+    code: 'INVALID_MEMORY_CONTENT',
+    translationKey: 'exceptions.memory.content.invalid',
+    statusCode: 400,
+  },
+
+  INVALID_MEMORY_TRANSITION: {
+    code: 'INVALID_MEMORY_TRANSITION',
+    translationKey: 'exceptions.memory.transition.invalid',
+    statusCode: 409,
+  },
+
+  INVALID_MEMORY_SOURCE_JOURNAL: {
+    code: 'INVALID_MEMORY_SOURCE_JOURNAL',
+    translationKey: 'exceptions.memory.source.journal.invalid',
+    statusCode: 409,
+  },
+  MEMORY_SOURCE_JOURNAL_NOT_FOUND: {
+    code: 'MEMORY_SOURCE_JOURNAL_NOT_FOUND',
+    translationKey: 'exceptions.memory.source.journal.not.found',
+    statusCode: 404,
+  },
+  MEMORY_REVISION_CONFLICT: {
+    code: 'MEMORY_REVISION_CONFLICT',
+    translationKey: 'exceptions.memory.revision.conflict',
+    statusCode: 409,
+  },
+  MEMORY_PERMANENT_DELETE_FORBIDDEN: {
+    code: 'MEMORY_PERMANENT_DELETE_FORBIDDEN',
+    translationKey: 'exceptions.memory.permanent.delete.forbidden',
+    statusCode: 409,
+  },
 } as const;
 
 export type ErrorDefinition = (typeof Errors)[keyof typeof Errors];

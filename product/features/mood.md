@@ -184,6 +184,16 @@ Mood được bảo vệ bởi cùng ownership boundary với Journal.
 
 Server không cung cấp cách tìm mood của người dùng khác, kể cả khi người gọi biết mood ID hoặc Journal entry ID. Nội dung mood không xuất hiện trong Admin.
 
+Ở cấp kiến trúc, Mood không import aggregate, state enum hoặc repository của Journal. Mood định nghĩa `MoodJournalEntryReader`, một application port chỉ diễn đạt ba kết quả mà các use case Mood cần:
+
+```text
+EDITABLE      → Journal thuộc đúng owner và đang là Draft
+NOT_EDITABLE  → Journal thuộc đúng owner nhưng không cho sửa Mood
+NOT_FOUND     → Journal không tồn tại hoặc thuộc owner khác
+```
+
+`PrismaMoodJournalEntryReader` là adapter đọc `journal_entries` theo cả entry ID và owner ID. Nó chuyển chi tiết persistence của Journal sang contract do Mood sở hữu. Vì vậy, thay đổi nội bộ của Journal không buộc các Mood handler phải import hoặc hiểu Journal domain.
+
 ## Sự kiện
 
 Mood v1 chưa phát domain event.

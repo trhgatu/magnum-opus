@@ -39,6 +39,5 @@ const queryHandlers = [GetJournalEntriesHandler, GetJournalEntryHandler];
     ...commandHandlers,
     ...queryHandlers,
   ],
-  exports: [JOURNAL_ENTRY_REPOSITORY],
 })
 export class JournalModule {}
