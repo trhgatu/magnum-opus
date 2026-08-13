@@ -3,8 +3,12 @@ import { NotificationEntity } from '../notification.entity';
 export const NOTIFICATION_REPOSITORY = Symbol('NOTIFICATION_REPOSITORY');
 
 export interface NotificationRepository {
-  save(notification: NotificationEntity): Promise<void>;
-  findById(id: string): Promise<NotificationEntity | null>;
+  createIfAbsent(notification: NotificationEntity): Promise<boolean>;
+  findByIdForOwner(
+    id: string,
+    userId: string,
+  ): Promise<NotificationEntity | null>;
+  update(notification: NotificationEntity): Promise<void>;
   findByUserId(
     userId: string,
     options: { page: number; limit: number },

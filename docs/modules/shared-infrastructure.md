@@ -99,9 +99,11 @@ Publisher chạy interval ngắn nhưng không được overlap chính nó. Clai
 
 Event type có version, ví dụ `iam.user.registered.v1`. Thay đổi payload phá compatibility cần type/version mới hoặc consumer backward-compatible.
 
+Router được phép biết application service công khai của consumer, nhưng không nên biết delivery framework nội bộ của context như `CommandBus`, controller hay DTO. Ví dụ user event gọi `CreateNotificationService`; service chịu idempotency và repository transaction. Sau đó `NotificationCreatedEvent` mới được route qua realtime port. Tách hai chặng giúp retry không phát socket trước khi dữ liệu tồn tại.
+
 ## Realtime
 
-`RealtimeGateway` là Socket.IO transport boundary. Handshake dùng `AccessTokenValidator`, rồi socket join room theo user ID. `RealtimeService` implement `RealtimePort` để context emit mà không import gateway.
+`RealtimeGateway` là Socket.IO inbound boundary. Handshake dùng `AccessTokenValidator`, rồi socket join room theo user ID. Gateway sở hữu Socket.IO server và chỉ mở các method delivery nhỏ như `emitToUser`/`emitToAll`. `SocketIoRealtimeAdapter` implement `RealtimePort`; phần còn lại của hệ thống chỉ inject port và không import gateway hoặc Socket.IO SDK.
 
 Không dùng socket ID làm user identity lâu dài: reconnect sinh socket ID mới. Room theo stable user ID cho phép nhiều tab/thiết bị cùng nhận event.
 

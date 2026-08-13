@@ -154,6 +154,8 @@ Nest module là nơi hợp lệ để biết cả port lẫn adapter:
 | Auth application không import ConfigService/JwtService/crypto | Policy, token issuer và opaque token đi qua port.    |
 | Application job không import BullMQ hoặc khai báo processor   | Transport queue chỉ tồn tại ở infrastructure.        |
 | Queue processor chỉ nằm trong infrastructure/processors       | Inbound adapter có một vị trí và ownership rõ ràng.  |
+| Application không import Socket.IO/WebSocket SDK              | Realtime transport không lọt vào use case.           |
+| Realtime gateway chỉ được dùng trong realtime infrastructure  | Context emit qua `RealtimePort`, không gọi gateway.  |
 | Infrastructure không import presentation                      | Không tạo dependency ngược giữa outer adapters.      |
 | Memory/Mood application không import Journal domain           | Quan hệ Journal đi qua reader port của consumer.     |
 | Domain port kết thúc `.repository.ts`                         | Repository là persistence của aggregate.             |

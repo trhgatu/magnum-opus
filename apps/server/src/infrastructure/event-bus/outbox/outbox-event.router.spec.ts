@@ -1,8 +1,7 @@
-import { CommandBus } from '@nestjs/cqrs';
 import type { ICachePort } from '@shared/application/ports/cache.port';
 import type { IJobQueuePort } from '@shared/application/ports/job-queue.port';
 import type { IRealtimePort } from '@shared/application/ports/realtime.port';
-import { Result } from '@shared/domain/result';
+import type { CreateNotificationService } from '@/contexts/notifications/application/services/create-notification.service';
 import { UserRegisteredEvent } from '@iam/users/domain/events/user-registered.event';
 import { UserDeactivatedEvent } from '@iam/users/domain/events/user-deactivated.event';
 import { NotificationCreatedEvent } from '@/contexts/notifications/domain/events/notification-created.event';
@@ -22,11 +21,16 @@ describe('OutboxEventRouter', () => {
   const realtime = {
     sendToUser: jest.fn(),
   } as unknown as jest.Mocked<IRealtimePort>;
-  const commandBus = {
-    execute: jest.fn().mockResolvedValue(Result.ok('notification-id')),
-  } as unknown as jest.Mocked<CommandBus>;
+  const notifications = {
+    execute: jest.fn().mockResolvedValue('notification-id'),
+  } as unknown as jest.Mocked<CreateNotificationService>;
 
-  const router = new OutboxEventRouter(cache, jobQueue, realtime, commandBus);
+  const router = new OutboxEventRouter(
+    cache,
+    jobQueue,
+    realtime,
+    notifications,
+  );
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -47,7 +51,7 @@ describe('OutboxEventRouter', () => {
       { email: event.email },
       { jobId: event.eventId },
     );
-    expect(commandBus.execute).toHaveBeenCalledWith(
+    expect(notifications.execute).toHaveBeenCalledWith(
       expect.objectContaining({ id: event.eventId, userId: event.userId }),
     );
   });

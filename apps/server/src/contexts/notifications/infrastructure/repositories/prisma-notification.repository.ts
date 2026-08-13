@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@repo/database';
 import { PrismaService } from '@infrastructure/database/prisma.service';
 import { NotificationRepository } from '../../domain/ports/notification.repository';
 import { NotificationEntity } from '../../domain/notification.entity';
@@ -9,45 +10,60 @@ import { serializeDomainEvent } from '@infrastructure/event-bus/outbox/outbox-ev
 export class PrismaNotificationRepository implements NotificationRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async save(notification: NotificationEntity): Promise<void> {
+  async createIfAbsent(notification: NotificationEntity): Promise<boolean> {
     const raw = NotificationMapper.toPersistence(notification);
     const outboxEvents = notification
       .getDomainEvents()
       .map(serializeDomainEvent);
 
-    await this.prisma.$transaction(async (tx) => {
-      await tx.notification.upsert({
-        where: { id: raw.id },
-        update: {
-          isRead: raw.isRead,
-        },
-        create: {
-          id: raw.id,
-          userId: raw.userId,
-          title: raw.title,
-          content: raw.content,
-          type: raw.type,
-          isRead: raw.isRead,
-          createdAt: raw.createdAt,
-        },
-      });
-
-      if (outboxEvents.length > 0) {
-        await tx.outboxEvent.createMany({
-          data: outboxEvents,
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.notification.create({
+          data: {
+            id: raw.id,
+            userId: raw.userId,
+            title: raw.title,
+            content: raw.content,
+            type: raw.type,
+            isRead: raw.isRead,
+            createdAt: raw.createdAt,
+          },
         });
+
+        if (outboxEvents.length > 0) {
+          await tx.outboxEvent.createMany({ data: outboxEvents });
+        }
+      });
+    } catch (error: unknown) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002' &&
+        isNotificationIdConflict(error.meta?.target)
+      ) {
+        return false;
       }
-    });
+      throw error;
+    }
 
     notification.clearDomainEvents();
+    return true;
   }
 
-  async findById(id: string): Promise<NotificationEntity | null> {
-    const raw = await this.prisma.notification.findUnique({
-      where: { id },
+  async findByIdForOwner(
+    id: string,
+    userId: string,
+  ): Promise<NotificationEntity | null> {
+    const raw = await this.prisma.notification.findFirst({
+      where: { id, userId },
     });
-
     return raw ? NotificationMapper.toDomain(raw) : null;
+  }
+
+  async update(notification: NotificationEntity): Promise<void> {
+    await this.prisma.notification.update({
+      where: { id: notification.id },
+      data: { isRead: notification.isRead },
+    });
   }
 
   async findByUserId(
@@ -90,3 +106,7 @@ export class PrismaNotificationRepository implements NotificationRepository {
     });
   }
 }
+
+const isNotificationIdConflict = (target: unknown): boolean =>
+  (Array.isArray(target) && target.includes('id')) ||
+  (typeof target === 'string' && target.includes('notifications_pkey'));

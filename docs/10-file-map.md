@@ -70,6 +70,7 @@ Trong Auth, `auth-token-issuer.port.ts`, `auth-policy.port.ts` và `opaque-token
 | `*.adapter.ts`                        | Implementation cụ thể của outbound port như S3, local storage hoặc BullMQ.                                       |
 | `processors/*.processor.ts`           | Inbound adapter consume queue job, validate transport payload rồi gọi application service.                       |
 | `mail/*.ts`                           | Outbound adapter implement mail port bằng provider cụ thể; config và template kỹ thuật ở đây.                    |
+| `*-realtime.adapter.ts`               | Implement `RealtimePort` bằng transport cụ thể; context không import gateway hoặc Socket.IO SDK.                 |
 | `*.repository.spec.ts`                | Chứng minh filter ownership, data mapping, concurrency predicate và mapping known database failures.             |
 
 ### Presentation và module

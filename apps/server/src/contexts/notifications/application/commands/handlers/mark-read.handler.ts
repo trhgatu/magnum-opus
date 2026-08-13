@@ -8,7 +8,6 @@ import {
 import { Result } from '@shared/domain/result';
 import { DomainException } from '@shared/domain/exceptions/domain.exception';
 import { NotificationNotFoundException } from '../../../domain/exceptions/notification-not-found.exception';
-import { NotificationForbiddenException } from '../../../domain/exceptions/notification-forbidden.exception';
 
 @CommandHandler(MarkNotificationReadCommand)
 export class MarkNotificationReadHandler implements ICommandHandler<MarkNotificationReadCommand> {
@@ -32,21 +31,16 @@ export class MarkNotificationReadHandler implements ICommandHandler<MarkNotifica
         this.logger.log(
           `Marking notification ${notificationId} as read for user ${userId}`,
         );
-        const notification =
-          await this.notificationRepository.findById(notificationId);
-
+        const notification = await this.notificationRepository.findByIdForOwner(
+          notificationId,
+          userId,
+        );
         if (!notification) {
           return Result.fail(new NotificationNotFoundException(notificationId));
         }
 
-        if (notification.userId !== userId) {
-          return Result.fail(
-            new NotificationForbiddenException(notificationId),
-          );
-        }
-
         notification.markAsRead();
-        await this.notificationRepository.save(notification);
+        await this.notificationRepository.update(notification);
       }
 
       return Result.ok(undefined);

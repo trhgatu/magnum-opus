@@ -1,7 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { RealtimeGateway } from './realtime.gateway';
-import { RealtimeService } from './realtime.service';
+import { SocketIoRealtimeAdapter } from './socket-io-realtime.adapter';
 import { REALTIME_PORT } from '@shared/application/ports/realtime.port';
 import { AuthModule } from '@iam/auth/auth.module';
 
@@ -10,12 +10,12 @@ import { AuthModule } from '@iam/auth/auth.module';
   imports: [JwtModule.register({}), AuthModule],
   providers: [
     RealtimeGateway,
-    RealtimeService,
+    SocketIoRealtimeAdapter,
     {
       provide: REALTIME_PORT,
-      useClass: RealtimeService,
+      useExisting: SocketIoRealtimeAdapter,
     },
   ],
-  exports: [RealtimeService, REALTIME_PORT],
+  exports: [REALTIME_PORT],
 })
 export class RealtimeModule {}

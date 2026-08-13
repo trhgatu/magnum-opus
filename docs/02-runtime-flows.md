@@ -145,15 +145,23 @@ Producer được đăng ký từ `UsersModule`; consumer và mail adapter chỉ
 ## Realtime notification
 
 ```text
-domain/outbox event
-→ CreateNotificationHandler lưu notification
-→ NotificationCreatedEvent
-→ RealtimePort.emitToUser(userId, event)
+UserRegisteredEvent/UserDeactivatedEvent trong outbox
+→ OutboxEventRouter gọi CreateNotificationService
+→ repository insert notification + NotificationCreatedEvent vào outbox
+  trong cùng transaction
+→ event người dùng ban đầu được đánh dấu PUBLISHED
+→ publisher đọc NotificationCreatedEvent ở một lượt poll sau
+→ OutboxEventRouter gọi RealtimePort.sendToUser(userId, event)
+→ SocketIoRealtimeAdapter
 → Socket.IO room của user
 → Admin RealtimeProvider nhận event
 → event handlers invalidate/update TanStack Query cache
 → notification bell render dữ liệu mới
 ```
+
+Có hai outbox event nối tiếp nhau vì chúng bảo vệ hai mốc khác nhau. Event đầu bảo đảm side effect nghiệp vụ tạo được notification bền vững trong PostgreSQL. Transaction tạo notification đồng thời ghi event thứ hai; chỉ event thứ hai mới yêu cầu giao notification đã tồn tại qua Socket.IO. Nếu API chết giữa hai mốc, publisher retry từ row outbox còn pending. UI vì vậy không thể nhận một notification chưa được lưu.
+
+`CreateNotificationService` dùng chính ID của event nguồn làm notification ID. Repository insert atomically và coi unique conflict là idempotent success, nên cùng outbox event được giao lại không tạo hai notification. Realtime vẫn có delivery semantics at-least-once; frontend dùng ID ổn định và invalidate API cache thay vì coi mỗi socket frame là một record mới chắc chắn duy nhất.
 
 Socket handshake phải có access token. Log `101 Switching Protocols` chỉ chứng minh WebSocket transport đã nâng cấp; log `User <id> connected` mới chứng minh application authentication thành công.
 

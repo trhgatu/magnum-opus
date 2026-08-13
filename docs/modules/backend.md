@@ -185,11 +185,11 @@ SetMoodHandler đọc Journal trước vì hai rule thuộc application boundary
 
 ## Notifications
 
-Notification entity thuộc một user, có type, title, content, read state và timestamps. Context hỗ trợ list, mark one as read, mark all as read và create từ event/use case nội bộ.
+Notification entity thuộc một user, có type, title, content, read state và timestamps. Context hỗ trợ list, mark one as read, mark all as read và create từ event/use case nội bộ. `CreateNotificationService` là application API duy nhất cho create; outbox router gọi service này trực tiếp, không đi vòng qua `CommandBus`.
 
-`NotificationCreatedEvent` tách persistence khỏi realtime delivery. Repository lưu notification; event sau đó có thể được adapter realtime chuyển đến room của user. UI không tin socket là database: khi nhận event, nó cập nhật/invalidate query cache, còn API vẫn là nguồn sự thật.
+`createIfAbsent` insert notification và `NotificationCreatedEvent` trong cùng transaction. ID của event nguồn được tái sử dụng làm notification ID, nên unique constraint cung cấp idempotency atomic khi publisher retry. `NotificationCreatedEvent` tách persistence khỏi realtime delivery; event chỉ được publish sau khi record notification đã tồn tại.
 
-Ownership được kiểm tra trong repository/handler khi mark read. Biết notification ID không đủ quyền đọc hoặc sửa notification của user khác.
+Mark-one gọi `findByIdForOwner(notificationId, userId)`, chạy `notification.markAsRead()` rồi update. Không load bằng ID toàn cục rồi trả `403`, vì cách đó làm lộ ID có tồn tại nhưng thuộc người khác; cả missing và foreign-owned đều trở thành `404`. UI không tin socket là database: khi nhận event, nó invalidate API cache, còn API vẫn là nguồn sự thật.
 
 ## Audit
 
