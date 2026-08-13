@@ -406,9 +406,24 @@ describe('AuthController (E2E)', () => {
     const replayCookies = replayRes.headers[
       'set-cookie'
     ] as unknown as string[];
-    expect(replayCookies.find((c) => c.startsWith('refresh_token='))).toEqual(
-      rotatedCookie,
+
+    const replayCookie = replayCookies.find((cookie) =>
+      cookie.startsWith('refresh_token='),
     );
+
+    expect(replayCookie).toBeDefined();
+
+    const refreshTokenFrom = (cookie: string | undefined) =>
+      cookie?.split(';', 1)[0];
+
+    expect(refreshTokenFrom(replayCookie)).toEqual(
+      refreshTokenFrom(rotatedCookie),
+    );
+
+    expect(replayCookie).toContain('Max-Age=604800');
+    expect(replayCookie).toContain('Path=/auth');
+    expect(replayCookie).toContain('HttpOnly');
+    expect(replayCookie).toContain('SameSite=Lax');
   });
 
   it('/auth/password-reset -> one-time token changes password and revokes existing sessions', async () => {
