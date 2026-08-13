@@ -1,5 +1,4 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { CommandBus } from '@nestjs/cqrs';
 import {
   CACHE_PORT,
   type ICachePort,
@@ -20,8 +19,7 @@ import {
   USER_QUEUE,
 } from '@iam/users/application/jobs/user-email.jobs';
 import { NotificationCreatedEvent } from '@/contexts/notifications/domain/events/notification-created.event';
-import { CreateNotificationCommand } from '@/contexts/notifications/application/commands/create-notification.command';
-import { Result } from '@shared/domain/result';
+import { CreateNotificationService } from '@/contexts/notifications/application/services/create-notification.service';
 import {
   REALTIME_EVENTS,
   type NotificationReceivedEvent,
@@ -36,7 +34,7 @@ export class OutboxEventRouter {
     private readonly jobQueue: IJobQueuePort,
     @Inject(REALTIME_PORT)
     private readonly realtime: IRealtimePort,
-    private readonly commandBus: CommandBus,
+    private readonly notifications: CreateNotificationService,
   ) {}
 
   async dispatch(event: DomainEvent): Promise<void> {
@@ -110,18 +108,6 @@ export class OutboxEventRouter {
     content: string,
     type: string,
   ): Promise<void> {
-    const result = await this.commandBus.execute<
-      CreateNotificationCommand,
-      Result<string, Error>
-    >(
-      new CreateNotificationCommand({
-        id,
-        userId,
-        title,
-        content,
-        type,
-      }),
-    );
-    result.unwrap();
+    await this.notifications.execute({ id, userId, title, content, type });
   }
 }

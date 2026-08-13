@@ -106,6 +106,40 @@ describe('architecture dependency rules', () => {
     expect(misplaced).toEqual([]);
   });
 
+  it('keeps application code independent from realtime transport SDKs', () => {
+    const applicationFiles = collectTypeScriptFiles(
+      join(sourceRoot, 'contexts'),
+    ).filter((file) => file.includes(`${join('', 'application')}`));
+    const violations = applicationFiles.flatMap((file) => {
+      const source = readFileSync(file, 'utf8');
+      const forbiddenImport =
+        /from ['"](@nestjs\/websockets|socket\.io|@socket\.io\/redis-adapter)['"]/g;
+
+      return [...source.matchAll(forbiddenImport)].map(
+        (match) => `${file}: ${match[0]}`,
+      );
+    });
+
+    expect(violations).toEqual([]);
+  });
+
+  it('exposes realtime delivery only through the shared port', () => {
+    const serverFiles = collectTypeScriptFiles(sourceRoot).filter(
+      (file) => !file.includes(join('infrastructure', 'realtime')),
+    );
+    const violations = serverFiles.flatMap((file) => {
+      const source = readFileSync(file, 'utf8');
+      const directGatewayImport =
+        /from ['"][^'"]*infrastructure\/realtime\/realtime\.gateway['"]/g;
+
+      return [...source.matchAll(directGatewayImport)].map(
+        (match) => `${file}: ${match[0]}`,
+      );
+    });
+
+    expect(violations).toEqual([]);
+  });
+
   it('keeps infrastructure independent from presentation', () => {
     const infrastructureFiles = collectTypeScriptFiles(
       join(sourceRoot, 'contexts'),

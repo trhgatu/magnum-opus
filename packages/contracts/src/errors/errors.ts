@@ -96,12 +96,6 @@ export const Errors = {
     translationKey: 'exceptions.notification.not.found',
     statusCode: 404,
   },
-  NOTIFICATION_FORBIDDEN: {
-    code: 'NOTIFICATION_FORBIDDEN',
-    translationKey: 'exceptions.notification.forbidden',
-    statusCode: 403,
-  },
-
   // Validation
   INVALID_EMAIL: {
     code: 'INVALID_EMAIL',

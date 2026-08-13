@@ -2,15 +2,12 @@ import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { PrismaNotificationRepository } from './infrastructure/repositories/prisma-notification.repository';
 import { NotificationController } from './presentation/controllers/notification.controller';
-import { CreateNotificationHandler } from './application/commands/handlers/create-notification.handler';
 import { MarkNotificationReadHandler } from './application/commands/handlers/mark-read.handler';
 import { GetNotificationsHandler } from './application/queries/handlers/get-notifications.handler';
 import { NOTIFICATION_REPOSITORY } from './domain/ports/notification.repository';
+import { CreateNotificationService } from './application/services/create-notification.service';
 
-const CommandHandlers = [
-  CreateNotificationHandler,
-  MarkNotificationReadHandler,
-];
+const CommandHandlers = [MarkNotificationReadHandler];
 const QueryHandlers = [GetNotificationsHandler];
 
 @Module({
@@ -23,7 +20,8 @@ const QueryHandlers = [GetNotificationsHandler];
     },
     ...CommandHandlers,
     ...QueryHandlers,
+    CreateNotificationService,
   ],
-  exports: [NOTIFICATION_REPOSITORY],
+  exports: [NOTIFICATION_REPOSITORY, CreateNotificationService],
 })
 export class NotificationsModule {}

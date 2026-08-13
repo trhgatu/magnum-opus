@@ -80,6 +80,14 @@ export class RealtimeGateway
     }
   }
 
+  emitToUser(userId: string, event: string, payload: unknown): void {
+    this.server?.to(RealtimeGateway.userRoom(userId)).emit(event, payload);
+  }
+
+  emitToAll(event: string, payload: unknown): void {
+    this.server?.emit(event, payload);
+  }
+
   static userRoom(userId: string): string {
     return `user:${userId}`;
   }
