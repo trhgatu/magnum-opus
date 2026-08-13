@@ -2,17 +2,17 @@
 
 Feature index là danh sách capability theo trạng thái sản phẩm, không phải backlog kỹ thuật.
 
-| Capability            | Vai trò trong journey                                 | Trạng thái                      |
-| --------------------- | ----------------------------------------------------- | ------------------------------- |
-| Identity & access     | Bảo vệ không gian riêng tư và quyền sở hữu dữ liệu    | Foundation đang được sử dụng    |
-| [Journal](journal.md) | Capture trải nghiệm và bắt đầu reflection             | Đã hoàn thành vertical slice v1 |
-| [Mood](mood.md)       | Ghi nhận trạng thái cảm xúc trong bối cảnh Journal    | Đã hoàn thành vertical slice v1 |
-| Memory                | Giữ và kết nối những ký ức có ý nghĩa                 | Chưa thiết kế                   |
-| Habits                | Chuyển insight thành hành vi lặp lại                  | Chưa thiết kế                   |
-| Routines              | Tạo cấu trúc hỗ trợ cách sống đã chọn                 | Chưa thiết kế                   |
-| Knowledge             | Chuyển trải nghiệm và nguồn bên ngoài thành hiểu biết | Chưa thiết kế                   |
-| Vitality              | Kết nối sự chuyển hóa với cơ thể vật lý               | Chưa thiết kế                   |
-| Gamification          | Phản chiếu tiến trình mà không thao túng người dùng   | Chưa thiết kế                   |
+| Capability            | Vai trò trong journey                                    | Trạng thái                      |
+| --------------------- | -------------------------------------------------------- | ------------------------------- |
+| Identity & access     | Bảo vệ không gian riêng tư và quyền sở hữu dữ liệu       | Foundation đang được sử dụng    |
+| [Journal](journal.md) | Capture trải nghiệm và bắt đầu reflection                | Đã hoàn thành vertical slice v1 |
+| [Mood](mood.md)       | Ghi nhận trạng thái cảm xúc trong bối cảnh Journal       | Đã hoàn thành vertical slice v1 |
+| [Memory](memory.md)   | Giữ lại những trải nghiệm có ý nghĩa theo dòng thời gian | Backend v1 xong; UI chưa làm    |
+| Habits                | Chuyển insight thành hành vi lặp lại                     | Chưa thiết kế                   |
+| Routines              | Tạo cấu trúc hỗ trợ cách sống đã chọn                    | Chưa thiết kế                   |
+| Knowledge             | Chuyển trải nghiệm và nguồn bên ngoài thành hiểu biết    | Chưa thiết kế                   |
+| Vitality              | Kết nối sự chuyển hóa với cơ thể vật lý                  | Chưa thiết kế                   |
+| Gamification          | Phản chiếu tiến trình mà không thao túng người dùng      | Chưa thiết kế                   |
 
 Mỗi capability chuyển sang trạng thái “đã thiết kế” khi tài liệu của nó trả lời được:
 

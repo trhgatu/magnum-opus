@@ -60,7 +60,27 @@ tìm Journal theo entryId + ownerId
 → trả Result
 ```
 
-Handler không viết Prisma query. Nó phụ thuộc `MoodRepository`, còn module bind token `MOOD_REPOSITORY` với `PrismaMoodRepository`.
+Handler không viết Prisma query. Nó phụ thuộc `MoodRepository` để lưu Mood và `MoodJournalEntryReader` để kiểm tra quyền truy cập Journal. Module bind hai port này với các Prisma adapter tương ứng.
+
+### Khi một module cần đọc dữ liệu của module khác
+
+Quan hệ nghiệp vụ không đồng nghĩa với việc handler được import repository hoặc aggregate của module bên cạnh. Ví dụ, khi tạo Memory từ Journal, use case chỉ cần biết Journal nguồn có dùng được hay không. Memory vì thế sở hữu một application port tên `MemorySourceJournalReader`.
+
+```text
+CreateMemoryHandler
+        │
+        ▼
+MemorySourceJournalReader         ← contract do Memory sở hữu
+        ▲
+        │ implements
+PrismaMemorySourceJournalReader   ← adapter biết bảng và state của Journal
+```
+
+Handler chỉ nhận `AVAILABLE`, `TRASHED` hoặc `NOT_FOUND`. Nó không import `JournalEntry`, `JournalEntryState` hay `JournalEntryRepository`. Adapter Prisma thực hiện truy vấn theo cả `journalEntryId` và `ownerId`, rồi dịch chi tiết của Journal sang ngôn ngữ mà Memory hiểu.
+
+Cùng nguyên tắc đó, Mood sở hữu `MoodJournalEntryReader`. Reader chuyển state của Journal thành `EDITABLE`, `NOT_EDITABLE` hoặc `NOT_FOUND`; Mood application không import Journal aggregate, enum hay repository. `NOT_EDITABLE` có thể mang tên state như metadata chẩn đoán, nhưng đó chỉ là dữ liệu trả về qua contract của Mood, không phải dependency vào type của Journal.
+
+Cách đặt boundary này có ba lợi ích. Thay đổi state nội bộ của Journal chỉ buộc adapter thay đổi; test application dùng fake reader rất nhỏ; và ownership được kiểm tra ở đúng nơi dữ liệu được đọc. Database vẫn có thể giữ foreign key giữa hai bảng vì foreign key bảo vệ dữ liệu runtime, còn port bảo vệ dependency compile time.
 
 ### Infrastructure
 
@@ -75,7 +95,7 @@ Presentation là lớp biên. DTO kiểm tra hình dạng dữ liệu không tin
 | Context         | Trách nhiệm                                                              |
 | --------------- | ------------------------------------------------------------------------ |
 | `iam`           | Identity, login/session, users, roles và permissions.                    |
-| `reflection`    | Journal và Mood — dữ liệu phản tư riêng tư của người dùng.               |
+| `reflection`    | Journal, Mood và Memory — dữ liệu phản tư riêng tư của người dùng.       |
 | `notifications` | Hộp thông báo thuộc từng user và trạng thái đã đọc.                      |
 | `audit`         | Nhật ký hành động quản trị và retention.                                 |
 | `analytics`     | Read model thống kê dashboard; không sở hữu transaction nghiệp vụ nguồn. |
@@ -119,6 +139,7 @@ Nest module là nơi hợp lệ để biết cả port lẫn adapter:
 | Domain không import application/infrastructure/presentation | Giữ business rules độc lập framework.                |
 | Shared domain không nhắc Prisma/Redis/BullMQ/Socket         | Không để delivery technology lọt vào core.           |
 | Application không import infrastructure/presentation        | Handler chỉ biết ports.                              |
+| Memory/Mood application không import Journal domain         | Quan hệ Journal đi qua reader port của consumer.     |
 | Domain port kết thúc `.repository.ts`                       | Repository là persistence của aggregate.             |
 | Application port kết thúc `.port.ts`                        | Email, cache, queue, reader… là outbound capability. |
 | Module file trùng tên thư mục                               | Composition root có vị trí dự đoán được.             |

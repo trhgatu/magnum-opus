@@ -1,20 +1,20 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
-import { JournalEntryState } from '@/contexts/reflection/journal/domain/enums';
-import { JournalEntryNotFoundException } from '@/contexts/reflection/journal/domain/exceptions';
-import {
-  JOURNAL_ENTRY_REPOSITORY,
-  type JournalEntryRepository,
-} from '@/contexts/reflection/journal/domain/ports/journal-entry.repository';
 import { DomainException } from '@shared/domain/exceptions/domain.exception';
 import { Result } from '@shared/domain/result';
 
 import {
   MoodJournalEntryNotEditableException,
+  MoodJournalEntryNotFoundException,
   MoodNotFoundException,
   MoodRevisionConflictException,
 } from '../../../domain/exceptions';
+import {
+  MOOD_JOURNAL_ENTRY_READER,
+  type MoodJournalEntryReader,
+  MoodJournalEntryAccessStatus,
+} from '../../ports/mood-journal-entry-reader.port';
 import {
   MOOD_REPOSITORY,
   type MoodRepository,
@@ -27,8 +27,8 @@ export class RemoveMoodHandler implements ICommandHandler<
   Result<void, DomainException>
 > {
   constructor(
-    @Inject(JOURNAL_ENTRY_REPOSITORY)
-    private readonly journalEntryRepository: JournalEntryRepository,
+    @Inject(MOOD_JOURNAL_ENTRY_READER)
+    private readonly journalEntryReader: MoodJournalEntryReader,
     @Inject(MOOD_REPOSITORY)
     private readonly moodRepository: MoodRepository,
   ) {}
@@ -36,22 +36,22 @@ export class RemoveMoodHandler implements ICommandHandler<
   public async execute(
     command: RemoveMoodCommand,
   ): Promise<Result<void, DomainException>> {
-    const entry = await this.journalEntryRepository.findByIdForOwner(
+    const access = await this.journalEntryReader.getAccessForOwner(
       command.journalEntryId,
       command.ownerId,
     );
 
-    if (!entry) {
+    if (access.status === MoodJournalEntryAccessStatus.NOT_FOUND) {
       return Result.fail(
-        new JournalEntryNotFoundException(command.journalEntryId),
+        new MoodJournalEntryNotFoundException(command.journalEntryId),
       );
     }
 
-    if (entry.state !== JournalEntryState.DRAFT) {
+    if (access.status === MoodJournalEntryAccessStatus.NOT_EDITABLE) {
       return Result.fail(
         new MoodJournalEntryNotEditableException(
           command.journalEntryId,
-          entry.state,
+          access.state,
         ),
       );
     }

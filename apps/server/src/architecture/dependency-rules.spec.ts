@@ -56,6 +56,25 @@ describe('architecture dependency rules', () => {
     expect(violations).toEqual([]);
   });
 
+  it('keeps Reflection consumers behind their Journal reader ports', () => {
+    const journalConsumerFiles = ['memory', 'mood'].flatMap((moduleName) =>
+      collectTypeScriptFiles(
+        join(sourceRoot, 'contexts', 'reflection', moduleName, 'application'),
+      ),
+    );
+    const violations = journalConsumerFiles.flatMap((file) => {
+      const source = readFileSync(file, 'utf8');
+      const directJournalDomainImport =
+        /from ['"][^'"]*reflection\/journal\/domain[^'"]*['"]/g;
+
+      return [...source.matchAll(directJournalDomainImport)].map(
+        (match) => `${file}: ${match[0]}`,
+      );
+    });
+
+    expect(violations).toEqual([]);
+  });
+
   it('uses one unambiguous placement and suffix for outbound ports', () => {
     const contextFiles = collectTypeScriptFiles(join(sourceRoot, 'contexts'));
     const invalidDomainPorts = contextFiles
