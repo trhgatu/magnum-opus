@@ -1,6 +1,5 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
 import { LoginCommand } from '../login.command';
 import { InvalidCredentialsException } from '@iam/users/domain/exceptions/invalid-credentials.exception';
 import { UserDeactivatedException } from '@iam/users/domain/exceptions/user-deactivated.exception';
@@ -15,7 +14,11 @@ import {
   PASSWORD_HASHER,
   type PasswordHasher,
 } from '@iam/users/application/ports/password-hasher.port';
-import { ConfigService } from '@nestjs/config';
+import {
+  AUTH_TOKEN_ISSUER,
+  type AuthTokenIssuer,
+} from '../../ports/auth-token-issuer.port';
+import { AUTH_POLICY, type AuthPolicy } from '../../ports/auth-policy.port';
 import {
   getRefreshSessionAbsoluteExpiry,
   REFRESH_SESSION_ABSOLUTE_TTL_SECONDS,
@@ -32,10 +35,12 @@ export class LoginCommandHandler implements ICommandHandler<
     private readonly userRepository: UserRepository,
     @Inject(PASSWORD_HASHER)
     private readonly passwordHasher: PasswordHasher,
-    private readonly jwtService: JwtService,
+    @Inject(AUTH_TOKEN_ISSUER)
+    private readonly tokenIssuer: AuthTokenIssuer,
     @Inject(SESSION_STORE)
     private readonly sessionStore: ISessionStore,
-    private readonly configService: ConfigService,
+    @Inject(AUTH_POLICY)
+    private readonly authPolicy: AuthPolicy,
   ) {}
 
   async execute(
@@ -63,7 +68,7 @@ export class LoginCommandHandler implements ICommandHandler<
     }
 
     if (
-      this.configService.get<boolean>('EMAIL_VERIFICATION_REQUIRED', false) &&
+      this.authPolicy.isEmailVerificationRequired() &&
       !user.emailVerifiedAt
     ) {
       return Result.fail(new EmailNotVerifiedException());
@@ -71,23 +76,13 @@ export class LoginCommandHandler implements ICommandHandler<
 
     const permissions = await this.userRepository.getPermissions(user.id);
     const jti = this.userRepository.nextIdentity();
-    const accessPayload = {
-      sub: user.id,
+    const tokens = this.tokenIssuer.issue({
+      userId: user.id,
       email: user.email,
       permissions,
       tokenVersion: user.tokenVersion,
       jti,
-    };
-    const refreshPayload = { sub: user.id, email: user.email, jti };
-
-    const accessToken = this.jwtService.sign(accessPayload, {
-      secret: this.configService.getOrThrow<string>('JWT_ACCESS_SECRET'),
-      expiresIn: '15m',
-    });
-
-    const refreshToken = this.jwtService.sign(refreshPayload, {
-      secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
-      expiresIn: '7d',
+      refreshTtlSeconds: REFRESH_SESSION_ABSOLUTE_TTL_SECONDS,
     });
 
     const createdAt = new Date().toISOString();
@@ -106,6 +101,6 @@ export class LoginCommandHandler implements ICommandHandler<
       REFRESH_SESSION_ABSOLUTE_TTL_SECONDS,
     );
 
-    return Result.ok({ accessToken, refreshToken });
+    return Result.ok(tokens);
   }
 }

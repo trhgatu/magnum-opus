@@ -56,6 +56,39 @@ describe('architecture dependency rules', () => {
     expect(violations).toEqual([]);
   });
 
+  it('keeps Auth application independent from framework configuration and token implementations', () => {
+    const applicationFiles = collectTypeScriptFiles(
+      join(sourceRoot, 'contexts', 'iam', 'auth', 'application'),
+    );
+    const violations = applicationFiles.flatMap((file) => {
+      const source = readFileSync(file, 'utf8');
+      const forbiddenImport =
+        /from ['"](@nestjs\/(config|jwt)|(?:node:)?crypto)['"]/g;
+
+      return [...source.matchAll(forbiddenImport)].map(
+        (match) => `${file}: ${match[0]}`,
+      );
+    });
+
+    expect(violations).toEqual([]);
+  });
+
+  it('keeps infrastructure independent from presentation', () => {
+    const infrastructureFiles = collectTypeScriptFiles(
+      join(sourceRoot, 'contexts'),
+    ).filter((file) => file.includes(`${join('', 'infrastructure')}`));
+    const violations = infrastructureFiles.flatMap((file) => {
+      const source = readFileSync(file, 'utf8');
+      const forbiddenImport = /from ['"][^'"]*presentation[^'"]*['"]/g;
+
+      return [...source.matchAll(forbiddenImport)].map(
+        (match) => `${file}: ${match[0]}`,
+      );
+    });
+
+    expect(violations).toEqual([]);
+  });
+
   it('keeps Reflection consumers behind their Journal reader ports', () => {
     const journalConsumerFiles = ['memory', 'mood'].flatMap((moduleName) =>
       collectTypeScriptFiles(

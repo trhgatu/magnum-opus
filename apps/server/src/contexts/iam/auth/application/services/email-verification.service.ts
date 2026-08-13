@@ -1,6 +1,4 @@
-import { createHash, randomBytes } from 'crypto';
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import type { UserEntity } from '@iam/users/domain/user.entity';
 import {
   JOB_QUEUE_PORT,
@@ -14,6 +12,8 @@ import {
   EMAIL_VERIFICATION_TOKEN_STORE,
   type EmailVerificationTokenStore,
 } from '../ports/email-verification-token-store.port';
+import { AUTH_POLICY, type AuthPolicy } from '../ports/auth-policy.port';
+import { OPAQUE_TOKEN, type OpaqueToken } from '../ports/opaque-token.port';
 
 const VERIFICATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1_000;
 
@@ -25,28 +25,26 @@ export class EmailVerificationService {
     @Inject(EMAIL_VERIFICATION_TOKEN_STORE)
     private readonly tokens: EmailVerificationTokenStore,
     @Inject(JOB_QUEUE_PORT) private readonly jobs: IJobQueuePort,
-    private readonly config: ConfigService,
+    @Inject(AUTH_POLICY) private readonly authPolicy: AuthPolicy,
+    @Inject(OPAQUE_TOKEN) private readonly opaqueToken: OpaqueToken,
   ) {}
 
   async schedule(user: UserEntity): Promise<void> {
     try {
-      const rawToken = randomBytes(32).toString('base64url');
-      const tokenHash = createHash('sha256').update(rawToken).digest('hex');
+      const token = this.opaqueToken.generate();
       await this.tokens.issue(
         user.id,
         user.email,
-        tokenHash,
+        token.hash,
         new Date(Date.now() + VERIFICATION_TOKEN_TTL_MS),
       );
-      const verificationUrl = new URL(
-        '/verify-email',
-        this.config.getOrThrow<string>('CLIENT_URL'),
-      );
-      verificationUrl.searchParams.set('token', rawToken);
       await this.jobs.addJob(
         USER_QUEUE,
         USER_JOBS.SEND_EMAIL_VERIFICATION,
-        { email: user.email, verificationUrl: verificationUrl.toString() },
+        {
+          email: user.email,
+          verificationUrl: this.authPolicy.emailVerificationUrl(token.raw),
+        },
         { sensitive: true },
       );
     } catch (error) {

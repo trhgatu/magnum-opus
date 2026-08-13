@@ -1,5 +1,4 @@
-import { ConfigService } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
+import type { AuthTokenIssuer } from '../../ports/auth-token-issuer.port';
 import type { ISessionStore } from '../../ports/session-store.port';
 import type { UserRepository } from '@iam/users/domain/ports/user.repository';
 import { RefreshCommand } from '../refresh.command';
@@ -19,18 +18,14 @@ describe('RefreshCommandHandler', () => {
     rotateRefreshToken: jest.fn(),
     revokeRefreshToken: jest.fn(),
   } as unknown as jest.Mocked<ISessionStore>;
-  const jwtService = {
-    sign: jest.fn(),
-  } as unknown as jest.Mocked<JwtService>;
-  const configService = {
-    getOrThrow: jest.fn((key: string) => key),
-  } as unknown as jest.Mocked<ConfigService>;
+  const tokenIssuer = {
+    issue: jest.fn(),
+  } as unknown as jest.Mocked<AuthTokenIssuer>;
 
   const handler = new RefreshCommandHandler(
-    jwtService,
+    tokenIssuer,
     userRepository,
     sessionStore,
-    configService,
   );
 
   beforeEach(() => {
@@ -55,9 +50,10 @@ describe('RefreshCommandHandler', () => {
       absoluteExpiresAt: '2026-08-05T00:00:00.000Z',
     });
     sessionStore.getRefreshReplay.mockResolvedValue(null);
-    jwtService.sign
-      .mockReturnValueOnce('new-access')
-      .mockReturnValueOnce('new-refresh');
+    tokenIssuer.issue.mockReturnValue({
+      accessToken: 'new-access',
+      refreshToken: 'new-refresh',
+    });
   });
 
   afterEach(() => {
@@ -94,10 +90,8 @@ describe('RefreshCommandHandler', () => {
       { accessToken: 'new-access', refreshToken: 'new-refresh' },
       604800,
     );
-    expect(jwtService.sign).toHaveBeenNthCalledWith(
-      1,
+    expect(tokenIssuer.issue).toHaveBeenCalledWith(
       expect.objectContaining({ email: 'user@example.com' }),
-      expect.any(Object),
     );
   });
 
@@ -112,15 +106,8 @@ describe('RefreshCommandHandler', () => {
       new RefreshCommand('user-id', 'stale@example.com', 'old-jti'),
     );
 
-    expect(jwtService.sign).toHaveBeenNthCalledWith(
-      1,
+    expect(tokenIssuer.issue).toHaveBeenCalledWith(
       expect.objectContaining({ email: 'current@example.com' }),
-      expect.any(Object),
-    );
-    expect(jwtService.sign).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({ email: 'current@example.com' }),
-      expect.any(Object),
     );
   });
 
@@ -154,7 +141,7 @@ describe('RefreshCommandHandler', () => {
       accessToken: 'winner-access',
       refreshToken: 'winner-refresh',
     });
-    expect(jwtService.sign).not.toHaveBeenCalled();
+    expect(tokenIssuer.issue).not.toHaveBeenCalled();
     expect(sessionStore.rotateRefreshToken).not.toHaveBeenCalled();
   });
 
@@ -195,10 +182,8 @@ describe('RefreshCommandHandler', () => {
       new RefreshCommand('user-id', 'user@example.com', 'old-jti'),
     );
 
-    expect(jwtService.sign).toHaveBeenNthCalledWith(
-      2,
-      expect.any(Object),
-      expect.objectContaining({ expiresIn: 3600 }),
+    expect(tokenIssuer.issue).toHaveBeenCalledWith(
+      expect.objectContaining({ refreshTtlSeconds: 3600 }),
     );
     expect(sessionStore.rotateRefreshToken).toHaveBeenCalledWith(
       'user-id',
@@ -231,7 +216,7 @@ describe('RefreshCommandHandler', () => {
       'user-id',
       'old-jti',
     );
-    expect(jwtService.sign).not.toHaveBeenCalled();
+    expect(tokenIssuer.issue).not.toHaveBeenCalled();
     expect(sessionStore.rotateRefreshToken).not.toHaveBeenCalled();
   });
 });

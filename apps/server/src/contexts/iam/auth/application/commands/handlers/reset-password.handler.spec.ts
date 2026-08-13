@@ -5,6 +5,7 @@ import type { PasswordResetTokenStore } from '../../ports/password-reset-token-s
 import { InvalidPasswordResetTokenException } from '../../../domain/exceptions/invalid-password-reset-token.exception';
 import { ResetPasswordCommand } from '../reset-password.command';
 import { ResetPasswordHandler } from './reset-password.handler';
+import type { OpaqueToken } from '../../ports/opaque-token.port';
 
 describe('ResetPasswordHandler', () => {
   const tokens = {
@@ -17,7 +18,16 @@ describe('ResetPasswordHandler', () => {
   const sessions = {
     revokeAllUserSessions: jest.fn(),
   } as unknown as jest.Mocked<ISessionStore>;
-  const handler = new ResetPasswordHandler(tokens, users, hasher, sessions);
+  const opaqueToken = {
+    hash: jest.fn((raw: string) => `hash:${raw}`),
+  } as unknown as jest.Mocked<OpaqueToken>;
+  const handler = new ResetPasswordHandler(
+    tokens,
+    users,
+    hasher,
+    sessions,
+    opaqueToken,
+  );
 
   beforeEach(() => jest.clearAllMocks());
 
@@ -38,6 +48,10 @@ describe('ResetPasswordHandler', () => {
       new ResetPasswordCommand('valid-token', 'new-password-123'),
     );
 
+    expect(tokens.consume).toHaveBeenCalledWith(
+      'hash:valid-token',
+      expect.any(Date),
+    );
     expect(sessions.revokeAllUserSessions).toHaveBeenCalledWith('user-id');
     expect(users.changePassword).toHaveBeenCalledWith('user-id', 'new-hash');
     expect(
