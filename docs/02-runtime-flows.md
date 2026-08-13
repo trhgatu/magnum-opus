@@ -131,12 +131,16 @@ handler API enqueue job vào USER_QUEUE
 → Redis/BullMQ lưu job
 → API trả response
 → worker.ts khởi động WorkerModule
-→ UserQueueProcessor consume
-→ gửi email hoặc log skip khi MAIL_ENABLED=false
+→ UserQueueProcessor nhận BullMQ job và kiểm tra name/payload
+→ UserEmailJobService chọn nghiệp vụ email tương ứng
+→ UserMailer port
+→ NodemailerUserMailer gửi email hoặc log skip khi MAIL_ENABLED=false
 → BullMQ đánh dấu hoàn thành/retry
 ```
 
-Producer nằm trong `UsersModule`; consumer chỉ nằm trong `WorkerModule`. Vì vậy chạy API mà quên worker không làm endpoint chết, nhưng job sẽ nằm chờ trong Redis.
+`UserQueueProcessor` là inbound infrastructure adapter: nó được phép biết `Job`, `WorkerHost` và decorator của BullMQ, nhưng không chứa template hay policy gửi mail. `UserEmailJobService` thuộc application: nó chỉ hiểu vocabulary ổn định như `send-welcome-email` và điều phối qua `UserMailer`. `NodemailerUserMailer` là outbound infrastructure adapter: nó mới biết SMTP, Nodemailer và các biến `MAIL_*`.
+
+Producer được đăng ký từ `UsersModule`; consumer và mail adapter chỉ được wire trong `WorkerModule`. Vì vậy chạy API mà quên worker không làm endpoint chết, nhưng job sẽ nằm chờ trong Redis. Nếu payload sai, processor từ chối ngay tại transport boundary; nếu gửi mail lỗi, promise reject để BullMQ áp dụng retry policy thay vì đánh dấu job thành công giả.
 
 ## Realtime notification
 

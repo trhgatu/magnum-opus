@@ -116,7 +116,7 @@ HTTP surface:
 
 `USER_REPOSITORY` thuộc domain vì nó load/save user aggregate. `PASSWORD_HASHER` thuộc application ports vì hashing là capability kỹ thuật được use case cần. `BcryptPasswordHasher` là adapter.
 
-UsersModule chỉ đăng ký BullMQ producer. `UserQueueProcessor` không được đặt trong API module; nó nằm ở `WorkerModule` để gửi email không tranh event loop với request.
+UsersModule chỉ đăng ký BullMQ producer. Consumer được tách thành ba trách nhiệm: `UserQueueProcessor` ở infrastructure nhận và kiểm tra BullMQ job; `UserEmailJobService` ở application chọn use case email; `NodemailerUserMailer` implement `UserMailer` port bằng SMTP. `WorkerModule` wire ba phần này, còn API module không đăng ký consumer. Nhờ vậy gửi email không tranh event loop với request và application không phụ thuộc BullMQ/Nodemailer.
 
 Khi update chính user đang đăng nhập, backend có thể tăng token version nếu thay đổi ảnh hưởng identity/authorization. Access token cũ bị revoke; client refresh lấy token mới. Flow 401 → refresh → retry là hợp lệ về security, nhưng UI đã được tối ưu để chủ động đồng bộ session khi có thể.
 

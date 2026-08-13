@@ -18,7 +18,7 @@ import { UserDeactivatedEvent } from '@iam/users/domain/events/user-deactivated.
 import {
   USER_JOBS,
   USER_QUEUE,
-} from '@iam/users/application/queues/user-queue.constants';
+} from '@iam/users/application/jobs/user-email.jobs';
 import { NotificationCreatedEvent } from '@/contexts/notifications/domain/events/notification-created.event';
 import { CreateNotificationCommand } from '@/contexts/notifications/application/commands/create-notification.command';
 import { Result } from '@shared/domain/result';

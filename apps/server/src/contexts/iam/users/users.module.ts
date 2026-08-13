@@ -11,7 +11,7 @@ import { CreateUserCommandHandler } from './application/commands/handlers/create
 import { DeleteUserCommandHandler } from './application/commands/handlers/delete-user.handler';
 import { ActivateUserCommandHandler } from './application/commands/handlers/activate-user.handler';
 import { UpdateUserCommandHandler } from './application/commands/handlers/update-user.handler';
-import { USER_QUEUE } from './application/queues/user-queue.constants';
+import { USER_QUEUE } from './application/jobs/user-email.jobs';
 import { USER_REPOSITORY } from './domain/ports/user.repository';
 import { PASSWORD_HASHER } from './application/ports/password-hasher.port';
 

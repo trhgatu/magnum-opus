@@ -6,7 +6,7 @@ import { PrismaService } from '@infrastructure/database/prisma.service';
 import { ModuleRef } from '@nestjs/core';
 import { getQueueToken } from '@nestjs/bullmq';
 import type { Job, Queue } from 'bullmq';
-import { USER_QUEUE } from '@iam/users/application/queues/user-queue.constants';
+import { USER_QUEUE } from '@iam/users/application/jobs/user-email.jobs';
 
 const OUTBOX_STATUSES = ['PENDING', 'PROCESSING', 'FAILED'] as const;
 const QUEUE_STATUSES = [
