@@ -59,6 +59,14 @@ describe("khi chưa có phiên", () => {
     expect(location.searchParams.get("next")).toBe("/journal/entry-id");
   });
 
+  it("bảo vệ toàn bộ bounded route Memory ngay từ Proxy", async () => {
+    const response = await proxy(requestFor("/memories/memory-id"));
+    expect(response.status).toBe(307);
+    const location = new URL(response.headers.get("location")!);
+    expect(location.pathname).toBe("/login");
+    expect(location.searchParams.get("next")).toBe("/memories/memory-id");
+  });
+
   it("cookie rác được coi như chưa đăng nhập", async () => {
     // Header HTTP chỉ chứa được byte Latin-1 nên chuỗi rác phải là ASCII.
     const response = await proxy(requestFor("/me", "@@not-a-session@@"));
@@ -76,6 +84,19 @@ describe("khi token còn hạn dài", () => {
     const response = await proxy(requestFor("/me", cookie));
 
     expect(response.status).toBe(200);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("không cho người đã đăng nhập quay lại trang login", async () => {
+    const cookie = await encryptSession({
+      accessToken: tokenExpiringIn(15 * 60),
+      refreshToken: "refresh-token",
+    });
+
+    const response = await proxy(requestFor("/login", cookie));
+
+    expect(response.status).toBe(307);
+    expect(new URL(response.headers.get("location")!).pathname).toBe("/me");
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
@@ -110,6 +131,31 @@ describe("khi token sắp hết hạn (dưới 60 giây)", () => {
 
     const written = response.cookies.get(SESSION_COOKIE)?.value;
     expect(await decryptSession(written!)).toEqual({
+      accessToken: "new-access",
+      refreshToken: "new-refresh",
+    });
+  });
+
+  it("refresh phiên trước khi chuyển người đã đăng nhập khỏi trang login", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          accessToken: "new-access",
+          refreshToken: "new-refresh",
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    const response = await proxy(
+      requestFor("/login", await nearExpiry("refresh-before-redirect")),
+    );
+
+    expect(response.status).toBe(307);
+    expect(new URL(response.headers.get("location")!).pathname).toBe("/me");
+    expect(
+      await decryptSession(response.cookies.get(SESSION_COOKIE)!.value),
+    ).toEqual({
       accessToken: "new-access",
       refreshToken: "new-refresh",
     });
@@ -179,6 +225,20 @@ describe("khi token sắp hết hạn (dưới 60 giây)", () => {
     const location = new URL(response.headers.get("location")!);
     expect(location.pathname).toBe("/login");
     expect(location.searchParams.get("next")).toBe("/me");
+    expect(response.cookies.get(SESSION_COOKIE)?.value).toBe("");
+  });
+
+  it("cho hiển thị login khi phiên đã hết hạn và không refresh được", async () => {
+    fetchMock.mockResolvedValue(new Response(null, { status: 401 }));
+    const cookie = await encryptSession({
+      accessToken: tokenExpiringIn(-1),
+      refreshToken: "expired-refresh",
+    });
+
+    const response = await proxy(requestFor("/login", cookie));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("location")).toBeNull();
     expect(response.cookies.get(SESSION_COOKIE)?.value).toBe("");
   });
 });

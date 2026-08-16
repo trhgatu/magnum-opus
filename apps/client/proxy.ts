@@ -7,7 +7,8 @@ import {
 } from "@/lib/session";
 import { refreshSessionSingleFlight } from "@/lib/refresh-session";
 
-const PROTECTED_PREFIXES = ["/me", "/journal"];
+const PROTECTED_PREFIXES = ["/me", "/journal", "/memories"];
+const GUEST_ONLY_PATHS = new Set(["/login"]);
 const REFRESH_THRESHOLD_SECONDS = 60;
 
 const loginUrlFor = (request: NextRequest): URL => {
@@ -18,6 +19,14 @@ const loginUrlFor = (request: NextRequest): URL => {
   );
   return loginUrl;
 };
+
+const responseForAuthenticatedRequest = (
+  request: NextRequest,
+  isGuestOnly: boolean,
+): NextResponse =>
+  isGuestOnly
+    ? NextResponse.redirect(new URL("/me", request.url))
+    : NextResponse.next();
 
 // Đọc trường exp của JWT mà KHÔNG xác minh chữ ký: ở đây chỉ cần biết token
 // sắp hết hạn chưa. Việc xác minh thật do API làm.
@@ -39,6 +48,7 @@ export async function proxy(request: NextRequest) {
   const isProtected = PROTECTED_PREFIXES.some((prefix) =>
     request.nextUrl.pathname.startsWith(prefix),
   );
+  const isGuestOnly = GUEST_ONLY_PATHS.has(request.nextUrl.pathname);
   const raw = request.cookies.get(SESSION_COOKIE)?.value;
   const session = raw ? await decryptSession(raw) : null;
 
@@ -50,7 +60,7 @@ export async function proxy(request: NextRequest) {
   const secondsLeft =
     expiresAt(session.accessToken) - Math.floor(Date.now() / 1000);
   if (secondsLeft > REFRESH_THRESHOLD_SECONDS) {
-    return NextResponse.next();
+    return responseForAuthenticatedRequest(request, isGuestOnly);
   }
 
   // Làm mới token TẠI ĐÂY, không phải trong lúc render: Next.js chỉ cho ghi
@@ -64,7 +74,7 @@ export async function proxy(request: NextRequest) {
     // thua cuộc; request hiện tại vẫn dùng được token cũ và response thắng có thể
     // cập nhật trình duyệt mà không bị ghi đè.
     if (secondsLeft > 0) {
-      return NextResponse.next();
+      return responseForAuthenticatedRequest(request, isGuestOnly);
     }
     const response = isProtected
       ? NextResponse.redirect(loginUrlFor(request))
@@ -73,7 +83,7 @@ export async function proxy(request: NextRequest) {
     return response;
   }
 
-  const response = NextResponse.next();
+  const response = responseForAuthenticatedRequest(request, isGuestOnly);
   response.cookies.set(
     SESSION_COOKIE,
     await encryptSession({

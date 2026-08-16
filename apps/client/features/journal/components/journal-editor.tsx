@@ -178,6 +178,18 @@ export function JournalEditor({
     router.refresh();
   };
 
+  const createMemoryFromEntry = async () => {
+    setLifecycleMessage(undefined);
+
+    if (!(await flush())) {
+      return;
+    }
+
+    router.push(
+      `/memories/new?sourceJournalEntryId=${encodeURIComponent(entry.id)}`,
+    );
+  };
+
   return (
     <article
       className={
@@ -206,6 +218,7 @@ export function JournalEditor({
           onToggleFocus={toggleFocus}
           onChangeState={(action) => void changeState(action)}
           onDeletePermanently={() => void deletePermanently()}
+          onCreateMemory={() => void createMemoryFromEntry()}
         />
 
         {recoveryReason ? (

@@ -1,5 +1,5 @@
 import type { User } from "@repo/types";
-import { BookOpenText, LogOut, UserRound } from "lucide-react";
+import { BookOpenText, Gem, LogOut, UserRound } from "lucide-react";
 import Link from "next/link";
 
 import { BrandMark } from "@/components/system/brand-mark";
@@ -14,6 +14,7 @@ interface AccountShellProps {
 const navigation = [
   { href: "/me", label: "Hồ sơ", icon: UserRound },
   { href: "/journal", label: "Journal", icon: BookOpenText },
+  { href: "/memories", label: "Ký ức", icon: Gem },
 ] as const;
 
 export function AccountShell({ children, user }: AccountShellProps) {
@@ -21,7 +22,7 @@ export function AccountShell({ children, user }: AccountShellProps) {
     <div className="min-h-screen">
       <a
         href="#account-content"
-        className="sr-only z-[60] rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
+        className="sr-only z-60 rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
       >
         Chuyển đến nội dung chính
       </a>

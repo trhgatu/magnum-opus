@@ -177,6 +177,23 @@ test.describe("Client authentication boundary", () => {
     expect(browserRequests.some((url) => url.startsWith(API_URL))).toBe(false);
   });
 
+  test("redirects an authenticated user away from the login page", async ({
+    page,
+  }) => {
+    await login(page);
+    await expect(page).toHaveURL(/\/me$/);
+
+    await page.getByRole("link", { name: "Magnum Opus" }).click();
+    await expect(page).toHaveURL(/\/$/);
+
+    await page.getByRole("link", { name: "Đăng nhập" }).click();
+
+    await expect(page).toHaveURL(/\/me$/);
+    await expect(
+      page.getByRole("heading", { name: "Hồ sơ cá nhân" }),
+    ).toBeVisible();
+  });
+
   test("clears the session on logout and protects the profile again", async ({
     page,
   }) => {
