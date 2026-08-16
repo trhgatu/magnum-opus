@@ -112,6 +112,8 @@ Network timeout khi download scanner/image là failure hạ tầng, khác vulner
 
 Release hiện manual `workflow_dispatch`. Release Please đọc conventional commits, mở/cập nhật release PR, bump version/changelog. Merge release PR tạo GitHub Release + tag.
 
+Lần phát hành sản phẩm đầu tiên dùng footer `Release-As: 1.0.0` trong commit closeout đã merge vào `main`. Đây là chỉ thị một lần cho Release Please, không phải cấu hình `release-as` cố định; vì vậy các release sau lại quay về tính version từ conventional commits. Sau khi closeout CI xanh, chạy workflow Release thủ công, xác nhận release PR đề xuất `1.0.0`, rồi mới merge release PR.
+
 Tag do `GITHUB_TOKEN` tạo không kích hoạt workflow khác, nên job cùng release workflow chờ image SHA của CI xuất hiện rồi gắn thêm version tag bằng `buildx imagetools`. Nó không rebuild image, nhờ vậy version tag trỏ đúng artifact đã scan.
 
 ## Local và production Docker

@@ -131,6 +131,11 @@ export const Errors = {
     translationKey: 'exceptions.journal.entry.id.invalid',
     statusCode: 400,
   },
+  INVALID_JOURNAL_ENTRY_TITLE: {
+    code: 'INVALID_JOURNAL_ENTRY_TITLE',
+    translationKey: 'exceptions.journal.entry.title.invalid',
+    statusCode: 400,
+  },
   INVALID_JOURNAL_ENTRY_TRANSITION: {
     code: 'INVALID_JOURNAL_ENTRY_TRANSITION',
     translationKey: 'exceptions.journal.entry.transition.invalid',

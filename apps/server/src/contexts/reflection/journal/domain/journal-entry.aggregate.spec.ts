@@ -1,5 +1,8 @@
 import { JournalEntryState } from './enums';
-import { InvalidJournalEntryTransitionException } from './exceptions';
+import {
+  InvalidJournalEntryTitleException,
+  InvalidJournalEntryTransitionException,
+} from './exceptions';
 import { JournalEntry } from './journal-entry.aggregate';
 import { JournalEntryId } from './value-objects';
 
@@ -31,6 +34,15 @@ describe('JournalEntry', () => {
       expect(entry.title).toBeNull();
       expect(entry.content).toBe('');
     });
+
+    it('rejects a title longer than 200 characters', () => {
+      expect(() =>
+        JournalEntry.createDraft({
+          ownerId: 'owner-1',
+          title: 'a'.repeat(201),
+        }),
+      ).toThrow(InvalidJournalEntryTitleException);
+    });
   });
 
   describe('content editing', () => {
@@ -55,6 +67,21 @@ describe('JournalEntry', () => {
         content: entry.content,
       });
 
+      expect(entry.revision).toBe(1);
+    });
+
+    it('validates a new title before changing the entry', () => {
+      const entry = createEntry();
+
+      expect(() =>
+        entry.updateContent({
+          title: 'a'.repeat(201),
+          content: 'Changed content',
+        }),
+      ).toThrow(InvalidJournalEntryTitleException);
+
+      expect(entry.title).toBe('Original title');
+      expect(entry.content).toBe('Original content');
       expect(entry.revision).toBe(1);
     });
 

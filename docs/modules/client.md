@@ -151,6 +151,8 @@ List page giữ search, state, sort và pagination trong URL. Vì vậy reload, 
 
 Memory có thể được tạo độc lập hoặc từ Journal. Link “Giữ lại như một ký ức” chỉ chuyển sang form mới với `sourceJournalEntryId`; nó không tự tạo record. Server Component owner-scope Journal để tạo seed, còn backend kiểm tra lại source trước khi persist. Hai lớp kiểm tra phục vụ hai mục đích khác nhau: frontend tạo trải nghiệm đúng, backend bảo vệ trust boundary.
 
+Route segment `/memories` có `loading.tsx` và `error.tsx` riêng. Loading boundary cho biết đúng không gian đang được tải mà không cần JavaScript phía client; error boundary giữ lời nhắn an toàn rằng dữ liệu không bị thay đổi, đồng thời cung cấp nút retry và đường quay về không gian chính. Root boundary vẫn là lớp dự phòng cuối cùng cho lỗi nằm ngoài feature.
+
 Editor chuyển input `DAY`, `MONTH`, `YEAR`, `UNKNOWN` sang representation chuẩn trước khi gọi Server Action. Khi update gặp revision conflict, local form không bị thay đổi. Người dùng chọn một trong hai flow:
 
 ```text

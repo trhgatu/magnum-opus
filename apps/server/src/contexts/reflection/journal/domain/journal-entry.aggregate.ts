@@ -1,8 +1,13 @@
 import { AggregateRoot } from '@/shared/domain/aggregate-root';
 
 import { JournalEntryState } from './enums';
-import { InvalidJournalEntryTransitionException } from './exceptions';
+import {
+  InvalidJournalEntryTitleException,
+  InvalidJournalEntryTransitionException,
+} from './exceptions';
 import { JournalEntryId } from '../domain/value-objects/';
+
+const MAX_TITLE_LENGTH = 200;
 
 export interface JournalEntryProps {
   id: JournalEntryId;
@@ -199,6 +204,14 @@ export class JournalEntry extends AggregateRoot {
   private static normalizeTitle(title?: string | null): string | null {
     const normalizedTitle = title?.trim();
 
-    return normalizedTitle ? normalizedTitle : null;
+    if (!normalizedTitle) {
+      return null;
+    }
+
+    if ([...normalizedTitle].length > MAX_TITLE_LENGTH) {
+      throw new InvalidJournalEntryTitleException();
+    }
+
+    return normalizedTitle;
   }
 }
