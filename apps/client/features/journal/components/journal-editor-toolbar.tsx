@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   Expand,
   Eye,
+  Gem,
   LockKeyhole,
   Minimize2,
   PenLine,
@@ -47,6 +48,7 @@ interface JournalEditorToolbarProps {
   onToggleFocus: () => void;
   onChangeState: (action: JournalLifecycleAction) => void;
   onDeletePermanently: () => void;
+  onCreateMemory: () => void;
 }
 
 const saveStateLabel: Record<JournalSaveState, string> = {
@@ -74,6 +76,7 @@ export function JournalEditorToolbar({
   onToggleFocus,
   onChangeState,
   onDeletePermanently,
+  onCreateMemory,
 }: JournalEditorToolbarProps) {
   return (
     <header
@@ -162,6 +165,24 @@ export function JournalEditorToolbar({
             {focusMode ? "Thoát focus" : "Focus"}
           </span>
         </Button>
+        {state !== "TRASHED" ? (
+          <Button
+            type="button"
+            onClick={onCreateMemory}
+            disabled={
+              busy ||
+              saveState === "conflict" ||
+              saveState === "missing" ||
+              saveState === "session" ||
+              saveState === "remote_state"
+            }
+            variant="outline"
+            className="shrink-0"
+          >
+            <Gem aria-hidden="true" />
+            Giữ lại như ký ức
+          </Button>
+        ) : null}
         {state === "DRAFT" ? (
           <Button
             disabled={busy}

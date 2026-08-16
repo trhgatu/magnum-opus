@@ -7,7 +7,7 @@ Feature index là danh sách capability theo trạng thái sản phẩm, không 
 | Identity & access     | Bảo vệ không gian riêng tư và quyền sở hữu dữ liệu       | Foundation đang được sử dụng    |
 | [Journal](journal.md) | Capture trải nghiệm và bắt đầu reflection                | Đã hoàn thành vertical slice v1 |
 | [Mood](mood.md)       | Ghi nhận trạng thái cảm xúc trong bối cảnh Journal       | Đã hoàn thành vertical slice v1 |
-| [Memory](memory.md)   | Giữ lại những trải nghiệm có ý nghĩa theo dòng thời gian | Backend v1 xong; UI chưa làm    |
+| [Memory](memory.md)   | Giữ lại những trải nghiệm có ý nghĩa theo dòng thời gian | Đã hoàn thành vertical slice v1 |
 | Habits                | Chuyển insight thành hành vi lặp lại                     | Chưa thiết kế                   |
 | Routines              | Tạo cấu trúc hỗ trợ cách sống đã chọn                    | Chưa thiết kế                   |
 | Knowledge             | Chuyển trải nghiệm và nguồn bên ngoài thành hiểu biết    | Chưa thiết kế                   |

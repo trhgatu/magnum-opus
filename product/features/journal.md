@@ -32,12 +32,14 @@ Người dùng có thể tạo một entry riêng tư, viết và lưu an toàn,
 - Đưa entry vào thùng rác và khôi phục.
 - Xóa vĩnh viễn bằng một hành động xác nhận riêng.
 - Phân trang hoặc infinite loading để lịch sử không bị giới hạn giả tạo.
+- Gắn Mood riêng cho entry mà không làm thay đổi revision của nội dung Journal.
+- Chủ động chọn lọc một entry thành Memory độc lập.
 
 ### Chưa có trong v1
 
 - Public journal hoặc chia sẻ entry.
 - AI analysis, sentiment score hay suggested action.
-- Mood, tag và relation với module khác.
+- Tag và các quan hệ với module khác ngoài Mood và Memory.
 - Nhiều loại journal entry.
 - Gamification, XP hoặc quest completion.
 - Attachment và rich-text editor đầy đủ.
@@ -210,7 +212,7 @@ Nếu user B yêu cầu ID của entry thuộc user A, API trả not found giố
 
 Journal v1 đã hoàn thành vertical slice từ giao diện đến database.
 
-Ở client, người dùng có thể tạo entry, viết với autosave, lưu ngay bằng phím tắt, xem Markdown preview, bật focus mode, tìm kiếm, lọc theo trạng thái và thực hiện đầy đủ vòng đời seal, reopen, trash, restore. Nội dung đang gõ được giữ tại browser khi save thất bại. Khi revision conflict xảy ra, giao diện giữ local content và yêu cầu người dùng chọn bản mới nhất hoặc chủ động ghi phần đang gõ lên revision mới.
+Ở client, người dùng có thể tạo entry, viết với autosave, lưu ngay bằng phím tắt, xem Markdown preview, bật focus mode, tìm kiếm, lọc theo trạng thái và thực hiện đầy đủ vòng đời seal, reopen, trash, restore. Nội dung đang gõ được giữ tại browser khi save thất bại. Khi revision conflict xảy ra, giao diện giữ local content và yêu cầu người dùng chọn bản mới nhất hoặc chủ động ghi phần đang gõ lên revision mới. Entry còn có thể ghi lại Mood riêng và mở flow chọn lọc nội dung thành một Memory độc lập.
 
 Ở backend, slice gồm validation, authentication, ownership, command/query handlers, domain lifecycle, optimistic concurrency, Prisma repository và response presenter. Bài E2E cấp API chứng minh user B không thể truy cập entry của user A. Bài E2E trình duyệt chạy flow thật qua Next.js BFF và xác nhận access token không xuất hiện trong JavaScript, đồng thời browser không gọi trực tiếp backend.
 

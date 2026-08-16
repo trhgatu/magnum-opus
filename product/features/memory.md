@@ -6,9 +6,11 @@ Memory không phải bản sao tự động của Journal, không phải bài ph
 
 ## Trạng thái triển khai
 
-Backend v1 đã có đầy đủ database model, domain rules, repository, CQRS handlers và bảy endpoint được mô tả trong tài liệu này. Các thao tác đọc và ghi đều giới hạn theo owner lấy từ access token; update, trash, restore và xóa vĩnh viễn đều dùng revision để phát hiện ghi đè đồng thời.
+Memory v1 đã hoàn thành vertical slice từ database đến giao diện người dùng. Backend gồm database constraints, domain rules, repository, CQRS handlers và bảy endpoint được mô tả trong tài liệu này. Các thao tác đọc và ghi đều giới hạn theo owner lấy từ access token; update, trash, restore và xóa vĩnh viễn đều dùng revision để phát hiện ghi đè đồng thời.
 
-Giao diện Memory trên `apps/client` chưa được triển khai. Vì vậy Memory hiện đã hoàn thành **backend vertical slice**, nhưng chưa hoàn thành **product vertical slice** từ trình duyệt đến database. Phần UI và E2E browser là bước tiếp theo.
+Ở client, người dùng có thể tạo Memory độc lập hoặc bắt đầu từ một Journal entry, tìm kiếm, lọc, sắp xếp, đọc chi tiết, chỉnh sửa và thực hiện đầy đủ vòng đời Trash. Các mutation đi qua Server Action nên access token và địa chỉ backend không xuất hiện trong browser. Khi revision conflict xảy ra, giao diện giữ nội dung local và yêu cầu chọn bản mới nhất hoặc chủ động ghi nội dung local lên revision mới.
+
+Backend E2E chứng minh authentication, ownership, revision protection và việc Memory vẫn tồn tại sau khi Journal nguồn bị xóa. Browser E2E chứng minh lifecycle riêng tư qua Next.js BFF và flow chọn lọc Journal thành Memory.
 
 ## Vấn đề cần giải quyết
 
@@ -93,19 +95,22 @@ Thời điểm xảy ra mô tả khi trải nghiệm thực sự diễn ra. Nó 
 
 Ví dụ:
 
-````text
+```text
 Sự kiện xảy ra: năm 2018
-Memory được tạo: năm 2026```
+Memory được tạo: năm 2026
+```
 
-Timeline phải đặt Memory ở năm 2018 thay vì năm 2026.
+Collection theo thời gian phải đặt Memory ở năm 2018 thay vì năm 2026.
 
 ### Độ chính xác của thời gian
 
 Memory dùng `DAY`, `MONTH`, `YEAR` và `UNKNOWN`. Giao diện chỉ hiển thị độ chính xác đã cung cấp; “năm 2018” không được biến thành ngày giả “01/01/2018”.
 
-### Timeline và Trash
+### Collection theo thời gian và Trash
 
-Timeline là projection đọc Memory theo thời điểm trải nghiệm xảy ra, không phải entity hay bảng riêng. Memory không rõ thời gian nằm trong nhóm “Không rõ thời gian”. Memory trong Trash không xuất hiện ở collection mặc định nhưng vẫn có thể khôi phục.
+Collection có thể đọc Memory theo thời điểm trải nghiệm xảy ra; đây là cách sắp xếp dữ liệu, không phải entity hay bảng riêng. Memory không rõ thời gian được đặt sau các Memory có thời gian khi sắp xếp theo `occurredOn`. Memory trong Trash không xuất hiện ở collection mặc định nhưng vẫn có thể được lọc riêng và khôi phục.
+
+Unified Timeline tổng hợp Journal, Memory, Habit, Routine và các module khác chưa thuộc v1. Khi feature đó xuất hiện, nó sẽ dùng Memory như một nguồn dữ liệu thay vì thay đổi domain model của Memory.
 
 ## Trạng thái
 
@@ -115,7 +120,7 @@ Active ──trash──> Trashed
    └────restore───────┘
 
 Trashed ──delete permanently──> Deleted
-````
+```
 
 `Deleted` không phải state được lưu. Memory không có `DRAFT` hoặc `SEALED`: Journal là không gian đang viết, còn Memory xuất hiện sau quyết định chủ động giữ lại.
 
@@ -131,11 +136,11 @@ Nút “Giữ lại như một ký ức” mở form đã điền trước, khô
 
 ### Đọc lại
 
-Collection có thể sắp xếp theo ngày cập nhật hoặc thời điểm xảy ra. Timeline ưu tiên thời điểm xảy ra. Search tìm trong tiêu đề và nội dung. Trang chi tiết liên kết về Journal nguồn nếu Journal còn tồn tại.
+Collection có thể sắp xếp theo ngày cập nhật, ngày tạo hoặc thời điểm xảy ra. Search tìm trong tiêu đề và nội dung. Trang chi tiết liên kết về Journal nguồn nếu Journal còn tồn tại.
 
 ### Chỉnh sửa và xung đột
 
-Client gửi `expectedRevision`. Server chỉ cập nhật Memory `ACTIVE` khi revision khớp. Thay đổi thực sự làm revision tăng; revision cũ nhận conflict thay vì ghi đè.
+Client gửi `expectedRevision`. Server chỉ cập nhật Memory `ACTIVE` khi revision khớp. Thay đổi thực sự làm revision tăng; revision cũ nhận conflict thay vì ghi đè. Khi conflict xảy ra, editor giữ nguyên nội dung local. Người dùng có thể thay form bằng snapshot mới nhất hoặc tải revision mới rồi chủ động ghi nội dung local lên đó.
 
 ### Trash và restore
 
@@ -233,11 +238,11 @@ Memory v1 không tự tạo Reflection hoặc Insight.
 
 ## Events dành cho giai đoạn sau
 
-`memory.created`, `memory.updated`, `memory.trashed`, `memory.restored` và `memory.permanently-deleted` chỉ được phát khi có consumer thật. Timeline v1 đọc trực tiếp từ repository nên chưa cần event.
+`memory.created`, `memory.updated`, `memory.trashed`, `memory.restored` và `memory.permanently-deleted` chỉ được phát khi có consumer thật. Collection Memory v1 đọc trực tiếp từ repository nên chưa cần event.
 
 ## Tiêu chí hoàn thành
 
-Flow thật phải chứng minh có thể tạo, reload, tìm, sửa, xem đúng vị trí trên Timeline, trash và restore. Flow từ Journal phải chứng minh Journal vẫn còn sau khi tạo Memory và Memory vẫn còn sau khi Journal nguồn bị xóa.
+Flow thật phải chứng minh có thể tạo, reload, tìm, sửa, sắp xếp theo thời điểm xảy ra, trash, restore và xóa vĩnh viễn. Flow từ Journal phải chứng minh Journal vẫn còn sau khi tạo Memory và Memory vẫn còn sau khi Journal nguồn bị xóa.
 
 Ownership test phải chặn user B; concurrency test phải chặn revision cũ.
 
