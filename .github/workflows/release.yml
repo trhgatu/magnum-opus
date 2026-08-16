@@ -1,9 +1,9 @@
 name: Release
 
-# Magnum Opus now owns an independent package identity and starts at v0.1.0.
-# Keep this workflow manual until the first product release policy is approved.
+# Magnum Opus owns an independent package identity. Releases remain manual so a
+# product closeout and green CI are explicit gates before Release Please runs.
 # When triggered, release-please calculates the next version from conventional
-# commits and opens or updates a release PR containing the changelog.
+# commits (or a one-time Release-As footer) and opens or updates a release PR.
 # Merge PR đó = phát hành: tag vX.Y.Z + GitHub Release được tạo, và image trên
 # GHCR được gắn thêm tag phiên bản.
 

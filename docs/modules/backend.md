@@ -203,6 +203,8 @@ Quan hệ Journal không làm Memory application import Journal domain. `CreateM
 
 Database migration bổ sung check constraint cho revision dương, lifecycle khớp `trashedAt`, ngày khớp precision và title/content không rỗng sau khi trim. Những invariant này bảo vệ dữ liệu kể cả khi write không đi qua NestJS.
 
+Vòng closeout v1 áp dụng cùng nguyên tắc phòng thủ cho Journal và Mood bằng một migration mới, không sửa migration lịch sử. `journal_entries.revision` và `moods.revision` phải luôn từ 1 trở lên; Journal title và Mood note không được lưu dưới dạng chuỗi chỉ chứa khoảng trắng. Giới hạn 200 ký tự của Journal title cũng nằm trong aggregate, thay vì chỉ dựa vào HTTP DTO. Nhờ đó controller, command nội bộ, seed hoặc write adapter tương lai đều đi qua cùng một business rule.
+
 ## Notifications
 
 Notification entity thuộc một user, có type, title, content, read state và timestamps. Context hỗ trợ list, mark one as read, mark all as read và create từ event/use case nội bộ. `CreateNotificationService` là application API duy nhất cho create; outbox router gọi service này trực tiếp, không đi vòng qua `CommandBus`.

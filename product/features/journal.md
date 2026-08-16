@@ -144,14 +144,15 @@ Kết quả: thao tác xóa thông thường có thể sửa sai; thao tác khô
 
 1. Mọi entry phải có `ownerId`; không tồn tại journal vô chủ.
 2. Owner là người duy nhất được tạo, đọc, sửa, seal, trash, restore hoặc xóa vĩnh viễn entry trong v1.
-3. Nội dung có thể rỗng ngay khi tạo để editor mở tức thì, nhưng entry rỗng không nên sinh ra vô hạn do click lặp hoặc retry.
-4. Autosave phải chống việc response cũ ghi đè nội dung mới. Mỗi update cần revision hoặc optimistic concurrency token.
-5. `Saved` chỉ phản ánh revision đã được server xác nhận.
-6. Search, list và get-by-id đều áp dụng cùng một ownership boundary.
-7. Entry trong Trash không xuất hiện ở list/search mặc định.
-8. Seal không thay đổi privacy.
-9. Reopen là hành động có chủ đích; edit không âm thầm phá trạng thái sealed.
-10. Server quyết định timestamps và lifecycle transition hợp lệ.
+3. Tiêu đề là tùy chọn, được trim; chuỗi trắng trở thành `null` và tiêu đề có nội dung không vượt quá 200 ký tự.
+4. Nội dung có thể rỗng ngay khi tạo để editor mở tức thì, nhưng entry rỗng không nên sinh ra vô hạn do click lặp hoặc retry.
+5. Autosave phải chống việc response cũ ghi đè nội dung mới. Mỗi update cần revision hoặc optimistic concurrency token.
+6. `Saved` chỉ phản ánh revision đã được server xác nhận.
+7. Search, list và get-by-id đều áp dụng cùng một ownership boundary.
+8. Entry trong Trash không xuất hiện ở list/search mặc định.
+9. Seal không thay đổi privacy.
+10. Reopen là hành động có chủ đích; edit không âm thầm phá trạng thái sealed.
+11. Server quyết định timestamps và lifecycle transition hợp lệ.
 
 ## Dữ liệu tối thiểu
 
