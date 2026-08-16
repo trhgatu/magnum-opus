@@ -151,12 +151,13 @@ export async function deleteJournalEntryPermanently(input: {
         input.expectedRevision,
       { method: "DELETE" },
     );
-    revalidatePath("/journal");
-    return { status: "success" };
   } catch (error) {
     const result = failure(error);
     return result.status === "error"
       ? result
       : { status: "error", message: "Không thể xóa bản ghi." };
   }
+
+  revalidatePath("/journal");
+  redirect("/journal?state=TRASHED");
 }

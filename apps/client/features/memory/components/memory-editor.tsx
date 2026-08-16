@@ -17,46 +17,11 @@ import {
   updateMemory,
 } from "@/features/memory/actions/memory";
 import { MemoryConflictAlert } from "@/features/memory/components/memory-conflict-alert";
+import { MemoryDateField } from "@/features/memory/components/memory-date-field";
 import {
   memoryOccurredOnInputValue,
   normalizeMemoryOccurredOnInput,
 } from "@/features/memory/lib/memory-form";
-
-const precisionOptions: ReadonlyArray<{
-  value: MemoryDatePrecision;
-  label: string;
-}> = [
-  {
-    value: "DAY",
-    label: "Ngày cụ thể",
-  },
-  {
-    value: "MONTH",
-    label: "Tháng",
-  },
-  {
-    value: "YEAR",
-    label: "Năm",
-  },
-  {
-    value: "UNKNOWN",
-    label: "Không rõ thời gian",
-  },
-];
-
-function occurredOnInputType(
-  precision: MemoryDatePrecision,
-): "date" | "month" | "number" {
-  if (precision === "DAY") {
-    return "date";
-  }
-
-  if (precision === "MONTH") {
-    return "month";
-  }
-
-  return "number";
-}
 
 export interface MemoryCreationSeed {
   sourceJournalEntryId: string;
@@ -308,57 +273,13 @@ export function MemoryEditor({
         />
       </div>
 
-      <fieldset
-        className="space-y-4 rounded-2xl border bg-card/45 p-4 sm:p-5"
+      <MemoryDateField
+        precision={precision}
+        value={occurredOnInput}
         disabled={isPending}
-      >
-        <legend className="px-1 text-sm font-medium">Thời điểm xảy ra</legend>
-
-        <div className="space-y-2">
-          <Label htmlFor="memory-date-precision">
-            Độ chính xác của thời gian
-          </Label>
-
-          <select
-            id="memory-date-precision"
-            name="occurredOnPrecision"
-            value={precision}
-            onChange={(event) =>
-              handlePrecisionChange(event.target.value as MemoryDatePrecision)
-            }
-            className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-          >
-            {precisionOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {precision === "UNKNOWN" ? (
-          <p className="text-sm leading-6 text-muted-foreground">
-            Ký ức vẫn có thể được lưu khi thời điểm xảy ra không còn được nhớ
-            chính xác.
-          </p>
-        ) : (
-          <div className="space-y-2">
-            <Label htmlFor="memory-occurred-on">Thời điểm xảy ra</Label>
-
-            <Input
-              id="memory-occurred-on"
-              name="occurredOn"
-              type={occurredOnInputType(precision)}
-              value={occurredOnInput}
-              onChange={(event) => setOccurredOnInput(event.target.value)}
-              min={precision === "YEAR" ? 1 : undefined}
-              max={precision === "YEAR" ? 9999 : undefined}
-              step={precision === "YEAR" ? 1 : undefined}
-              required
-            />
-          </div>
-        )}
-      </fieldset>
+        onPrecisionChange={handlePrecisionChange}
+        onValueChange={setOccurredOnInput}
+      />
 
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         <Link

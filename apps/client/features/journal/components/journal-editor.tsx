@@ -175,7 +175,6 @@ export function JournalEditor({
       return;
     }
     router.push("/journal?state=TRASHED");
-    router.refresh();
   };
 
   const createMemoryFromEntry = async () => {

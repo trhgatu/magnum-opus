@@ -49,7 +49,7 @@ test("completes the private Memory lifecycle through the BFF", async ({
 
   await expect(
     page.getByRole("heading", {
-      name: "Ký ức",
+      name: "Memories",
       exact: true,
     }),
   ).toBeVisible();
@@ -70,7 +70,17 @@ test("completes the private Memory lifecycle through the BFF", async ({
     })
     .fill(originalContent);
 
-  await page.getByLabel("Độ chính xác của thời gian").selectOption("MONTH");
+  await page
+    .getByRole("combobox", {
+      name: "Độ chính xác của thời gian",
+    })
+    .click();
+
+  await page
+    .getByRole("option", {
+      name: "Tháng",
+    })
+    .click();
 
   await page
     .getByLabel("Thời điểm xảy ra", {
@@ -178,12 +188,6 @@ test("completes the private Memory lifecycle through the BFF", async ({
     .click();
 
   await expect(page).toHaveURL(/\/memories\?state=TRASHED$/);
-
-  await page
-    .getByRole("link", {
-      name: `Mở ký ức: ${updatedTitle}`,
-    })
-    .click();
 
   await page
     .getByRole("link", {

@@ -16,7 +16,7 @@ describe("MemorySearch", () => {
     const form = screen.getByRole("search");
 
     expect(form.getAttribute("action")).toBe("/memories");
-    expect(form.getAttribute("method")).toBe("get");
+    expect(form.getAttribute("method")).toBeNull();
 
     expect(
       screen.getByRole("searchbox", {

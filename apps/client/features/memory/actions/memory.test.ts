@@ -1,13 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { apiFetch, revalidatePath } = vi.hoisted(() => ({
+const { apiFetch, redirect, revalidatePath } = vi.hoisted(() => ({
   apiFetch: vi.fn(),
+  redirect: vi.fn(),
   revalidatePath: vi.fn(),
 }));
 
 vi.mock("next/cache", () => ({
   revalidatePath,
 }));
+vi.mock("next/navigation", () => ({ redirect }));
 
 vi.mock("@/lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api")>();
@@ -335,9 +337,7 @@ describe("Memory Server Actions", () => {
         id: memory.id,
         expectedRevision: 4,
       }),
-    ).resolves.toEqual({
-      status: "success",
-    });
+    ).resolves.toBeUndefined();
 
     expect(apiFetch).toHaveBeenCalledWith(
       `/memories/${memory.id}?expectedRevision=4`,
@@ -347,6 +347,7 @@ describe("Memory Server Actions", () => {
     );
 
     expect(revalidatePath).toHaveBeenCalledWith("/memories");
+    expect(redirect).toHaveBeenCalledWith("/memories?state=TRASHED");
   });
   it("preserves permanent-delete domain errors", async () => {
     apiFetch.mockRejectedValue(

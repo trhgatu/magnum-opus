@@ -32,6 +32,47 @@ vi.mock("@/features/memory/actions/memory", () => ({
   updateMemory,
 }));
 
+vi.mock("@/features/memory/components/memory-date-field", () => ({
+  MemoryDateField: ({
+    precision,
+    value,
+    disabled,
+    onPrecisionChange,
+    onValueChange,
+  }: {
+    precision: string;
+    value: string;
+    disabled?: boolean;
+    onPrecisionChange: (precision: string) => void;
+    onValueChange: (value: string) => void;
+  }) => (
+    <fieldset disabled={disabled}>
+      <label htmlFor="memory-date-precision">Độ chính xác của thời gian</label>
+      <select
+        id="memory-date-precision"
+        value={precision}
+        onChange={(event) => onPrecisionChange(event.target.value)}
+      >
+        <option value="DAY">Ngày cụ thể</option>
+        <option value="MONTH">Tháng</option>
+        <option value="YEAR">Năm</option>
+        <option value="UNKNOWN">Không rõ thời gian</option>
+      </select>
+
+      {precision === "UNKNOWN" ? null : (
+        <>
+          <label htmlFor="memory-occurred-on">Thời điểm xảy ra</label>
+          <input
+            id="memory-occurred-on"
+            value={value}
+            onChange={(event) => onValueChange(event.target.value)}
+          />
+        </>
+      )}
+    </fieldset>
+  ),
+}));
+
 import { MemoryEditor } from "./memory-editor";
 
 const existingMemory: MemoryResponse = {

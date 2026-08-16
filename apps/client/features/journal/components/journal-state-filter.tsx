@@ -2,6 +2,7 @@ import type { JournalEntryState } from "@repo/contracts";
 import Link from "next/link";
 
 import { buildJournalHref } from "@/features/journal/lib/journal-url";
+import { cn } from "@/lib/utils";
 
 const filters = [
   [undefined, "Đang lưu giữ"],
@@ -20,23 +21,30 @@ export function JournalStateFilter({
   return (
     <nav
       aria-label="Lọc Journal theo trạng thái"
-      className="flex overflow-x-auto rounded-xl border bg-card/50 p-1 text-sm"
+      className="flex max-w-full overflow-x-auto rounded-lg border bg-background/70 p-0.5 text-sm"
     >
-      {filters.map(([value, label]) => (
-        <Link
-          key={label}
-          href={buildJournalHref({ search, state: value })}
-          aria-current={state === value ? "page" : undefined}
-          className={
-            "shrink-0 rounded-lg px-3 py-1.5 transition-colors " +
-            (state === value
-              ? "bg-primary font-medium text-primary-foreground shadow-sm"
-              : "text-muted-foreground hover:bg-muted hover:text-foreground")
-          }
-        >
-          {label}
-        </Link>
-      ))}
+      {filters.map(([value, label]) => {
+        const active = state === value;
+
+        return (
+          <Link
+            key={label}
+            href={buildJournalHref({
+              search,
+              state: value,
+            })}
+            aria-current={active ? "page" : undefined}
+            className={cn(
+              "shrink-0 rounded-md px-2.5 py-1.5 font-medium transition-colors",
+              active
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+            )}
+          >
+            {label}
+          </Link>
+        );
+      })}
     </nav>
   );
 }

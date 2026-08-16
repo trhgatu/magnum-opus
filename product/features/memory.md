@@ -106,6 +106,15 @@ Collection theo thời gian phải đặt Memory ở năm 2018 thay vì năm 202
 
 Memory dùng `DAY`, `MONTH`, `YEAR` và `UNKNOWN`. Giao diện chỉ hiển thị độ chính xác đã cung cấp; “năm 2018” không được biến thành ngày giả “01/01/2018”.
 
+Form dùng control phù hợp với ý nghĩa của từng mức:
+
+- `DAY`: Date Picker cho phép chọn một ngày lịch cụ thể.
+- `MONTH`: month input chỉ yêu cầu tháng và năm.
+- `YEAR`: number input chỉ yêu cầu một năm hợp lệ.
+- `UNKNOWN`: không hiển thị trường ngày và lưu `occurredOn = null`.
+
+Dropdown chọn độ chính xác không thay đổi business rule. Nó chỉ quyết định control nào xuất hiện; bước normalize trước Server Action vẫn là nơi chuyển tháng thành ngày đầu tháng, năm thành ngày đầu năm và kiểm tra calendar date hợp lệ.
+
 ### Collection theo thời gian và Trash
 
 Collection có thể đọc Memory theo thời điểm trải nghiệm xảy ra; đây là cách sắp xếp dữ liệu, không phải entity hay bảng riêng. Memory không rõ thời gian được đặt sau các Memory có thời gian khi sắp xếp theo `occurredOn`. Memory trong Trash không xuất hiện ở collection mặc định nhưng vẫn có thể được lọc riêng và khôi phục.
