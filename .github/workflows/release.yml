@@ -2,10 +2,10 @@ name: Release
 
 # Magnum Opus owns an independent package identity. Releases remain manual so a
 # product closeout and green CI are explicit gates before Release Please runs.
-# When triggered, release-please calculates the next version from conventional
-# commits (or a one-time Release-As footer) and opens or updates a release PR.
-# Merge PR đó = phát hành: tag vX.Y.Z + GitHub Release được tạo, và image trên
-# GHCR được gắn thêm tag phiên bản.
+# Lần chạy thứ nhất, release-please tính version từ conventional commits (hoặc
+# footer Release-As một lần) và mở/cập nhật release PR. Vì workflow chỉ có
+# workflow_dispatch, merge release PR không tự chạy workflow: phải dispatch lần
+# thứ hai để tạo tag vX.Y.Z + GitHub Release và gắn version tag cho image GHCR.
 
 on:
   workflow_dispatch:
