@@ -112,7 +112,11 @@ Network timeout khi download scanner/image là failure hạ tầng, khác vulner
 
 Release hiện manual `workflow_dispatch`. Release Please đọc conventional commits, mở/cập nhật release PR, bump version/changelog. Merge release PR tạo GitHub Release + tag.
 
-Lần phát hành sản phẩm đầu tiên dùng footer `Release-As: 1.0.0` trong commit closeout đã merge vào `main`. Đây là chỉ thị một lần cho Release Please, không phải cấu hình `release-as` cố định; vì vậy các release sau lại quay về tính version từ conventional commits. Sau khi closeout CI xanh, chạy workflow Release thủ công, xác nhận release PR đề xuất `1.0.0`, rồi mới merge release PR.
+Lần phát hành sản phẩm đầu tiên dùng footer `Release-As: 1.0.0` trong commit closeout đã merge vào `main`. Đây là chỉ thị một lần cho Release Please, không phải cấu hình `release-as` cố định; vì vậy các release sau lại quay về tính version từ conventional commits.
+
+Vì workflow chỉ dùng `workflow_dispatch`, một release cần hai lần chạy có chủ đích. Lần một chạy sau khi closeout CI trên `main` xanh để Release Please mở release PR. Sau khi kiểm tra version và merge release PR, đợi CI của merge commit build/scan image theo SHA, rồi chạy Release lần hai. Lần hai mới tạo tag, GitHub Release và kích hoạt job gắn version tag cho image. Merge release PR một mình không thể kích hoạt workflow manual.
+
+Feature PR dùng squash merge với conventional PR title để mỗi thay đổi chỉ xuất hiện một lần trong changelog. Release PR là ngoại lệ: nó có thể dùng merge commit để giữ rõ ranh giới phát hành.
 
 Tag do `GITHUB_TOKEN` tạo không kích hoạt workflow khác, nên job cùng release workflow chờ image SHA của CI xuất hiện rồi gắn thêm version tag bằng `buildx imagetools`. Nó không rebuild image, nhờ vậy version tag trỏ đúng artifact đã scan.
 
