@@ -17,7 +17,8 @@ app/
 ├─ (protected)/
 │  ├─ layout.tsx          protected shell
 │  ├─ me/page.tsx         account
-│  └─ journal/            Journal list/editor
+│  ├─ journal/            Journal list/editor
+│  └─ memories/           Memory collection/create/detail/edit
 ├─ health/route.ts        deploy health endpoint
 ├─ layout.tsx             root HTML/fonts/metadata
 ├─ error.tsx              segment error boundary
@@ -134,9 +135,40 @@ Mood panel được lazy-load từ Journal editor. Initial bundle của `/journa
 
 Conflict không tự retry PUT vì retry cùng revision chắc chắn tiếp tục conflict, còn retry không revision có thể ghi đè dữ liệu mới. UI đưa nút tải snapshot mới nhất.
 
+## Memory feature
+
+Memory tiếp tục cùng server-first pattern nhưng được tách thành feature riêng:
+
+```text
+app/(protected)/memories/*   route composition và server reads
+features/memory/api          server-only HTTP adapter
+features/memory/actions      validated Server Actions
+features/memory/lib          URL và partial-date normalization
+features/memory/components   collection, editor và lifecycle UI
+```
+
+List page giữ search, state, sort và pagination trong URL. Vì vậy reload, back/forward và link được chia sẻ vẫn khôi phục đúng collection. Page detail/new/edit là Server Component; chỉ editor và lifecycle controls mang `"use client"` vì chúng cần local interaction state.
+
+Memory có thể được tạo độc lập hoặc từ Journal. Link “Giữ lại như một ký ức” chỉ chuyển sang form mới với `sourceJournalEntryId`; nó không tự tạo record. Server Component owner-scope Journal để tạo seed, còn backend kiểm tra lại source trước khi persist. Hai lớp kiểm tra phục vụ hai mục đích khác nhau: frontend tạo trải nghiệm đúng, backend bảo vệ trust boundary.
+
+Editor chuyển input `DAY`, `MONTH`, `YEAR`, `UNKNOWN` sang representation chuẩn trước khi gọi Server Action. Khi update gặp revision conflict, local form không bị thay đổi. Người dùng chọn một trong hai flow:
+
+```text
+Dùng bản mới nhất
+→ reloadMemory qua BFF
+→ thay form bằng snapshot server
+
+Ghi nội dung đang viết
+→ reloadMemory qua BFF
+→ lấy revision mới
+→ PUT local form với expectedRevision mới
+```
+
+Không dùng `router.refresh()` làm conflict recovery chính vì Server Component có thể render lại nhưng state đã khởi tạo trong Client Component không tự động được reset theo ý nghiệp vụ.
+
 ## Components
 
-`components/ui` là primitives theo phong cách shadcn: Button, Card, Alert, Dialog, Input… Chúng không biết Journal hay Mood. `components/system` là composition có ý nghĩa toàn application như BrandMark, PageHeading, EmptyState.
+`components/ui` là primitives theo phong cách shadcn: Button, Card, Alert, Dialog, Input… Chúng không biết Journal, Mood hay Memory. `components/system` là composition có ý nghĩa toàn application như BrandMark, PageHeading, EmptyState.
 
 Feature component được phép import UI primitive; UI primitive không được import feature. Direction này giữ design system tái sử dụng được.
 
@@ -148,6 +180,7 @@ Feature component được phép import UI primitive; UI primitive không đư�
 | Session/token            | Encrypted HttpOnly cookie phía Next server.  |
 | Form interaction ngắn    | Local component state/useActionState.        |
 | Journal draft + autosave | Feature hook `useJournalDraft`.              |
+| Memory editor/conflict   | Local component state + Server Actions.      |
 | Filter có thể bookmark   | URL search params.                           |
 | Data backend dài hạn     | NestJS + database, không phải browser store. |
 
@@ -155,4 +188,4 @@ Client hiện không cần Zustand global store hoặc TanStack Query. Chỉ th�
 
 ## Tests
 
-Unit tests kiểm tra URL helpers, environment/session crypto, API error normalization, Server Actions và hooks. Component tests dùng jsdom cho interaction/recovery. Playwright E2E chứng minh auth, accessibility, Journal autosave/conflict/resilience và Mood lifecycle qua BFF thật.
+Unit tests kiểm tra URL helpers, environment/session crypto, API error normalization, Server Actions và hooks. Component tests dùng jsdom cho interaction/recovery. Playwright E2E chứng minh auth, accessibility, Journal autosave/conflict/resilience, Mood lifecycle và Memory lifecycle qua BFF thật. Backend E2E riêng của Memory kiểm tra ownership, stale revision và việc Memory sống tiếp khi Journal nguồn bị xóa.

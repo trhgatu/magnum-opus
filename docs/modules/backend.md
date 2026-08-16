@@ -138,7 +138,7 @@ Một user có thể có nhiều role. Effective permission là hợp của perm
 
 ## Reflection
 
-Reflection hiện có Journal và Mood. `ReflectionModule` import/export hai composition root con.
+Reflection hiện có Journal, Mood và Memory. `ReflectionModule` import ba composition root con; mỗi module tự đăng ký controller, handlers và adapter của mình.
 
 ### Journal
 
@@ -182,6 +182,26 @@ Fields:
 GET trả `200` khi có Mood, `204` khi Journal thuộc owner nhưng chưa có Mood, và `404` khi Journal không tồn tại/không thuộc owner. PUT tạo khi chưa có Mood và không gửi revision; update bắt buộc expected revision. DELETE bắt buộc revision.
 
 SetMoodHandler đọc Journal trước vì hai rule thuộc application boundary: caller phải sở hữu Journal và Journal phải còn Draft. Sau đó handler create/update Mood aggregate. Unique constraint trên `journal_entry_id` là lớp bảo vệ cuối cho race tạo đồng thời; `P2002` được đổi thành revision conflict.
+
+### Memory
+
+Memory là aggregate độc lập dùng để giữ một trải nghiệm đã được người dùng chủ động chọn lọc. Khác Mood, Memory có `ownerId` riêng vì nó tiếp tục tồn tại ngay cả khi Journal nguồn bị xóa.
+
+`occurredOn` và `occurredOnPrecision` cùng biểu diễn thời gian của trải nghiệm. Ngày đầy đủ giữ nguyên. Tháng được chuẩn hóa về ngày đầu tháng và năm được chuẩn hóa về ngày đầu năm để PostgreSQL vẫn có thể sort bằng một cột `DATE`; presenter chỉ hiển thị đúng precision nên ngày chuẩn hóa không bị trình bày như một ngày người dùng thật sự cung cấp. `UNKNOWN` bắt buộc đi cùng `occurredOn = null`.
+
+Memory lifecycle đơn giản hơn Journal:
+
+```text
+ACTIVE ──trash──► TRASHED
+   ▲                 │
+   └────restore──────┘
+```
+
+Update, trash, restore và permanent delete đều dùng `expectedRevision`. `MemoryMutationService` thực hiện owner-scoped load, so revision, gọi domain mutation rồi update bằng compare-and-swap. Permanent delete được tách riêng vì repository phải đồng thời kiểm tra owner, state và revision.
+
+Quan hệ Journal không làm Memory application import Journal domain. `CreateMemoryHandler` gọi `MemorySourceJournalReader`, một application port do Memory sở hữu. Prisma adapter truy vấn Journal theo cả `journalEntryId` và `ownerId`, sau đó chỉ trả vocabulary `AVAILABLE`, `TRASHED` hoặc `NOT_FOUND`. Foreign key dùng `ON DELETE SET NULL`, vì Journal nguồn chỉ là provenance chứ không sở hữu Memory.
+
+Database migration bổ sung check constraint cho revision dương, lifecycle khớp `trashedAt`, ngày khớp precision và title/content không rỗng sau khi trim. Những invariant này bảo vệ dữ liệu kể cả khi write không đi qua NestJS.
 
 ## Notifications
 
