@@ -368,11 +368,15 @@ describe("MemoryEditor", () => {
       }),
     ).toBeTruthy();
 
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: "Dùng bản mới nhất",
-      }),
+    const useLatestButton = screen.getByRole("button", {
+      name: "Dùng bản mới nhất",
+    });
+
+    await waitFor(() =>
+      expect((useLatestButton as HTMLButtonElement).disabled).toBe(false),
     );
+
+    fireEvent.click(useLatestButton);
 
     await waitFor(() =>
       expect(reloadMemory).toHaveBeenCalledWith(existingMemory.id),
@@ -427,11 +431,15 @@ describe("MemoryEditor", () => {
       }),
     );
 
-    fireEvent.click(
-      await screen.findByRole("button", {
-        name: "Ghi nội dung đang viết",
-      }),
+    const keepLocalButton = await screen.findByRole("button", {
+      name: "Ghi nội dung đang viết",
+    });
+
+    await waitFor(() =>
+      expect((keepLocalButton as HTMLButtonElement).disabled).toBe(false),
     );
+
+    fireEvent.click(keepLocalButton);
 
     await waitFor(() => expect(updateMemory).toHaveBeenCalledTimes(2));
 
