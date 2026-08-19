@@ -16,6 +16,7 @@ jobs:
   quality:
     name: Lint, typecheck, unit tests, build
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       # prisma generate chỉ cần URL đúng định dạng, không cần DB sống
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_placeholder?schema=public
@@ -78,6 +79,7 @@ jobs:
   e2e:
     name: Backend E2E
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:16-alpine
@@ -157,6 +159,7 @@ jobs:
   admin-browser-e2e:
     name: Frontend browser E2E
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     services:
       postgres:
         image: postgres:16-alpine
@@ -237,6 +240,7 @@ jobs:
   image:
     name: Build ${{ matrix.image }} image, SBOM, vulnerability scan
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     # Chỉ publish khi code đã qua đủ quality gate và E2E
     needs: [quality, e2e, admin-browser-e2e]
     permissions:

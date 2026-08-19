@@ -18,6 +18,7 @@ jobs:
   release-please:
     name: Mở hoặc cập nhật release PR
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
       version: ${{ steps.release.outputs.version }}
