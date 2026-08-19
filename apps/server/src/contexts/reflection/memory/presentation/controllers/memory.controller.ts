@@ -84,6 +84,7 @@ export class MemoryController {
         query.search,
         query.sortBy,
         query.sortOrder,
+        query.sourceJournalEntryId,
       ),
     );
     const { memories, total } = result.unwrap() as {

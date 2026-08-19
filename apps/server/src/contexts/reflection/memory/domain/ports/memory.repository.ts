@@ -14,6 +14,7 @@ export interface FindMemoriesOptions {
   search?: string;
   sortBy?: MemorySortField;
   sortOrder?: SortOrder;
+  sourceJournalEntryId?: string;
 }
 
 export interface FindMemoriesResult {

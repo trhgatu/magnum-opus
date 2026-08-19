@@ -15,5 +15,6 @@ export class GetMemoriesQuery implements IQuery {
     public readonly search?: string,
     public readonly sortBy?: MemorySortField,
     public readonly sortOrder: SortOrder = 'desc',
+    public readonly sourceJournalEntryId?: string,
   ) {}
 }

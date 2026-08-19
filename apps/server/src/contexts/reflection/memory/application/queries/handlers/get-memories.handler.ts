@@ -36,6 +36,7 @@ export class GetMemoriesHandler implements IQueryHandler<
       search: query.search,
       sortBy: query.sortBy,
       sortOrder: query.sortOrder,
+      sourceJournalEntryId: query.sourceJournalEntryId,
     });
 
     return Result.ok(result);
