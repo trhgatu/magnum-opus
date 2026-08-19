@@ -1,5 +1,7 @@
 import { UserDeactivatedEvent } from '@iam/users/domain/events/user-deactivated.event';
 import { UserRegisteredEvent } from '@iam/users/domain/events/user-registered.event';
+import { JournalEntrySealedEvent } from '@reflection/journal/domain/events/journal-entry-sealed.event';
+import { MemoryCreatedEvent } from '@reflection/memory/domain/events/memory-created.event';
 import { NotificationCreatedEvent } from '@/contexts/notifications/domain/events/notification-created.event';
 import { DomainEvent } from '@shared/domain/events/domain-event';
 import type { Prisma } from '@repo/database';
@@ -9,6 +11,8 @@ export const OUTBOX_EVENT_TYPES = {
   USER_REGISTERED: 'iam.user.registered.v1',
   USER_DEACTIVATED: 'iam.user.deactivated.v1',
   NOTIFICATION_CREATED: 'notifications.notification.created.v1',
+  JOURNAL_ENTRY_SEALED: 'relection.journal-entry.sealed.v1',
+  MEMORY_CREATED: 'reflection.memory.created.v1',
 } as const;
 
 export interface SerializedOutboxEvent {
@@ -102,6 +106,34 @@ const serializeEventPayload = (
     };
   }
 
+  if (event instanceof JournalEntrySealedEvent) {
+    return {
+      id: event.eventId,
+      type: OUTBOX_EVENT_TYPES.JOURNAL_ENTRY_SEALED,
+      aggregateId: event.journalEntryId,
+      payload: {
+        journalEntryId: event.journalEntryId,
+        ownerId: event.ownerId,
+        sealedAt: event.sealedAt.toISOString(),
+      },
+      occurredAt: event.occurredOn,
+    };
+  }
+
+  if (event instanceof MemoryCreatedEvent) {
+    return {
+      id: event.eventId,
+      type: OUTBOX_EVENT_TYPES.MEMORY_CREATED,
+      aggregateId: event.memoryId,
+      payload: {
+        memoryId: event.memoryId,
+        ownerId: event.ownerId,
+        memoryOccurredOn: event.memoryOccurredOn?.toISOString() ?? null,
+      },
+      occurredAt: event.occurredOn,
+    };
+  }
+
   throw new Error(`Unsupported domain event: ${event.constructor.name}`);
 };
 
@@ -134,6 +166,24 @@ export const rehydrateDomainEvent = (
         requireString(payload, 'type'),
         payload.isRead === true,
         new Date(requireString(payload, 'createdAt')),
+      );
+      break;
+
+    case OUTBOX_EVENT_TYPES.JOURNAL_ENTRY_SEALED:
+      event = new JournalEntrySealedEvent(
+        requireString(payload, 'journalEntryId'),
+        requireString(payload, 'ownerId'),
+        new Date(requireString(payload, 'sealedAt')),
+      );
+      break;
+
+    case OUTBOX_EVENT_TYPES.MEMORY_CREATED:
+      event = new MemoryCreatedEvent(
+        requireString(payload, 'memoryId'),
+        requireString(payload, 'ownerId'),
+        typeof payload.memoryOccurredOn === 'string'
+          ? new Date(payload.memoryOccurredOn)
+          : null,
       );
       break;
     default:

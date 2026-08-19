@@ -113,6 +113,7 @@
     },
     "moduleNameMapper": {
       "^@iam/(.*)$": "<rootDir>/contexts/iam/$1",
+      "^@reflection/(.*)$": "<rootDir>/contexts/reflection/$1",
       "^@shared/(.*)$": "<rootDir>/shared/$1",
       "^@infrastructure/(.*)$": "<rootDir>/infrastructure/$1",
       "^@presentation/(.*)$": "<rootDir>/presentation/$1",

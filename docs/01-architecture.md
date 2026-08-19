@@ -104,15 +104,15 @@ Passport strategy cũng là presentation adapter: nó nhận credential từ HTT
 
 ## Bounded contexts hiện tại
 
-| Context         | Trách nhiệm                                                              |
-| --------------- | ------------------------------------------------------------------------ |
-| `iam`           | Identity, login/session, users, roles và permissions.                    |
-| `reflection`    | Journal, Mood và Memory — dữ liệu phản tư riêng tư của người dùng.       |
-| `notifications` | Hộp thông báo thuộc từng user và trạng thái đã đọc.                      |
-| `audit`         | Nhật ký hành động quản trị và retention.                                 |
-| `analytics`     | Read model thống kê dashboard; không sở hữu transaction nghiệp vụ nguồn. |
-| `menu`          | Menu quản trị được lọc theo permissions.                                 |
-| `storage`       | Upload abstraction, local hoặc S3-compatible.                            |
+| Context         | Trách nhiệm                                                                                                      |
+| --------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `iam`           | Identity, login/session, users, roles và permissions.                                                            |
+| `reflection`    | Journal, Mood, Memory và Timeline (read model nội bộ, chưa có API/UI) — dữ liệu phản tư riêng tư của người dùng. |
+| `notifications` | Hộp thông báo thuộc từng user và trạng thái đã đọc.                                                              |
+| `audit`         | Nhật ký hành động quản trị và retention.                                                                         |
+| `analytics`     | Read model thống kê dashboard; không sở hữu transaction nghiệp vụ nguồn.                                         |
+| `menu`          | Menu quản trị được lọc theo permissions.                                                                         |
+| `storage`       | Upload abstraction, local hoặc S3-compatible.                                                                    |
 
 `analytics/dashboard` và `reflection/journal` là submodule bên trong context cha. Context cha chỉ gom và export module con; nó không chứa business logic trá hình.
 

@@ -1,5 +1,7 @@
 import { AggregateRoot } from '@shared/domain/aggregate-root';
 
+import { MemoryCreatedEvent } from './events/memory-created.event';
+
 import { MemoryDatePrecision, MemoryState } from './enums';
 
 import {
@@ -53,20 +55,30 @@ export class Memory extends AggregateRoot {
     occurredOn?: MemoryOccurredOn;
   }): Memory {
     const now = new Date();
+    const occurredOn = input.occurredOn ?? MemoryOccurredOn.unknown();
 
-    return new Memory({
+    const memory = new Memory({
       id: MemoryId.generate(),
       ownerId: input.ownerId,
       sourceJournalEntryId: input.sourceJournalEntryId ?? null,
       title: Memory.normalizeTitle(input.title),
       content: Memory.normalizeContent(input.content),
-      occurredOn: input.occurredOn ?? MemoryOccurredOn.unknown(),
+      occurredOn,
       state: MemoryState.ACTIVE,
       revision: 1,
       trashedAt: null,
       createdAt: now,
       updatedAt: now,
     });
+
+    memory.addDomainEvent(
+      new MemoryCreatedEvent(
+        memory.id,
+        memory.ownerId,
+        occurredOn.value ? new Date(occurredOn.value) : null,
+      ),
+    );
+    return memory;
   }
 
   public static rehydrate(props: MemoryProps): Memory {

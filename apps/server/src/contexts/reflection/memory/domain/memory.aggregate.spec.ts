@@ -1,4 +1,5 @@
 import { MemoryState } from './enums';
+import { MemoryCreatedEvent } from './events/memory-created.event';
 import {
   InvalidMemoryContentException,
   InvalidMemoryTitleException,
@@ -34,6 +35,33 @@ describe('Memory', () => {
 
       expect(memory.occurredOn.value).toBeNull();
       expect(memory.occurredOn.precision).toBe('UNKNOWN');
+    });
+
+    it('emits a MemoryCreatedEvent carrying the memory, owner and occurrence date', () => {
+      const memory = Memory.create({
+        ownerId: 'owner-id',
+        title: 'The rainy construction site',
+        content: 'I felt completely still.',
+        occurredOn: MemoryOccurredOn.fromMonth(2024, 8),
+      });
+
+      const events = memory.getDomainEvents();
+      expect(events).toHaveLength(1);
+      const [event] = events;
+      expect(event).toBeInstanceOf(MemoryCreatedEvent);
+      expect((event as MemoryCreatedEvent).memoryId).toBe(memory.id);
+      expect((event as MemoryCreatedEvent).ownerId).toBe(memory.ownerId);
+      expect((event as MemoryCreatedEvent).memoryOccurredOn).toEqual(
+        new Date('2024-08-01T00:00:00.000Z'),
+      );
+    });
+
+    it('emits a null occurrence date on the event when the date is unknown', () => {
+      const memory = createMemory();
+
+      const [event] = memory.getDomainEvents();
+
+      expect((event as MemoryCreatedEvent).memoryOccurredOn).toBeNull();
     });
 
     it('preserves an optional Journal source', () => {
@@ -190,6 +218,9 @@ describe('Memory', () => {
       expect(memory.state).toBe(MemoryState.TRASHED);
       expect(memory.revision).toBe(7);
       expect(memory.trashedAt).toEqual(props.trashedAt);
+      // rehydrate() dựng lại state đã có sẵn từ DB — không phải hành động
+      // nghiệp vụ mới nên không được phát lại MemoryCreatedEvent.
+      expect(memory.getDomainEvents()).toEqual([]);
     });
 
     it('converts the aggregate into persistence primitives', () => {

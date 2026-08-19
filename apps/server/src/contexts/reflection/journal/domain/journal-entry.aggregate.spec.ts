@@ -1,4 +1,5 @@
 import { JournalEntryState } from './enums';
+import { JournalEntrySealedEvent } from './events/journal-entry-sealed.event';
 import {
   InvalidJournalEntryTitleException,
   InvalidJournalEntryTransitionException,
@@ -124,6 +125,33 @@ describe('JournalEntry', () => {
 
       expect(entry.state).toBe(JournalEntryState.SEALED);
       expect(entry.revision).toBe(2);
+    });
+
+    it('emits a JournalEntrySealedEvent carrying the entry, owner and seal time', () => {
+      const entry = createEntry();
+
+      entry.seal();
+
+      const events = entry.getDomainEvents();
+      expect(events).toHaveLength(1);
+      const [event] = events;
+      expect(event).toBeInstanceOf(JournalEntrySealedEvent);
+      expect((event as JournalEntrySealedEvent).journalEntryId).toBe(entry.id);
+      expect((event as JournalEntrySealedEvent).ownerId).toBe(entry.ownerId);
+      expect((event as JournalEntrySealedEvent).sealedAt).toEqual(
+        entry.updatedAt,
+      );
+    });
+
+    it('does not emit any event while only editing content', () => {
+      const entry = createEntry();
+
+      entry.updateContent({
+        title: 'Changed title',
+        content: 'Changed content',
+      });
+
+      expect(entry.getDomainEvents()).toEqual([]);
     });
 
     it('reopens a sealed entry', () => {

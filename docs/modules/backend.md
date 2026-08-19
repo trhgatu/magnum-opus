@@ -205,6 +205,19 @@ Database migration bổ sung check constraint cho revision dương, lifecycle kh
 
 Vòng closeout v1 áp dụng cùng nguyên tắc phòng thủ cho Journal và Mood bằng một migration mới, không sửa migration lịch sử. `journal_entries.revision` và `moods.revision` phải luôn từ 1 trở lên; Journal title và Mood note không được lưu dưới dạng chuỗi chỉ chứa khoảng trắng. Giới hạn 200 ký tự của Journal title cũng nằm trong aggregate, thay vì chỉ dựa vào HTTP DTO. Nhờ đó controller, command nội bộ, seed hoặc write adapter tương lai đều đi qua cùng một business rule.
 
+### Timeline
+
+Timeline là read model nội bộ, **chưa có controller/API/UI** — quyết định có chủ đích, không phải thiếu sót. Nó chỉ tồn tại để chứng minh domain event của Journal/Memory chảy đúng qua Outbox, và làm chỗ ghi sẵn cho một tính năng Timeline thật sự (roadmap `product/forge-os-capability-map.md`) khi tính năng đó được quyết định xây.
+
+`JournalEntry.seal()` phát `JournalEntrySealedEvent`; `Memory.create()` phát `MemoryCreatedEvent`. Cả hai đi qua đúng luồng Outbox có sẵn (xem chương 06): domain event được ghi vào `outboxEvent` **trong cùng transaction** với việc sửa aggregate, `OutboxPublisherService` claim atomic rồi gọi `OutboxEventRouter.dispatch()`. Router route 2 event này tới `TimelineWriter` (`contexts/reflection/timeline`), ghi 1 dòng vào `reflection_timeline_entries`.
+
+`Mood` không phát event nào — nó là ngữ cảnh gắn theo Journal entry, không phải một khoảnh khắc độc lập trên dòng thời gian. Comment giải thích điều này nằm ngay tại `mood.aggregate.ts`.
+
+Hai điểm kỹ thuật đáng nhớ khi mở rộng pattern này cho aggregate khác:
+
+1. Repository chỉ được ghi outbox event khi thao tác ghi aggregate **thực sự thành công** — `PrismaJournalEntryRepository.update()` kiểm `result.count === 1` (tránh trường hợp thua optimistic-lock race nhưng vẫn để lại dấu vết trên Timeline).
+2. `@@unique([entryType, sourceId])` trên `ReflectionTimelineEntry` là lớp idempotency thứ hai, phòng khi Outbox Publisher retry cùng event — `PrismaTimelineWriter` bắt `P2002` và coi như đã ghi, không throw.
+
 ## Notifications
 
 Notification entity thuộc một user, có type, title, content, read state và timestamps. Context hỗ trợ list, mark one as read, mark all as read và create từ event/use case nội bộ. `CreateNotificationService` là application API duy nhất cho create; outbox router gọi service này trực tiếp, không đi vòng qua `CommandBus`.

@@ -4,6 +4,8 @@ import {
   MemoryState as PrismaMemoryState,
 } from '@repo/database';
 
+import { serializeDomainEvent } from '@infrastructure/event-bus/outbox/outbox-event.mapper';
+
 import { MemoryDatePrecision, MemoryState } from '../../domain/enums';
 import { Memory, type MemoryProps } from '../../domain/memory.aggregate';
 import { MemoryId, MemoryOccurredOn } from '../../domain/value-objects';
@@ -20,11 +22,20 @@ describe('PrismaMemoryRepository', () => {
     deleteMany: jest.fn(),
   };
 
+  const outboxEvent = {
+    createMany: jest.fn(),
+  };
+
   const prisma = {
     memory,
-    $transaction: jest.fn(async (operations: Promise<unknown>[]) =>
-      Promise.all(operations),
-    ),
+    outboxEvent,
+    // create() dùng $transaction dạng callback (interactive transaction);
+    // findAllForOwner dùng dạng mảng. Mock hỗ trợ cả hai, giống
+    // prisma-journal-entry.repository.spec.ts.
+    $transaction: jest.fn((arg: unknown) => {
+      if (Array.isArray(arg)) return Promise.all(arg);
+      return (arg as (tx: unknown) => Promise<unknown>)(prisma);
+    }),
   };
 
   const repository = new PrismaMemoryRepository(prisma as never);
@@ -49,6 +60,27 @@ describe('PrismaMemoryRepository', () => {
           state: PrismaMemoryState.ACTIVE,
         },
       });
+    });
+
+    it('persists the MemoryCreatedEvent in the same transaction as the insert', async () => {
+      memory.create.mockResolvedValue(rawMemory());
+
+      // Memory.create() (khác Memory.rehydrate() dùng ở test trên) là nơi
+      // duy nhất phát MemoryCreatedEvent — đúng aggregate factory thật.
+      const aggregate = Memory.create({
+        ownerId: 'owner-id',
+        title: 'The rainy construction site',
+        content: 'I felt completely still.',
+        occurredOn: MemoryOccurredOn.fromMonth(2024, 8),
+      });
+      const [createdEvent] = aggregate.getDomainEvents();
+
+      await repository.create(aggregate);
+
+      expect(outboxEvent.createMany).toHaveBeenCalledWith({
+        data: [serializeDomainEvent(createdEvent)],
+      });
+      expect(aggregate.getDomainEvents()).toEqual([]);
     });
   });
 
@@ -221,6 +253,43 @@ describe('PrismaMemoryRepository', () => {
         ],
         skip: 0,
         take: 10,
+      });
+    });
+
+    it('scopes results to a single source Journal entry when requested', async () => {
+      memory.findMany.mockResolvedValue([]);
+      memory.count.mockResolvedValue(0);
+
+      await repository.findAllForOwner('owner-id', {
+        skip: 0,
+        take: 6,
+        sortBy: 'occurredOn',
+        sortOrder: 'desc',
+        sourceJournalEntryId: 'journal-entry-id',
+      });
+
+      expect(memory.findMany).toHaveBeenCalledWith({
+        where: {
+          ownerId: 'owner-id',
+          state: PrismaMemoryState.ACTIVE,
+          sourceJournalEntryId: 'journal-entry-id',
+        },
+        orderBy: [
+          {
+            occurredOn: {
+              sort: 'desc',
+              nulls: 'last',
+            },
+          },
+          {
+            createdAt: 'desc',
+          },
+          {
+            id: 'asc',
+          },
+        ],
+        skip: 0,
+        take: 6,
       });
     });
 

@@ -272,3 +272,21 @@ model Memory {
   @@index([sourceJournalEntryId])
   @@map("memories")
 }
+
+enum TimelineEntryType {
+  JOURNAL_SEALED
+  MEMORY_CREATED
+}
+
+model ReflectionTimelineEntry {
+  id String @id @default(uuid())
+  ownerId String @map("owner_id")
+  entryType TimelineEntryType @map("entry_type")
+  sourceId String @map("source_id")
+  occurredOn DateTime @map("occurred_on")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([entryType, sourceId])
+  @@index([ownerId, occurredOn(sort: Desc)])
+  @@map("reflection_timeline_entries")
+}

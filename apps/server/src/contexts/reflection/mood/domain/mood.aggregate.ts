@@ -34,6 +34,10 @@ export interface MoodPrimitives {
   updatedAt: Date;
 }
 
+// Mood không phát domain event: nó là ngữ cảnh gắn theo một Journal entry,
+// không phải một khoảnh khắc độc lập trên Timeline. Xem
+// journal-entry.aggregate.ts (seal) và memory.aggregate.ts (create) để biết
+// pattern phát event khi một aggregate thực sự cần.
 export class Mood extends AggregateRoot {
   private constructor(private readonly props: MoodProps) {
     super();

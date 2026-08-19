@@ -5,9 +5,11 @@ import request from 'supertest';
 
 import { AppModule } from '../src/app.module';
 import { DomainExceptionFilter } from '../src/presentation/filters/domain-exception.filter';
+import { PrismaService } from '../src/infrastructure/database/prisma.service';
 
 describe('Memory (E2E)', () => {
   let app: INestApplication;
+  let prisma: PrismaService;
   let ownerToken: string;
   let otherToken: string;
 
@@ -28,6 +30,7 @@ describe('Memory (E2E)', () => {
     app.useGlobalFilters(new DomainExceptionFilter());
     await app.init();
 
+    prisma = app.get(PrismaService);
     ownerToken = await registerAndLogin('owner');
     otherToken = await registerAndLogin('other');
   });
@@ -60,6 +63,20 @@ describe('Memory (E2E)', () => {
       revision: 1,
     });
     expect(created.body).not.toHaveProperty('ownerId');
+
+    // Create đi qua Outbox trước khi tới bảng Timeline — đợi thay vì assert
+    // ngay, cùng lý do đã giải thích ở journal.e2e-spec.ts.
+    const timelineEntry = await waitFor(() =>
+      prisma.reflectionTimelineEntry.findUnique({
+        where: {
+          entryType_sourceId: {
+            entryType: 'MEMORY_CREATED',
+            sourceId: memoryId,
+          },
+        },
+      }),
+    );
+    expect(timelineEntry).not.toBeNull();
 
     await request(app.getHttpServer())
       .get(`/memories/${memoryId}`)
@@ -195,6 +212,19 @@ describe('Memory (E2E)', () => {
     const memoryId = createdMemory.body.id as string;
     expect(createdMemory.body.sourceJournalEntryId).toBe(sourceEntryId);
 
+    const linkedMemories = await request(app.getHttpServer())
+      .get(`/memories?sourceJournalEntryId=${sourceEntryId}`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(HttpStatus.OK);
+    expect(linkedMemories.body.data).toHaveLength(1);
+    expect(linkedMemories.body.data[0].id).toBe(memoryId);
+
+    await request(app.getHttpServer())
+      .get(`/memories?sourceJournalEntryId=${otherEntry.body.id as string}`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(HttpStatus.OK)
+      .expect(({ body }) => expect(body.data).toHaveLength(0));
+
     await request(app.getHttpServer())
       .patch(`/journal/entries/${sourceEntryId}/trash`)
       .set('Authorization', `Bearer ${ownerToken}`)
@@ -213,6 +243,20 @@ describe('Memory (E2E)', () => {
       .expect(HttpStatus.OK)
       .expect(({ body }) => expect(body.sourceJournalEntryId).toBeNull());
   });
+
+  async function waitFor<T>(
+    read: () => Promise<T | null>,
+    timeoutMs = 2_000,
+    intervalMs = 50,
+  ): Promise<T | null> {
+    const deadline = Date.now() + timeoutMs;
+    for (;;) {
+      const result = await read();
+      if (result) return result;
+      if (Date.now() >= deadline) return null;
+      await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    }
+  }
 
   function createMemory(
     token: string,

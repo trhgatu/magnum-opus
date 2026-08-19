@@ -11,19 +11,26 @@ import {
   REALTIME_PORT,
   type IRealtimePort,
 } from '@shared/application/ports/realtime.port';
+import {
+  REALTIME_EVENTS,
+  type NotificationReceivedEvent,
+} from '@repo/contracts';
 import { DomainEvent } from '@shared/domain/events/domain-event';
 import { UserRegisteredEvent } from '@iam/users/domain/events/user-registered.event';
 import { UserDeactivatedEvent } from '@iam/users/domain/events/user-deactivated.event';
+import { JournalEntrySealedEvent } from '@reflection/journal/domain/events/journal-entry-sealed.event';
+import { MemoryCreatedEvent } from '@reflection/memory/domain/events/memory-created.event';
+
+import {
+  TIMELINE_WRITER,
+  type TimelineWriter,
+} from '@reflection/timeline/application/ports/timeline-writer.port';
 import {
   USER_JOBS,
   USER_QUEUE,
 } from '@iam/users/application/jobs/user-email.jobs';
 import { NotificationCreatedEvent } from '@/contexts/notifications/domain/events/notification-created.event';
 import { CreateNotificationService } from '@/contexts/notifications/application/services/create-notification.service';
-import {
-  REALTIME_EVENTS,
-  type NotificationReceivedEvent,
-} from '@repo/contracts';
 
 @Injectable()
 export class OutboxEventRouter {
@@ -35,6 +42,8 @@ export class OutboxEventRouter {
     @Inject(REALTIME_PORT)
     private readonly realtime: IRealtimePort,
     private readonly notifications: CreateNotificationService,
+    @Inject(TIMELINE_WRITER)
+    private readonly timelineWriter: TimelineWriter,
   ) {}
 
   async dispatch(event: DomainEvent): Promise<void> {
@@ -94,6 +103,24 @@ export class OutboxEventRouter {
         event.userId,
         REALTIME_EVENTS.NOTIFICATION_RECEIVED,
         payload,
+      );
+      return;
+    }
+
+    if (event instanceof JournalEntrySealedEvent) {
+      await this.timelineWriter.recordJournalSealed(
+        event.ownerId,
+        event.journalEntryId,
+        event.sealedAt,
+      );
+      return;
+    }
+
+    if (event instanceof MemoryCreatedEvent) {
+      await this.timelineWriter.recordMemoryCreated(
+        event.ownerId,
+        event.memoryId,
+        event.memoryOccurredOn,
       );
       return;
     }
