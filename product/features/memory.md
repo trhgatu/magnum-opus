@@ -120,7 +120,7 @@ Dropdown chọn độ chính xác không thay đổi business rule. Nó chỉ qu
 
 Collection có thể đọc Memory theo thời điểm trải nghiệm xảy ra; đây là cách sắp xếp dữ liệu, không phải entity hay bảng riêng. Memory không rõ thời gian được đặt sau các Memory có thời gian khi sắp xếp theo `occurredOn`. Memory trong Trash không xuất hiện ở collection mặc định nhưng vẫn có thể được lọc riêng và khôi phục.
 
-Unified Timeline (có API/UI, tổng hợp Journal, Memory, Habit, Routine và các module khác) chưa thuộc v1. Nền tảng sự kiện cho nó đã tồn tại ở mức tối thiểu: `MemoryCreatedEvent` được phát thật và ghi vào một read model Timeline nội bộ (xem mục Events bên dưới) — khi Unified Timeline thật sự được xây, nó đọc từ đúng nền tảng này thay vì thay đổi domain model của Memory.
+Unified Timeline (tổng hợp Journal, Memory, Habit, Routine và các module khác, có UI) chưa thuộc v1. Nền tảng cho nó đã có sẵn trong phạm vi `reflection`: `MemoryCreatedEvent` được phát thật, ghi vào read model Timeline nội bộ và đọc được qua `GET /reflection/timeline` (xem mục Events bên dưới) — khi Unified Timeline thật sự được xây (mở rộng sang Habit/Routine), nó đọc từ đúng nền tảng này thay vì thay đổi domain model của Memory.
 
 ## Trạng thái
 
@@ -248,7 +248,7 @@ Memory v1 không tự tạo Reflection hoặc Insight.
 
 ## Events
 
-`memory.created` (`MemoryCreatedEvent`) đã được phát thật ngay khi tạo Memory, đi qua Outbox transactional cùng transaction với việc ghi record, và có đúng một consumer thật: ghi một dòng vào read model Timeline nội bộ (`contexts/reflection/timeline`, chưa có API/UI — xem `docs/modules/backend.md`).
+`memory.created` (`MemoryCreatedEvent`) đã được phát thật ngay khi tạo Memory, đi qua Outbox transactional cùng transaction với việc ghi record, và có đúng một consumer thật: ghi một dòng vào read model Timeline nội bộ (`contexts/reflection/timeline`), đọc được qua `GET /reflection/timeline` — xem `docs/modules/backend.md`.
 
 `memory.updated`, `memory.trashed`, `memory.restored` và `memory.permanently-deleted` vẫn chỉ dành cho giai đoạn sau, chỉ được phát khi có consumer thật. Collection Memory v1 đọc trực tiếp từ repository cho các trường hợp còn lại nên chưa cần thêm event nào khác.
 

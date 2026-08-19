@@ -39,6 +39,12 @@ describe('Journal (E2E)', () => {
     await app?.close();
   });
 
+  it('requires authentication for the Timeline read model', async () => {
+    await request(app.getHttpServer())
+      .get('/reflection/timeline')
+      .expect(HttpStatus.UNAUTHORIZED);
+  });
+
   it('requires authentication', async () => {
     await request(app.getHttpServer())
       .get('/journal/entries')
@@ -114,6 +120,34 @@ describe('Journal (E2E)', () => {
       }),
     );
     expect(timelineEntry?.ownerId).toBe(await ownerIdFor(ownerToken));
+
+    // Xác nhận qua đúng API thật (không chỉ query DB thẳng như ở trên) —
+    // GET /reflection/timeline phải trả lại dòng vừa ghi, kèm tiêu đề tra
+    // ngược từ Journal entry.
+    const timelineResponse = await request(app.getHttpServer())
+      .get('/reflection/timeline')
+      .set('Authorization', 'Bearer ' + ownerToken)
+      .expect(HttpStatus.OK);
+    const timelineItem = (
+      timelineResponse.body.data as Array<{ sourceId: string }>
+    ).find((item) => item.sourceId === entryId);
+    expect(timelineItem).toMatchObject({
+      entryType: 'JOURNAL_SEALED',
+      sourceId: entryId,
+      title: 'Updated thought',
+      sourceExists: true,
+    });
+
+    // User khác không được thấy dòng Timeline của owner, dù biết entryId.
+    const otherTimelineResponse = await request(app.getHttpServer())
+      .get('/reflection/timeline')
+      .set('Authorization', 'Bearer ' + otherToken)
+      .expect(HttpStatus.OK);
+    expect(
+      (otherTimelineResponse.body.data as Array<{ sourceId: string }>).some(
+        (item) => item.sourceId === entryId,
+      ),
+    ).toBe(false);
 
     await request(app.getHttpServer())
       .put('/journal/entries/' + entryId)

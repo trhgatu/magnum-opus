@@ -207,7 +207,7 @@ Vòng closeout v1 áp dụng cùng nguyên tắc phòng thủ cho Journal và Mo
 
 ### Timeline
 
-Timeline là read model nội bộ, **chưa có controller/API/UI** — quyết định có chủ đích, không phải thiếu sót. Nó chỉ tồn tại để chứng minh domain event của Journal/Memory chảy đúng qua Outbox, và làm chỗ ghi sẵn cho một tính năng Timeline thật sự (roadmap `product/forge-os-capability-map.md`) khi tính năng đó được quyết định xây.
+Timeline là read model nội bộ ghi lại các mốc quan trọng của Journal/Memory theo thời gian, phục vụ `GET /reflection/timeline` (phân trang, owner-scoped).
 
 `JournalEntry.seal()` phát `JournalEntrySealedEvent`; `Memory.create()` phát `MemoryCreatedEvent`. Cả hai đi qua đúng luồng Outbox có sẵn (xem chương 06): domain event được ghi vào `outboxEvent` **trong cùng transaction** với việc sửa aggregate, `OutboxPublisherService` claim atomic rồi gọi `OutboxEventRouter.dispatch()`. Router route 2 event này tới `TimelineWriter` (`contexts/reflection/timeline`), ghi 1 dòng vào `reflection_timeline_entries`.
 
@@ -217,6 +217,8 @@ Hai điểm kỹ thuật đáng nhớ khi mở rộng pattern này cho aggregate
 
 1. Repository chỉ được ghi outbox event khi thao tác ghi aggregate **thực sự thành công** — `PrismaJournalEntryRepository.update()` kiểm `result.count === 1` (tránh trường hợp thua optimistic-lock race nhưng vẫn để lại dấu vết trên Timeline).
 2. `@@unique([entryType, sourceId])` trên `ReflectionTimelineEntry` là lớp idempotency thứ hai, phòng khi Outbox Publisher retry cùng event — `PrismaTimelineWriter` bắt `P2002` và coi như đã ghi, không throw.
+
+**Read side.** Timeline vẫn là module reader-only — không có aggregate/domain layer, giống `analytics/dashboard`. `PrismaTimelineReader.findAllForOwner()` lấy trang dữ liệu từ `reflection_timeline_entries` rồi tra ngược title theo lô (2 query `findMany` theo `entryType`, không phải N+1 theo dòng) sang `journalEntry`/`memory`. Vì Timeline không tự dọn theo vòng đời nguồn, một dòng có thể trỏ tới bản ghi đã bị xóa vĩnh viễn — response phân biệt rõ bằng `sourceExists: false` và `title: null` thay vì để lộ title cũ hoặc ném lỗi. `GetTimelineHandler` chỉ dịch `page` sang `skip/take` rồi gọi thẳng reader qua `TIMELINE_READER` port.
 
 ## Notifications
 
