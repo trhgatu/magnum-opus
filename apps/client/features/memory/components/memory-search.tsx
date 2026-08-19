@@ -1,5 +1,6 @@
 import type { MemoryState } from "@repo/contracts";
 import { Search, X } from "lucide-react";
+import Form from "next/form";
 import Link from "next/link";
 
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -32,9 +33,9 @@ export function MemorySearch({
   });
 
   return (
-    <form
+    <Form
       action="/memories"
-      method="get"
+      replace
       role="search"
       className="flex min-w-0 gap-2"
     >
@@ -83,6 +84,6 @@ export function MemorySearch({
         <Search data-icon="inline-start" aria-hidden="true" />
         Tìm
       </Button>
-    </form>
+    </Form>
   );
 }

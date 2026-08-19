@@ -5,9 +5,11 @@ import request from 'supertest';
 
 import { AppModule } from '../src/app.module';
 import { DomainExceptionFilter } from '../src/presentation/filters/domain-exception.filter';
+import { PrismaService } from '../src/infrastructure/database/prisma.service';
 
 describe('Journal (E2E)', () => {
   let app: INestApplication;
+  let prisma: PrismaService;
   let ownerToken: string;
   let otherToken: string;
 
@@ -28,6 +30,7 @@ describe('Journal (E2E)', () => {
     app.useGlobalFilters(new DomainExceptionFilter());
     await app.init();
 
+    prisma = app.get(PrismaService);
     ownerToken = await registerAndLogin('owner');
     otherToken = await registerAndLogin('other');
   });
@@ -96,6 +99,21 @@ describe('Journal (E2E)', () => {
       state: 'SEALED',
       revision: 3,
     });
+
+    // Seal đi qua Outbox (bất đồng bộ, OutboxPublisherService quét mỗi
+    // 100ms mặc định) trước khi tới được bảng Timeline — đợi thay vì assert
+    // ngay để không phụ thuộc vào tốc độ máy chạy CI.
+    const timelineEntry = await waitFor(() =>
+      prisma.reflectionTimelineEntry.findUnique({
+        where: {
+          entryType_sourceId: {
+            entryType: 'JOURNAL_SEALED',
+            sourceId: entryId,
+          },
+        },
+      }),
+    );
+    expect(timelineEntry?.ownerId).toBe(await ownerIdFor(ownerToken));
 
     await request(app.getHttpServer())
       .put('/journal/entries/' + entryId)
@@ -170,6 +188,28 @@ describe('Journal (E2E)', () => {
       .set('Authorization', 'Bearer ' + ownerToken)
       .expect(HttpStatus.NOT_FOUND);
   });
+
+  async function ownerIdFor(token: string): Promise<string> {
+    const response = await request(app.getHttpServer())
+      .get('/users/me')
+      .set('Authorization', 'Bearer ' + token)
+      .expect(HttpStatus.OK);
+    return response.body.id as string;
+  }
+
+  async function waitFor<T>(
+    read: () => Promise<T | null>,
+    timeoutMs = 2_000,
+    intervalMs = 50,
+  ): Promise<T | null> {
+    const deadline = Date.now() + timeoutMs;
+    for (;;) {
+      const result = await read();
+      if (result) return result;
+      if (Date.now() >= deadline) return null;
+      await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    }
+  }
 
   async function lifecycle(
     entryId: string,

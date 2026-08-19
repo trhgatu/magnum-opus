@@ -17,7 +17,7 @@ import {
 } from "@/features/memory/lib/memory-url";
 
 export const metadata: Metadata = {
-  title: "Ký ức",
+  title: "Memories",
   robots: {
     index: false,
     follow: false,
@@ -67,7 +67,7 @@ export default async function MemoriesPage({
       <PageHeading
         id="memories-heading"
         eyebrow="Reflection"
-        title="Ký ức"
+        title="Memories"
         description="Những khoảnh khắc đã thực sự được sống, được giữ lại theo thời điểm chúng xảy ra."
         actions={
           <Link
@@ -82,20 +82,22 @@ export default async function MemoriesPage({
         }
       />
 
-      <div className="space-y-4">
-        <MemorySearch
-          search={location.search}
-          state={location.state}
-          sortBy={location.sortBy}
-          sortOrder={location.sortOrder}
-        />
+      <div className="rounded-2xl border bg-card/35 p-3 shadow-sm">
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+          <MemorySearch
+            search={location.search}
+            state={location.state}
+            sortBy={location.sortBy}
+            sortOrder={location.sortOrder}
+          />
 
-        <MemoryCollectionControls
-          search={location.search}
-          state={location.state}
-          sortBy={location.sortBy}
-          sortOrder={location.sortOrder}
-        />
+          <MemoryCollectionControls
+            search={location.search}
+            state={location.state}
+            sortBy={location.sortBy}
+            sortOrder={location.sortOrder}
+          />
+        </div>
       </div>
 
       {result.data.length > 0 ? (

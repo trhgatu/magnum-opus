@@ -157,4 +157,22 @@
   .text-balance {
     text-wrap: balance;
   }
+
+  .memory-sort-trigger {
+    anchor-name: --memory-sort-trigger;
+  }
+
+  .memory-sort-popover {
+    position: fixed;
+    position-anchor: --memory-sort-trigger;
+    inset: auto;
+    top: anchor(bottom);
+    right: anchor(right);
+    margin-top: 0.5rem;
+  }
+
+  .memory-sort-control:has(.memory-sort-popover:popover-open)
+    .memory-sort-chevron {
+    rotate: 180deg;
+  }
 }

@@ -3,6 +3,8 @@ import {
   JournalEntryState as PrismaJournalEntryState,
 } from '@repo/database';
 
+import { serializeDomainEvent } from '@infrastructure/event-bus/outbox/outbox-event.mapper';
+
 import { JournalEntryState } from '../../domain/enums';
 import { JournalEntry } from '../../domain/journal-entry.aggregate';
 import { JournalEntryId } from '../../domain/value-objects';
@@ -18,11 +20,21 @@ describe('PrismaJournalEntryRepository', () => {
     deleteMany: jest.fn(),
   };
 
+  const outboxEvent = {
+    createMany: jest.fn(),
+  };
+
   const prisma = {
     journalEntry,
-    $transaction: jest.fn(async (operations: Promise<unknown>[]) =>
-      Promise.all(operations),
-    ),
+    outboxEvent,
+    // `update()` dùng $transaction dạng callback (interactive transaction),
+    // khác với findAllForOwner dùng dạng mảng — mock phải gọi lại callback
+    // với chính `prisma`, giống cách prisma-notification.repository.spec.ts
+    // đã làm cho pattern này.
+    $transaction: jest.fn((arg: unknown) => {
+      if (Array.isArray(arg)) return Promise.all(arg);
+      return (arg as (tx: unknown) => Promise<unknown>)(prisma);
+    }),
   };
 
   const repository = new PrismaJournalEntryRepository(prisma as never);
@@ -88,6 +100,52 @@ describe('PrismaJournalEntryRepository', () => {
       const updated = await repository.update(entry, 1);
 
       expect(updated).toBe(false);
+    });
+
+    it('persists the outbox event in the same transaction when sealing succeeds', async () => {
+      journalEntry.updateMany.mockResolvedValue({ count: 1 });
+
+      const entry = createDomainEntry();
+      entry.seal();
+      const [sealedEvent] = entry.getDomainEvents();
+
+      const updated = await repository.update(entry, 1);
+
+      expect(updated).toBe(true);
+      expect(outboxEvent.createMany).toHaveBeenCalledWith({
+        data: [serializeDomainEvent(sealedEvent)],
+      });
+      // Aggregate không nên giữ lại event đã ghi thành công, tránh outbox
+      // ghi trùng nếu cùng entry được update() một lần nữa.
+      expect(entry.getDomainEvents()).toEqual([]);
+    });
+
+    it('does not persist the outbox event when the optimistic lock fails', async () => {
+      journalEntry.updateMany.mockResolvedValue({ count: 0 });
+
+      const entry = createDomainEntry();
+      entry.seal();
+
+      const updated = await repository.update(entry, 1);
+
+      // Seal "thua" trong race (revision đã bị người khác đổi trước) không
+      // được phép để lại dấu vết trên Timeline như thể nó đã thành công.
+      expect(updated).toBe(false);
+      expect(outboxEvent.createMany).not.toHaveBeenCalled();
+    });
+
+    it('does not touch the outbox table when the aggregate has no domain events', async () => {
+      journalEntry.updateMany.mockResolvedValue({ count: 1 });
+
+      const entry = createDomainEntry();
+      entry.updateContent({
+        title: 'Updated title',
+        content: 'Updated content',
+      });
+
+      await repository.update(entry, 1);
+
+      expect(outboxEvent.createMany).not.toHaveBeenCalled();
     });
   });
 

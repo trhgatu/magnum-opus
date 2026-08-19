@@ -6,6 +6,7 @@ import {
   type MemoryResponse,
 } from "@repo/contracts";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { isValidMemoryCalendarDate } from "@/features/memory/lib/memory-date";
 
@@ -301,13 +302,10 @@ export async function deleteMemoryPermanently(
         method: "DELETE",
       },
     );
-
-    revalidatePath("/memories");
-
-    return {
-      status: "success",
-    };
   } catch (error) {
     return failure(error);
   }
+
+  revalidatePath("/memories");
+  redirect("/memories?state=TRASHED");
 }

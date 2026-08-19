@@ -27,6 +27,7 @@
       "@infrastructure/*": ["./src/infrastructure/*"],
       "@presentation/*": ["./src/presentation/*"],
       "@iam/*": ["./src/contexts/iam/*"],
+      "@reflection/*": ["./src/contexts/reflection/*"],
       "@/*": ["./src/*"]
     }
   }

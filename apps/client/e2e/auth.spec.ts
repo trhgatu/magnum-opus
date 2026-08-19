@@ -155,10 +155,10 @@ test.describe("Client authentication boundary", () => {
     ).toBeVisible();
     await expect(page.getByRole("banner")).toBeVisible();
     await expect(
-      page.getByRole("navigation", { name: "Điều hướng tài khoản" }),
+      page.getByRole("navigation", { name: "Không gian sản phẩm" }),
     ).toBeVisible();
     await expect(
-      page.getByLabel("Hồ sơ cá nhân").getByText(ADMIN_EMAIL, { exact: true }),
+      page.getByText(ADMIN_EMAIL, { exact: true }).first(),
     ).toBeVisible();
 
     const sessionCookie = (await page.context().cookies()).find(
@@ -172,7 +172,7 @@ test.describe("Client authentication boundary", () => {
     await page.reload();
     await expect(page).toHaveURL(/\/me$/);
     await expect(
-      page.getByLabel("Hồ sơ cá nhân").getByText(ADMIN_EMAIL, { exact: true }),
+      page.getByText(ADMIN_EMAIL, { exact: true }).first(),
     ).toBeVisible();
     expect(browserRequests.some((url) => url.startsWith(API_URL))).toBe(false);
   });
@@ -200,6 +200,7 @@ test.describe("Client authentication boundary", () => {
     await login(page);
     await expect(page).toHaveURL(/\/me$/);
 
+    await page.getByLabel(/^Mở menu tài khoản của /).click();
     await page.getByRole("button", { name: "Đăng xuất" }).click();
 
     await expect(page).toHaveURL(/\/$/);
@@ -233,8 +234,26 @@ test.describe("Client authentication boundary", () => {
 
     await expect(page.getByRole("banner")).toBeVisible();
     await expect(page.locator("#account-content")).toBeVisible();
+
+    await page.getByRole("button", { name: "Mở điều hướng" }).click();
+    const mobileNavigation = page.getByRole("dialog", {
+      name: "Magnum Opus",
+    });
+    await expect(mobileNavigation).toBeVisible();
     await expect(
-      page.getByRole("link", { name: "Hồ sơ", exact: true }),
+      mobileNavigation.getByRole("navigation", {
+        name: "Không gian sản phẩm",
+      }),
+    ).toBeVisible();
+    await mobileNavigation.getByText("Phản chiếu", { exact: true }).click();
+    await expect(
+      mobileNavigation.getByRole("link", { name: "Journal" }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Đóng điều hướng" }).click();
+
+    await page.getByLabel(/^Mở menu tài khoản của /).click();
+    await expect(
+      page.getByRole("link", { name: "Hồ sơ cá nhân" }),
     ).toBeVisible();
     await expect(page.getByRole("button", { name: "Đăng xuất" })).toBeVisible();
 

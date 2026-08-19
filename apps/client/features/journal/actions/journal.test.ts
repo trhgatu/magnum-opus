@@ -114,11 +114,13 @@ describe("Journal Server Actions", () => {
 
     await expect(
       deleteJournalEntryPermanently({ id: entry.id, expectedRevision: 4 }),
-    ).resolves.toEqual({ status: "success" });
+    ).resolves.toBeUndefined();
 
     expect(apiFetch).toHaveBeenCalledWith(
       "/journal/entries/" + entry.id + "?expectedRevision=4",
       { method: "DELETE" },
     );
+    expect(revalidatePath).toHaveBeenCalledWith("/journal");
+    expect(redirect).toHaveBeenCalledWith("/journal?state=TRASHED");
   });
 });

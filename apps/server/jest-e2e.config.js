@@ -8,6 +8,7 @@ module.exports = {
   },
   moduleNameMapper: {
     '^@iam/(.*)$': '<rootDir>/src/contexts/iam/$1',
+    '^@reflection/(.*)$': '<rootDir>/src/contexts/reflection/$1',
     '^@shared/(.*)$': '<rootDir>/src/shared/$1',
     '^@infrastructure/(.*)$': '<rootDir>/src/infrastructure/$1',
     '^@presentation/(.*)$': '<rootDir>/src/presentation/$1',

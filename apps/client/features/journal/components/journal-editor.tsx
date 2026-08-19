@@ -1,6 +1,10 @@
 "use client";
 
-import type { JournalEntryResponse, MoodResponse } from "@repo/contracts";
+import type {
+  JournalEntryResponse,
+  MemoryResponse,
+  MoodResponse,
+} from "@repo/contracts";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
@@ -38,12 +42,32 @@ const MoodPanel = dynamic(
   },
 );
 
+const JournalLinkedMemories = dynamic(
+  () =>
+    import("@/features/journal/components/journal-linked-memories").then(
+      (module) => module.JournalLinkedMemories,
+    ),
+  {
+    loading: () => (
+      <div
+        className="h-24 animate-pulse rounded-xl bg-muted/35"
+        role="status"
+        aria-label="Đang tải ký ức liên quan"
+      />
+    ),
+  },
+);
+
 export function JournalEditor({
   initialEntry,
   initialMood,
+  linkedMemories,
+  linkedMemoriesTotal,
 }: {
   initialEntry: JournalEntryResponse;
   initialMood: MoodResponse | null;
+  linkedMemories: MemoryResponse[];
+  linkedMemoriesTotal: number;
 }) {
   const router = useRouter();
   const {
@@ -175,7 +199,6 @@ export function JournalEditor({
       return;
     }
     router.push("/journal?state=TRASHED");
-    router.refresh();
   };
 
   const createMemoryFromEntry = async () => {
@@ -268,6 +291,16 @@ export function JournalEditor({
           editable={editable}
           disabled={lifecycleBusy}
           onBusyChange={setIsMoodBusy}
+        />
+
+        <JournalLinkedMemories
+          memories={linkedMemories}
+          totalCount={linkedMemoriesTotal}
+          canCreateMemory={entry.state !== "TRASHED"}
+          createDisabled={
+            busy || saveState === "conflict" || recoveryReason !== undefined
+          }
+          onCreateMemory={() => void createMemoryFromEntry()}
         />
       </div>
     </article>

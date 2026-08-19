@@ -49,7 +49,7 @@ test("completes the private Memory lifecycle through the BFF", async ({
 
   await expect(
     page.getByRole("heading", {
-      name: "Ký ức",
+      name: "Memories",
       exact: true,
     }),
   ).toBeVisible();
@@ -70,7 +70,17 @@ test("completes the private Memory lifecycle through the BFF", async ({
     })
     .fill(originalContent);
 
-  await page.getByLabel("Độ chính xác của thời gian").selectOption("MONTH");
+  await page
+    .getByRole("combobox", {
+      name: "Độ chính xác của thời gian",
+    })
+    .click();
+
+  await page
+    .getByRole("option", {
+      name: "Tháng",
+    })
+    .click();
 
   await page
     .getByLabel("Thời điểm xảy ra", {
@@ -185,12 +195,6 @@ test("completes the private Memory lifecycle through the BFF", async ({
     })
     .click();
 
-  await page
-    .getByRole("link", {
-      name: `Mở ký ức: ${updatedTitle}`,
-    })
-    .click();
-
   await expect(page).toHaveURL(/\/memories\/[0-9a-f-]+$/);
 
   await page
@@ -250,7 +254,10 @@ test("keeps a Memory after its source Journal entry is deleted", async ({
 
   const journalUrl = page.url();
 
-  await page.getByRole("button", { name: "Giữ lại như ký ức" }).click();
+  // Trang chi tiết Journal có 2 nút "Giữ lại như ký ức" (toolbar và khối
+  // "Ký ức từ entry này") dùng chung nhãn có chủ đích — .first() lấy đúng
+  // nút trên toolbar.
+  await page.getByRole("button", { name: "Giữ lại như ký ức" }).first().click();
 
   await expect(page).toHaveURL(
     /\/memories\/new\?sourceJournalEntryId=[0-9a-f-]+$/,

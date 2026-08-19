@@ -1,44 +1,11 @@
-import { Skeleton } from "@/components/ui/skeleton";
+import { CollectionSkeleton } from "@/components/system/collection-skeleton";
 
-export default function MemoriesLoading() {
+export default function Loading() {
   return (
-    <section
-      className="flex flex-col gap-8"
-      role="status"
-      aria-label="Đang tải Ký ức"
-    >
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-3">
-          <Skeleton className="h-3 w-24" />
-          <Skeleton className="h-11 w-52" />
-          <Skeleton className="h-5 w-full max-w-xl sm:w-[34rem]" />
-        </div>
-
-        <Skeleton className="h-11 w-full sm:w-40" />
-      </div>
-
-      <div className="space-y-4">
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2" aria-hidden="true">
-        {Array.from({ length: 4 }, (_, index) => (
-          <div
-            key={index}
-            className="min-h-48 space-y-5 rounded-2xl border bg-card/45 p-6"
-          >
-            <div className="flex justify-between gap-4">
-              <Skeleton className="h-7 w-2/3" />
-              <Skeleton className="h-6 w-16" />
-            </div>
-
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-4/5" />
-            <Skeleton className="h-3 w-36" />
-          </div>
-        ))}
-      </div>
-    </section>
+    <CollectionSkeleton
+      eyebrow="Reflection"
+      title="Memories"
+      description="Những khoảnh khắc đã thực sự được sống, được giữ lại theo thời điểm chúng xảy ra."
+    />
   );
 }

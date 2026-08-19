@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsIn, IsOptional } from 'class-validator';
+import { IsEnum, IsIn, IsOptional, IsUUID } from 'class-validator';
 
 import { PaginationQueryDto } from '@presentation/common/dto/pagination-query.dto';
 
@@ -17,4 +17,11 @@ export class GetMemoriesQueryDto extends PaginationQueryDto {
   @IsOptional()
   @IsIn(MEMORY_SORT_FIELDS)
   declare readonly sortBy?: (typeof MEMORY_SORT_FIELDS)[number];
+
+  @ApiPropertyOptional({
+    description: 'Chỉ trả Memory được tạo từ Journal entry này',
+  })
+  @IsOptional()
+  @IsUUID()
+  readonly sourceJournalEntryId?: string;
 }

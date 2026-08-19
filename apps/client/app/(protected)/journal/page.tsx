@@ -72,9 +72,11 @@ export default async function JournalPage({ searchParams }: JournalPageProps) {
         </Alert>
       ) : null}
 
-      <div className="grid gap-3 lg:grid-cols-[1fr_auto]">
-        <JournalSearch initialSearch={search} state={state} />
-        <JournalStateFilter search={search} state={state} />
+      <div className="rounded-2xl border bg-card/35 p-3 shadow-sm">
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+          <JournalSearch initialSearch={search} state={state} />
+          <JournalStateFilter search={search} state={state} />
+        </div>
       </div>
 
       {result.data.length ? (

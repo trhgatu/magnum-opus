@@ -7,7 +7,7 @@ import { MemoryDetail } from "@/features/memory/components/memory-detail";
 import { ApiError } from "@/lib/api";
 
 export const metadata: Metadata = {
-  title: "Ký ức",
+  title: "Memories",
   robots: {
     index: false,
     follow: false,

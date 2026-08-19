@@ -6,6 +6,7 @@ import {
   InvalidJournalEntryTransitionException,
 } from './exceptions';
 import { JournalEntryId } from '../domain/value-objects/';
+import { JournalEntrySealedEvent } from './events/journal-entry-sealed.event';
 
 const MAX_TITLE_LENGTH = 200;
 
@@ -127,6 +128,10 @@ export class JournalEntry extends AggregateRoot {
 
     this.props.state = JournalEntryState.SEALED;
     this.trackChange();
+
+    this.addDomainEvent(
+      new JournalEntrySealedEvent(this.id, this.props.ownerId, this.updatedAt),
+    );
   }
 
   public reopen(): void {

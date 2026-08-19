@@ -17,6 +17,7 @@ export interface MemoryListInput {
   state?: MemoryState;
   sortBy?: MemorySortField;
   sortOrder?: MemorySortOrder;
+  sourceJournalEntryId?: string;
 }
 
 export async function getMemories(
@@ -33,6 +34,8 @@ export async function getMemories(
   if (input.state) params.set("state", input.state);
   if (input.sortBy) params.set("sortBy", input.sortBy);
   if (input.sortOrder) params.set("sortOrder", input.sortOrder);
+  if (input.sourceJournalEntryId)
+    params.set("sourceJournalEntryId", input.sourceJournalEntryId);
 
   return apiFetch<PaginatedResult<MemoryResponse>>(
     `/memories?${params.toString()}`,

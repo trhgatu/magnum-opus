@@ -5,6 +5,7 @@ import {
 } from '@repo/database';
 
 import { PrismaService } from '@infrastructure/database/prisma.service';
+import { serializeDomainEvent } from '@infrastructure/event-bus/outbox/outbox-event.mapper';
 
 import { JournalEntry } from '../../domain/journal-entry.aggregate';
 import {
@@ -30,25 +31,38 @@ export class PrismaJournalEntryRepository implements JournalEntryRepository {
     expectedRevision: number,
   ): Promise<boolean> {
     const raw = PrismaJournalEntryMapper.toPersistence(entry);
+    const outboxEvents = entry.getDomainEvents().map(serializeDomainEvent);
 
-    const result = await this.prisma.journalEntry.updateMany({
-      where: {
-        id: raw.id,
-        ownerId: raw.ownerId,
-        revision: expectedRevision,
-      },
-      data: {
-        title: raw.title,
-        content: raw.content,
-        state: raw.state,
-        stateBeforeTrash: raw.stateBeforeTrash,
-        revision: raw.revision,
-        trashedAt: raw.trashedAt,
-        updatedAt: raw.updatedAt,
-      },
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.journalEntry.updateMany({
+        where: {
+          id: raw.id,
+          ownerId: raw.ownerId,
+          revision: expectedRevision,
+        },
+        data: {
+          title: raw.title,
+          content: raw.content,
+          state: raw.state,
+          stateBeforeTrash: raw.stateBeforeTrash,
+          revision: raw.revision,
+          trashedAt: raw.trashedAt,
+          updatedAt: raw.updatedAt,
+        },
+      });
+
+      if (result.count === 1 && outboxEvents.length > 0) {
+        await tx.outboxEvent.createMany({
+          data: outboxEvents,
+        });
+      }
+
+      return result.count === 1;
     });
 
-    return result.count === 1;
+    entry.clearDomainEvents();
+
+    return updated;
   }
 
   public async findByIdForOwner(

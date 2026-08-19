@@ -21,6 +21,7 @@ describe('GetMemoriesHandler', () => {
         'summer',
         'occurredOn',
         'asc',
+        'journal-entry-1',
       ),
     );
 
@@ -32,6 +33,7 @@ describe('GetMemoriesHandler', () => {
       search: 'summer',
       sortBy: 'occurredOn',
       sortOrder: 'asc',
+      sourceJournalEntryId: 'journal-entry-1',
     });
   });
 
@@ -45,6 +47,7 @@ describe('GetMemoriesHandler', () => {
       search: undefined,
       sortBy: undefined,
       sortOrder: 'desc',
+      sourceJournalEntryId: undefined,
     });
   });
 });
