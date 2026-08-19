@@ -20,7 +20,10 @@ test("completes the private Journal lifecycle through the BFF", async ({
   page.on("request", (request) => browserRequests.push(request.url()));
 
   await login(page);
-  await page.getByRole("link", { name: "Journal", exact: true }).click();
+  // Đi thẳng bằng URL thay vì bấm link nav: link "Journal" nằm trong nhóm
+  // "Phản chiếu" (context-navigation.tsx dùng <details>), chỉ tự mở khi
+  // pathname hiện tại đã thuộc nhóm đó — ở /me nó đang đóng.
+  await page.goto("/journal");
   await expect(
     page.getByRole("heading", { name: "Journal", exact: true }),
   ).toBeVisible();
@@ -114,7 +117,10 @@ test("supports Journal search, reset and state filters", async ({ page }) => {
   await login(page);
   await page.goto("/journal");
 
+  // JournalSearch dùng next/form (submit thật), không còn debounce tự tìm
+  // khi gõ — phải submit rõ ràng thì URL mới đổi.
   await page.getByLabel("Tìm trong journal").fill(missingEntry);
+  await page.getByRole("button", { name: "Tìm" }).click();
   await expect(page).toHaveURL(new RegExp(`search=${missingEntry}`));
   await expect(
     page.getByRole("heading", { name: "Chưa có entry phù hợp" }),
@@ -123,7 +129,8 @@ test("supports Journal search, reset and state filters", async ({ page }) => {
     page.getByRole("link", { name: "Xóa tìm kiếm và bộ lọc" }),
   ).toBeVisible();
 
-  await page.getByRole("button", { name: "Xóa từ khóa tìm kiếm" }).click();
+  // "Xóa từ khóa tìm kiếm" là <Link> (role link), không phải button.
+  await page.getByRole("link", { name: "Xóa từ khóa tìm kiếm" }).click();
   await expect(page).toHaveURL(/\/journal$/);
 
   await page.getByRole("link", { name: "Trash", exact: true }).click();
@@ -192,6 +199,9 @@ test("guards unsaved navigation and supports editor shortcuts", async ({
     expect(dialog.message()).toContain("Nội dung chưa được lưu");
     await dialog.dismiss();
   });
+  // Link "Hồ sơ cá nhân" nằm trong account menu, phải mở dropdown trước
+  // (cùng pattern đã dùng ở auth.spec.ts).
+  await page.getByLabel(/^Mở menu tài khoản của /).click();
   await page.getByRole("link", { name: "Hồ sơ" }).click();
   await expect(page).toHaveURL(/\/journal\/[0-9a-f-]+$/);
 

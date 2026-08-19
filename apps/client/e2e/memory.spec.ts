@@ -254,7 +254,10 @@ test("keeps a Memory after its source Journal entry is deleted", async ({
 
   const journalUrl = page.url();
 
-  await page.getByRole("button", { name: "Giữ lại như ký ức" }).click();
+  // Trang chi tiết Journal có 2 nút "Giữ lại như ký ức" (toolbar và khối
+  // "Ký ức từ entry này") dùng chung nhãn có chủ đích — .first() lấy đúng
+  // nút trên toolbar.
+  await page.getByRole("button", { name: "Giữ lại như ký ức" }).first().click();
 
   await expect(page).toHaveURL(
     /\/memories\/new\?sourceJournalEntryId=[0-9a-f-]+$/,

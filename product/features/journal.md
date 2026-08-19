@@ -115,7 +115,7 @@ Các phím tắt trong editor:
 
 1. Người dùng mở Journal.
 2. Hệ thống tải trang đầu tiên, sắp xếp theo thời gian cập nhật giảm dần.
-3. Người dùng nhập từ khóa; tìm kiếm chỉ bắt đầu sau một debounce ngắn.
+3. Người dùng nhập từ khóa rồi chủ động submit (Enter hoặc nút "Tìm"); tìm kiếm không tự chạy khi đang gõ.
 4. Kết quả khớp tiêu đề hoặc nội dung và luôn bị giới hạn theo owner.
 5. Người dùng mở một entry để đọc hoặc chuyển sang edit.
 
