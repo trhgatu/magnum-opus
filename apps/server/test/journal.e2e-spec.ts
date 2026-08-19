@@ -134,7 +134,7 @@ describe('Journal (E2E)', () => {
     expect(timelineItem).toMatchObject({
       entryType: 'JOURNAL_SEALED',
       sourceId: entryId,
-      title: 'First thought',
+      title: 'Updated thought',
       sourceExists: true,
     });
 
