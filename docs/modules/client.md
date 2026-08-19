@@ -202,6 +202,14 @@ Ghi nội dung đang viết
 
 Không dùng `router.refresh()` làm conflict recovery chính vì Server Component có thể render lại nhưng state đã khởi tạo trong Client Component không tự động được reset theo ý nghiệp vụ.
 
+## Timeline feature
+
+Timeline là feature đọc thuần túy, gọi `GET /reflection/timeline` qua `features/timeline/api/timeline.ts`. Không có `actions/` vì không có mutation nào ở client cho feature này.
+
+`app/(protected)/timeline/page.tsx` render danh sách một cột (không phải grid như Memory) vì Timeline là dòng sự kiện tuần tự, không phải collection để so sánh cạnh nhau. `TimelineEntryCard` rẽ nhánh theo `entryType` (`JOURNAL_SEALED` → link `/journal/:id`, `MEMORY_CREATED` → link `/memories/:id`) và tự vô hiệu hóa link khi `sourceExists === false` — nguồn có thể đã bị xóa vĩnh viễn sau khi được ghi vào Timeline, hiển thị nhầm một link chết còn tệ hơn hiển thị badge "Đã xóa".
+
+`timeline/loading.tsx` không tái dùng `CollectionSkeleton` vì component đó có sẵn ô action button và search bar (khớp Memory/Journal) mà Timeline không có; skeleton riêng chỉ giữ `PageHeading` và các dải placeholder một cột, đúng tinh thần "khung xương khớp hình dạng nội dung thật" đã áp dụng cho Journal/Memory.
+
 ## Navigation theo không gian
 
 Protected client không còn đặt Hồ sơ, Journal và Memories ngang hàng trong một danh sách link. `AccountShell` chỉ làm composition root cho ba phần độc lập:
@@ -212,7 +220,7 @@ MobileNavigation   drawer navigation trên màn hình nhỏ
 AccountMenu        hồ sơ và đăng xuất
 ```
 
-`features/navigation/config/product-navigation.ts` là nguồn sự thật duy nhất cho cấu trúc điều hướng. Mỗi `ProductSpace` đại diện cho một không gian có ý nghĩa đối với hành trình sản phẩm; `NavigationItem` là capability bên trong không gian đó. Tên capability dùng tiếng Anh nhất quán: Reflection hiện chứa Journal và Memories. Nội dung mô tả và hành động vẫn dùng tiếng Việt tự nhiên, chẳng hạn “lưu một ký ức”; đây là câu nghiệp vụ chứ không phải tên module. Engineering được ghi nhận ở trạng thái `planned` nhưng không được render thành link chết.
+`features/navigation/config/product-navigation.ts` là nguồn sự thật duy nhất cho cấu trúc điều hướng. Mỗi `ProductSpace` đại diện cho một không gian có ý nghĩa đối với hành trình sản phẩm; `NavigationItem` là capability bên trong không gian đó. Tên capability dùng tiếng Anh nhất quán: Reflection hiện chứa Journal, Memories và Timeline. Nội dung mô tả và hành động vẫn dùng tiếng Việt tự nhiên, chẳng hạn “lưu một ký ức”; đây là câu nghiệp vụ chứ không phải tên module. Engineering được ghi nhận ở trạng thái `planned` nhưng không được render thành link chết.
 
 `ContextNavigation` dùng pathname làm nguồn sự thật cho active state. `/journal` và `/journal/:id` cùng đánh dấu Journal; `/journalism` không được nhận nhầm chỉ vì có chung tiền tố. Vì trạng thái được tính từ URL, deep link, reload và back/forward không làm sidebar lệch khỏi trang đang mở.
 

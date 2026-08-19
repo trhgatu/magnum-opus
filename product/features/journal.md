@@ -200,7 +200,7 @@ Nếu user B yêu cầu ID của entry thuộc user A, API trả not found giố
 
 ## Events
 
-`journal.entry-sealed` (`JournalEntrySealedEvent`) đã được phát thật, đi qua Outbox transactional cùng transaction với việc seal, và có đúng một consumer thật: ghi một dòng vào read model Timeline nội bộ (`contexts/reflection/timeline`), đọc được qua `GET /reflection/timeline` — xem `docs/modules/backend.md`.
+`journal.entry-sealed` (`JournalEntrySealedEvent`) đã được phát thật, đi qua Outbox transactional cùng transaction với việc seal, và có đúng một consumer thật: ghi một dòng vào read model Timeline nội bộ (`contexts/reflection/timeline`), đọc được qua `GET /reflection/timeline` và hiển thị tại trang `/timeline` — xem `docs/modules/backend.md` và `docs/modules/client.md`.
 
 Các vocabulary còn lại vẫn chỉ là dự kiến, chưa được phát:
 
