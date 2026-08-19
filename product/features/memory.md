@@ -8,7 +8,7 @@ Memory không phải bản sao tự động của Journal, không phải bài ph
 
 Memory v1 đã hoàn thành vertical slice từ database đến giao diện người dùng. Backend gồm database constraints, domain rules, repository, CQRS handlers và bảy endpoint được mô tả trong tài liệu này. Các thao tác đọc và ghi đều giới hạn theo owner lấy từ access token; update, trash, restore và xóa vĩnh viễn đều dùng revision để phát hiện ghi đè đồng thời.
 
-Ở client, người dùng có thể tạo Memory độc lập hoặc bắt đầu từ một Journal entry, tìm kiếm, lọc, sắp xếp, đọc chi tiết, chỉnh sửa và thực hiện đầy đủ vòng đời Trash. Các mutation đi qua Server Action nên access token và địa chỉ backend không xuất hiện trong browser. Khi revision conflict xảy ra, giao diện giữ nội dung local và yêu cầu chọn bản mới nhất hoặc chủ động ghi nội dung local lên revision mới.
+Ở client, người dùng có thể tạo Memory độc lập hoặc bắt đầu từ một Journal entry, tìm kiếm, lọc, sắp xếp, đọc chi tiết, chỉnh sửa, thực hiện đầy đủ vòng đời Trash, và xem lại các Memory liên quan ngay tại trang chi tiết Journal nguồn. Các mutation đi qua Server Action nên access token và địa chỉ backend không xuất hiện trong browser. Khi revision conflict xảy ra, giao diện giữ nội dung local và yêu cầu chọn bản mới nhất hoặc chủ động ghi nội dung local lên revision mới.
 
 Backend E2E chứng minh authentication, ownership, revision protection và việc Memory vẫn tồn tại sau khi Journal nguồn bị xóa. Browser E2E chứng minh lifecycle riêng tư qua Next.js BFF và flow chọn lọc Journal thành Memory.
 
@@ -54,6 +54,7 @@ Người dùng có thể đọc lại Memory theo dòng thời gian, chỉnh s�
 - Xóa vĩnh viễn một Memory đang ở trong Trash.
 - Giữ Memory khi Journal nguồn bị xóa vĩnh viễn.
 - Bảo vệ mọi thao tác bằng ownership.
+- Lọc danh sách Memory theo Journal nguồn, để trang chi tiết Journal hiển thị đúng các Memory đã tạo từ chính entry đó.
 
 ### Chưa có trong v1
 
@@ -119,7 +120,7 @@ Dropdown chọn độ chính xác không thay đổi business rule. Nó chỉ qu
 
 Collection có thể đọc Memory theo thời điểm trải nghiệm xảy ra; đây là cách sắp xếp dữ liệu, không phải entity hay bảng riêng. Memory không rõ thời gian được đặt sau các Memory có thời gian khi sắp xếp theo `occurredOn`. Memory trong Trash không xuất hiện ở collection mặc định nhưng vẫn có thể được lọc riêng và khôi phục.
 
-Unified Timeline tổng hợp Journal, Memory, Habit, Routine và các module khác chưa thuộc v1. Khi feature đó xuất hiện, nó sẽ dùng Memory như một nguồn dữ liệu thay vì thay đổi domain model của Memory.
+Unified Timeline (có API/UI, tổng hợp Journal, Memory, Habit, Routine và các module khác) chưa thuộc v1. Nền tảng sự kiện cho nó đã tồn tại ở mức tối thiểu: `MemoryCreatedEvent` được phát thật và ghi vào một read model Timeline nội bộ (xem mục Events bên dưới) — khi Unified Timeline thật sự được xây, nó đọc từ đúng nền tảng này thay vì thay đổi domain model của Memory.
 
 ## Trạng thái
 
@@ -245,9 +246,11 @@ Khóa ngoại `memories.source_journal_entry_id` vẫn tồn tại để bảo v
 
 Memory v1 không tự tạo Reflection hoặc Insight.
 
-## Events dành cho giai đoạn sau
+## Events
 
-`memory.created`, `memory.updated`, `memory.trashed`, `memory.restored` và `memory.permanently-deleted` chỉ được phát khi có consumer thật. Collection Memory v1 đọc trực tiếp từ repository nên chưa cần event.
+`memory.created` (`MemoryCreatedEvent`) đã được phát thật ngay khi tạo Memory, đi qua Outbox transactional cùng transaction với việc ghi record, và có đúng một consumer thật: ghi một dòng vào read model Timeline nội bộ (`contexts/reflection/timeline`, chưa có API/UI — xem `docs/modules/backend.md`).
+
+`memory.updated`, `memory.trashed`, `memory.restored` và `memory.permanently-deleted` vẫn chỉ dành cho giai đoạn sau, chỉ được phát khi có consumer thật. Collection Memory v1 đọc trực tiếp từ repository cho các trường hợp còn lại nên chưa cần thêm event nào khác.
 
 ## Tiêu chí hoàn thành
 

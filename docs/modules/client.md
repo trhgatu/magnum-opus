@@ -139,6 +139,16 @@ onChange
 
 Markdown preview được dynamic import vì editor write path không cần parser ngay. Điều này giảm first-load JavaScript.
 
+### Ký ức liên quan
+
+`app/(protected)/journal/[id]/page.tsx` gọi `getMemories({ sourceJournalEntryId, limit: 6, sortBy: "occurredOn", sortOrder: "desc" })` cùng `Promise.all` với entry và Mood, tránh waterfall. `JournalLinkedMemories` (dynamic import như `MoodPanel`) hiển thị các Memory đã tạo từ entry và nút "Giữ lại như ký ức" thứ hai.
+
+Nút này **dùng chung** hàm `createMemoryFromEntry` và điều kiện `disabled` với nút cùng tên trên `JournalEditorToolbar` — cả hai đều `flush()` draft trước khi điều hướng và bị khoá khi `busy`/`conflict`/đang phục hồi session. Đây là một pattern cố ý: hai điểm vào cho cùng một hành động không được phép có hai mức an toàn dữ liệu khác nhau.
+
+### Loading state theo hình dạng nội dung
+
+`journal/loading.tsx`, `journal/[id]/loading.tsx`, và các route tương ứng của Memories dùng 4 component khung xương dùng chung (`components/system/{collection,editor,article,form}-skeleton.tsx`) thay vì `app/loading.tsx` chung của toàn app — vì `app/loading.tsx` chỉ hiện ở lần tải đầu tiên (Suspense boundary gốc không remount khi điều hướng trong app đã mount), không hiện khi chuyển giữa các route con. Khung xương khớp đúng hình dạng nội dung thật (danh sách thẻ, editor, bài viết, form) để tránh giật layout khi dữ liệu tải xong.
+
 ## Mood feature
 
 `app/(protected)/journal/[id]/page.tsx` bắt đầu `getJournalEntry(id)` và `getMood(id)` cùng lúc bằng `Promise.all`, tránh waterfall.

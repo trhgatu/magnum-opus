@@ -34,6 +34,7 @@ Người dùng có thể tạo một entry riêng tư, viết và lưu an toàn,
 - Phân trang hoặc infinite loading để lịch sử không bị giới hạn giả tạo.
 - Gắn Mood riêng cho entry mà không làm thay đổi revision của nội dung Journal.
 - Chủ động chọn lọc một entry thành Memory độc lập.
+- Xem danh sách Memory đã được tạo từ chính entry đang mở, ngay tại trang chi tiết.
 
 ### Chưa có trong v1
 
@@ -197,23 +198,26 @@ Sau mỗi response thành công, client phải giữ lại `revision` mới nh�
 
 Nếu user B yêu cầu ID của entry thuộc user A, API trả not found giống như entry không tồn tại. Response không tiết lộ rằng ID đó hợp lệ hoặc ai là owner. Quy tắc này áp dụng đồng nhất cho đọc, sửa, đổi trạng thái và xóa.
 
-## Events dành cho giai đoạn sau
+## Events
+
+`journal.entry-sealed` (`JournalEntrySealedEvent`) đã được phát thật, đi qua Outbox transactional cùng transaction với việc seal, và có đúng một consumer thật: ghi một dòng vào read model Timeline nội bộ (`contexts/reflection/timeline`, chưa có API/UI — xem `docs/modules/backend.md`).
+
+Các vocabulary còn lại vẫn chỉ là dự kiến, chưa được phát:
 
 - `journal.entry-created`
 - `journal.entry-content-updated`
-- `journal.entry-sealed`
 - `journal.entry-reopened`
 - `journal.entry-trashed`
 - `journal.entry-restored`
 - `journal.entry-permanently-deleted`
 
-Đây là vocabulary dự kiến, chưa phải event mà backend v1 đang phát. Chỉ thêm chúng khi có consumer thật như Timeline, audit trail hoặc insight. Việc phát event chưa có consumer sẽ làm outbox phức tạp hơn mà chưa tạo giá trị sản phẩm.
+Nguyên tắc không đổi: chỉ thêm event mới khi có consumer thật. Việc phát event chưa có consumer sẽ làm outbox phức tạp hơn mà chưa tạo giá trị sản phẩm.
 
 ## Trạng thái triển khai hiện tại
 
 Journal v1 đã hoàn thành vertical slice từ giao diện đến database.
 
-Ở client, người dùng có thể tạo entry, viết với autosave, lưu ngay bằng phím tắt, xem Markdown preview, bật focus mode, tìm kiếm, lọc theo trạng thái và thực hiện đầy đủ vòng đời seal, reopen, trash, restore. Nội dung đang gõ được giữ tại browser khi save thất bại. Khi revision conflict xảy ra, giao diện giữ local content và yêu cầu người dùng chọn bản mới nhất hoặc chủ động ghi phần đang gõ lên revision mới. Entry còn có thể ghi lại Mood riêng và mở flow chọn lọc nội dung thành một Memory độc lập.
+Ở client, người dùng có thể tạo entry, viết với autosave, lưu ngay bằng phím tắt, xem Markdown preview, bật focus mode, tìm kiếm, lọc theo trạng thái và thực hiện đầy đủ vòng đời seal, reopen, trash, restore. Nội dung đang gõ được giữ tại browser khi save thất bại. Khi revision conflict xảy ra, giao diện giữ local content và yêu cầu người dùng chọn bản mới nhất hoặc chủ động ghi phần đang gõ lên revision mới. Entry còn có thể ghi lại Mood riêng, mở flow chọn lọc nội dung thành một Memory độc lập, và xem lại mọi Memory đã tạo từ chính entry đó ngay dưới nội dung.
 
 Ở backend, slice gồm validation, authentication, ownership, command/query handlers, domain lifecycle, optimistic concurrency, Prisma repository và response presenter. Bài E2E cấp API chứng minh user B không thể truy cập entry của user A. Bài E2E trình duyệt chạy flow thật qua Next.js BFF và xác nhận access token không xuất hiện trong JavaScript, đồng thời browser không gọi trực tiếp backend.
 
