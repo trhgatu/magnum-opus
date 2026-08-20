@@ -215,6 +215,12 @@ jobs:
           pnpm --filter=@repo/database db:deploy
           pnpm --filter=@repo/database db:seed
 
+      - name: Harden apt network settings
+        run: |
+          echo 'Acquire::Retries "5";' | sudo tee /etc/apt/apt.conf.d/80-retries
+          echo 'Acquire::http::Timeout "15";' | sudo tee -a /etc/apt/apt.conf.d/80-retries
+          echo 'Acquire::https::Timeout "15";' | sudo tee -a /etc/apt/apt.conf.d/80-retries
+
       - name: Install Chromium
         run: pnpm --filter=admin exec playwright install --with-deps chromium
 
