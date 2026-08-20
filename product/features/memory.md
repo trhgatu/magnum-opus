@@ -248,7 +248,7 @@ Memory v1 không tự tạo Reflection hoặc Insight.
 
 ## Events
 
-`memory.created` (`MemoryCreatedEvent`) đã được phát thật ngay khi tạo Memory, đi qua Outbox transactional cùng transaction với việc ghi record, và có đúng một consumer thật: ghi một dòng vào read model Timeline nội bộ (`contexts/reflection/timeline`), đọc được qua `GET /reflection/timeline` — xem `docs/modules/backend.md`.
+`memory.created` (`MemoryCreatedEvent`) đã được phát thật ngay khi tạo Memory, đi qua Outbox transactional cùng transaction với việc ghi record, và có đúng một consumer thật: ghi một dòng vào read model Timeline nội bộ (`contexts/reflection/timeline`), đọc được qua `GET /reflection/timeline` và hiển thị tại trang `/timeline` — xem `docs/modules/backend.md` và `docs/modules/client.md`.
 
 `memory.updated`, `memory.trashed`, `memory.restored` và `memory.permanently-deleted` vẫn chỉ dành cho giai đoạn sau, chỉ được phát khi có consumer thật. Collection Memory v1 đọc trực tiếp từ repository cho các trường hợp còn lại nên chưa cần thêm event nào khác.
 

@@ -3,6 +3,7 @@ import {
   FolderKanban,
   Gem,
   Hammer,
+  History,
   Sparkles,
 } from "lucide-react";
 import type { ProductSpace } from "@/features/navigation/types/navigation.types";
@@ -17,6 +18,7 @@ export const productNavigation = [
     items: [
       { id: "journal", label: "Journal", href: "/journal", icon: BookOpenText },
       { id: "memories", label: "Memories", href: "/memories", icon: Gem },
+      { id: "timeline", label: "Timeline", href: "/timeline", icon: History },
     ],
   },
   {
