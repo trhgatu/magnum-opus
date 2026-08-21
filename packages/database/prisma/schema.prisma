@@ -12,8 +12,8 @@ model User {
   username        String
   password        String
   avatar          String?
-  isActive        Boolean   @default(true)
-  isDeleted       Boolean   @default(false)
+  isActive        Boolean   @default(true) @map("is_active")
+  isDeleted       Boolean   @default(false) @map("is_deleted")
   tokenVersion    Int       @default(0) @map("token_version")
   emailVerifiedAt DateTime? @map("email_verified_at")
 
@@ -26,10 +26,10 @@ model User {
   passwordResetTokens     PasswordResetToken[]
   emailVerificationTokens EmailVerificationToken[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  createdBy String?
-  updatedBy String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  createdBy String?  @map("created_by")
+  updatedBy String?  @map("updated_by")
 
   @@map("users")
 }
@@ -69,15 +69,15 @@ model Role {
   id          String  @id @default(uuid())
   name        String  @unique
   description String?
-  isDeleted   Boolean @default(false)
+  isDeleted   Boolean @default(false) @map("is_deleted")
 
   userRoles       UserRole[]
   rolePermissions RolePermission[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  createdBy String?
-  updatedBy String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  createdBy String?  @map("created_by")
+  updatedBy String?  @map("updated_by")
 
   @@map("roles")
 }
@@ -86,34 +86,34 @@ model Permission {
   id          String  @id @default(uuid())
   name        String  @unique
   description String?
-  displayName String?
+  displayName String? @map("display_name")
   module      String?
 
   rolePermissions RolePermission[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("permissions")
 }
 
 model UserRole {
-  userId     String
-  roleId     String
+  userId     String   @map("user_id")
+  roleId     String   @map("role_id")
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   role       Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  assignedAt DateTime @default(now())
+  assignedAt DateTime @default(now()) @map("assigned_at")
 
   @@id([userId, roleId])
   @@map("user_roles")
 }
 
 model RolePermission {
-  roleId       String
-  permissionId String
+  roleId       String     @map("role_id")
+  permissionId String     @map("permission_id")
   role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
   permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-  grantedAt    DateTime   @default(now())
+  grantedAt    DateTime   @default(now()) @map("granted_at")
 
   @@id([roleId, permissionId])
   @@map("role_permissions")
@@ -123,12 +123,12 @@ model AuditLog {
   id            String   @id @default(uuid())
   action        String
   details       String
-  userId        String?
-  userEmail     String?
+  userId        String?  @map("user_id")
+  userEmail     String?  @map("user_email")
   ip            String?
-  userAgent     String?
+  userAgent     String?  @map("user_agent")
   correlationId String?  @map("correlation_id")
-  createdAt     DateTime @default(now())
+  createdAt     DateTime @default(now()) @map("created_at")
 
   @@index([correlationId])
   @@index([createdAt])
@@ -143,8 +143,8 @@ model Menu {
   icon       String?
   order      Int      @default(0)
   permission String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
   parent   Menu?  @relation("MenuToMenu", fields: [parentId], references: [id], onDelete: Cascade)
   children Menu[] @relation("MenuToMenu")
@@ -279,12 +279,12 @@ enum TimelineEntryType {
 }
 
 model ReflectionTimelineEntry {
-  id String @id @default(uuid())
-  ownerId String @map("owner_id")
-  entryType TimelineEntryType @map("entry_type")
-  sourceId String @map("source_id")
-  occurredOn DateTime @map("occurred_on")
-  createdAt DateTime @default(now()) @map("created_at")
+  id         String            @id @default(uuid())
+  ownerId    String            @map("owner_id")
+  entryType  TimelineEntryType @map("entry_type")
+  sourceId   String            @map("source_id")
+  occurredOn DateTime          @map("occurred_on")
+  createdAt  DateTime          @default(now()) @map("created_at")
 
   @@unique([entryType, sourceId])
   @@index([ownerId, occurredOn(sort: Desc)])

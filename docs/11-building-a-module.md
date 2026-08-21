@@ -38,7 +38,7 @@ model Mood {
 }
 ```
 
-`id` là identity riêng của Mood. `journalEntryId @unique` biến business cardinality “một entry có tối đa một mood” thành database invariant; hai request race vẫn không tạo hai row. `intensity Int?` cho phép chưa chọn mức độ, nhưng Prisma chưa biểu diễn range nên migration thêm check constraint 1–5. `revision` là compare-and-swap counter. `onDelete: Cascade` nói Mood không có đời sống sau khi Journal bị xóa vĩnh viễn. `@@map` giữ TypeScript model singular/PascalCase và SQL table plural/snake_case.
+`id` là identity riêng của Mood. `journalEntryId @unique` biến business cardinality “một entry có tối đa một mood” thành database invariant; hai request race vẫn không tạo hai row. `intensity Int?` cho phép chưa chọn mức độ, nhưng Prisma chưa biểu diễn range nên migration thêm check constraint 1–5. `revision` là compare-and-swap counter. `onDelete: Cascade` nói Mood không có đời sống sau khi Journal bị xóa vĩnh viễn. `@@map` giữ TypeScript model singular/PascalCase và SQL table plural/snake_case. Quy tắc này áp dụng cho **mọi** field nhiều từ, không chỉ tên bảng: `journalEntryId`, `createdAt`, `updatedAt` ở trên đều có `@map` riêng. Các model bootstrap sớm nhất (`User`, `Role`, `Permission`, `AuditLog`, `Menu`) từng thiếu bước này ở nhiều field — cột vật lý thành camelCase có quote thay vì snake_case, phải vá lại bằng migration `align_snake_case_column_mapping`. Khi thêm field mới vào model cũ, kiểm tra luôn field cạnh nó đã có `@map` chưa trước khi copy pattern.
 
 Sau khi migrate, kiểm tra cả hai phía:
 
