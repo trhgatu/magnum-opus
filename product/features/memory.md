@@ -67,7 +67,7 @@ Người dùng có thể đọc lại Memory theo dòng thời gian, chỉnh s�
 - Reflection và Insight nằm bên trong Memory.
 - Điểm số, reflection depth hoặc gamification.
 - Nội dung đa ngôn ngữ dạng JSON.
-- Timeline tổng hợp Journal, Habit, Routine và các module khác.
+- Unified Timeline mở rộng Reflection Timeline hiện tại sang Habit, Routine và các context khác.
 - Admin đọc nội dung Memory của người dùng.
 
 Những khả năng bị hoãn chỉ được đưa vào khi có nhu cầu sản phẩm thật. Chúng không được thêm chỉ vì đã từng tồn tại trong Forge OS.
@@ -120,7 +120,7 @@ Dropdown chọn độ chính xác không thay đổi business rule. Nó chỉ qu
 
 Collection có thể đọc Memory theo thời điểm trải nghiệm xảy ra; đây là cách sắp xếp dữ liệu, không phải entity hay bảng riêng. Memory không rõ thời gian được đặt sau các Memory có thời gian khi sắp xếp theo `occurredOn`. Memory trong Trash không xuất hiện ở collection mặc định nhưng vẫn có thể được lọc riêng và khôi phục.
 
-Unified Timeline (tổng hợp Journal, Memory, Habit, Routine và các module khác, có UI) chưa thuộc v1. Nền tảng cho nó đã có sẵn trong phạm vi `reflection`: `MemoryCreatedEvent` được phát thật, ghi vào read model Timeline nội bộ và đọc được qua `GET /reflection/timeline` (xem mục Events bên dưới) — khi Unified Timeline thật sự được xây (mở rộng sang Habit/Routine), nó đọc từ đúng nền tảng này thay vì thay đổi domain model của Memory.
+Reflection Timeline v1 đã có UI tại `/timeline`, hiện tổng hợp Journal đã seal và Memory đã được tạo. “Unified Timeline” trong phần bị hoãn có nghĩa là mở rộng read model đó sang Habit, Routine và các bounded context khác; phần mở rộng này chưa thuộc Memory v1. Khi được xây, nó tiếp tục đọc từ projection hiện có thay vì thay đổi domain model của Memory.
 
 ## Trạng thái
 

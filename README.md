@@ -30,7 +30,7 @@ Quay lại quan sát
 
 ## Trạng thái hiện tại
 
-Repository đã hoàn thành foundation sản phẩm cùng hai vertical slice Reflection đầu tiên: Journal v1 và Mood v1. Nền tảng kỹ thuật ban đầu được kế thừa từ một starter đã được kiểm chứng; các capability của Forge OS sẽ tiếp tục được đánh giá rồi chuyển sang Magnum Opus từng slice, không port nguyên khối.
+Repository đã hoàn thành foundation sản phẩm, ba vertical slice Reflection là Journal, Mood, Memory và read model Timeline nối Journal/Memory theo thời gian. Forge là bounded context tiếp theo: Habit và Habit Check-in đã có backend vertical slice chạy qua HTTP và PostgreSQL; Routine, trang Today và client UI vẫn đang được xây theo từng lát nhỏ, không port nguyên khối từ Forge OS.
 
 Client hiện dùng một ngôn ngữ trải nghiệm thống nhất: yên, riêng tư, ưu tiên nội dung và không biến hành trình cá nhân thành dashboard năng suất. [Product vision](product/vision.md) ghi lại các nguyên tắc để những capability tiếp theo không tự phát minh một phong cách hoặc interaction contract khác.
 

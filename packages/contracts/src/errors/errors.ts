@@ -245,6 +245,56 @@ export const Errors = {
     translationKey: 'exceptions.memory.permanent.delete.forbidden',
     statusCode: 409,
   },
+  INVALID_HABIT_TITLE: {
+    code: 'INVALID_HABIT_TITLE',
+    translationKey: 'exceptions.habit.title.invalid',
+    statusCode: 400,
+  },
+  INVALID_HABIT_ID: {
+    code: 'INVALID_HABIT_ID',
+    translationKey: 'exceptions.habit.id.invalid',
+    statusCode: 400,
+  },
+  INVALID_HABIT_FREQUENCY: {
+    code: 'INVALID_HABIT_FREQUENCY',
+    translationKey: 'exceptions.habit.frequency.invalid',
+    statusCode: 400,
+  },
+  HABIT_NOT_FOUND: {
+    code: 'HABIT_NOT_FOUND',
+    translationKey: 'exceptions.habit.not.found',
+    statusCode: 404,
+  },
+  HABIT_REVISION_CONFLICT: {
+    code: 'HABIT_REVISION_CONFLICT',
+    translationKey: 'exceptions.habit.revision.conflict',
+    statusCode: 409,
+  },
+  INVALID_HABIT_TRANSITION: {
+    code: 'INVALID_HABIT_TRANSITION',
+    translationKey: 'exceptions.habit.transition.invalid',
+    statusCode: 409,
+  },
+  INVALID_HABIT_CHECK_IN_ID: {
+    code: 'INVALID_HABIT_CHECK_IN_ID',
+    translationKey: 'exceptions.habit.check.in.id.invalid',
+    statusCode: 400,
+  },
+  INVALID_HABIT_CHECK_IN_DATE: {
+    code: 'INVALID_HABIT_CHECK_IN_DATE',
+    translationKey: 'exceptions.habit.check.in.date.invalid',
+    statusCode: 400,
+  },
+  INVALID_HABIT_CHECK_IN_RANGE: {
+    code: 'INVALID_HABIT_CHECK_IN_RANGE',
+    translationKey: 'exceptions.habit.check.in.range.invalid',
+    statusCode: 400,
+  },
+  HABIT_CHECK_IN_FORBIDDEN: {
+    code: 'HABIT_CHECK_IN_FORBIDDEN',
+    translationKey: 'exceptions.habit.check.in.forbidden',
+    statusCode: 409,
+  },
 } as const;
 
 export type ErrorDefinition = (typeof Errors)[keyof typeof Errors];
