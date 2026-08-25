@@ -1,9 +1,11 @@
 import {
   BookOpenText,
+  Flame,
   FolderKanban,
   Gem,
   Hammer,
   History,
+  Repeat2,
   Sparkles,
 } from "lucide-react";
 import type { ProductSpace } from "@/features/navigation/types/navigation.types";
@@ -20,6 +22,14 @@ export const productNavigation = [
       { id: "memories", label: "Memories", href: "/memories", icon: Gem },
       { id: "timeline", label: "Timeline", href: "/timeline", icon: History },
     ],
+  },
+  {
+    id: "forge",
+    label: "Forge",
+    description: "Rèn những hành động nhỏ thành nhịp sống có chủ ý.",
+    icon: Flame,
+    status: "available",
+    items: [{ id: "habits", label: "Habits", href: "/habits", icon: Repeat2 }],
   },
   {
     id: "engineering",

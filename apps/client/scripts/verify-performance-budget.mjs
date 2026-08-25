@@ -13,6 +13,10 @@ const routeBudgets = new Map([
   ["/memories/new", 670 * KIBIBYTE],
   ["/memories/[id]", 610 * KIBIBYTE],
   ["/memories/[id]/edit", 670 * KIBIBYTE],
+  ["/habits", 565 * KIBIBYTE],
+  ["/habits/new", 655 * KIBIBYTE],
+  ["/habits/[id]", 570 * KIBIBYTE],
+  ["/habits/[id]/edit", 655 * KIBIBYTE],
 ]);
 
 const diagnosticsPath = resolve(

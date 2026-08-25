@@ -12,6 +12,29 @@ import { HabitCheckInDate } from '../../domain/value-objects';
 export class PrismaHabitCheckInReader implements HabitCheckInReader {
   constructor(private readonly prisma: PrismaService) {}
 
+  public async findForHabitOnDate(
+    habitId: string,
+    ownerId: string,
+    date: string,
+  ): Promise<HabitCheckInReadModel | null> {
+    const row = await this.prisma.habitCheckIn.findFirst({
+      where: {
+        habitId,
+        ownerId,
+        date: HabitCheckInDate.create(date).toPersistenceDate(),
+      },
+    });
+
+    return row
+      ? {
+          id: row.id,
+          habitId: row.habitId,
+          date: row.date.toISOString().slice(0, 10),
+          createdAt: row.createdAt,
+        }
+      : null;
+  }
+
   public async findForHabitInRange(
     habitId: string,
     ownerId: string,

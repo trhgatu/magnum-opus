@@ -11,3 +11,9 @@ export interface HabitCheckInHistoryResponse {
   to: string;
   dates: string[];
 }
+
+export interface HabitCheckInTodayResponse {
+  date: string;
+  checkedIn: boolean;
+  checkIn: HabitCheckInResponse | null;
+}

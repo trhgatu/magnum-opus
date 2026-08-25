@@ -163,6 +163,18 @@ describe('Habit (E2E)', () => {
     expect(duplicate.body.id).toBe(first.body.id);
 
     await request(app.getHttpServer())
+      .get(`/habits/${habitId}/check-ins/today`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(HttpStatus.OK)
+      .expect(({ body }) =>
+        expect(body).toMatchObject({
+          date: today,
+          checkedIn: true,
+          checkIn: { id: first.body.id, habitId, date: today },
+        }),
+      );
+
+    await request(app.getHttpServer())
       .get(`/habits/${habitId}/check-ins`)
       .query({ from: today, to: today })
       .set('Authorization', `Bearer ${otherToken}`)
@@ -192,6 +204,14 @@ describe('Habit (E2E)', () => {
       .delete(`/habits/${habitId}/check-ins/today`)
       .set('Authorization', `Bearer ${ownerToken}`)
       .expect(HttpStatus.NO_CONTENT);
+
+    await request(app.getHttpServer())
+      .get(`/habits/${habitId}/check-ins/today`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(HttpStatus.OK)
+      .expect(({ body }) =>
+        expect(body).toEqual({ date: today, checkedIn: false, checkIn: null }),
+      );
     await request(app.getHttpServer())
       .delete(`/habits/${habitId}/check-ins/today`)
       .set('Authorization', `Bearer ${ownerToken}`)

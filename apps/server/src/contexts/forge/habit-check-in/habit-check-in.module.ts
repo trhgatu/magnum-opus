@@ -8,6 +8,7 @@ import { CLOCK } from './application/ports/clock.port';
 import { HABIT_CHECK_IN_READER } from './application/ports/habit-check-in-reader.port';
 import { USER_TIME_ZONE_READER } from './application/ports/user-time-zone-reader.port';
 import { GetHabitCheckInsHandler } from './application/queries/handlers/get-habit-check-ins.handler';
+import { GetHabitCheckInTodayHandler } from './application/queries/handlers/get-habit-check-in-today.handler';
 import { HabitCheckInContextService } from './application/services';
 import { HABIT_CHECK_IN_REPOSITORY } from './domain/ports/habit-check-in.repository';
 import { SystemClock } from './infrastructure/clock/system-clock';
@@ -32,6 +33,7 @@ import { HabitCheckInController } from './presentation/controllers/habit-check-i
     HabitCheckInContextService,
     CheckInHabitHandler,
     UndoHabitCheckInHandler,
+    GetHabitCheckInTodayHandler,
     GetHabitCheckInsHandler,
   ],
 })

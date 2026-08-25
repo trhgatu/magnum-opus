@@ -8,6 +8,12 @@ export interface HabitCheckInReadModel {
 }
 
 export interface HabitCheckInReader {
+  findForHabitOnDate(
+    habitId: string,
+    ownerId: string,
+    date: string,
+  ): Promise<HabitCheckInReadModel | null>;
+
   findForHabitInRange(
     habitId: string,
     ownerId: string,

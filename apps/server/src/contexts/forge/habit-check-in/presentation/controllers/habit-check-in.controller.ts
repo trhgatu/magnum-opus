@@ -15,6 +15,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type {
   HabitCheckInHistoryResponse,
   HabitCheckInResponse,
+  HabitCheckInTodayResponse,
 } from '@repo/contracts';
 
 import { GetUser } from '@presentation/decorators';
@@ -25,7 +26,11 @@ import {
   UndoHabitCheckInCommand,
 } from '../../application/commands';
 import { HabitCheckInReadModel } from '../../application/ports/habit-check-in-reader.port';
-import { GetHabitCheckInsQuery } from '../../application/queries';
+import {
+  GetHabitCheckInsQuery,
+  GetHabitCheckInTodayQuery,
+} from '../../application/queries';
+import type { HabitCheckInTodayResult } from '../../application/queries/handlers/get-habit-check-in-today.handler';
 import { HabitCheckIn } from '../../domain/habit-check-in.aggregate';
 import { GetHabitCheckInsQueryDto } from '../dtos';
 import { HabitCheckInPresenter } from '../presenters/habit-check-in.presenter';
@@ -83,5 +88,19 @@ export class HabitCheckInController {
       query.to,
       result.unwrap() as HabitCheckInReadModel[],
     );
+  }
+
+  @Get('today')
+  @ApiOperation({ summary: "Get today's owner-timezone check-in status" })
+  public async today(
+    @GetUser('id') ownerId: string,
+    @Param('habitId', new ParseUUIDPipe()) habitId: string,
+  ): Promise<HabitCheckInTodayResponse> {
+    const result = await this.queryBus.execute(
+      new GetHabitCheckInTodayQuery(habitId, ownerId),
+    );
+    const today = result.unwrap() as HabitCheckInTodayResult;
+
+    return HabitCheckInPresenter.toTodayResponse(today.date, today.checkIn);
   }
 }

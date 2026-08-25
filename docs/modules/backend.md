@@ -222,7 +222,7 @@ Hai điểm kỹ thuật đáng nhớ khi mở rộng pattern này cho aggregate
 
 ### Forge / Habit và Habit Check-in runtime
 
-Forge được đăng ký vào API qua `ForgeModule`, hiện gom `HabitModule` và `HabitCheckInModule`. Habit có các endpoint `POST /habits`, `GET /habits`, `GET /habits/:id`, `PUT /habits/:id`, `PATCH /habits/:id/archive` và `PATCH /habits/:id/restore`. Check-in có `PUT /habits/:habitId/check-ins/today`, `DELETE /habits/:habitId/check-ins/today` và `GET /habits/:habitId/check-ins?from=...&to=...`. Tất cả đều đi qua `JwtAuthGuard`, lấy owner từ access token và không nhận owner trong payload.
+Forge được đăng ký vào API qua `ForgeModule`, hiện gom `HabitModule` và `HabitCheckInModule`. Habit có các endpoint `POST /habits`, `GET /habits`, `GET /habits/:id`, `PUT /habits/:id`, `PATCH /habits/:id/archive` và `PATCH /habits/:id/restore`. Check-in có `PUT /habits/:habitId/check-ins/today`, `DELETE /habits/:habitId/check-ins/today`, `GET /habits/:habitId/check-ins/today` và `GET /habits/:habitId/check-ins?from=...&to=...`. Endpoint đọc `today` trả cả calendar date theo `User.timeZone` và record hiện tại để client không phải suy đoán ngày nghiệp vụ. Tất cả đều đi qua `JwtAuthGuard`, lấy owner từ access token và không nhận owner trong payload.
 
 Check-in hôm nay không dùng ngày của API process. Handler đọc Habit owner-scoped qua `CheckInHabitReader`, đọc `User.timeZone` qua `UserTimeZoneReader`, lấy instant qua `Clock`, rồi `HabitCheckInDate` chuyển instant đó thành `YYYY-MM-DD`. Repository thử insert; nếu Prisma trả `P2002`, nó chỉ coi là idempotent-success sau khi query lại và tìm thấy đúng record `(habitId, ownerId, date)`. Cách xác minh bằng dữ liệu này không phụ thuộc shape `meta.target` vốn đã thay đổi giữa các Prisma adapter.
 

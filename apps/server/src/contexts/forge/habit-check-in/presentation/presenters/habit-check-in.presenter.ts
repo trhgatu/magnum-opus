@@ -1,6 +1,7 @@
 import type {
   HabitCheckInHistoryResponse,
   HabitCheckInResponse,
+  HabitCheckInTodayResponse,
 } from '@repo/contracts';
 
 import { HabitCheckInReadModel } from '../../application/ports/habit-check-in-reader.port';
@@ -14,6 +15,24 @@ export class HabitCheckInPresenter {
       habitId: data.habitId,
       date: data.date,
       createdAt: data.createdAt.toISOString(),
+    };
+  }
+
+  public static toTodayResponse(
+    date: string,
+    checkIn: HabitCheckInReadModel | null,
+  ): HabitCheckInTodayResponse {
+    return {
+      date,
+      checkedIn: Boolean(checkIn),
+      checkIn: checkIn
+        ? {
+            id: checkIn.id,
+            habitId: checkIn.habitId,
+            date: checkIn.date,
+            createdAt: checkIn.createdAt.toISOString(),
+          }
+        : null,
     };
   }
 

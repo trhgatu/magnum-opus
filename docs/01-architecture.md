@@ -108,7 +108,7 @@ Passport strategy cũng là presentation adapter: nó nhận credential từ HTT
 | --------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | `iam`           | Identity, login/session, users, roles và permissions.                                                                               |
 | `reflection`    | Journal, Mood, Memory và Timeline (read model nội bộ, có API `GET /reflection/timeline`) — dữ liệu phản tư riêng tư của người dùng. |
-| `forge`         | Habit và Habit Check-in backend API đã chạy runtime; Routine, Today và client UI đang tiếp tục được xây trên data contract đã khóa. |
+| `forge`         | Habit và Habit Check-in đã chạy full-stack; Routine và trang Today sẽ được xây trên data contract đã khóa.                          |
 | `notifications` | Hộp thông báo thuộc từng user và trạng thái đã đọc.                                                                                 |
 | `audit`         | Nhật ký hành động quản trị và retention.                                                                                            |
 | `analytics`     | Read model thống kê dashboard; không sở hữu transaction nghiệp vụ nguồn.                                                            |
