@@ -71,11 +71,11 @@ describe('PrismaTimelineReader', () => {
     });
 
     expect(journalEntry.findMany).toHaveBeenCalledWith({
-      where: { id: { in: ['journal-1'] } },
+      where: { id: { in: ['journal-1'] }, ownerId: 'owner-1' },
       select: { id: true, title: true },
     });
     expect(memory.findMany).toHaveBeenCalledWith({
-      where: { id: { in: ['memory-1'] } },
+      where: { id: { in: ['memory-1'] }, ownerId: 'owner-1' },
       select: { id: true, title: true },
     });
     expect(result.total).toBe(2);

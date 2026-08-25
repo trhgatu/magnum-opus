@@ -38,13 +38,13 @@ export class PrismaTimelineReader implements TimelineReader {
     const [journals, memories] = await Promise.all([
       journalIds.length
         ? this.prisma.journalEntry.findMany({
-            where: { id: { in: journalIds } },
+            where: { id: { in: journalIds }, ownerId },
             select: { id: true, title: true },
           })
         : Promise.resolve([]),
       memoryIds.length
         ? this.prisma.memory.findMany({
-            where: { id: { in: memoryIds } },
+            where: { id: { in: memoryIds }, ownerId },
             select: { id: true, title: true },
           })
         : Promise.resolve([]),

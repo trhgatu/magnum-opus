@@ -16,10 +16,14 @@ model User {
   isDeleted       Boolean   @default(false) @map("is_deleted")
   tokenVersion    Int       @default(0) @map("token_version")
   emailVerifiedAt DateTime? @map("email_verified_at")
+  timeZone        String    @default("UTC") @map("time_zone") @db.VarChar(64)
 
   journalEntries JournalEntry[]
 
   memories Memory[]
+
+  habits   Habit[]
+  routines Routine[]
 
   userRoles               UserRole[]
   notifications           Notification[]
@@ -289,4 +293,75 @@ model ReflectionTimelineEntry {
   @@unique([entryType, sourceId])
   @@index([ownerId, occurredOn(sort: Desc)])
   @@map("reflection_timeline_entries")
+}
+
+enum HabitFrequencyType {
+  DAILY
+  WEEKLY
+}
+
+model Habit {
+  id            String             @id @default(uuid())
+  ownerId       String             @map("owner_id")
+  title         String             @db.VarChar(200)
+  description   String?            @db.Text
+  frequencyType HabitFrequencyType @map("frequency_type")
+  frequencyDays Int[]              @default([]) @map("frequency_days")
+  isActive      Boolean            @default(true) @map("is_active")
+  revision      Int                @default(1)
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
+
+  owner        User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  checkIns     HabitCheckIn[]
+  routineLinks RoutineHabit[]
+
+  @@unique([id, ownerId])
+  @@index([ownerId, isActive])
+  @@map("habits")
+}
+
+model HabitCheckIn {
+  id        String   @id @default(uuid())
+  habitId   String   @map("habit_id")
+  ownerId   String   @map("owner_id")
+  date      DateTime @db.Date
+  createdAt DateTime @default(now()) @map("created_at")
+
+  habit Habit @relation(fields: [habitId, ownerId], references: [id, ownerId], onDelete: Cascade)
+
+  @@unique([habitId, date])
+  @@index([ownerId, date])
+  @@map("habit_check_ins")
+}
+
+model Routine {
+  id        String   @id @default(uuid())
+  ownerId   String   @map("owner_id")
+  title     String   @db.VarChar(200)
+  isActive  Boolean  @default(true) @map("is_active")
+  revision  Int      @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  owner  User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  habits RoutineHabit[]
+
+  @@unique([id, ownerId])
+  @@index([ownerId, isActive])
+  @@map("routines")
+}
+
+model RoutineHabit {
+  routineId String @map("routine_id")
+  habitId   String @map("habit_id")
+  ownerId   String @map("owner_id")
+  order     Int
+
+  routine Routine @relation(fields: [routineId, ownerId], references: [id, ownerId], onDelete: Cascade)
+  habit   Habit   @relation(fields: [habitId, ownerId], references: [id, ownerId], onDelete: Cascade)
+
+  @@id([routineId, habitId])
+  @@unique([routineId, order])
+  @@map("routine_habits")
 }

@@ -218,7 +218,23 @@ Hai điểm kỹ thuật đáng nhớ khi mở rộng pattern này cho aggregate
 1. Repository chỉ được ghi outbox event khi thao tác ghi aggregate **thực sự thành công** — `PrismaJournalEntryRepository.update()` kiểm `result.count === 1` (tránh trường hợp thua optimistic-lock race nhưng vẫn để lại dấu vết trên Timeline).
 2. `@@unique([entryType, sourceId])` trên `ReflectionTimelineEntry` là lớp idempotency thứ hai, phòng khi Outbox Publisher retry cùng event — `PrismaTimelineWriter` bắt `P2002` và coi như đã ghi, không throw.
 
-**Read side.** Timeline vẫn là module reader-only — không có aggregate/domain layer, giống `analytics/dashboard`. `PrismaTimelineReader.findAllForOwner()` lấy trang dữ liệu từ `reflection_timeline_entries` rồi tra ngược title theo lô (2 query `findMany` theo `entryType`, không phải N+1 theo dòng) sang `journalEntry`/`memory`. Vì Timeline không tự dọn theo vòng đời nguồn, một dòng có thể trỏ tới bản ghi đã bị xóa vĩnh viễn — response phân biệt rõ bằng `sourceExists: false` và `title: null` thay vì để lộ title cũ hoặc ném lỗi. `GetTimelineHandler` chỉ dịch `page` sang `skip/take` rồi gọi thẳng reader qua `TIMELINE_READER` port.
+**Read side.** Timeline vẫn là module reader-only — không có aggregate/domain layer, giống `analytics/dashboard`. `PrismaTimelineReader.findAllForOwner()` lấy trang dữ liệu từ `reflection_timeline_entries` rồi tra ngược title theo lô (2 query `findMany` theo `entryType`, không phải N+1 theo dòng) sang `journalEntry`/`memory`. Cả truy vấn Timeline lẫn truy vấn nguồn đều lọc `ownerId`; lớp phòng thủ thứ hai này ngăn lộ metadata nếu projection bị backfill sai. Vì Timeline không tự dọn theo vòng đời nguồn, một dòng có thể trỏ tới bản ghi đã bị xóa vĩnh viễn — response phân biệt rõ bằng `sourceExists: false` và `title: null` thay vì để lộ title cũ hoặc ném lỗi. `GetTimelineHandler` chỉ dịch `page` sang `skip/take` rồi gọi thẳng reader qua `TIMELINE_READER` port.
+
+### Forge / Habit và Habit Check-in runtime
+
+Forge được đăng ký vào API qua `ForgeModule`, hiện gom `HabitModule` và `HabitCheckInModule`. Habit có các endpoint `POST /habits`, `GET /habits`, `GET /habits/:id`, `PUT /habits/:id`, `PATCH /habits/:id/archive` và `PATCH /habits/:id/restore`. Check-in có `PUT /habits/:habitId/check-ins/today`, `DELETE /habits/:habitId/check-ins/today` và `GET /habits/:habitId/check-ins?from=...&to=...`. Tất cả đều đi qua `JwtAuthGuard`, lấy owner từ access token và không nhận owner trong payload.
+
+Check-in hôm nay không dùng ngày của API process. Handler đọc Habit owner-scoped qua `CheckInHabitReader`, đọc `User.timeZone` qua `UserTimeZoneReader`, lấy instant qua `Clock`, rồi `HabitCheckInDate` chuyển instant đó thành `YYYY-MM-DD`. Repository thử insert; nếu Prisma trả `P2002`, nó chỉ coi là idempotent-success sau khi query lại và tìm thấy đúng record `(habitId, ownerId, date)`. Cách xác minh bằng dữ liệu này không phụ thuộc shape `meta.target` vốn đã thay đổi giữa các Prisma adapter.
+
+`HabitMutationService` dùng chung flow owner-scoped load → preflight revision check → domain mutation → compare-and-swap update; nó không chứa business rule thay aggregate. Repository ghi bằng mapper tường minh, lookup luôn dùng `(id, ownerId)`, còn update dùng `(id, ownerId, expectedRevision)`. E2E kiểm tra cả ownership isolation, stale revision, list filter, archive và restore trên PostgreSQL thật.
+
+`HabitCheckIn` đã là capability runtime và đã có E2E cho idempotency, ownership, archive guard, history và undo. `Routine` cùng trang Today vẫn mới dừng ở product/data contract; heatmap hiện mới có API dữ liệu, chưa có UI. Việc bảng Routine đã tồn tại không được hiểu là capability đã hoàn tất.
+
+Data contract chủ động bảo vệ tenant ở database. `HabitCheckIn` tham chiếu Habit bằng khóa ghép `(habitId, ownerId)`; `RoutineHabit` cũng tham chiếu cả Routine và Habit bằng owner chung. Một record nối chéo dữ liệu hai user vì thế bị foreign key từ chối ngay cả khi application guard bị viết sai. Habit và Routine là quan hệ nhiều-nhiều: khóa chính `(routineId, habitId)` ngăn membership trùng, còn `(routineId, order)` unique giữ thứ tự không trùng trong từng Routine. Check-in thuộc Habit nên được dùng chung ở mọi Routine chứa Habit đó.
+
+`User.timeZone` là IANA timezone dùng để diễn giải “hôm nay” và ISO weekday. Giá trị mặc định `UTC` giúp dữ liệu cũ migrate an toàn, nhưng application phải đọc timezone của owner qua port thay vì gọi `new Date()` rồi coi ngày của server là ngày của người dùng. Domain/application tests phải dùng clock giả để kiểm tra biên chuyển ngày.
+
+Migration Forge còn thêm check constraint cho title đã trim, revision dương, weekday thuộc `1..7`, shape `DAILY/WEEKLY` và order dương. Domain vẫn validate trước để trả lỗi có nghĩa; database là lớp bảo vệ cuối cho write path khác NestJS.
 
 ## Notifications
 
