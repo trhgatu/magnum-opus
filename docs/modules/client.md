@@ -18,7 +18,8 @@ app/
 │  ├─ layout.tsx          protected shell
 │  ├─ me/page.tsx         account
 │  ├─ journal/            Journal list/editor
-│  └─ memories/           Memory collection/create/detail/edit
+│  ├─ memories/           Memory collection/create/detail/edit
+│  └─ habits/             Habit collection/create/detail/edit/check-in
 ├─ health/route.ts        deploy health endpoint
 ├─ layout.tsx             root HTML/fonts/metadata
 ├─ error.tsx              segment error boundary
@@ -159,6 +160,36 @@ Mood panel được lazy-load từ Journal editor. Initial bundle của `/journa
 
 Conflict không tự retry PUT vì retry cùng revision chắc chắn tiếp tục conflict, còn retry không revision có thể ghi đè dữ liệu mới. UI đưa nút tải snapshot mới nhất.
 
+## Habit feature
+
+Habit là vertical slice đầu tiên của không gian Forge trên client. Bốn route được giữ mỏng:
+
+```text
+/habits              collection, search, status, sort, pagination
+/habits/new          tạo Habit
+/habits/:id          detail, check-in hôm nay, heatmap, archive/restore
+/habits/:id/edit     chỉnh sửa Habit đang active
+```
+
+Code nghiệp vụ giao diện nằm tại `features/habit`, không nằm rải trong route:
+
+```text
+features/habit/api          server-only HTTP reads
+features/habit/actions      validated Server Actions cho mutation
+features/habit/lib          URL state, frequency và date-range helpers
+features/habit/components   collection, editor, lifecycle, check-in, heatmap
+```
+
+`page.tsx` là Server Component. Collection đọc `searchParams` rồi canonicalize qua `parseHabitLocation`; bởi vậy page, search, trạng thái và sort có thể bookmark, reload và back/forward. Browser không giữ một bản cache thứ hai bằng Zustand hoặc TanStack Query.
+
+Detail khởi động `getHabit` và `getHabitCheckInToday` song song. Endpoint `today` trả ngày lịch theo `User.timeZone`; chỉ sau khi nhận ngày này page mới tính khoảng 90 ngày và gọi history. Không được thay bằng `new Date()` ở browser hoặc Next.js server vì hai process có thể ở timezone khác owner.
+
+`HabitEditor`, `HabitLifecycleControls` và `HabitCheckInControl` là các Client Component nhỏ vì chúng sở hữu interaction state và `useTransition`. Mutation đi qua Server Action, input được validate lại tại BFF boundary, lỗi được chuyển thành discriminated result có thể serialize. Update/archive/restore gửi `expectedRevision`; lỗi `HABIT_REVISION_CONFLICT` yêu cầu tải bản mới thay vì ghi đè âm thầm.
+
+Heatmap không phải aggregate và không tự suy diễn streak. `HabitHeatmap` chỉ biểu diễn danh sách calendar date backend đã trả. Một ngày trống có nghĩa là không có check-in, không phải “thất bại”. Routine chưa xuất hiện trong route, action hay component Habit; quan hệ nhiều-nhiều sẽ được thêm như một feature slice riêng.
+
+Production build tại thời điểm chốt lát cắt đo `/habits` khoảng 560.7 KiB, detail 562 KiB và hai editor 649.2 KiB first-load JavaScript. CI đặt budget lần lượt 565, 570 và 655 KiB. Đây là ngưỡng riêng theo route, có dư địa nhỏ để phát hiện dependency hoặc Client Component bị kéo vào ngoài ý muốn; nó không nâng trần của Journal/Memory.
+
 ## Memory feature
 
 Toolbar collection gom search, trạng thái và sắp xếp vào cùng một surface. Trạng thái còn ở dạng segmented control vì được chuyển thường xuyên; tiêu chí và chiều sắp xếp dùng HTML Popover API với chế độ `auto`. Browser tự light-dismiss khi click ra ngoài, đóng bằng phím Escape và đặt panel vào top layer mà không cần hydrate React. CSS Anchor Positioning neo panel vào nút trigger. Các lựa chọn bên trong vẫn là link có URL canonical, nên deep link, back/forward và chia sẻ URL không bị mất.
@@ -220,7 +251,7 @@ MobileNavigation   drawer navigation trên màn hình nhỏ
 AccountMenu        hồ sơ và đăng xuất
 ```
 
-`features/navigation/config/product-navigation.ts` là nguồn sự thật duy nhất cho cấu trúc điều hướng. Mỗi `ProductSpace` đại diện cho một không gian có ý nghĩa đối với hành trình sản phẩm; `NavigationItem` là capability bên trong không gian đó. Tên capability dùng tiếng Anh nhất quán: Reflection hiện chứa Journal, Memories và Timeline. Nội dung mô tả và hành động vẫn dùng tiếng Việt tự nhiên, chẳng hạn “lưu một ký ức”; đây là câu nghiệp vụ chứ không phải tên module. Engineering được ghi nhận ở trạng thái `planned` nhưng không được render thành link chết.
+`features/navigation/config/product-navigation.ts` là nguồn sự thật duy nhất cho cấu trúc điều hướng. Mỗi `ProductSpace` đại diện cho một không gian có ý nghĩa đối với hành trình sản phẩm; `NavigationItem` là capability bên trong không gian đó. Reflection chứa Journal, Memories và Timeline; Forge chứa Habits. Tên capability dùng tiếng Anh nhất quán, còn nội dung mô tả và hành động dùng tiếng Việt tự nhiên. Engineering được ghi nhận ở trạng thái `planned` nhưng không được render thành link chết.
 
 `ContextNavigation` dùng pathname làm nguồn sự thật cho active state. `/journal` và `/journal/:id` cùng đánh dấu Journal; `/journalism` không được nhận nhầm chỉ vì có chung tiền tố. Vì trạng thái được tính từ URL, deep link, reload và back/forward không làm sidebar lệch khỏi trang đang mở.
 
@@ -253,4 +284,4 @@ Client hiện không cần Zustand global store hoặc TanStack Query. Chỉ th�
 
 ## Tests
 
-Unit tests kiểm tra URL helpers, environment/session crypto, API error normalization, Server Actions và hooks. Component tests dùng jsdom cho interaction/recovery. Playwright E2E chứng minh auth, accessibility, Journal autosave/conflict/resilience, Mood lifecycle và Memory lifecycle qua BFF thật. Backend E2E riêng của Memory kiểm tra ownership, stale revision và việc Memory sống tiếp khi Journal nguồn bị xóa.
+Unit tests kiểm tra URL helpers, environment/session crypto, API error normalization, Server Actions và hooks. Component tests dùng jsdom cho interaction/recovery. Habit có test riêng cho canonical URL, weekly frequency, khoảng heatmap, accessible summary và check-in dùng ngày backend trả. Playwright E2E chứng minh auth, Journal, Mood, Memory và toàn bộ Habit lifecycle qua BFF thật; browser không gọi trực tiếp NestJS origin. Backend E2E kiểm tra ownership, stale revision, idempotency và timezone boundary.

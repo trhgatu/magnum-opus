@@ -4,7 +4,7 @@ Forge là context chứa Habit và Routine: những cam kết lặp lại vô th
 
 ## Trạng thái triển khai
 
-Product spec và data contract đã được chốt. Habit backend vertical slice chạy qua HTTP với create, list/search/filter, get detail, update, archive và restore. Habit Check-in cũng đã có runtime cho check-in hôm nay, undo hôm nay và đọc lịch sử theo khoảng tối đa 366 ngày. Ownership, optimistic locking, idempotency, timezone boundary và lifecycle đều đã được kiểm tra bằng unit test và E2E trên PostgreSQL. Routine, trang Today, heatmap UI và client feature chưa được triển khai.
+Product spec và data contract đã được chốt. Habit chạy thành một vertical slice từ PostgreSQL, NestJS đến Next.js: create, list/search/filter, detail, update, archive/restore, check-in/undo hôm nay và heatmap 90 ngày. Ownership, optimistic locking, idempotency, timezone boundary và lifecycle được kiểm tra bằng unit, component và HTTP E2E. Routine và trang tổng hợp Today chưa được triển khai.
 
 ## Vấn đề cần giải quyết
 
@@ -107,10 +107,15 @@ Runtime hiện cung cấp ba endpoint owner-scoped:
 - `PUT /habits/:habitId/check-ins/today`: tạo check-in hôm nay. Gọi lại trả đúng record đã có thay vì tạo bản ghi thứ hai.
 - `DELETE /habits/:habitId/check-ins/today`: bỏ check-in hôm nay. Gọi khi chưa có record vẫn thành công để thao tác undo có tính idempotent.
 - `GET /habits/:habitId/check-ins?from=YYYY-MM-DD&to=YYYY-MM-DD`: trả các ngày đã check-in trong khoảng, tối đa 366 ngày, làm dữ liệu đầu vào cho heatmap.
+- `GET /habits/:habitId/check-ins/today`: trả calendar date theo `User.timeZone` cùng trạng thái check-in hiện tại. Client dùng endpoint này thay vì suy đoán “hôm nay” bằng timezone của browser hoặc Next.js process.
 
 Luồng ghi không import `Habit` aggregate trực tiếp. `HabitCheckInContextService` đọc `{ id, isActive }` qua `CheckInHabitReader`, đọc IANA timezone qua `UserTimeZoneReader`, lấy instant qua `Clock`, rồi mới tạo calendar date. Nhờ vậy Habit và HabitCheckIn vẫn là hai aggregate độc lập; test có thể cố định clock/timezone mà không sửa thời gian của máy chạy test. Habit đã archive không nhận check-in mới, nhưng vẫn được undo check-in hôm nay để sửa một thao tác nhầm trước đó.
 
 ### Xem chi tiết Habit — heatmap
+
+Route `/habits/:id` đọc Habit và trạng thái hôm nay song song. Khi backend trả calendar date chuẩn của owner, Server Component mới suy ra khoảng 90 ngày rồi đọc history; dependency này là một waterfall có chủ ý vì mốc kết thúc không được lấy từ timezone của process. UI render history thành heatmap read-only, còn nút check-in/undo gọi Server Action và nhận lại trạng thái `today` chuẩn từ backend.
+
+Client tổ chức theo feature boundary `features/habit/{api,actions,lib,components}`. API adapter chỉ chạy phía server; Server Actions validate input không tin cậy và chuyển lỗi API thành result serializable; page là Server Component; editor, lifecycle và check-in là Client Component nhỏ tại đúng điểm tương tác. Filter/search/sort/page nằm trong URL nên reload và back/forward giữ nguyên view.
 
 Trang chi tiết đọc danh sách ngày đã check-in trong một khoảng thời gian, hiển thị dạng lưới màu theo ngày. Không có số streak, không có progress bar.
 
