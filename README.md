@@ -30,7 +30,7 @@ Quay lại quan sát
 
 ## Trạng thái hiện tại
 
-Repository đã hoàn thành foundation sản phẩm, ba vertical slice Reflection là Journal, Mood, Memory và read model Timeline nối Journal/Memory theo thời gian. Forge hiện có Habit và Habit Check-in chạy full-stack từ PostgreSQL/NestJS tới Next.js, gồm quản lý lifecycle, check-in theo timezone và heatmap 90 ngày. Routine và trang Today sẽ tiếp tục được xây theo từng lát nhỏ, không port nguyên khối từ Forge OS.
+Repository đã hoàn thành foundation sản phẩm, ba vertical slice Reflection là Journal, Mood, Memory và read model Timeline nối Journal/Memory theo thời gian. Forge hiện có Habit và Habit Check-in chạy full-stack từ PostgreSQL/NestJS tới Next.js, gồm quản lý lifecycle, check-in theo timezone và heatmap 90 ngày. Routine backend V1 cũng đã hoàn thành create/list/detail, lifecycle, quan hệ nhiều-nhiều có thứ tự với Habit, ownership isolation và optimistic concurrency. Routine client cùng trang Today sẽ tiếp tục được xây theo từng lát nhỏ, không port nguyên khối từ Forge OS.
 
 Client hiện dùng một ngôn ngữ trải nghiệm thống nhất: yên, riêng tư, ưu tiên nội dung và không biến hành trình cá nhân thành dashboard năng suất. [Product vision](product/vision.md) ghi lại các nguyên tắc để những capability tiếp theo không tự phát minh một phong cách hoặc interaction contract khác.
 

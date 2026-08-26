@@ -2,16 +2,16 @@
 
 Feature index là danh sách capability theo trạng thái sản phẩm, không phải backlog kỹ thuật.
 
-| Capability                  | Vai trò trong journey                                    | Trạng thái                                                 |
-| --------------------------- | -------------------------------------------------------- | ---------------------------------------------------------- |
-| Identity & access           | Bảo vệ không gian riêng tư và quyền sở hữu dữ liệu       | Foundation đang được sử dụng                               |
-| [Journal](journal.md)       | Capture trải nghiệm và bắt đầu reflection                | Đã hoàn thành vertical slice v1                            |
-| [Mood](mood.md)             | Ghi nhận trạng thái cảm xúc trong bối cảnh Journal       | Đã hoàn thành vertical slice v1                            |
-| [Memory](memory.md)         | Giữ lại những trải nghiệm có ý nghĩa theo dòng thời gian | Đã hoàn thành vertical slice v1                            |
-| [Habit & Routine](forge.md) | Chuyển insight thành hành vi lặp lại và cấu trúc sống    | Habit + Check-in full-stack đã hoàn tất; Routine tiếp theo |
-| Knowledge                   | Chuyển trải nghiệm và nguồn bên ngoài thành hiểu biết    | Chưa thiết kế                                              |
-| Vitality                    | Kết nối sự chuyển hóa với cơ thể vật lý                  | Chưa thiết kế                                              |
-| Gamification                | Phản chiếu tiến trình mà không thao túng người dùng      | Chưa thiết kế                                              |
+| Capability                  | Vai trò trong journey                                    | Trạng thái                                               |
+| --------------------------- | -------------------------------------------------------- | -------------------------------------------------------- |
+| Identity & access           | Bảo vệ không gian riêng tư và quyền sở hữu dữ liệu       | Foundation đang được sử dụng                             |
+| [Journal](journal.md)       | Capture trải nghiệm và bắt đầu reflection                | Đã hoàn thành vertical slice v1                          |
+| [Mood](mood.md)             | Ghi nhận trạng thái cảm xúc trong bối cảnh Journal       | Đã hoàn thành vertical slice v1                          |
+| [Memory](memory.md)         | Giữ lại những trải nghiệm có ý nghĩa theo dòng thời gian | Đã hoàn thành vertical slice v1                          |
+| [Habit & Routine](forge.md) | Chuyển insight thành hành vi lặp lại và cấu trúc sống    | Habit + Check-in full-stack; Routine backend V1 hoàn tất |
+| Knowledge                   | Chuyển trải nghiệm và nguồn bên ngoài thành hiểu biết    | Chưa thiết kế                                            |
+| Vitality                    | Kết nối sự chuyển hóa với cơ thể vật lý                  | Chưa thiết kế                                            |
+| Gamification                | Phản chiếu tiến trình mà không thao túng người dùng      | Chưa thiết kế                                            |
 
 Mỗi capability chuyển sang trạng thái “đã thiết kế” khi tài liệu của nó trả lời được:
 
