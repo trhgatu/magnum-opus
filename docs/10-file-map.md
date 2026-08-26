@@ -94,7 +94,8 @@ Trong Auth, `auth-token-issuer.port.ts`, `auth-policy.port.ts` và `opaque-token
 | Reflection/Memory   | `contexts/reflection/memory/domain/memory.aggregate.ts`         | Ký ức độc lập, provenance Journal tùy chọn, precision thời gian và lifecycle trash.                   |
 | Reflection/Timeline | `contexts/reflection/timeline/timeline.module.ts`               | Read model owner-scoped từ Journal/Memory events; không có aggregate riêng.                           |
 | Forge/Habit         | `contexts/forge/habit/`, `contexts/forge/forge.module.ts`       | Aggregate và backend API create/list/detail/update/archive/restore.                                   |
-| Forge/Check-in      | `contexts/forge/habit-check-in/`                                | Check-in/undo hôm nay theo owner timezone và lịch sử cho heatmap; Routine chưa có runtime.            |
+| Forge/Check-in      | `contexts/forge/habit-check-in/`                                | Check-in/undo hôm nay theo owner timezone và lịch sử cho heatmap.                                     |
+| Forge/Routine       | `contexts/forge/routine/`                                       | Backend V1 cho lifecycle và membership Habit nhiều-nhiều có thứ tự, bảo vệ bằng revision.             |
 | Notifications       | `contexts/notifications/domain/notification.entity.ts`          | Notification persistence, read state và created event.                                                |
 | Audit               | `contexts/audit/audit.module.ts`                                | Append/read audit trail và retention. Nó dùng ports/readers vì audit log chủ yếu là immutable record. |
 | Analytics           | `contexts/analytics/dashboard/dashboard.module.ts`              | Read-only dashboard projection. Không có aggregate vì không sở hữu state transition.                  |

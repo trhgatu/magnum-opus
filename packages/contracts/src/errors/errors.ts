@@ -295,6 +295,62 @@ export const Errors = {
     translationKey: 'exceptions.habit.check.in.forbidden',
     statusCode: 409,
   },
+
+  //Routine
+  INVALID_ROUTINE_ID: {
+    code: 'INVALID_ROUTINE_ID',
+    translationKey: 'exceptions.routine.id.invalid',
+    statusCode: 400,
+  },
+
+  INVALID_ROUTINE_TITLE: {
+    code: 'INVALID_ROUTINE_TITLE',
+    translationKey: 'exceptions.routine.title.invalid',
+    statusCode: 400,
+  },
+  INVALID_ROUTINE_TRANSITION: {
+    code: 'INVALID_ROUTINE_TRANSITION',
+    translationKey: 'exceptions.routine.transition.invalid',
+    statusCode: 409,
+  },
+
+  INVALID_ROUTINE_HABIT_ID: {
+    code: 'INVALID_ROUTINE_HABIT_ID',
+    translationKey: 'exceptions.routine.habit.id.invalid',
+    statusCode: 400,
+  },
+
+  ROUTINE_HABIT_ALREADY_EXISTS: {
+    code: 'ROUTINE_HABIT_ALREADY_EXISTS',
+    translationKey: 'exceptions.routine.habit.already.exists',
+    statusCode: 409,
+  },
+  ROUTINE_HABIT_NOT_FOUND: {
+    code: 'ROUTINE_HABIT_NOT_FOUND',
+    translationKey: 'exceptions.routine.habit.not.found',
+    statusCode: 404,
+  },
+
+  ROUTINE_NOT_FOUND: {
+    code: 'ROUTINE_NOT_FOUND',
+    translationKey: 'exceptions.routine.not.found',
+    statusCode: 404,
+  },
+  ROUTINE_REVISION_CONFLICT: {
+    code: 'ROUTINE_REVISION_CONFLICT',
+    translationKey: 'exceptions.routine.revision.conflict',
+    statusCode: 409,
+  },
+  ROUTINE_HABIT_REFERENCE_NOT_FOUND: {
+    code: 'ROUTINE_HABIT_REFERENCE_NOT_FOUND',
+    translationKey: 'exceptions.routine.habit.reference.not.found',
+    statusCode: 404,
+  },
+  ROUTINE_HABIT_INACTIVE: {
+    code: 'ROUTINE_HABIT_INACTIVE',
+    translationKey: 'exceptions.routine.habit.inactive',
+    statusCode: 409,
+  },
 } as const;
 
 export type ErrorDefinition = (typeof Errors)[keyof typeof Errors];

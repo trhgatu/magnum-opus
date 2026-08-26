@@ -4,7 +4,7 @@ Forge là context chứa Habit và Routine: những cam kết lặp lại vô th
 
 ## Trạng thái triển khai
 
-Product spec và data contract đã được chốt. Habit chạy thành một vertical slice từ PostgreSQL, NestJS đến Next.js: create, list/search/filter, detail, update, archive/restore, check-in/undo hôm nay và heatmap 90 ngày. Ownership, optimistic locking, idempotency, timezone boundary và lifecycle được kiểm tra bằng unit, component và HTTP E2E. Routine và trang tổng hợp Today chưa được triển khai.
+Product spec và data contract đã được chốt. Habit chạy thành một vertical slice từ PostgreSQL, NestJS đến Next.js: create, list/search/filter, detail, update, archive/restore, check-in/undo hôm nay và heatmap 90 ngày. Routine backend V1 đã chạy từ PostgreSQL đến HTTP API: create/list/search/filter, detail, update title, archive/restore, thêm/xóa Habit và đổi thứ tự bằng nút lên/xuống. Ownership, optimistic locking, idempotency, timezone boundary, lifecycle và thứ tự membership được kiểm tra bằng unit, component và HTTP E2E phù hợp với từng capability. Routine client và trang tổng hợp Today chưa được triển khai.
 
 ## Vấn đề cần giải quyết
 
@@ -121,7 +121,9 @@ Trang chi tiết đọc danh sách ngày đã check-in trong một khoảng th�
 
 ### Tạo Routine và quản lý Habit con
 
-Tạo Routine với title. Thêm Habit vào Routine chỉ chấp nhận Habit cùng owner và chưa có trong chính Routine đó; `order` là số Habit hiện có + 1. Cùng một Habit vẫn có thể được thêm vào Routine khác. Sắp xếp lại bằng nút lên/xuống, cập nhật `order` cho toàn bộ danh sách trong một transaction. Đọc Routine luôn resolve title Habit con qua Reader port, không qua dữ liệu nhúng sẵn.
+Tạo Routine với title. Thêm Habit vào Routine chỉ chấp nhận Habit cùng owner, đang active và chưa có trong chính Routine đó; `order` là số Habit hiện có + 1. Cùng một Habit vẫn có thể được thêm vào Routine khác. Aggregate chỉ giữ danh sách `habitId` có thứ tự, không import Habit aggregate và không sao chép title/mô tả của Habit.
+
+`RoutineHabitReader` là port do Routine application sở hữu, chỉ đọc lượng dữ liệu tối thiểu để xác minh Habit trước khi thêm. Mutation đi qua `RoutineMutationService`: load theo owner, kiểm tra `expectedRevision`, gọi domain method rồi compare-and-swap. Repository chỉ thay membership sau khi compare-and-swap thành công và thực hiện toàn bộ thao tác trong một transaction; stale revision vì thế không thể xóa hay ghi lại thứ tự hiện có. API V1 trả `habitIds` theo đúng thứ tự. Client Routine sau này sẽ ghép thông tin hiển thị mới nhất của Habit mà không đưa phụ thuộc Habit vào Routine domain.
 
 ### Trang "Hôm nay"
 

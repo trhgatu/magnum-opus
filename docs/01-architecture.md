@@ -108,14 +108,14 @@ Passport strategy cũng là presentation adapter: nó nhận credential từ HTT
 | --------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | `iam`           | Identity, login/session, users, roles và permissions.                                                                               |
 | `reflection`    | Journal, Mood, Memory và Timeline (read model nội bộ, có API `GET /reflection/timeline`) — dữ liệu phản tư riêng tư của người dùng. |
-| `forge`         | Habit và Habit Check-in đã chạy full-stack; Routine và trang Today sẽ được xây trên data contract đã khóa.                          |
+| `forge`         | Habit và Habit Check-in đã chạy full-stack; Routine đã có backend V1; Routine client và trang Today chưa được triển khai.           |
 | `notifications` | Hộp thông báo thuộc từng user và trạng thái đã đọc.                                                                                 |
 | `audit`         | Nhật ký hành động quản trị và retention.                                                                                            |
 | `analytics`     | Read model thống kê dashboard; không sở hữu transaction nghiệp vụ nguồn.                                                            |
 | `menu`          | Menu quản trị được lọc theo permissions.                                                                                            |
 | `storage`       | Upload abstraction, local hoặc S3-compatible.                                                                                       |
 
-`analytics/dashboard`, `reflection/journal`, `forge/habit` và `forge/habit-check-in` là submodule bên trong context cha. Context cha chỉ gom module con; nó không chứa business logic trá hình. `HabitModule` và `HabitCheckInModule` đều có controller, handlers và adapter nên được `ForgeModule` nối vào `AppModule`; Routine hiện mới có data contract nên chưa được xem là capability runtime.
+`analytics/dashboard`, `reflection/journal`, `forge/habit`, `forge/habit-check-in` và `forge/routine` là submodule bên trong context cha. Context cha chỉ gom module con; nó không chứa business logic trá hình. `HabitModule`, `HabitCheckInModule` và `RoutineModule` đều có controller, handlers và adapter nên được `ForgeModule` nối vào `AppModule`.
 
 ## Shared không phải “thư mục để bỏ đồ dùng chung”
 
