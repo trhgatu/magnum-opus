@@ -1,38 +1,36 @@
 import { RoutineNotFoundException } from '../../../domain/exceptions';
-import { Routine } from '../../../domain/routine.aggregate';
-import { RoutineId } from '../../../domain/value-objects';
+import { RoutineDetailReadModel } from '../../ports/routine-reader.port';
 import { GetRoutineQuery } from '../get-routine.query';
 import { GetRoutineHandler } from './get-routine.handler';
 
 describe('GetRoutineHandler', () => {
-  const repository = {
+  const reader = {
     findByIdForOwner: jest.fn(),
   };
 
-  const handler = new GetRoutineHandler(repository as never);
+  const handler = new GetRoutineHandler(reader as never);
 
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('returns a Routine owned by the requesting user', async () => {
-    const routine = createRoutine();
-    repository.findByIdForOwner.mockResolvedValue(routine);
+  it('returns the owned Routine detail read model', async () => {
+    const detail = createDetail();
+    reader.findByIdForOwner.mockResolvedValue(detail);
 
     const result = await handler.execute(
       new GetRoutineQuery('routine-id', 'owner-id'),
     );
 
-    expect(repository.findByIdForOwner).toHaveBeenCalledWith(
+    expect(reader.findByIdForOwner).toHaveBeenCalledWith(
       'routine-id',
       'owner-id',
     );
-
-    expect(result.getValue()).toBe(routine);
+    expect(result.getValue()).toBe(detail);
   });
 
   it('returns not found when the owner-scoped lookup fails', async () => {
-    repository.findByIdForOwner.mockResolvedValue(null);
+    reader.findByIdForOwner.mockResolvedValue(null);
 
     const result = await handler.execute(
       new GetRoutineQuery('routine-id', 'different-owner'),
@@ -42,15 +40,27 @@ describe('GetRoutineHandler', () => {
   });
 });
 
-function createRoutine(): Routine {
-  return Routine.rehydrate({
-    id: new RoutineId('routine-id'),
-    ownerId: 'owner-id',
+function createDetail(): RoutineDetailReadModel {
+  return {
+    id: 'routine-id',
     title: 'Morning ritual',
-    habitIds: ['habit-first', 'habit-second'],
     isActive: true,
     revision: 4,
     createdAt: new Date('2026-08-20T10:00:00.000Z'),
     updatedAt: new Date('2026-08-21T10:00:00.000Z'),
-  });
+    habits: [
+      {
+        id: 'habit-first',
+        title: 'Drink water',
+        isActive: true,
+        order: 1,
+      },
+      {
+        id: 'habit-second',
+        title: 'Read',
+        isActive: false,
+        order: 2,
+      },
+    ],
+  };
 }

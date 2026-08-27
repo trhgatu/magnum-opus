@@ -7,6 +7,7 @@ import { PrismaRoutineReader } from './prisma-routine.reader';
 
 describe('PrismaRoutineReader', () => {
   const routineModel = {
+    findFirst: jest.fn(),
     findMany: jest.fn(),
     count: jest.fn(),
   };
@@ -21,6 +22,28 @@ describe('PrismaRoutineReader', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
+    routineModel.findFirst.mockResolvedValue({
+      ...rawRoutine(),
+      habits: [
+        {
+          order: 1,
+          habit: {
+            id: 'habit-first',
+            title: 'Drink water',
+            isActive: true,
+          },
+        },
+        {
+          order: 2,
+          habit: {
+            id: 'habit-second',
+            title: 'Read',
+            isActive: false,
+          },
+        },
+      ],
+    });
+
     routineModel.findMany.mockReturnValue('find-many-query');
 
     routineModel.count.mockReturnValue('count-query');
@@ -34,6 +57,71 @@ describe('PrismaRoutineReader', () => {
       ],
       1,
     ]);
+  });
+
+  it('loads one owned Routine with ordered Habit summaries', async () => {
+    const result = await reader.findByIdForOwner('routine-id', 'owner-id');
+
+    expect(routineModel.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'routine-id',
+        ownerId: 'owner-id',
+      },
+      select: {
+        id: true,
+        title: true,
+        isActive: true,
+        revision: true,
+        createdAt: true,
+        updatedAt: true,
+        habits: {
+          orderBy: {
+            order: 'asc',
+          },
+          select: {
+            order: true,
+            habit: {
+              select: {
+                id: true,
+                title: true,
+                isActive: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    expect(result).toEqual({
+      id: 'routine-id',
+      title: 'Morning ritual',
+      isActive: true,
+      revision: 4,
+      createdAt: new Date('2026-08-20T10:00:00.000Z'),
+      updatedAt: new Date('2026-08-21T10:00:00.000Z'),
+      habits: [
+        {
+          id: 'habit-first',
+          title: 'Drink water',
+          isActive: true,
+          order: 1,
+        },
+        {
+          id: 'habit-second',
+          title: 'Read',
+          isActive: false,
+          order: 2,
+        },
+      ],
+    });
+  });
+
+  it('returns null when no owned Routine exists', async () => {
+    routineModel.findFirst.mockResolvedValue(null);
+
+    await expect(
+      reader.findByIdForOwner('routine-id', 'different-owner'),
+    ).resolves.toBeNull();
   });
 
   it('applies ownership, status, search, sorting and pagination', async () => {

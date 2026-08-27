@@ -5,27 +5,27 @@ import { DomainException } from '@shared/domain/exceptions/domain.exception';
 import { Result } from '@shared/domain/result';
 
 import { RoutineNotFoundException } from '../../../domain/exceptions';
-import { Routine } from '../../../domain/routine.aggregate';
 import {
-  ROUTINE_REPOSITORY,
-  type RoutineRepository,
-} from '../../../domain/ports/routine.repository';
+  ROUTINE_READER,
+  RoutineDetailReadModel,
+  type RoutineReader,
+} from '../../ports/routine-reader.port';
 import { GetRoutineQuery } from '../get-routine.query';
 
 @QueryHandler(GetRoutineQuery)
 export class GetRoutineHandler implements IQueryHandler<
   GetRoutineQuery,
-  Result<Routine, DomainException>
+  Result<RoutineDetailReadModel, DomainException>
 > {
   constructor(
-    @Inject(ROUTINE_REPOSITORY)
-    private readonly routineRepository: RoutineRepository,
+    @Inject(ROUTINE_READER)
+    private readonly routineReader: RoutineReader,
   ) {}
 
   public async execute(
     query: GetRoutineQuery,
-  ): Promise<Result<Routine, DomainException>> {
-    const routine = await this.routineRepository.findByIdForOwner(
+  ): Promise<Result<RoutineDetailReadModel, DomainException>> {
+    const routine = await this.routineReader.findByIdForOwner(
       query.routineId,
       query.ownerId,
     );

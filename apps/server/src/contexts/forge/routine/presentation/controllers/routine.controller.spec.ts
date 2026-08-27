@@ -8,10 +8,12 @@ import {
   RemoveRoutineHabitCommand,
   UpdateRoutineTitleCommand,
 } from '../../application/commands';
-import { GetRoutinesQuery } from '../../application/queries';
+import { GetRoutinesQuery, GetRoutineQuery } from '../../application/queries';
 import { Routine } from '../../domain/routine.aggregate';
 import { RoutineId } from '../../domain/value-objects';
 import { RoutineController } from './routine.controller';
+
+import type { RoutineDetailReadModel } from '../../application/ports/routine-reader.port';
 
 describe('RoutineController', () => {
   const commandBus = {
@@ -49,6 +51,65 @@ describe('RoutineController', () => {
 
     expect(response.id).toBe('routine-id');
     expect(response).not.toHaveProperty('ownerId');
+  });
+
+  it('returns the owned Routine detail with ordered Habit summaries', async () => {
+    const detail: RoutineDetailReadModel = {
+      id: 'routine-id',
+      title: 'Morning ritual',
+      isActive: true,
+      revision: 4,
+      createdAt: new Date('2026-08-20T10:00:00.000Z'),
+      updatedAt: new Date('2026-08-21T10:00:00.000Z'),
+      habits: [
+        {
+          id: 'habit-first',
+          title: 'Drink water',
+          isActive: true,
+          order: 1,
+        },
+        {
+          id: 'habit-second',
+          title: 'Read',
+          isActive: false,
+          order: 2,
+        },
+      ],
+    };
+
+    queryBus.execute.mockResolvedValue(Result.ok(detail));
+
+    const response = await controller.findOne('owner-id', 'routine-id');
+
+    expect(queryBus.execute).toHaveBeenCalledWith(
+      new GetRoutineQuery('routine-id', 'owner-id'),
+    );
+
+    expect(response).toEqual({
+      id: 'routine-id',
+      title: 'Morning ritual',
+      isActive: true,
+      revision: 4,
+      createdAt: '2026-08-20T10:00:00.000Z',
+      updatedAt: '2026-08-21T10:00:00.000Z',
+      habits: [
+        {
+          id: 'habit-first',
+          title: 'Drink water',
+          isActive: true,
+          order: 1,
+        },
+        {
+          id: 'habit-second',
+          title: 'Read',
+          isActive: false,
+          order: 2,
+        },
+      ],
+    });
+
+    expect(response).not.toHaveProperty('ownerId');
+    expect(response).not.toHaveProperty('habitIds');
   });
 
   it('maps list status and returns pagination metadata', async () => {
