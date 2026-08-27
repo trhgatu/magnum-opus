@@ -123,7 +123,9 @@ Trang chi tiết đọc danh sách ngày đã check-in trong một khoảng th�
 
 Tạo Routine với title. Thêm Habit vào Routine chỉ chấp nhận Habit cùng owner, đang active và chưa có trong chính Routine đó; `order` là số Habit hiện có + 1. Cùng một Habit vẫn có thể được thêm vào Routine khác. Aggregate chỉ giữ danh sách `habitId` có thứ tự, không import Habit aggregate và không sao chép title/mô tả của Habit.
 
-`RoutineHabitReader` là port do Routine application sở hữu, chỉ đọc lượng dữ liệu tối thiểu để xác minh Habit trước khi thêm. Mutation đi qua `RoutineMutationService`: load theo owner, kiểm tra `expectedRevision`, gọi domain method rồi compare-and-swap. Repository chỉ thay membership sau khi compare-and-swap thành công và thực hiện toàn bộ thao tác trong một transaction; stale revision vì thế không thể xóa hay ghi lại thứ tự hiện có. API V1 trả `habitIds` theo đúng thứ tự. Client Routine sau này sẽ ghép thông tin hiển thị mới nhất của Habit mà không đưa phụ thuộc Habit vào Routine domain.
+`RoutineHabitReader` là port do Routine application sở hữu, chỉ đọc lượng dữ liệu tối thiểu để xác minh Habit trước khi thêm. Mutation đi qua `RoutineMutationService`: load theo owner, kiểm tra `expectedRevision`, gọi domain method rồi compare-and-swap. Repository chỉ thay membership sau khi compare-and-swap thành công và thực hiện toàn bộ thao tác trong một transaction; stale revision vì thế không thể xóa hay ghi lại thứ tự hiện có.
+
+Create, list và mutation response trả `habitIds` vì các flow đó chỉ cần state của aggregate. `GET /routines/:id` dùng read model riêng: một owner-scoped Prisma query join membership với Habit rồi trả `habits` theo thứ tự, mỗi item gồm `id`, title mới nhất, `isActive` và `order`. Habit đã archive vẫn xuất hiện để Routine không mất ngữ cảnh; client có thể đánh dấu và khóa thao tác không còn hợp lệ mà không phát sinh N+1 request. Query side không rehydrate aggregate và không đưa phụ thuộc Habit vào Routine domain.
 
 ### Trang "Hôm nay"
 

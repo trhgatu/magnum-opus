@@ -258,6 +258,14 @@ describe('Routine (E2E)', () => {
         expect(body.code).toBe('ROUTINE_REVISION_CONFLICT'),
       );
 
+    await request(app.getHttpServer())
+      .patch(`/habits/${secondHabitId}/archive`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({
+        expectedRevision: 1,
+      })
+      .expect(HttpStatus.OK);
+
     const fetched = await request(app.getHttpServer())
       .get(`/routines/${routineId}`)
       .set('Authorization', `Bearer ${ownerToken}`)
@@ -266,9 +274,19 @@ describe('Routine (E2E)', () => {
     expect(fetched.body).toMatchObject({
       id: routineId,
       title: 'Evening ritual',
-      habitIds: [secondHabitId],
       revision: 7,
+      habits: [
+        {
+          id: secondHabitId,
+          title: 'Morning walk',
+          isActive: false,
+          order: 1,
+        },
+      ],
     });
+
+    expect(fetched.body).not.toHaveProperty('ownerId');
+    expect(fetched.body).not.toHaveProperty('habitIds');
 
     const archived = await request(app.getHttpServer())
       .patch(`/routines/${routineId}/archive`)

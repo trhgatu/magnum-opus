@@ -12,7 +12,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CommandBus, type ICommand, QueryBus } from '@nestjs/cqrs';
-import type { RoutineResponse } from '@repo/contracts';
+import type { RoutineResponse, RoutineDetailResponse } from '@repo/contracts';
+import type { RoutineDetailReadModel } from '../../application/ports/routine-reader.port';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { PaginatedResponsePresenter } from '@presentation/common/presenters/pagination.presenter';
@@ -108,12 +109,14 @@ export class RoutineController {
   public async findOne(
     @GetUser('id') ownerId: string,
     @Param('id', new ParseUUIDPipe()) routineId: string,
-  ): Promise<RoutineResponse> {
+  ): Promise<RoutineDetailResponse> {
     const result = await this.queryBus.execute(
       new GetRoutineQuery(routineId, ownerId),
     );
 
-    return RoutinePresenter.toResponse(result.unwrap());
+    return RoutinePresenter.toDetailResponse(
+      result.unwrap() as RoutineDetailReadModel,
+    );
   }
 
   @Put(':id')
