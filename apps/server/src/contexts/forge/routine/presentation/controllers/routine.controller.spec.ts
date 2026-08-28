@@ -8,7 +8,11 @@ import {
   RemoveRoutineHabitCommand,
   UpdateRoutineTitleCommand,
 } from '../../application/commands';
-import { GetRoutinesQuery, GetRoutineQuery } from '../../application/queries';
+import {
+  GetAvailableRoutineHabitsQuery,
+  GetRoutinesQuery,
+  GetRoutineQuery,
+} from '../../application/queries';
 import { Routine } from '../../domain/routine.aggregate';
 import { RoutineId } from '../../domain/value-objects';
 import { RoutineController } from './routine.controller';
@@ -247,6 +251,56 @@ describe('RoutineController', () => {
     expect(commandBus.execute).toHaveBeenCalledWith(
       new ArchiveRoutineCommand('routine-id', 'owner-id', 4),
     );
+  });
+
+  it('returns paginated Habit options available to the owned Routine', async () => {
+    queryBus.execute.mockResolvedValue(
+      Result.ok({
+        habits: [
+          {
+            id: 'habit-id',
+            title: 'Drink water',
+          },
+        ],
+        total: 21,
+      }),
+    );
+
+    const response = await controller.findAvailableHabits(
+      'owner-id',
+      'routine-id',
+      {
+        page: 2,
+        limit: 20,
+        search: 'water',
+      },
+    );
+
+    expect(queryBus.execute).toHaveBeenCalledWith(
+      new GetAvailableRoutineHabitsQuery(
+        'routine-id',
+        'owner-id',
+        2,
+        20,
+        'water',
+      ),
+    );
+
+    expect(response).toEqual({
+      data: [
+        {
+          id: 'habit-id',
+          title: 'Drink water',
+        },
+      ],
+      meta: {
+        totalItems: 21,
+        itemCount: 1,
+        itemsPerPage: 20,
+        totalPages: 2,
+        currentPage: 2,
+      },
+    });
   });
 });
 

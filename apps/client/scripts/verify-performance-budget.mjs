@@ -17,6 +17,11 @@ const routeBudgets = new Map([
   ["/habits/new", 655 * KIBIBYTE],
   ["/habits/[id]", 570 * KIBIBYTE],
   ["/habits/[id]/edit", 655 * KIBIBYTE],
+  ["/routines", 565 * KIBIBYTE],
+  ["/routines/new", 570 * KIBIBYTE],
+  // Routine detail includes the isolated shadcn Select used for membership.
+  ["/routines/[id]", 660 * KIBIBYTE],
+  ["/routines/[id]/edit", 570 * KIBIBYTE],
 ]);
 
 const diagnosticsPath = resolve(

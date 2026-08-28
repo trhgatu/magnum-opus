@@ -35,6 +35,22 @@ export interface FindRoutinesResult {
   total: number;
 }
 
+export interface RoutineHabitOptionReadModel {
+  id: string;
+  title: string;
+}
+
+export interface FindAvailableRoutineHabitsOptions {
+  skip: number;
+  take: number;
+  search?: string;
+}
+
+export interface FindAvailableRoutineHabitsResult {
+  habits: RoutineHabitOptionReadModel[];
+  total: number;
+}
+
 export interface RoutineReader {
   findByIdForOwner(
     routineId: string,
@@ -45,4 +61,10 @@ export interface RoutineReader {
     ownerId: string,
     options: FindRoutinesOptions,
   ): Promise<FindRoutinesResult>;
+
+  findAvailableHabitsForOwner(
+    routineId: string,
+    ownerId: string,
+    options: FindAvailableRoutineHabitsOptions,
+  ): Promise<FindAvailableRoutineHabitsResult | null>;
 }

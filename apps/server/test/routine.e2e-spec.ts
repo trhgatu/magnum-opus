@@ -45,7 +45,136 @@ describe('Routine (E2E)', () => {
       .get('/routines')
       .expect(HttpStatus.UNAUTHORIZED);
   });
+  it('lists searchable paginated Habit options available to an owned Routine', async () => {
+    const pickerOwnerToken = await registerAndLogin('picker-owner');
 
+    const assignedHabitId = await createHabit(
+      pickerOwnerToken,
+      'Picker Assigned',
+    );
+
+    const firstAvailableHabitId = await createHabit(
+      pickerOwnerToken,
+      'Picker Alpha',
+    );
+
+    const secondAvailableHabitId = await createHabit(
+      pickerOwnerToken,
+      'Picker Beta',
+    );
+
+    const archivedHabitId = await createHabit(
+      pickerOwnerToken,
+      'Picker Archived',
+    );
+
+    await createHabit(otherToken, 'Picker Foreign');
+
+    await request(app.getHttpServer())
+      .patch(`/habits/${archivedHabitId}/archive`)
+      .set('Authorization', `Bearer ${pickerOwnerToken}`)
+      .send({
+        expectedRevision: 1,
+      })
+      .expect(HttpStatus.OK);
+
+    const createdRoutine = await request(app.getHttpServer())
+      .post('/routines')
+      .set('Authorization', `Bearer ${pickerOwnerToken}`)
+      .send({
+        title: 'Picker Routine',
+      })
+      .expect(HttpStatus.CREATED);
+
+    const routineId = createdRoutine.body.id as string;
+
+    await request(app.getHttpServer())
+      .post(`/routines/${routineId}/habits`)
+      .set('Authorization', `Bearer ${pickerOwnerToken}`)
+      .send({
+        habitId: assignedHabitId,
+        expectedRevision: 1,
+      })
+      .expect(HttpStatus.CREATED);
+
+    const firstPage = await request(app.getHttpServer())
+      .get(`/routines/${routineId}/available-habits`)
+      .query({
+        page: 1,
+        limit: 1,
+        search: 'Picker',
+      })
+      .set('Authorization', `Bearer ${pickerOwnerToken}`)
+      .expect(HttpStatus.OK);
+
+    expect(firstPage.body).toEqual({
+      data: [
+        {
+          id: firstAvailableHabitId,
+          title: 'Picker Alpha',
+        },
+      ],
+      meta: {
+        totalItems: 2,
+        itemCount: 1,
+        itemsPerPage: 1,
+        totalPages: 2,
+        currentPage: 1,
+      },
+    });
+
+    const secondPage = await request(app.getHttpServer())
+      .get(`/routines/${routineId}/available-habits`)
+      .query({
+        page: 2,
+        limit: 1,
+        search: 'Picker',
+      })
+      .set('Authorization', `Bearer ${pickerOwnerToken}`)
+      .expect(HttpStatus.OK);
+
+    expect(secondPage.body.data).toEqual([
+      {
+        id: secondAvailableHabitId,
+        title: 'Picker Beta',
+      },
+    ]);
+
+    expect(secondPage.body.data[0]).not.toHaveProperty('ownerId');
+    expect(secondPage.body.data[0]).not.toHaveProperty('revision');
+
+    await request(app.getHttpServer())
+      .get(`/routines/${routineId}/available-habits`)
+      .query({
+        search: 'Beta',
+      })
+      .set('Authorization', `Bearer ${pickerOwnerToken}`)
+      .expect(HttpStatus.OK)
+      .expect(({ body }) => {
+        expect(body.data).toEqual([
+          {
+            id: secondAvailableHabitId,
+            title: 'Picker Beta',
+          },
+        ]);
+      });
+
+    await request(app.getHttpServer())
+      .get(`/routines/${routineId}/available-habits`)
+      .set('Authorization', `Bearer ${otherToken}`)
+      .expect(HttpStatus.NOT_FOUND)
+      .expect(({ body }) => {
+        expect(body.code).toBe('ROUTINE_NOT_FOUND');
+      });
+
+    await request(app.getHttpServer())
+      .get(`/routines/${routineId}/available-habits`)
+      .query({
+        limit: 51,
+      })
+      .set('Authorization', `Bearer ${pickerOwnerToken}`)
+      .expect(HttpStatus.BAD_REQUEST);
+  });
   it('validates Routine and Habit route UUIDs', async () => {
     await request(app.getHttpServer())
       .get('/routines/not-a-uuid')

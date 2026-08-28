@@ -9,6 +9,7 @@ import { MoveRoutineHabitUpHandler } from './application/commands/handlers/move-
 import { RemoveRoutineHabitHandler } from './application/commands/handlers/remove-routine-habit.handler';
 import { RestoreRoutineHandler } from './application/commands/handlers/restore-routine.handler';
 import { UpdateRoutineTitleHandler } from './application/commands/handlers/update-routine-title.handler';
+import { GetAvailableRoutineHabitsHandler } from './application/queries/handlers/get-available-routine-habits.handler';
 import { ROUTINE_HABIT_READER } from './application/ports/routine-habit-reader.port';
 import { ROUTINE_READER } from './application/ports/routine-reader.port';
 import { GetRoutineHandler } from './application/queries/handlers/get-routine.handler';
@@ -31,7 +32,11 @@ const commandHandlers = [
   UpdateRoutineTitleHandler,
 ];
 
-const queryHandlers = [GetRoutineHandler, GetRoutinesHandler];
+const queryHandlers = [
+  GetAvailableRoutineHabitsHandler,
+  GetRoutineHandler,
+  GetRoutinesHandler,
+];
 
 @Module({
   imports: [CqrsModule],
