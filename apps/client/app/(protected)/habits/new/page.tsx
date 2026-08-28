@@ -1,6 +1,7 @@
+import { Repeat2 } from "lucide-react";
 import type { Metadata } from "next";
 
-import { PageHeading } from "@/components/system/page-heading";
+import { ContextHero } from "@/components/system/context-hero";
 import { HabitEditor } from "@/features/habit/components/habit-editor";
 
 export const metadata: Metadata = {
@@ -10,11 +11,12 @@ export const metadata: Metadata = {
 
 export default function NewHabitPage() {
   return (
-    <section className="mx-auto flex w-full max-w-3xl flex-col gap-8">
-      <PageHeading
+    <section className="mx-auto flex w-full max-w-4xl flex-col gap-6">
+      <ContextHero
+        icon={Repeat2}
         eyebrow="Forge · Habits"
         title="Tạo một nhịp lặp"
-        description="Định nghĩa hành động và nhịp tuần. Routine sẽ được kết nối ở một lát cắt riêng sau này."
+        description="Định nghĩa một hành động đủ rõ để thực hiện và một nhịp đủ thực tế để quay lại vào ngày tiếp theo."
       />
       <HabitEditor />
     </section>

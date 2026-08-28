@@ -221,7 +221,7 @@ export function JournalEditor({
           : ""
       }
     >
-      <div className="mx-auto flex max-w-4xl flex-col gap-5">
+      <div className="mx-auto flex max-w-5xl flex-col gap-5">
         <JournalEditorToolbar
           state={entry.state}
           revision={revision}
@@ -275,14 +275,16 @@ export function JournalEditor({
           </Alert>
         ) : null}
 
-        <JournalEntryContent
-          title={title}
-          content={content}
-          editable={editable}
-          viewMode={viewMode}
-          onTitleChange={setTitle}
-          onContentChange={setContent}
-        />
+        <section className="rounded-3xl border bg-card/70 p-6 shadow-sm sm:p-10 lg:p-14">
+          <JournalEntryContent
+            title={title}
+            content={content}
+            editable={editable}
+            viewMode={viewMode}
+            onTitleChange={setTitle}
+            onContentChange={setContent}
+          />
+        </section>
 
         <MoodPanel
           key={`${initialMood?.id ?? "none"}:${initialMood?.revision ?? 0}:${entry.state}`}

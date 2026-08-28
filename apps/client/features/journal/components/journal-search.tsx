@@ -34,7 +34,11 @@ export function JournalSearch({
           type="search"
           defaultValue={initialSearch}
           placeholder="Tìm trong tiêu đề hoặc nội dung…"
-          className="w-full bg-card/65 pr-9"
+          className="h-10 w-full bg-background/70 pl-9 pr-9"
+        />
+        <Search
+          className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+          aria-hidden="true"
         />
         {initialSearch ? (
           <Link
@@ -50,8 +54,7 @@ export function JournalSearch({
           </Link>
         ) : null}
       </div>
-      <Button type="submit" variant="outline">
-        <Search data-icon="inline-start" aria-hidden="true" />
+      <Button type="submit" variant="outline" size="lg">
         Tìm
       </Button>
     </Form>

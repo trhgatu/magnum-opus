@@ -1,0 +1,25 @@
+// @vitest-environment jsdom
+
+import "@testing-library/jest-dom/vitest";
+
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
+
+import {
+  HabitCollectionSkeleton,
+  HabitDetailSkeleton,
+  HabitFormSkeleton,
+} from "./habit-skeletons";
+
+afterEach(cleanup);
+
+describe("Habit skeletons", () => {
+  it.each([
+    [<HabitCollectionSkeleton key="collection" />, "Đang tải danh sách Habit…"],
+    [<HabitDetailSkeleton key="detail" />, "Đang tải Habit…"],
+    [<HabitFormSkeleton key="form" />, "Đang chuẩn bị biểu mẫu Habit…"],
+  ])("announces its loading state", (skeleton, announcement) => {
+    render(skeleton);
+    expect(screen.getByRole("status")).toHaveTextContent(announcement);
+  });
+});

@@ -1,8 +1,9 @@
 import type { RoutineDetailResponse } from "@repo/contracts";
+import { ListChecks } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { PageHeading } from "@/components/system/page-heading";
+import { ContextHero } from "@/components/system/context-hero";
 import { getRoutine } from "@/features/routine/api/routine";
 import { RoutineEditor } from "@/features/routine/components/routine-editor";
 import { ApiError } from "@/lib/api";
@@ -35,11 +36,12 @@ export default async function EditRoutinePage({
   if (!routine.isActive) notFound();
 
   return (
-    <section className="mx-auto flex w-full max-w-3xl flex-col gap-8">
-      <PageHeading
+    <section className="mx-auto flex w-full max-w-4xl flex-col gap-6">
+      <ContextHero
+        icon={ListChecks}
         eyebrow="Forge · Routines"
         title="Chỉnh sửa Routine"
-        description="Đổi tên trình tự mà không làm thay đổi các Habit đang được kết nối."
+        description="Tinh chỉnh định danh của trình tự; những Habit đã kết nối và thứ tự thực hiện vẫn được giữ nguyên."
       />
       <RoutineEditor initialRoutine={routine} />
     </section>

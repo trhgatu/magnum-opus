@@ -1,7 +1,7 @@
 "use client";
 
 import type { HabitCheckInTodayResponse } from "@repo/contracts";
-import { Check, Undo2 } from "lucide-react";
+import { Check, CircleCheckBig, Undo2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
@@ -40,16 +40,36 @@ export function HabitCheckInControl({
   };
 
   return (
-    <div className="space-y-3" aria-live="polite" aria-busy={isPending}>
+    <div className="space-y-5" aria-live="polite" aria-busy={isPending}>
       {message ? (
         <Alert variant="destructive">
           <AlertDescription>{message}</AlertDescription>
         </Alert>
       ) : null}
+      <div className="flex items-center gap-3">
+        <span
+          className={
+            today.checkedIn
+              ? "grid size-12 place-items-center rounded-full bg-primary text-primary-foreground"
+              : "grid size-12 place-items-center rounded-full border border-dashed text-muted-foreground"
+          }
+        >
+          <CircleCheckBig className="size-5" aria-hidden="true" />
+        </span>
+        <div>
+          <p className="font-medium">
+            {today.checkedIn ? "Đã ghi dấu hôm nay" : "Chưa ghi dấu hôm nay"}
+          </p>
+          <p className="mt-0.5 font-mono text-xs text-muted-foreground">
+            Ngày nghiệp vụ: {today.date}
+          </p>
+        </div>
+      </div>
       <Button
         type="button"
         size="lg"
         variant={today.checkedIn ? "outline" : "default"}
+        className="w-full"
         disabled={disabled || isPending}
         onClick={mutate}
       >
@@ -64,9 +84,6 @@ export function HabitCheckInControl({
             ? "Hoàn tác hôm nay"
             : "Hoàn thành hôm nay"}
       </Button>
-      <p className="text-xs text-muted-foreground">
-        Ngày nghiệp vụ: {today.date}
-      </p>
     </div>
   );
 }

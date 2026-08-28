@@ -130,7 +130,7 @@ export function RoutineHabitPicker({
           aria-label="Chọn Habit đang hoạt động"
           aria-expanded={open}
           disabled={disabled}
-          className="w-full justify-between sm:flex-1"
+          className="h-10 w-full justify-between bg-background sm:flex-1"
         >
           <span className="truncate">
             {selectedOption?.title ?? "Chọn Habit đang hoạt động"}
@@ -141,7 +141,7 @@ export function RoutineHabitPicker({
 
       <PopoverContent
         align="start"
-        className="w-(--radix-popover-trigger-width) gap-2 p-2"
+        className="w-(--radix-popover-trigger-width) gap-2 rounded-xl p-2 shadow-lg"
       >
         <div className="relative">
           <Search
@@ -192,7 +192,7 @@ export function RoutineHabitPicker({
                   role="option"
                   aria-selected={option.id === value}
                   onClick={() => chooseOption(option)}
-                  className="w-full justify-start"
+                  className="h-9 w-full justify-start"
                 >
                   <Check
                     className={cn(

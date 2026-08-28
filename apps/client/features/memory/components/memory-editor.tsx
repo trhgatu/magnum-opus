@@ -210,7 +210,7 @@ export function MemoryEditor({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6" aria-busy={isPending}>
+    <form onSubmit={handleSubmit} className="space-y-7" aria-busy={isPending}>
       {creationSeed ? (
         <Alert>
           <BookOpenText aria-hidden="true" />
@@ -238,7 +238,7 @@ export function MemoryEditor({
         </Alert>
       ) : null}
 
-      <div className="space-y-2">
+      <div className="space-y-2 border-b pb-7">
         <Label htmlFor="memory-title">Tiêu đề</Label>
 
         <Input
@@ -250,6 +250,7 @@ export function MemoryEditor({
           required
           disabled={isPending}
           placeholder="Tên của khoảnh khắc được lưu giữ"
+          className="h-auto border-0 bg-transparent px-0 py-2 font-display text-3xl font-semibold shadow-none focus-visible:ring-0 sm:text-4xl"
           autoComplete="off"
         />
 
@@ -269,7 +270,7 @@ export function MemoryEditor({
           required
           disabled={isPending}
           placeholder="Điều gì đã xảy ra, cảm giác khi ấy ra sao, điều gì vẫn còn được nhớ..."
-          className="min-h-56 resize-y leading-7"
+          className="min-h-64 resize-y border-0 bg-transparent px-0 font-display text-base leading-8 shadow-none focus-visible:ring-0 sm:text-lg"
         />
       </div>
 

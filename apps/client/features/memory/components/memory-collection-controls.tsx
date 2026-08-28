@@ -43,7 +43,7 @@ interface MemoryCollectionControlsProps {
 
 const stateOptionClassName = (active: boolean) =>
   cn(
-    "shrink-0 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors",
+    "shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
     active
       ? "bg-primary text-primary-foreground shadow-sm"
       : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -75,7 +75,7 @@ export function MemoryCollectionControls({
     <div className="flex min-w-0 flex-wrap items-center gap-2 lg:justify-end">
       <nav
         aria-label="Lọc ký ức theo trạng thái"
-        className="flex shrink-0 rounded-lg border bg-background/70 p-0.5"
+        className="flex shrink-0 rounded-xl border bg-background/70 p-1"
       >
         {stateOptions.map((option) => {
           const optionState = option.value ?? "ACTIVE";
@@ -103,7 +103,7 @@ export function MemoryCollectionControls({
         <button
           type="button"
           popoverTarget="memory-sort-popover"
-          className="memory-sort-trigger flex h-9 w-full items-center gap-2 rounded-lg border bg-background/70 px-3 text-sm text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 sm:w-72"
+          className="memory-sort-trigger flex h-10 w-full items-center gap-2 rounded-xl border bg-background/70 px-3 text-sm text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 sm:w-72"
         >
           <ArrowUpDown
             className="memory-sort-chevron size-4 shrink-0 text-muted-foreground transition-transform"

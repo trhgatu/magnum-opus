@@ -1,11 +1,5 @@
-import { CollectionSkeleton } from "@/components/system/collection-skeleton";
+import { HabitCollectionSkeleton } from "@/features/habit/components/habit-skeletons";
 
 export default function Loading() {
-  return (
-    <CollectionSkeleton
-      eyebrow="Forge"
-      title="Habits"
-      description="Những nhịp lặp nhỏ được rèn thành một đời sống có chủ ý."
-    />
-  );
+  return <HabitCollectionSkeleton />;
 }

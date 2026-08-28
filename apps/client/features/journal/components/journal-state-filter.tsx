@@ -21,7 +21,7 @@ export function JournalStateFilter({
   return (
     <nav
       aria-label="Lọc Journal theo trạng thái"
-      className="flex max-w-full overflow-x-auto rounded-lg border bg-background/70 p-0.5 text-sm"
+      className="flex max-w-full overflow-x-auto rounded-xl border bg-background/70 p-1 text-sm"
     >
       {filters.map(([value, label]) => {
         const active = state === value;
@@ -35,7 +35,7 @@ export function JournalStateFilter({
             })}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "shrink-0 rounded-md px-2.5 py-1.5 font-medium transition-colors",
+              "shrink-0 rounded-lg px-3 py-1.5 font-medium transition-colors",
               active
                 ? "bg-primary text-primary-foreground shadow-sm"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground",

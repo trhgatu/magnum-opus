@@ -68,7 +68,7 @@ export function MemoryDateField({
 }: MemoryDateFieldProps) {
   return (
     <fieldset
-      className="space-y-4 rounded-2xl border bg-card/45 p-4 sm:p-5"
+      className="space-y-4 rounded-2xl border bg-muted/20 p-4 sm:p-5"
       disabled={disabled}
     >
       <legend className="px-1 text-sm font-medium">Thời điểm xảy ra</legend>

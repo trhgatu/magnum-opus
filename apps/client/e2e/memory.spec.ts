@@ -49,7 +49,7 @@ test("completes the private Memory lifecycle through the BFF", async ({
 
   await expect(
     page.getByRole("heading", {
-      name: "Memories",
+      name: "Ký ức",
       exact: true,
     }),
   ).toBeVisible();

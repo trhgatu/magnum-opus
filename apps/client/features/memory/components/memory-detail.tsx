@@ -33,7 +33,7 @@ export function MemoryDetail({ memory }: MemoryDetailProps) {
 
   return (
     <article
-      className="mx-auto flex w-full max-w-4xl flex-col gap-6"
+      className="mx-auto flex w-full max-w-5xl flex-col gap-6"
       aria-labelledby="memory-title"
     >
       <nav
@@ -76,67 +76,72 @@ export function MemoryDetail({ memory }: MemoryDetailProps) {
         </div>
       </nav>
 
-      <div className="relative overflow-hidden rounded-3xl border bg-card/60 px-5 py-8 shadow-sm sm:px-10 sm:py-12">
+      <div className="relative overflow-hidden rounded-3xl border bg-card/70 shadow-sm">
         <div
           aria-hidden="true"
-          className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-primary/55 to-transparent"
+          className="absolute inset-y-0 left-0 w-1 bg-primary/30"
         />
-
-        <header className="space-y-5">
-          {occurredOnDateTime ? (
-            <time
-              dateTime={occurredOnDateTime}
-              className="font-mono text-xs tracking-wide text-primary"
-            >
-              {occurredOnLabel}
-            </time>
-          ) : (
-            <p className="font-mono text-xs tracking-wide text-muted-foreground">
-              {occurredOnLabel}
-            </p>
-          )}
-
-          <h1
-            id="memory-title"
-            className="font-display text-3xl font-semibold tracking-tight text-balance sm:text-5xl"
-          >
-            {memory.title}
-          </h1>
-
-          {memory.sourceJournalEntryId ? (
-            <Link
-              href={`/journal/${memory.sourceJournalEntryId}`}
-              className={buttonVariants({
-                variant: "outline",
-                size: "sm",
-              })}
-            >
-              <BookOpenText data-icon="inline-start" aria-hidden="true" />
-              Mở Journal nguồn
-            </Link>
-          ) : null}
-        </header>
-
-        <section
-          className="mt-9 border-t pt-8"
-          aria-labelledby="memory-content-heading"
-        >
-          <h2 id="memory-content-heading" className="sr-only">
-            Nội dung ký ức
-          </h2>
-
-          <p className="whitespace-pre-wrap text-base leading-8 text-foreground/90 sm:text-lg sm:leading-9">
-            {memory.content}
-          </p>
-        </section>
-
-        <footer className="mt-10 flex flex-col gap-1 border-t pt-5 font-mono text-[11px] text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <time dateTime={memory.updatedAt}>
-            Cập nhật {formatUpdatedAt(memory.updatedAt)}
-          </time>
-
+        <div className="flex items-center justify-between border-b bg-muted/20 px-6 py-3 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground sm:px-10">
+          <span>Archive record</span>
           <span>Revision {memory.revision}</span>
-        </footer>
+        </div>
+        <div className="px-6 py-8 sm:px-10 sm:py-12 lg:px-14">
+          <header className="space-y-5">
+            {occurredOnDateTime ? (
+              <time
+                dateTime={occurredOnDateTime}
+                className="font-mono text-xs tracking-wide text-primary"
+              >
+                {occurredOnLabel}
+              </time>
+            ) : (
+              <p className="font-mono text-xs tracking-wide text-muted-foreground">
+                {occurredOnLabel}
+              </p>
+            )}
+
+            <h1
+              id="memory-title"
+              className="font-display text-3xl font-semibold tracking-tight text-balance sm:text-5xl"
+            >
+              {memory.title}
+            </h1>
+
+            {memory.sourceJournalEntryId ? (
+              <Link
+                href={`/journal/${memory.sourceJournalEntryId}`}
+                className={buttonVariants({
+                  variant: "outline",
+                  size: "sm",
+                })}
+              >
+                <BookOpenText data-icon="inline-start" aria-hidden="true" />
+                Mở Journal nguồn
+              </Link>
+            ) : null}
+          </header>
+
+          <section
+            className="mt-9 border-t pt-8"
+            aria-labelledby="memory-content-heading"
+          >
+            <h2 id="memory-content-heading" className="sr-only">
+              Nội dung ký ức
+            </h2>
+
+            <p className="whitespace-pre-wrap text-base leading-8 text-foreground/90 sm:text-lg sm:leading-9">
+              {memory.content}
+            </p>
+          </section>
+
+          <footer className="mt-10 flex flex-col gap-1 border-t pt-5 font-mono text-[11px] text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+            <time dateTime={memory.updatedAt}>
+              Cập nhật {formatUpdatedAt(memory.updatedAt)}
+            </time>
+
+            <span>Magnum Opus · Reflection</span>
+          </footer>
+        </div>
       </div>
     </article>
   );

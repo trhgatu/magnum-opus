@@ -35,8 +35,12 @@ export function RoutineSearch({
           name="search"
           type="search"
           defaultValue={location.search}
-          placeholder="Tìm Routine…"
-          className="pr-9"
+          placeholder="Tìm theo tên Routine…"
+          className="h-10 bg-background/70 pl-9 pr-9"
+        />
+        <Search
+          className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+          aria-hidden="true"
         />
         {location.search ? (
           <Link
@@ -52,8 +56,8 @@ export function RoutineSearch({
           </Link>
         ) : null}
       </div>
-      <Button type="submit" variant="outline">
-        <Search aria-hidden="true" /> Tìm
+      <Button type="submit" variant="outline" size="lg">
+        Tìm Routine
       </Button>
     </Form>
   );

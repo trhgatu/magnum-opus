@@ -80,7 +80,7 @@ export function JournalEditorToolbar({
 }: JournalEditorToolbarProps) {
   return (
     <header
-      className={`surface-glass sticky z-20 -mx-2 flex flex-wrap items-center gap-2 rounded-xl border px-2 py-2 shadow-sm ${focusMode ? "top-0" : "top-17"}`}
+      className={`surface-glass sticky z-20 flex flex-wrap items-center gap-2 rounded-2xl border px-2.5 py-2.5 shadow-sm ${focusMode ? "top-0" : "top-17"}`}
     >
       <Button type="button" onClick={onBack} variant="ghost">
         <ArrowLeft data-icon="inline-start" aria-hidden="true" />
@@ -121,7 +121,7 @@ export function JournalEditorToolbar({
           <Save aria-hidden="true" />
           <span className="hidden sm:inline">Lưu ngay</span>
         </Button>
-        <div className="flex shrink-0 rounded-lg bg-muted p-0.5 text-sm">
+        <div className="flex shrink-0 rounded-xl border bg-muted/70 p-0.5 text-sm">
           <Button
             type="button"
             onClick={() => onViewModeChange("write")}

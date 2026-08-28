@@ -39,7 +39,7 @@ export function JournalEntryContent({
   onContentChange,
 }: JournalEntryContentProps) {
   return (
-    <>
+    <div className="flex min-h-[58vh] flex-col">
       <label className="sr-only" htmlFor="journal-title">
         Tiêu đề
       </label>
@@ -50,7 +50,7 @@ export function JournalEntryContent({
         readOnly={!editable}
         maxLength={200}
         placeholder="Tiêu đề không bắt buộc"
-        className="font-display w-full bg-transparent text-4xl font-semibold tracking-[-0.025em] outline-none placeholder:text-muted-foreground/35 read-only:text-muted-foreground sm:text-5xl"
+        className="font-display w-full border-b border-border/70 bg-transparent pb-7 text-4xl font-semibold tracking-[-0.025em] outline-none placeholder:text-muted-foreground/35 read-only:text-muted-foreground sm:text-5xl"
       />
 
       {viewMode === "write" ? (
@@ -65,12 +65,12 @@ export function JournalEntryContent({
             readOnly={!editable}
             autoFocus={editable}
             placeholder="Điều gì đang sống động lúc này?"
-            className="min-h-[55vh] w-full resize-none bg-transparent font-display text-lg leading-9 outline-none placeholder:text-muted-foreground/55 read-only:text-muted-foreground sm:text-xl"
+            className="mt-7 min-h-[48vh] w-full flex-1 resize-none bg-transparent font-display text-lg leading-9 outline-none placeholder:text-muted-foreground/55 read-only:text-muted-foreground sm:text-xl"
           />
         </>
       ) : (
         <JournalMarkdownPreview content={content} />
       )}
-    </>
+    </div>
   );
 }

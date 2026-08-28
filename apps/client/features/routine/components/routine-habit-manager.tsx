@@ -1,7 +1,15 @@
 "use client";
 
 import type { RoutineDetailResponse } from "@repo/contracts";
-import { ArrowDown, ArrowUp, Plus, X } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  CircleDashed,
+  GripVertical,
+  Plus,
+  Route,
+  X,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
@@ -63,17 +71,27 @@ export function RoutineHabitManager({
   };
 
   return (
-    <section className="space-y-5" aria-labelledby="routine-habits-heading">
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2 id="routine-habits-heading" className="text-xl font-semibold">
-            Trình tự Habit
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Thứ tự từ trên xuống dưới là thứ tự thực hiện.
-          </p>
+    <section className="space-y-6" aria-labelledby="routine-habits-heading">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex gap-3">
+          <span className="grid size-10 shrink-0 place-items-center rounded-full border bg-background text-primary">
+            <Route className="size-4.5" aria-hidden="true" />
+          </span>
+          <div>
+            <h2
+              id="routine-habits-heading"
+              className="font-display text-2xl font-semibold tracking-tight"
+            >
+              Trình tự Habit
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">
+              Từ trên xuống dưới là nhịp thực hiện của Routine.
+            </p>
+          </div>
         </div>
-        <Badge variant="outline">{routine.habits.length} Habit</Badge>
+        <Badge variant="outline" className="self-start">
+          {routine.habits.length} bước
+        </Badge>
       </div>
 
       {message ? (
@@ -83,44 +101,62 @@ export function RoutineHabitManager({
       ) : null}
 
       {routine.isActive ? (
-        <div className="flex flex-col gap-2 rounded-xl border bg-background/45 p-3 sm:flex-row">
-          <RoutineHabitPicker
-            routineId={routine.id}
-            revision={routine.revision}
-            value={selectedHabitId}
-            onValueChange={setSelectedHabitId}
-            disabled={isPending}
-          />
-          <Button
-            type="button"
-            onClick={addSelectedHabit}
-            disabled={isPending || !selectedHabitId}
-          >
-            <Plus aria-hidden="true" /> Thêm vào Routine
-          </Button>
+        <div className="rounded-2xl border border-dashed bg-background/45 p-3 sm:p-4">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+            Thêm bước mới
+          </p>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <RoutineHabitPicker
+              routineId={routine.id}
+              revision={routine.revision}
+              value={selectedHabitId}
+              onValueChange={setSelectedHabitId}
+              disabled={isPending}
+            />
+            <Button
+              type="button"
+              onClick={addSelectedHabit}
+              disabled={isPending || !selectedHabitId}
+            >
+              <Plus aria-hidden="true" /> Thêm vào Routine
+            </Button>
+          </div>
         </div>
       ) : null}
 
       {routine.habits.length ? (
-        <ol className="space-y-2" aria-busy={isPending}>
+        <ol className="space-y-0" aria-busy={isPending}>
           {routine.habits.map((habit, index) => (
             <li
               key={habit.id}
-              className="flex items-center gap-3 rounded-xl border bg-card/55 p-3"
+              className="group/step relative grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 pb-3 last:pb-0"
             >
-              <span className="grid size-8 shrink-0 place-items-center rounded-full bg-primary/10 font-mono text-xs font-semibold text-primary">
-                {index + 1}
+              {index < routine.habits.length - 1 ? (
+                <span
+                  aria-hidden="true"
+                  className="absolute left-5 top-11 h-[calc(100%-2.25rem)] w-px bg-border"
+                />
+              ) : null}
+              <span className="relative z-10 grid size-10 shrink-0 place-items-center rounded-full border border-primary/25 bg-background font-mono text-xs font-semibold text-primary shadow-sm">
+                {String(index + 1).padStart(2, "0")}
               </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-medium">{habit.title}</p>
+              <div className="flex min-w-0 items-center gap-3 rounded-xl border bg-card/70 px-4 py-3 transition-colors group-hover/step:border-primary/25">
+                <GripVertical
+                  className="size-4 shrink-0 text-muted-foreground/45"
+                  aria-hidden="true"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium">{habit.title}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    Bước {index + 1} trong {routine.habits.length}
+                  </p>
+                </div>
                 {!habit.isActive ? (
-                  <Badge variant="secondary" className="mt-1">
-                    Habit đã lưu trữ
-                  </Badge>
+                  <Badge variant="secondary">Đã lưu trữ</Badge>
                 ) : null}
               </div>
               {routine.isActive ? (
-                <div className="flex shrink-0 gap-1">
+                <div className="flex shrink-0 rounded-lg border bg-background/80 p-0.5">
                   <Button
                     type="button"
                     size="icon-sm"
@@ -183,10 +219,17 @@ export function RoutineHabitManager({
           ))}
         </ol>
       ) : (
-        <p className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
-          Routine này chưa có Habit. Thêm Habit đầu tiên để tạo thành một trình
-          tự.
-        </p>
+        <div className="flex min-h-48 flex-col items-center justify-center rounded-2xl border border-dashed bg-background/35 px-6 py-10 text-center">
+          <span className="grid size-11 place-items-center rounded-full bg-primary/10 text-primary">
+            <CircleDashed className="size-5" aria-hidden="true" />
+          </span>
+          <p className="mt-4 font-display text-lg font-semibold">
+            Trình tự chưa được khởi tạo
+          </p>
+          <p className="mt-1 max-w-sm text-sm leading-6 text-muted-foreground">
+            Thêm Habit đầu tiên để đặt viên đá mở đầu cho Routine này.
+          </p>
+        </div>
       )}
     </section>
   );
