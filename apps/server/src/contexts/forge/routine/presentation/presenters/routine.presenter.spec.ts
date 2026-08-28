@@ -77,4 +77,18 @@ describe('RoutinePresenter', () => {
       ],
     });
   });
+  it('maps an available Habit option without leaking internal fields', () => {
+    const response = RoutinePresenter.toHabitOptionResponse({
+      id: 'habit-id',
+      title: 'Drink water',
+    });
+
+    expect(response).toEqual({
+      id: 'habit-id',
+      title: 'Drink water',
+    });
+
+    expect(response).not.toHaveProperty('ownerId');
+    expect(response).not.toHaveProperty('revision');
+  });
 });

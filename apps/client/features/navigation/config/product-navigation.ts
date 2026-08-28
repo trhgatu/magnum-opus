@@ -5,6 +5,7 @@ import {
   Gem,
   Hammer,
   History,
+  ListChecks,
   Repeat2,
   Sparkles,
 } from "lucide-react";
@@ -29,7 +30,15 @@ export const productNavigation = [
     description: "Rèn những hành động nhỏ thành nhịp sống có chủ ý.",
     icon: Flame,
     status: "available",
-    items: [{ id: "habits", label: "Habits", href: "/habits", icon: Repeat2 }],
+    items: [
+      { id: "habits", label: "Habits", href: "/habits", icon: Repeat2 },
+      {
+        id: "routines",
+        label: "Routines",
+        href: "/routines",
+        icon: ListChecks,
+      },
+    ],
   },
   {
     id: "engineering",

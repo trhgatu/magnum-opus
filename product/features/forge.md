@@ -4,7 +4,7 @@ Forge là context chứa Habit và Routine: những cam kết lặp lại vô th
 
 ## Trạng thái triển khai
 
-Product spec và data contract đã được chốt. Habit chạy thành một vertical slice từ PostgreSQL, NestJS đến Next.js: create, list/search/filter, detail, update, archive/restore, check-in/undo hôm nay và heatmap 90 ngày. Routine backend V1 đã chạy từ PostgreSQL đến HTTP API: create/list/search/filter, detail, update title, archive/restore, thêm/xóa Habit và đổi thứ tự bằng nút lên/xuống. Ownership, optimistic locking, idempotency, timezone boundary, lifecycle và thứ tự membership được kiểm tra bằng unit, component và HTTP E2E phù hợp với từng capability. Routine client và trang tổng hợp Today chưa được triển khai.
+Product spec và data contract đã được chốt. Habit chạy thành một vertical slice từ PostgreSQL, NestJS đến Next.js: create, list/search/filter, detail, update, archive/restore, check-in/undo hôm nay và heatmap 90 ngày. Routine cũng đã chạy full-stack: collection có search/filter/sort/pagination, create/edit, detail read model, archive/restore, thêm/xóa Habit và đổi thứ tự bằng nút lên/xuống. Ownership, optimistic locking, idempotency, timezone boundary, lifecycle và thứ tự membership được kiểm tra bằng unit, component và HTTP E2E phù hợp với từng capability. Trang tổng hợp Today chưa được triển khai.
 
 ## Vấn đề cần giải quyết
 
@@ -126,6 +126,10 @@ Tạo Routine với title. Thêm Habit vào Routine chỉ chấp nhận Habit c�
 `RoutineHabitReader` là port do Routine application sở hữu, chỉ đọc lượng dữ liệu tối thiểu để xác minh Habit trước khi thêm. Mutation đi qua `RoutineMutationService`: load theo owner, kiểm tra `expectedRevision`, gọi domain method rồi compare-and-swap. Repository chỉ thay membership sau khi compare-and-swap thành công và thực hiện toàn bộ thao tác trong một transaction; stale revision vì thế không thể xóa hay ghi lại thứ tự hiện có.
 
 Create, list và mutation response trả `habitIds` vì các flow đó chỉ cần state của aggregate. `GET /routines/:id` dùng read model riêng: một owner-scoped Prisma query join membership với Habit rồi trả `habits` theo thứ tự, mỗi item gồm `id`, title mới nhất, `isActive` và `order`. Habit đã archive vẫn xuất hiện để Routine không mất ngữ cảnh; client có thể đánh dấu và khóa thao tác không còn hợp lệ mà không phát sinh N+1 request. Query side không rehydrate aggregate và không đưa phụ thuộc Habit vào Routine domain.
+
+Client tổ chức theo feature boundary `features/routine/{api,actions,lib,components}`. Collection và detail là Server Component; API adapter chỉ chạy phía server. Editor, lifecycle và membership manager là các Client Component nhỏ gọi Server Action. Mọi mutation gửi `expectedRevision`, giữ lại error code an toàn để UI nhận biết conflict, rồi revalidate collection và detail. URL là nguồn sự thật cho search, trạng thái, sort và pagination; reload hoặc back/forward không làm mất view hiện tại.
+
+Trang detail không tải trước toàn bộ Habit vào React payload. Khi selector được mở, Client Component tìm kiếm qua Next.js BFF Route Handler; backend phân trang và loại ngay trong PostgreSQL các Habit đã thuộc Routine, đã archive hoặc thuộc owner khác. Browser chỉ nhận read model tối thiểu `{ id, title }`. Habit đã archive nhưng đã tồn tại trong membership vẫn được hiển thị trong trình tự để không làm mất lịch sử.
 
 ### Trang "Hôm nay"
 

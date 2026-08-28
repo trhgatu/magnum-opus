@@ -12,8 +12,16 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CommandBus, type ICommand, QueryBus } from '@nestjs/cqrs';
-import type { RoutineResponse, RoutineDetailResponse } from '@repo/contracts';
-import type { RoutineDetailReadModel } from '../../application/ports/routine-reader.port';
+import type {
+  RoutineHabitOptionResponse,
+  RoutineResponse,
+  RoutineDetailResponse,
+} from '@repo/contracts';
+import type { PaginatedResult } from '@repo/types';
+import type {
+  FindAvailableRoutineHabitsResult,
+  RoutineDetailReadModel,
+} from '../../application/ports/routine-reader.port';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { PaginatedResponsePresenter } from '@presentation/common/presenters/pagination.presenter';
@@ -30,11 +38,16 @@ import {
   RestoreRoutineCommand,
   UpdateRoutineTitleCommand,
 } from '../../application/commands';
-import { GetRoutineQuery, GetRoutinesQuery } from '../../application/queries';
+import {
+  GetAvailableRoutineHabitsQuery,
+  GetRoutineQuery,
+  GetRoutinesQuery,
+} from '../../application/queries';
 import { Routine } from '../../domain/routine.aggregate';
 import {
   AddRoutineHabitDto,
   CreateRoutineDto,
+  GetAvailableRoutineHabitsQueryDto,
   GetRoutinesQueryDto,
   RoutineRevisionDto,
   UpdateRoutineTitleDto,
@@ -96,6 +109,36 @@ export class RoutineController {
 
     return PaginatedResponsePresenter.toResponse(
       routines.map((routine) => RoutinePresenter.toResponse(routine)),
+      total,
+      query.page,
+      query.limit,
+    );
+  }
+
+  @Get(':id/available-habits')
+  @ApiOperation({
+    summary: 'List active Habits available to add to an owned Routine',
+  })
+  public async findAvailableHabits(
+    @GetUser('id') ownerId: string,
+    @Param('id', new ParseUUIDPipe()) routineId: string,
+    @Query() query: GetAvailableRoutineHabitsQueryDto,
+  ): Promise<PaginatedResult<RoutineHabitOptionResponse>> {
+    const result = await this.queryBus.execute(
+      new GetAvailableRoutineHabitsQuery(
+        routineId,
+        ownerId,
+        query.page,
+        query.limit,
+        query.search,
+      ),
+    );
+
+    const { habits, total } =
+      result.unwrap() as FindAvailableRoutineHabitsResult;
+
+    return PaginatedResponsePresenter.toResponse(
+      habits.map((habit) => RoutinePresenter.toHabitOptionResponse(habit)),
       total,
       query.page,
       query.limit,

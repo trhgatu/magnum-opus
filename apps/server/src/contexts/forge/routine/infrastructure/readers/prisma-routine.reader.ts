@@ -4,6 +4,8 @@ import { Prisma } from '@repo/database';
 import { PrismaService } from '@infrastructure/database/prisma.service';
 
 import {
+  FindAvailableRoutineHabitsOptions,
+  FindAvailableRoutineHabitsResult,
   FindRoutinesOptions,
   FindRoutinesResult,
   RoutineDetailReadModel,
@@ -122,6 +124,74 @@ export class PrismaRoutineReader implements RoutineReader {
 
     return {
       routines: rows.map((row) => PrismaRoutineMapper.toDomain(row)),
+      total,
+    };
+  }
+
+  public async findAvailableHabitsForOwner(
+    routineId: string,
+    ownerId: string,
+    options: FindAvailableRoutineHabitsOptions,
+  ): Promise<FindAvailableRoutineHabitsResult | null> {
+    const search = options.search?.trim();
+
+    const habitWhere: Prisma.HabitWhereInput = {
+      ownerId,
+      isActive: true,
+      routineLinks: {
+        none: {
+          routineId,
+          ownerId,
+        },
+      },
+      ...(search
+        ? {
+            title: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          }
+        : {}),
+    };
+
+    const [ownedRoutine, habits, total] = await this.prisma.$transaction([
+      this.prisma.routine.findFirst({
+        where: {
+          id: routineId,
+          ownerId,
+        },
+        select: {
+          id: true,
+        },
+      }),
+      this.prisma.habit.findMany({
+        where: habitWhere,
+        select: {
+          id: true,
+          title: true,
+        },
+        orderBy: [
+          {
+            title: 'asc',
+          },
+          {
+            id: 'asc',
+          },
+        ],
+        skip: options.skip,
+        take: options.take,
+      }),
+      this.prisma.habit.count({
+        where: habitWhere,
+      }),
+    ]);
+
+    if (!ownedRoutine) {
+      return null;
+    }
+
+    return {
+      habits,
       total,
     };
   }

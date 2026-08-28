@@ -15,6 +15,10 @@ export interface RoutineDetailHabitResponse {
   order: number;
 }
 
+export interface RoutineHabitOptionResponse {
+  id: string;
+  title: string;
+}
 export interface RoutineDetailResponse {
   id: string;
   title: string;

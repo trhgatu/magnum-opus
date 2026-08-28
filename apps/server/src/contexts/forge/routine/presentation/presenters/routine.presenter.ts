@@ -1,6 +1,13 @@
-import type { RoutineResponse, RoutineDetailResponse } from '@repo/contracts';
+import type {
+  RoutineResponse,
+  RoutineDetailResponse,
+  RoutineHabitOptionResponse,
+} from '@repo/contracts';
 
-import { RoutineDetailReadModel } from '../../application/ports/routine-reader.port';
+import type {
+  RoutineDetailReadModel,
+  RoutineHabitOptionReadModel,
+} from '../../application/ports/routine-reader.port';
 
 import { Routine } from '../../domain/routine.aggregate';
 
@@ -35,6 +42,15 @@ export class RoutinePresenter {
       revision: detail.revision,
       createdAt: detail.createdAt.toISOString(),
       updatedAt: detail.updatedAt.toISOString(),
+    };
+  }
+
+  public static toHabitOptionResponse(
+    habit: RoutineHabitOptionReadModel,
+  ): RoutineHabitOptionResponse {
+    return {
+      id: habit.id,
+      title: habit.title,
     };
   }
 }
