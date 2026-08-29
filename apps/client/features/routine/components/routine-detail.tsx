@@ -19,17 +19,17 @@ export function RoutineDetail({ routine }: { routine: RoutineDetailResponse }) {
           className: "self-start",
         })}
       >
-        <ArrowLeft aria-hidden="true" /> Tất cả Routine
+        <ArrowLeft aria-hidden="true" /> Tất cả Trình tự
       </Link>
 
       <ContextHero
         icon={ListChecks}
-        eyebrow="Forge · Routine"
+        eyebrow="Forge · Trình tự"
         title={routine.title}
-        description="Một trình tự có chủ ý: mỗi Habit là một bước, mỗi bước hoàn thành mở đường cho bước kế tiếp."
+        description="Một trình tự có chủ ý: mỗi Thói quen là một bước, mỗi bước hoàn thành mở đường cho bước kế tiếp."
         meta={
           <>
-            <Badge variant="outline">{routine.habits.length} Habit</Badge>
+            <Badge variant="outline">{routine.habits.length} Thói quen</Badge>
             <Badge variant={routine.isActive ? "outline" : "secondary"}>
               {routine.isActive ? "Đang rèn luyện" : "Đã lưu trữ"}
             </Badge>
@@ -57,7 +57,7 @@ export function RoutineDetail({ routine }: { routine: RoutineDetailResponse }) {
       <Card className="gap-0 rounded-3xl bg-card/65 py-0 shadow-sm">
         <CardHeader className="border-b px-5 py-5 sm:px-7">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-            Ritual sequence
+            Chuỗi thực hành
           </p>
         </CardHeader>
         <CardContent className="px-5 py-6 sm:px-7 sm:py-7">
@@ -65,8 +65,7 @@ export function RoutineDetail({ routine }: { routine: RoutineDetailResponse }) {
         </CardContent>
       </Card>
 
-      <footer className="flex flex-wrap justify-between gap-2 border-t pt-4 font-mono text-xs text-muted-foreground">
-        <span>Revision {routine.revision}</span>
+      <footer className="flex flex-wrap justify-end gap-2 border-t pt-4 font-mono text-xs text-muted-foreground">
         <time dateTime={routine.updatedAt}>
           Cập nhật{" "}
           {new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium" }).format(

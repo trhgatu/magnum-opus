@@ -32,7 +32,7 @@ function JournalEntryCardSkeleton() {
 export function JournalCollectionSkeleton() {
   return (
     <section className="flex flex-col gap-7" role="status" aria-live="polite">
-      <span className="sr-only">Đang tải Journal…</span>
+      <span className="sr-only">Đang tải Nhật ký…</span>
       <ContextHeroSkeleton />
       <div
         aria-hidden="true"
@@ -64,7 +64,7 @@ export function JournalEditorSkeleton() {
       role="status"
       aria-live="polite"
     >
-      <span className="sr-only">Đang mở trang Journal…</span>
+      <span className="sr-only">Đang mở trang Nhật ký…</span>
       <div
         aria-hidden="true"
         className="flex flex-wrap items-center gap-2 rounded-2xl border bg-card/80 p-2.5 shadow-sm"

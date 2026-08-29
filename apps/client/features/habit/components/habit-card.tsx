@@ -51,17 +51,17 @@ export function HabitCard({
             {habit.title}
           </h2>
           <p className="mt-2 line-clamp-3 text-sm leading-6 text-muted-foreground">
-            {habit.description ?? "Một nhịp lặp đang được vun bồi."}
+            {habit.description ?? "Một thói quen đang được vun bồi."}
           </p>
           <div className="mt-auto flex items-center gap-2 pt-7 text-xs font-medium text-foreground/70">
             <CheckCircle2 className="size-4 text-primary" aria-hidden="true" />
             {formatHabitFrequency(habit.frequencyType, habit.frequencyDays)}
           </div>
         </CardContent>
-        <CardFooter className="justify-between bg-muted/35 px-5 py-3 font-mono text-[11px] text-muted-foreground">
-          <span>Revision {habit.revision}</span>
+        <CardFooter className="justify-end bg-muted/35 px-5 py-3 font-mono text-[11px] text-muted-foreground">
           <span className="flex items-center gap-1 font-sans text-xs font-medium text-foreground/70 transition-colors group-hover:text-primary">
-            Mở Habit <ArrowUpRight className="size-3.5" aria-hidden="true" />
+            Mở Thói quen{" "}
+            <ArrowUpRight className="size-3.5" aria-hidden="true" />
           </span>
         </CardFooter>
       </Card>

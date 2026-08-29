@@ -17,7 +17,7 @@ import { JournalSearch } from "@/features/journal/components/journal-search";
 import { JournalStateFilter } from "@/features/journal/components/journal-state-filter";
 
 export const metadata: Metadata = {
-  title: "Journal",
+  title: "Nhật ký",
   robots: { index: false, follow: false },
 };
 
@@ -57,14 +57,14 @@ export default async function JournalPage({ searchParams }: JournalPageProps) {
       <ContextHero
         id="journal-heading"
         icon={BookOpenText}
-        eyebrow="Reflection · Journal"
-        title="Journal"
+        eyebrow="Reflection · Nhật ký"
+        title="Nhật ký"
         description="Một căn phòng riêng để đặt xuống điều đang sống động — chưa cần hoàn hảo, chưa cần trở thành bất cứ điều gì khác."
         meta={
           <>
             <Badge variant="outline">{result.meta.totalItems} entry</Badge>
             <Badge variant="secondary">
-              {state === "TRASHED" ? "Trash" : (state ?? "Đang lưu giữ")}
+              {state === "TRASHED" ? "Thùng rác" : (state ?? "Đang lưu giữ")}
             </Badge>
           </>
         }
@@ -84,7 +84,7 @@ export default async function JournalPage({ searchParams }: JournalPageProps) {
       ) : null}
 
       <section
-        aria-label="Tìm kiếm và lọc Journal"
+        aria-label="Tìm kiếm và lọc Nhật ký"
         className="rounded-2xl border bg-card/55 p-3 shadow-sm sm:p-4"
       >
         <div className="mb-3 flex items-center gap-2 px-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">

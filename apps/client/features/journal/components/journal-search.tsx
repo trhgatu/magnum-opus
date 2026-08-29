@@ -25,7 +25,7 @@ export function JournalSearch({
     >
       {state ? <input type="hidden" name="state" value={state} /> : null}
       <label htmlFor="journal-search" className="sr-only">
-        Tìm trong journal
+        Tìm trong nhật ký
       </label>
       <div className="relative min-w-0 flex-1">
         <Input

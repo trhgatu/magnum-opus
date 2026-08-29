@@ -36,7 +36,7 @@ function RoutineCardSkeleton() {
 export function RoutineCollectionSkeleton() {
   return (
     <section className="flex flex-col gap-7" role="status" aria-live="polite">
-      <span className="sr-only">Đang tải danh sách Routine…</span>
+      <span className="sr-only">Đang tải danh sách Trình tự…</span>
       <ContextHeroSkeleton />
 
       <div
@@ -76,7 +76,7 @@ export function RoutineDetailSkeleton() {
       role="status"
       aria-live="polite"
     >
-      <span className="sr-only">Đang tải Routine…</span>
+      <span className="sr-only">Đang tải Trình tự…</span>
       <Skeleton aria-hidden="true" className="h-8 w-36" />
       <ContextHeroSkeleton />
 
@@ -121,7 +121,7 @@ export function RoutineFormSkeleton() {
       role="status"
       aria-live="polite"
     >
-      <span className="sr-only">Đang chuẩn bị biểu mẫu Routine…</span>
+      <span className="sr-only">Đang chuẩn bị biểu mẫu Trình tự…</span>
       <ContextHeroSkeleton actions={false} metaCount={0} />
 
       <div

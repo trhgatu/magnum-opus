@@ -30,7 +30,7 @@ export function HabitSearch({
           name="search"
           type="search"
           defaultValue={location.search}
-          placeholder="Tìm theo tên Habit…"
+          placeholder="Tìm theo tên Thói quen…"
           className="h-10 bg-background/70 pl-9 pr-9"
         />
         <Search
@@ -52,7 +52,7 @@ export function HabitSearch({
         ) : null}
       </div>
       <Button type="submit" variant="outline" size="lg">
-        Tìm Habit
+        Tìm Thói quen
       </Button>
     </Form>
   );

@@ -41,7 +41,7 @@ export default async function NewMemoryPage({
 
       creationSeed = {
         sourceJournalEntryId: source.id,
-        title: source.title?.trim() || "Một ký ức từ Journal",
+        title: source.title?.trim() || "Một ký ức từ Nhật ký",
         content: source.content,
       };
     } catch (error) {

@@ -10,7 +10,7 @@ import { TimelinePagination } from "@/features/timeline/components/timeline-pagi
 import { parseTimelineLocation } from "@/features/timeline/lib/timeline-url";
 
 export const metadata: Metadata = {
-  title: "Timeline",
+  title: "Dòng thời gian",
   robots: {
     index: false,
     follow: false,
@@ -37,8 +37,8 @@ export default async function TimelinePage({
         id="timeline-heading"
         icon={Clock3}
         eyebrow="Reflection · Chronology"
-        title="Timeline"
-        description="Những mốc Journal đã seal và Ký ức đã giữ lại, theo đúng thời điểm chúng xảy ra."
+        title="Dòng thời gian"
+        description="Từng trang viết được niêm phong, từng mảnh ký ức ở lại đúng vị trí của thời gian."
         meta={
           <>
             <Badge variant="outline">{result.meta.totalItems} dấu mốc</Badge>
@@ -64,8 +64,8 @@ export default async function TimelinePage({
         </div>
       ) : (
         <EmptyState
-          title="Timeline đang trống"
-          description="Seal một Journal entry hoặc giữ lại một ký ức để bắt đầu dòng thời gian."
+          title="Dòng thời gian đang trống"
+          description="Niêm phong một Nhật ký hoặc giữ lại một ký ức để bắt đầu dòng thời gian."
         />
       )}
 

@@ -15,7 +15,7 @@ export function HabitCollectionControls({
   return (
     <div className="flex flex-wrap gap-2">
       <nav
-        aria-label="Lọc trạng thái"
+        aria-label="Lọc trạng thái Thói quen"
         className="flex rounded-xl border bg-background/70 p-1"
       >
         {(["ACTIVE", "ARCHIVED"] as const).map((status) => (

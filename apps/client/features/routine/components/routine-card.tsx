@@ -22,7 +22,7 @@ export function RoutineCard({
   return (
     <Link
       href={`/routines/${routine.id}`}
-      aria-label={`Mở Routine: ${routine.title}`}
+      aria-label={`Mở Trình tự: ${routine.title}`}
       className="group rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-3"
     >
       <Card className="relative min-h-64 gap-0 overflow-hidden rounded-2xl bg-card/75 py-0 transition duration-200 group-hover:-translate-y-1 group-hover:ring-primary/30 group-hover:shadow-lg motion-reduce:transform-none">
@@ -54,8 +54,8 @@ export function RoutineCard({
           </h2>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
             {habitCount > 0
-              ? `${habitCount} Habit đã được đặt vào đúng thứ tự thực hiện.`
-              : "Một khuôn rỗng đang chờ Habit đầu tiên."}
+              ? `${habitCount} Thói quen đã được đặt vào đúng thứ tự thực hiện.`
+              : "Một khuôn rỗng đang chờ Thói quen đầu tiên."}
           </p>
 
           <div
@@ -83,8 +83,7 @@ export function RoutineCard({
           </div>
         </CardContent>
 
-        <CardFooter className="justify-between bg-muted/35 px-5 py-3 font-mono text-[11px] text-muted-foreground">
-          <span>Revision {routine.revision}</span>
+        <CardFooter className="justify-end bg-muted/35 px-5 py-3 font-mono text-[11px] text-muted-foreground">
           <span className="flex items-center gap-1 font-sans text-xs font-medium text-foreground/70 transition-colors group-hover:text-primary">
             Mở trình tự <ArrowUpRight className="size-3.5" aria-hidden="true" />
           </span>

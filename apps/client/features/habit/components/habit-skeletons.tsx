@@ -31,7 +31,7 @@ function HabitCardSkeleton() {
 export function HabitCollectionSkeleton() {
   return (
     <section className="flex flex-col gap-7" role="status" aria-live="polite">
-      <span className="sr-only">Đang tải danh sách Habit…</span>
+      <span className="sr-only">Đang tải danh sách Thói quen…</span>
       <ContextHeroSkeleton />
       <div
         aria-hidden="true"
@@ -69,7 +69,7 @@ export function HabitDetailSkeleton() {
       role="status"
       aria-live="polite"
     >
-      <span className="sr-only">Đang tải Habit…</span>
+      <span className="sr-only">Đang tải Thói quen…</span>
       <Skeleton aria-hidden="true" className="h-8 w-36" />
       <ContextHeroSkeleton />
       <div aria-hidden="true" className="grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">
@@ -87,7 +87,7 @@ export function HabitFormSkeleton() {
       role="status"
       aria-live="polite"
     >
-      <span className="sr-only">Đang chuẩn bị biểu mẫu Habit…</span>
+      <span className="sr-only">Đang chuẩn bị biểu mẫu Thói quen…</span>
       <ContextHeroSkeleton actions={false} metaCount={0} />
       <div
         aria-hidden="true"

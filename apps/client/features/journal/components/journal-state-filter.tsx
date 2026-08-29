@@ -6,9 +6,9 @@ import { cn } from "@/lib/utils";
 
 const filters = [
   [undefined, "Đang lưu giữ"],
-  ["DRAFT", "Draft"],
-  ["SEALED", "Sealed"],
-  ["TRASHED", "Trash"],
+  ["DRAFT", "Nháp"],
+  ["SEALED", "Đã niêm phong"],
+  ["TRASHED", "Thùng rác"],
 ] as const;
 
 export function JournalStateFilter({
@@ -20,7 +20,7 @@ export function JournalStateFilter({
 }) {
   return (
     <nav
-      aria-label="Lọc Journal theo trạng thái"
+      aria-label="Lọc Nhật ký theo trạng thái"
       className="flex max-w-full overflow-x-auto rounded-xl border bg-background/70 p-1 text-sm"
     >
       {filters.map(([value, label]) => {

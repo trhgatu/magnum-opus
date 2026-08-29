@@ -33,7 +33,7 @@ export function RoutineLifecycleControls({
       if (result.status === "error") {
         setMessage(
           result.code === "ROUTINE_REVISION_CONFLICT"
-            ? "Routine đã thay đổi. Tải lại bản mới nhất trước khi tiếp tục."
+            ? "Trình tự đã thay đổi. Tải lại bản mới nhất trước khi tiếp tục."
             : result.message,
         );
         return;

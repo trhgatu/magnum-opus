@@ -74,7 +74,7 @@ describe("MemoryLifecycleControls", () => {
 
     fireEvent.click(
       screen.getByRole("button", {
-        name: "Đưa vào Trash",
+        name: "Đưa vào Thùng rác",
       }),
     );
 
@@ -109,7 +109,7 @@ describe("MemoryLifecycleControls", () => {
 
     expect(
       screen.queryByRole("button", {
-        name: "Đưa vào Trash",
+        name: "Đưa vào Thùng rác",
       }),
     ).toBeNull();
 
@@ -196,7 +196,7 @@ describe("MemoryLifecycleControls", () => {
 
     fireEvent.click(
       screen.getByRole("button", {
-        name: "Đưa vào Trash",
+        name: "Đưa vào Thùng rác",
       }),
     );
 

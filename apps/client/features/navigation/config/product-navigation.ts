@@ -19,9 +19,14 @@ export const productNavigation = [
     icon: Sparkles,
     status: "available",
     items: [
-      { id: "journal", label: "Journal", href: "/journal", icon: BookOpenText },
-      { id: "memories", label: "Memories", href: "/memories", icon: Gem },
-      { id: "timeline", label: "Timeline", href: "/timeline", icon: History },
+      { id: "journal", label: "Nhật ký", href: "/journal", icon: BookOpenText },
+      { id: "memories", label: "Ký ức", href: "/memories", icon: Gem },
+      {
+        id: "timeline",
+        label: "Dòng thời gian",
+        href: "/timeline",
+        icon: History,
+      },
     ],
   },
   {
@@ -31,10 +36,10 @@ export const productNavigation = [
     icon: Flame,
     status: "available",
     items: [
-      { id: "habits", label: "Habits", href: "/habits", icon: Repeat2 },
+      { id: "habits", label: "Thói quen", href: "/habits", icon: Repeat2 },
       {
         id: "routines",
-        label: "Routines",
+        label: "Trình tự",
         href: "/routines",
         icon: ListChecks,
       },

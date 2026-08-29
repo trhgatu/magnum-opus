@@ -10,6 +10,8 @@ import { TimelineSkeleton } from "./timeline-skeleton";
 describe("TimelineSkeleton", () => {
   it("announces its loading state", () => {
     render(<TimelineSkeleton />);
-    expect(screen.getByRole("status")).toHaveTextContent("Đang tải Timeline…");
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Đang tải Dòng thời gian…",
+    );
   });
 });

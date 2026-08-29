@@ -25,7 +25,7 @@ test("shows a sealed Journal entry on the Timeline and links back to it", async 
 
   await page.getByLabel("Tiêu đề").fill(title);
   await page.getByLabel("Nội dung", { exact: true }).fill(content);
-  await expect(page.getByText("Đã lưu · revision 2")).toBeVisible({
+  await expect(page.getByText("Đã lưu", { exact: true })).toBeVisible({
     timeout: 10_000,
   });
 

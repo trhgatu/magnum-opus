@@ -45,7 +45,7 @@ export function RoutineHabitManager({
       if (result.status === "error") {
         setMessage(
           result.code === "ROUTINE_REVISION_CONFLICT"
-            ? "Routine đã thay đổi. Tải lại bản mới nhất trước khi tiếp tục."
+            ? "Trình tự đã thay đổi. Tải lại bản mới nhất trước khi tiếp tục."
             : result.message,
         );
         return;
@@ -82,10 +82,10 @@ export function RoutineHabitManager({
               id="routine-habits-heading"
               className="font-display text-2xl font-semibold tracking-tight"
             >
-              Trình tự Habit
+              Trình tự Thói quen
             </h2>
             <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              Từ trên xuống dưới là nhịp thực hiện của Routine.
+              Từ trên xuống dưới là nhịp thực hiện của Trình tự.
             </p>
           </div>
         </div>
@@ -118,7 +118,7 @@ export function RoutineHabitManager({
               onClick={addSelectedHabit}
               disabled={isPending || !selectedHabitId}
             >
-              <Plus aria-hidden="true" /> Thêm vào Routine
+              <Plus aria-hidden="true" /> Thêm vào Trình tự
             </Button>
           </div>
         </div>
@@ -199,7 +199,7 @@ export function RoutineHabitManager({
                     type="button"
                     size="icon-sm"
                     variant="ghost"
-                    aria-label={`Gỡ ${habit.title} khỏi Routine`}
+                    aria-label={`Gỡ ${habit.title} khỏi Trình tự`}
                     disabled={isPending}
                     onClick={() =>
                       run(() =>
@@ -227,7 +227,7 @@ export function RoutineHabitManager({
             Trình tự chưa được khởi tạo
           </p>
           <p className="mt-1 max-w-sm text-sm leading-6 text-muted-foreground">
-            Thêm Habit đầu tiên để đặt viên đá mở đầu cho Routine này.
+            Thêm Thói quen đầu tiên để đặt viên đá mở đầu cho Trình tự này.
           </p>
         </div>
       )}

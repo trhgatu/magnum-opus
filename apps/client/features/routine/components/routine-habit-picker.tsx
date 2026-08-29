@@ -127,13 +127,13 @@ export function RoutineHabitPicker({
           type="button"
           variant="outline"
           role="combobox"
-          aria-label="Chọn Habit đang hoạt động"
+          aria-label="Chọn Thói quen đang hoạt động"
           aria-expanded={open}
           disabled={disabled}
           className="h-10 w-full justify-between bg-background sm:flex-1"
         >
           <span className="truncate">
-            {selectedOption?.title ?? "Chọn Habit đang hoạt động"}
+            {selectedOption?.title ?? "Chọn Thói quen đang hoạt động"}
           </span>
           <ChevronsUpDown className="opacity-55" aria-hidden="true" />
         </Button>
@@ -151,8 +151,8 @@ export function RoutineHabitPicker({
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Tìm Habit theo tên"
-            aria-label="Tìm Habit theo tên"
+            placeholder="Tìm Thói quen theo tên"
+            aria-label="Tìm Thói quen theo tên"
             className="pl-8"
             autoComplete="off"
           />
@@ -160,26 +160,26 @@ export function RoutineHabitPicker({
 
         <div
           role="listbox"
-          aria-label="Habit có thể thêm"
+          aria-label="Thói quen có thể thêm"
           aria-busy={loadState === "loading"}
           className="max-h-64 overflow-y-auto"
         >
           {loadState === "loading" ? (
             <p className="flex items-center justify-center gap-2 px-3 py-6 text-sm text-muted-foreground">
               <LoaderCircle className="animate-spin" aria-hidden="true" />
-              Đang tìm Habit…
+              Đang tìm Thói quen…
             </p>
           ) : null}
 
           {loadState === "error" ? (
             <p className="px-3 py-6 text-center text-sm text-destructive">
-              Không thể tải danh sách Habit. Thử đóng và mở lại.
+              Không thể tải danh sách Thói quen. Thử đóng và mở lại.
             </p>
           ) : null}
 
           {loadState === "ready" && options.length === 0 ? (
             <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-              Không tìm thấy Habit phù hợp.
+              Không tìm thấy Thói quen phù hợp.
             </p>
           ) : null}
 

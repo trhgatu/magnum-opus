@@ -36,7 +36,7 @@ const MoodPanel = dynamic(
       <div
         className="h-32 animate-pulse rounded-xl bg-muted/35"
         role="status"
-        aria-label="Đang chuẩn bị Mood"
+        aria-label="Đang chuẩn bị Tâm trạng"
       />
     ),
   },
@@ -74,7 +74,6 @@ export function JournalEditor({
     entry,
     title,
     content,
-    revision,
     saveState,
     message: draftMessage,
     isDirty,
@@ -224,7 +223,6 @@ export function JournalEditor({
       <div className="mx-auto flex max-w-5xl flex-col gap-5">
         <JournalEditorToolbar
           state={entry.state}
-          revision={revision}
           saveState={saveState}
           dirty={isDirty}
           editable={editable}

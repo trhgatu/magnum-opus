@@ -15,7 +15,7 @@ export function RoutineCollectionControls({
   return (
     <div className="flex flex-wrap gap-2">
       <nav
-        aria-label="Lọc trạng thái Routine"
+        aria-label="Lọc trạng thái Trình tự"
         className="flex rounded-xl border bg-background/70 p-1"
       >
         {(["ACTIVE", "ARCHIVED"] as const).map((status) => (
@@ -43,7 +43,7 @@ export function RoutineCollectionControls({
         ))}
       </nav>
       <nav
-        aria-label="Sắp xếp Routine"
+        aria-label="Sắp xếp Trình tự"
         className="flex rounded-xl border bg-background/70 p-1"
       >
         {(["updatedAt", "title"] as const).map((sortBy) => (

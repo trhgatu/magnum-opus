@@ -46,11 +46,11 @@ describe("RoutineEditor", () => {
     createRoutine.mockResolvedValue({ status: "success", routine });
     render(<RoutineEditor />);
 
-    fireEvent.change(screen.getByLabelText("Tên Routine"), {
+    fireEvent.change(screen.getByLabelText("Tên Trình tự"), {
       target: { value: "Morning ritual" },
     });
     fireEvent.submit(
-      screen.getByRole("button", { name: "Tạo Routine" }).closest("form")!,
+      screen.getByRole("button", { name: "Tạo Trình tự" }).closest("form")!,
     );
 
     await waitFor(() =>
@@ -64,7 +64,7 @@ describe("RoutineEditor", () => {
     updateRoutineTitle.mockResolvedValue({ status: "success", routine });
     render(<RoutineEditor initialRoutine={routine} />);
 
-    fireEvent.change(screen.getByLabelText("Tên Routine"), {
+    fireEvent.change(screen.getByLabelText("Tên Trình tự"), {
       target: { value: "Evening ritual" },
     });
     fireEvent.submit(
@@ -95,7 +95,7 @@ describe("RoutineEditor", () => {
 
     expect(
       await screen.findByText(
-        "Routine đã thay đổi ở nơi khác. Tải lại trang trước khi lưu tiếp.",
+        "Trình tự đã thay đổi ở nơi khác. Tải lại trang trước khi lưu tiếp.",
       ),
     ).toBeInTheDocument();
     expect(push).not.toHaveBeenCalled();

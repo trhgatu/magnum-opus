@@ -22,7 +22,7 @@ const principles = [
     icon: BookOpenText,
     title: "Giữ lại điều đã sống",
     description:
-      "Journal lưu giữ suy nghĩ, ký ức và cảm xúc trước khi thời gian làm chúng phai mờ.",
+      "Nhật ký lưu giữ suy nghĩ, ký ức và cảm xúc trước khi thời gian làm chúng phai mờ.",
   },
   {
     icon: Compass,

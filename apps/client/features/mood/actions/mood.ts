@@ -76,7 +76,7 @@ export async function setMood(input: {
     (input.expectedRevision !== undefined &&
       !validRevision(input.expectedRevision))
   ) {
-    return { status: "error", message: "Dữ liệu mood không hợp lệ." };
+    return { status: "error", message: "Dữ liệu tâm trạng không hợp lệ." };
   }
 
   try {
@@ -111,7 +111,7 @@ export async function removeMood(input: {
     !input.journalEntryId ||
     !validRevision(input.expectedRevision)
   ) {
-    return { status: "error", message: "Dữ liệu mood không hợp lệ." };
+    return { status: "error", message: "Dữ liệu tâm trạng không hợp lệ." };
   }
 
   try {

@@ -57,13 +57,13 @@ export function MemoryCard({ memory }: MemoryCardProps) {
             {memory.sourceJournalEntryId ? (
               <Badge variant="outline">
                 <BookOpenText className="size-3" aria-hidden="true" />
-                Từ Journal
+                Từ Nhật ký
               </Badge>
             ) : null}
             {memory.state === "TRASHED" ? (
               <Badge variant="destructive">
                 <Trash2 className="size-3" aria-hidden="true" />
-                Trash
+                Thùng rác
               </Badge>
             ) : null}
           </div>
@@ -82,7 +82,7 @@ export function MemoryCard({ memory }: MemoryCardProps) {
         </div>
         <footer className="flex items-center justify-between border-t bg-muted/30 px-5 py-3 sm:px-6">
           <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-            Archive record
+            Hồ sơ lưu trữ
           </span>
           <span className="flex items-center gap-1 text-xs font-medium text-foreground/70 transition-colors group-hover:text-primary">
             Mở ký ức <span aria-hidden="true">↗</span>

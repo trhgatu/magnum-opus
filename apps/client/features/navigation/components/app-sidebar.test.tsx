@@ -24,6 +24,6 @@ describe("AppSidebar", () => {
     control.click();
 
     expect(control.checked).toBe(true);
-    expect(screen.getByRole("link", { name: "Journal" })).not.toBeNull();
+    expect(screen.getByRole("link", { name: "Nhật ký" })).not.toBeNull();
   });
 });

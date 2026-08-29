@@ -35,7 +35,7 @@ export default async function EditHabitPage({
     <section className="mx-auto flex w-full max-w-4xl flex-col gap-6">
       <ContextHero
         icon={Repeat2}
-        eyebrow="Forge · Habits"
+        eyebrow="Forge · Thói quen"
         title="Chỉnh sửa thói quen"
         description="Thay đổi định nghĩa hoặc lịch thực hiện mà không làm mất lịch sử check-in."
       />

@@ -4,7 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export function TimelineSkeleton() {
   return (
     <section className="flex flex-col gap-7" role="status" aria-live="polite">
-      <span className="sr-only">Đang tải Timeline…</span>
+      <span className="sr-only">Đang tải Dòng thời gian…</span>
       <ContextHeroSkeleton actions={false} />
       <div aria-hidden="true" className="flex items-center gap-3">
         <Skeleton className="h-3 w-36" />

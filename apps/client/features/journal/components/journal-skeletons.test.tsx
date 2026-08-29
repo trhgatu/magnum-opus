@@ -14,8 +14,8 @@ afterEach(cleanup);
 
 describe("Journal skeletons", () => {
   it.each([
-    [<JournalCollectionSkeleton key="collection" />, "Đang tải Journal…"],
-    [<JournalEditorSkeleton key="editor" />, "Đang mở trang Journal…"],
+    [<JournalCollectionSkeleton key="collection" />, "Đang tải Nhật ký…"],
+    [<JournalEditorSkeleton key="editor" />, "Đang mở trang Nhật ký…"],
   ])("announces its loading state", (skeleton, announcement) => {
     render(skeleton);
     expect(screen.getByRole("status")).toHaveTextContent(announcement);

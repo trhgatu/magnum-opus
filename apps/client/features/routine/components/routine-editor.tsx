@@ -41,7 +41,7 @@ export function RoutineEditor({
       if (result.status === "error") {
         setMessage(
           result.code === "ROUTINE_REVISION_CONFLICT"
-            ? "Routine đã thay đổi ở nơi khác. Tải lại trang trước khi lưu tiếp."
+            ? "Trình tự đã thay đổi ở nơi khác. Tải lại trang trước khi lưu tiếp."
             : result.message,
         );
         return;
@@ -70,7 +70,7 @@ export function RoutineEditor({
                 Định danh trình tự
               </h2>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                Một tên ngắn, gợi đúng khoảnh khắc Routine sẽ được thực hiện.
+                Một tên ngắn, gợi đúng khoảnh khắc Trình tự sẽ được thực hiện.
               </p>
             </div>
           </div>
@@ -78,7 +78,7 @@ export function RoutineEditor({
 
         <div className="space-y-3 px-5 py-6 sm:px-7 sm:py-7">
           <div className="flex items-center justify-between gap-3">
-            <Label htmlFor="routine-title">Tên Routine</Label>
+            <Label htmlFor="routine-title">Tên Trình tự</Label>
             <span className="font-mono text-[11px] text-muted-foreground">
               {title.length}/200
             </span>
@@ -101,8 +101,8 @@ export function RoutineEditor({
                 02
               </span>
               <p className="leading-6 text-muted-foreground">
-                Sau khi tạo, các Habit sẽ được chọn và sắp xếp trong trang chi
-                tiết để hình thành trình tự hoàn chỉnh.
+                Sau khi tạo, các Thói quen sẽ được chọn và sắp xếp trong trang
+                chi tiết để hình thành trình tự hoàn chỉnh.
               </p>
             </div>
           ) : null}
@@ -127,7 +127,7 @@ export function RoutineEditor({
               ? "Đang lưu…"
               : initialRoutine
                 ? "Lưu thay đổi"
-                : "Tạo Routine"}
+                : "Tạo Trình tự"}
           </Button>
         </footer>
       </section>

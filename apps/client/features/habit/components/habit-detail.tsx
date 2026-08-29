@@ -38,7 +38,7 @@ export function HabitDetail({
 
       <ContextHero
         icon={Repeat2}
-        eyebrow="Forge · Habit"
+        eyebrow="Forge · Thói quen"
         title={habit.title}
         description={
           habit.description ??
@@ -106,8 +106,7 @@ export function HabitDetail({
         </Card>
       </div>
 
-      <footer className="flex flex-wrap justify-between gap-2 border-t pt-4 font-mono text-xs text-muted-foreground">
-        <span>Revision {habit.revision}</span>
+      <footer className="flex flex-wrap justify-end gap-2 border-t pt-4 font-mono text-xs text-muted-foreground">
         <time dateTime={habit.updatedAt}>
           Cập nhật{" "}
           {new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium" }).format(

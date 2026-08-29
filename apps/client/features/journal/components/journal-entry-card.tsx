@@ -1,11 +1,5 @@
 import type { JournalEntryResponse, JournalEntryState } from "@repo/contracts";
-import {
-  ArrowUpRight,
-  BookOpenText,
-  LockKeyhole,
-  PenLine,
-  Trash2,
-} from "lucide-react";
+import { ArrowUpRight, LockKeyhole, PenLine, Trash2 } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
@@ -17,9 +11,9 @@ import {
 } from "@/components/ui/card";
 
 const stateLabels: Record<JournalEntryState, string> = {
-  DRAFT: "Draft",
-  SEALED: "Sealed",
-  TRASHED: "Trash",
+  DRAFT: "Nháp",
+  SEALED: "Đã niêm phong",
+  TRASHED: "Thùng rác",
 };
 
 const formatUpdatedAt = (value: string) =>
@@ -54,14 +48,9 @@ export function JournalEntryCard({
           className="absolute inset-y-0 left-0 w-1 bg-primary/25"
         />
         <CardHeader className="flex-row items-center justify-between gap-3 px-5 pb-0 pt-5 sm:px-6">
-          <div className="flex items-center gap-3">
-            <span className="grid size-9 place-items-center rounded-full border border-primary/20 bg-primary/10 text-primary">
-              <BookOpenText className="size-4" aria-hidden="true" />
-            </span>
-            <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-              Page {String(index + 1).padStart(2, "0")}
-            </span>
-          </div>
+          <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            Trang {String(index + 1).padStart(2, "0")}
+          </span>
           <Badge variant="outline" className="shrink-0">
             <StateIcon className="size-3" aria-hidden="true" />
             {stateLabels[entry.state]}

@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 const entryTypeConfig = {
   JOURNAL_SEALED: {
     icon: BookOpenText,
-    label: "Journal",
+    label: "Nhật ký",
     hrefPrefix: "/journal",
   },
   MEMORY_CREATED: {

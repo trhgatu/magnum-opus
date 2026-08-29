@@ -23,7 +23,7 @@ test("completes the private Habit lifecycle through the BFF", async ({
   await login(page);
   await page.goto("/habits");
   await expect(
-    page.getByRole("heading", { name: "Habits", exact: true }),
+    page.getByRole("heading", { name: "Thói quen", exact: true }),
   ).toBeVisible();
 
   await page.getByRole("link", { name: "Tạo thói quen" }).click();

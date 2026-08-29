@@ -124,7 +124,7 @@ export function HabitEditor({
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               disabled={isPending}
-              placeholder="Vì sao nhịp lặp này đáng được duy trì?"
+              placeholder="Vì sao thói quen này đáng được duy trì?"
               className="min-h-28 resize-y"
             />
           </div>

@@ -39,14 +39,14 @@ Tên hiển thị chuẩn:
 
 | Khái niệm         | Tên trên giao diện |
 | ----------------- | ------------------ |
-| Journal           | `Journal`          |
+| Journal           | `Nhật ký`          |
 | Memory / Memories | `Ký ức`            |
-| Mood              | `Mood`             |
-| Habit             | `Habit`            |
-| Routine           | `Routine`          |
-| Timeline          | `Timeline`         |
+| Mood              | `Tâm trạng`        |
+| Habit             | `Thói quen`        |
+| Routine           | `Trình tự`         |
+| Timeline          | `Dòng thời gian`   |
 
-Tên route và contract kỹ thuật không cần đổi theo tên hiển thị. Ví dụ, giao diện dùng `Ký ức` nhưng route vẫn là `/memories`.
+Tên route và contract kỹ thuật không cần đổi theo tên hiển thị. Ví dụ, giao diện dùng `Nhật ký` nhưng route vẫn là `/journal`.
 
 ## 4. Nền tảng thị giác chung
 

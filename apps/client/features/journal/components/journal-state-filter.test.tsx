@@ -12,7 +12,7 @@ describe("JournalStateFilter", () => {
     render(<JournalStateFilter search="" />);
 
     const navigation = screen.getByRole("navigation", {
-      name: "Lọc Journal theo trạng thái",
+      name: "Lọc Nhật ký theo trạng thái",
     });
 
     expect(
@@ -26,7 +26,7 @@ describe("JournalStateFilter", () => {
     expect(
       within(navigation)
         .getByRole("link", {
-          name: "Draft",
+          name: "Nháp",
         })
         .getAttribute("href"),
     ).toBe("/journal?state=DRAFT");
@@ -38,7 +38,7 @@ describe("JournalStateFilter", () => {
     expect(
       screen
         .getByRole("link", {
-          name: "Trash",
+          name: "Thùng rác",
         })
         .getAttribute("aria-current"),
     ).toBe("page");
@@ -46,7 +46,7 @@ describe("JournalStateFilter", () => {
     expect(
       screen
         .getByRole("link", {
-          name: "Sealed",
+          name: "Đã niêm phong",
         })
         .getAttribute("href"),
     ).toBe("/journal?search=summer+light&state=SEALED");

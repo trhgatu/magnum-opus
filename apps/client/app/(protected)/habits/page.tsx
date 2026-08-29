@@ -14,7 +14,7 @@ import { HabitSearch } from "@/features/habit/components/habit-search";
 import { parseHabitLocation } from "@/features/habit/lib/habit-url";
 
 export const metadata: Metadata = {
-  title: "Habits",
+  title: "Thói quen",
   robots: { index: false, follow: false },
 };
 
@@ -31,12 +31,12 @@ export default async function HabitsPage({
       <ContextHero
         id="habits-heading"
         icon={Repeat2}
-        eyebrow="Forge · Habits"
-        title="Habits"
+        eyebrow="Forge · Thói quen"
+        title="Thói quen"
         description="Rèn một hành động đủ nhỏ để lặp lại, rồi để dấu vết của từng ngày biến nó thành một phần của đời sống."
         meta={
           <>
-            <Badge variant="outline">{result.meta.totalItems} Habit</Badge>
+            <Badge variant="outline">{result.meta.totalItems} Thói quen</Badge>
             <Badge variant="secondary">
               {archived ? "Kho lưu trữ" : "Đang rèn luyện"}
             </Badge>
@@ -49,7 +49,7 @@ export default async function HabitsPage({
         }
       />
       <section
-        aria-label="Tìm kiếm và sắp xếp Habit"
+        aria-label="Tìm kiếm và sắp xếp Thói quen"
         className="rounded-2xl border bg-card/55 p-3 shadow-sm sm:p-4"
       >
         <div className="mb-3 flex items-center gap-2 px-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">

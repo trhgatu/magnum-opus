@@ -247,7 +247,7 @@ test.describe("Client authentication boundary", () => {
     ).toBeVisible();
     await mobileNavigation.getByText("Phản chiếu", { exact: true }).click();
     await expect(
-      mobileNavigation.getByRole("link", { name: "Journal" }),
+      mobileNavigation.getByRole("link", { name: "Nhật ký" }),
     ).toBeVisible();
     await page.getByRole("button", { name: "Đóng điều hướng" }).click();
 

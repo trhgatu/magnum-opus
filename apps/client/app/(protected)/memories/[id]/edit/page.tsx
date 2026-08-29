@@ -54,13 +54,12 @@ export default async function EditMemoryPage({ params }: EditMemoryPageProps) {
         icon={Pencil}
         eyebrow="Reflection · Archive"
         title="Chỉnh sửa ký ức"
-        description="Điều chỉnh cách khoảnh khắc được ghi lại mà không làm mất nguồn gốc và lịch sử revision."
+        description="Điều chỉnh cách khoảnh khắc được ghi lại mà không làm mất nguồn gốc và lịch sử chỉnh sửa."
       />
 
       <div className="mx-auto w-full max-w-4xl overflow-hidden rounded-3xl border bg-card/70 shadow-sm">
         <div className="flex items-center justify-between border-b bg-muted/20 px-5 py-3 font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground sm:px-8">
-          <span>Archive record</span>
-          <span>Revision {memory.revision}</span>
+          <span>Hồ sơ lưu trữ</span>
         </div>
         <div className="p-5 sm:p-8">
           <MemoryEditor

@@ -111,7 +111,7 @@ describe("Mood Server Actions", () => {
       }),
     ).resolves.toEqual({
       status: "error",
-      message: "Dữ liệu mood không hợp lệ.",
+      message: "Dữ liệu tâm trạng không hợp lệ.",
     });
 
     expect(apiFetch).not.toHaveBeenCalled();

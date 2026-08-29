@@ -30,19 +30,6 @@ export function ContextHero({
         className,
       )}
     >
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -right-24 -top-28 -z-10 size-72 rounded-full border border-primary/10"
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -right-12 -top-16 -z-10 size-48 rounded-full border border-primary/15"
-      />
-      <span
-        aria-hidden="true"
-        className="absolute right-10 top-9 size-2 rounded-full bg-primary/45 shadow-[0_0_28px_var(--primary)]"
-      />
-
       <div className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
         <div className="max-w-3xl">
           <div className="mb-5 flex items-center gap-3">

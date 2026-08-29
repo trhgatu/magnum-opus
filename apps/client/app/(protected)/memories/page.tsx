@@ -54,13 +54,13 @@ export default async function MemoriesPage({
   const emptyTitle = location.search
     ? "Không tìm thấy ký ức"
     : isTrash
-      ? "Trash đang trống"
+      ? "Thùng rác đang trống"
       : "Chưa có ký ức nào";
 
   const emptyDescription = location.search
     ? "Thử một từ khóa khác hoặc xóa các điều kiện tìm kiếm hiện tại."
     : isTrash
-      ? "Những ký ức được đưa vào Trash sẽ xuất hiện tại đây."
+      ? "Những ký ức được đưa vào Thùng rác sẽ xuất hiện tại đây."
       : "Những khoảnh khắc được lựa chọn để lưu giữ sẽ xuất hiện theo dòng thời gian.";
 
   return (
@@ -70,12 +70,12 @@ export default async function MemoriesPage({
         icon={Archive}
         eyebrow="Reflection · Archive"
         title="Ký ức"
-        description="Những khoảnh khắc đã thực sự được sống, được giữ lại theo thời điểm chúng xảy ra."
+        description="Những khoảnh khắc đã thực sự được sống, nguyên vẹn như ngày đầu tiên."
         meta={
           <>
             <Badge variant="outline">{result.meta.totalItems} ký ức</Badge>
             <Badge variant="secondary">
-              {isTrash ? "Trash" : "Đang lưu giữ"}
+              {isTrash ? "Thùng rác" : "Đang lưu giữ"}
             </Badge>
           </>
         }
@@ -124,7 +124,7 @@ export default async function MemoriesPage({
               {location.search
                 ? "Những ký ức phù hợp"
                 : isTrash
-                  ? "Những ký ức trong Trash"
+                  ? "Những ký ức trong Thùng rác"
                   : "Những ký ức đang lưu giữ"}
             </p>
             <span className="h-px flex-1 bg-border" aria-hidden="true" />

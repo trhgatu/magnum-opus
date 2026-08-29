@@ -28,14 +28,14 @@ export function RoutineSearch({
       <input type="hidden" name="sortOrder" value={location.sortOrder} />
       <div className="relative min-w-0 flex-1">
         <label htmlFor="routine-search" className="sr-only">
-          Tìm Routine
+          Tìm Trình tự
         </label>
         <Input
           id="routine-search"
           name="search"
           type="search"
           defaultValue={location.search}
-          placeholder="Tìm theo tên Routine…"
+          placeholder="Tìm theo tên Trình tự…"
           className="h-10 bg-background/70 pl-9 pr-9"
         />
         <Search
@@ -57,7 +57,7 @@ export function RoutineSearch({
         ) : null}
       </div>
       <Button type="submit" variant="outline" size="lg">
-        Tìm Routine
+        Tìm Trình tự
       </Button>
     </Form>
   );

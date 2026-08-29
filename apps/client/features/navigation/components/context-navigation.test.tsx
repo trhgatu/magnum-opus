@@ -27,7 +27,7 @@ describe("ContextNavigation", () => {
     expect(activeSpace.open).toBe(true);
     expect(
       screen
-        .getByRole("link", { name: "Journal" })
+        .getByRole("link", { name: "Nhật ký" })
         .getAttribute("aria-current"),
     ).toBe("page");
   });
@@ -43,7 +43,7 @@ describe("ContextNavigation", () => {
     const onNavigate = vi.fn();
     render(<ContextNavigation onNavigate={onNavigate} />);
 
-    fireEvent.click(screen.getByRole("link", { name: "Memories" }));
+    fireEvent.click(screen.getByRole("link", { name: "Ký ức" }));
 
     expect(onNavigate).toHaveBeenCalledOnce();
   });
@@ -51,9 +51,7 @@ describe("ContextNavigation", () => {
   it("provides accessible names and native hints for icon-only mode", () => {
     render(<ContextNavigation />);
 
-    expect(screen.getByRole("link", { name: "Journal" }).title).toBe("Journal");
-    expect(screen.getByRole("link", { name: "Memories" }).title).toBe(
-      "Memories",
-    );
+    expect(screen.getByRole("link", { name: "Nhật ký" }).title).toBe("Nhật ký");
+    expect(screen.getByRole("link", { name: "Ký ức" }).title).toBe("Ký ức");
   });
 });

@@ -39,8 +39,6 @@ describe("MemoryDetail", () => {
     expect(screen.getByText("Tháng 8, 2024")).toBeTruthy();
 
     expect(screen.getByText("Ánh nắng nằm yên trên mặt bàn.")).toBeTruthy();
-
-    expect(screen.getByText("Revision 2")).toBeTruthy();
   });
 
   it("links to the source Journal entry", () => {
@@ -49,7 +47,7 @@ describe("MemoryDetail", () => {
     expect(
       screen
         .getByRole("link", {
-          name: "Mở Journal nguồn",
+          name: "Mở Nhật ký nguồn",
         })
         .getAttribute("href"),
     ).toBe("/journal/cc2a5d7a-72ba-41ce-9ad8-c82941270f35");
@@ -78,7 +76,7 @@ describe("MemoryDetail", () => {
       />,
     );
 
-    expect(screen.getByText("Trash")).toBeTruthy();
+    expect(screen.getByText("Thùng rác")).toBeTruthy();
 
     expect(
       screen.queryByRole("link", {

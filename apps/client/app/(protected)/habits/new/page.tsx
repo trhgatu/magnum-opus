@@ -14,8 +14,8 @@ export default function NewHabitPage() {
     <section className="mx-auto flex w-full max-w-4xl flex-col gap-6">
       <ContextHero
         icon={Repeat2}
-        eyebrow="Forge · Habits"
-        title="Tạo một nhịp lặp"
+        eyebrow="Forge · Thói quen"
+        title="Tạo một thói quen"
         description="Định nghĩa một hành động đủ rõ để thực hiện và một nhịp đủ thực tế để quay lại vào ngày tiếp theo."
       />
       <HabitEditor />

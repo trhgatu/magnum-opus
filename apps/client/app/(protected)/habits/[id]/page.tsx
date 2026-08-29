@@ -16,7 +16,7 @@ import { habitHistoryRange } from "@/features/habit/lib/habit-frequency";
 import { ApiError } from "@/lib/api";
 
 export const metadata: Metadata = {
-  title: "Habit",
+  title: "Thói quen",
   robots: { index: false, follow: false },
 };
 

@@ -14,7 +14,7 @@ const stateOptions: ReadonlyArray<{
   label: string;
 }> = [
   { value: undefined, label: "Đang lưu giữ" },
-  { value: "TRASHED", label: "Trash" },
+  { value: "TRASHED", label: "Thùng rác" },
 ];
 
 const sortFieldOptions: ReadonlyArray<{
