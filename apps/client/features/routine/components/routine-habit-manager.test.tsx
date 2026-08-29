@@ -121,9 +121,12 @@ describe("RoutineHabitManager", () => {
       }),
     );
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Gỡ Stretch khỏi Trình tự" }),
-    );
+    const removeButton = screen.getByRole("button", {
+      name: "Gỡ Stretch khỏi Trình tự",
+    });
+    await waitFor(() => expect(removeButton).not.toBeDisabled());
+
+    fireEvent.click(removeButton);
     await waitFor(() =>
       expect(removeRoutineHabit).toHaveBeenCalledWith({
         routineId: routine.id,
