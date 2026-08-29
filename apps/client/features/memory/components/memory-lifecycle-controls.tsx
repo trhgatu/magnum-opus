@@ -139,7 +139,7 @@ export function MemoryLifecycleControls({
             onClick={() => runLifecycleAction("trash")}
           >
             <Trash2 data-icon="inline-start" aria-hidden="true" />
-            Đưa vào Trash
+            Đưa vào Thùng rác
           </Button>
         ) : (
           <>

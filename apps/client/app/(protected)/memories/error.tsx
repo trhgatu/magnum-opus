@@ -8,9 +8,9 @@ import { Button, buttonVariants } from "@/components/ui/button";
 
 export default function MemoriesError({ reset }: { reset: () => void }) {
   return (
-    <section className="py-8" aria-label="Lỗi Memories">
+    <section className="py-8" aria-label="Lỗi Ký ức">
       <EmptyState
-        title="Memories chưa thể mở"
+        title="Ký ức chưa thể mở"
         description="Dữ liệu vẫn được giữ nguyên. Có thể kết nối đang gián đoạn; thử tải lại trước khi quay về không gian chính."
         action={
           <div className="flex flex-wrap justify-center gap-2">

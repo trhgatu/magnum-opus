@@ -1,21 +1,26 @@
 import type { JournalEntryState } from "@repo/contracts";
+import { BookOpenText, SlidersHorizontal } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
 import { EmptyState } from "@/components/system/empty-state";
-import { PageHeading } from "@/components/system/page-heading";
+import { ContextHero } from "@/components/system/context-hero";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { createJournalEntry } from "@/features/journal/actions/journal";
 import { getJournalEntries } from "@/features/journal/api/journal";
 import { CreateEntryButton } from "@/features/journal/components/create-entry-button";
-import { JournalEntryCard } from "@/features/journal/components/journal-entry-card";
+import {
+  JournalEntryCard,
+  stateLabels,
+} from "@/features/journal/components/journal-entry-card";
 import { JournalPagination } from "@/features/journal/components/journal-pagination";
 import { JournalSearch } from "@/features/journal/components/journal-search";
 import { JournalStateFilter } from "@/features/journal/components/journal-state-filter";
 
 export const metadata: Metadata = {
-  title: "Journal",
+  title: "Nhật ký",
   robots: { index: false, follow: false },
 };
 
@@ -51,12 +56,21 @@ export default async function JournalPage({ searchParams }: JournalPageProps) {
     : params.createFailed === "1";
 
   return (
-    <section className="flex flex-col gap-8" aria-labelledby="journal-heading">
-      <PageHeading
+    <section className="flex flex-col gap-7" aria-labelledby="journal-heading">
+      <ContextHero
         id="journal-heading"
-        eyebrow="Reflection"
-        title="Journal"
-        description="Một nơi riêng tư để giữ lại điều đang sống động, trước khi nó trôi qua."
+        icon={BookOpenText}
+        eyebrow="Reflection · Nhật ký"
+        title="Nhật ký"
+        description="Một căn phòng riêng để đặt xuống điều đang sống động — chưa cần hoàn hảo, chưa cần trở thành bất cứ điều gì khác."
+        meta={
+          <>
+            <Badge variant="outline">{result.meta.totalItems} entry</Badge>
+            <Badge variant="secondary">
+              {state ? stateLabels[state] : "Đang lưu giữ"}
+            </Badge>
+          </>
+        }
         actions={
           <form action={createJournalEntry}>
             <CreateEntryButton />
@@ -72,22 +86,35 @@ export default async function JournalPage({ searchParams }: JournalPageProps) {
         </Alert>
       ) : null}
 
-      <div className="rounded-2xl border bg-card/35 p-3 shadow-sm">
+      <section
+        aria-label="Tìm kiếm và lọc Nhật ký"
+        className="rounded-2xl border bg-card/55 p-3 shadow-sm sm:p-4"
+      >
+        <div className="mb-3 flex items-center gap-2 px-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          <SlidersHorizontal className="size-3.5" aria-hidden="true" />
+          Mục lục riêng
+        </div>
         <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
           <JournalSearch initialSearch={search} state={state} />
           <JournalStateFilter search={search} state={state} />
         </div>
-      </div>
+      </section>
 
       {result.data.length ? (
         <div className="space-y-4">
-          <p className="text-sm text-muted-foreground" aria-live="polite">
-            {result.meta.totalItems} entry
-            {hasFilters ? " phù hợp" : " đang được lưu giữ"}
-          </p>
+          <div className="flex items-center gap-3" aria-live="polite">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              {hasFilters ? "Những trang phù hợp" : "Những trang đang lưu giữ"}
+              <span className="sr-only">
+                {" "}
+                — {result.meta.totalItems} kết quả
+              </span>
+            </p>
+            <span className="h-px flex-1 bg-border" aria-hidden="true" />
+          </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            {result.data.map((entry) => (
-              <JournalEntryCard key={entry.id} entry={entry} />
+            {result.data.map((entry, index) => (
+              <JournalEntryCard key={entry.id} entry={entry} index={index} />
             ))}
           </div>
         </div>

@@ -19,7 +19,7 @@ export function TimelinePagination({
 
   return (
     <nav
-      aria-label="Phân trang Timeline"
+      aria-label="Phân trang Dòng thời gian"
       className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between"
     >
       <span className="text-muted-foreground" aria-live="polite">

@@ -59,7 +59,7 @@ describe("RoutineHabitPicker", () => {
     );
 
     fireEvent.click(
-      screen.getByRole("combobox", { name: "Chọn Habit đang hoạt động" }),
+      screen.getByRole("combobox", { name: "Chọn Thói quen đang hoạt động" }),
     );
 
     await waitFor(() =>
@@ -93,13 +93,13 @@ describe("RoutineHabitPicker", () => {
     );
 
     fireEvent.click(
-      screen.getByRole("combobox", { name: "Chọn Habit đang hoạt động" }),
+      screen.getByRole("combobox", { name: "Chọn Thói quen đang hoạt động" }),
     );
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
 
     fireEvent.change(
-      await screen.findByRole("textbox", { name: "Tìm Habit theo tên" }),
+      await screen.findByRole("textbox", { name: "Tìm Thói quen theo tên" }),
       {
         target: { value: "  water  " },
       },
@@ -128,12 +128,12 @@ describe("RoutineHabitPicker", () => {
     );
 
     fireEvent.click(
-      screen.getByRole("combobox", { name: "Chọn Habit đang hoạt động" }),
+      screen.getByRole("combobox", { name: "Chọn Thói quen đang hoạt động" }),
     );
 
     expect(
       await screen.findByText(
-        "Không thể tải danh sách Habit. Thử đóng và mở lại.",
+        "Không thể tải danh sách Thói quen. Thử đóng và mở lại.",
       ),
     ).toBeInTheDocument();
   });

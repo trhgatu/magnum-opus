@@ -1,5 +1,5 @@
-import { ArticleSkeleton } from "@/components/system/article-skeleton";
+import { MemoryDetailSkeleton } from "@/features/memory/components/memory-skeletons";
 
 export default function Loading() {
-  return <ArticleSkeleton />;
+  return <MemoryDetailSkeleton />;
 }

@@ -11,6 +11,18 @@ const login = async (page: import("@playwright/test").Page) => {
   await expect(page).toHaveURL(/\/me$/);
 };
 
+// saveState mặc định là "saved" ngay từ khi mount (entry rỗng vừa tạo vốn đã
+// đồng bộ với server), nên getByText("Đã lưu") có thể khớp NGAY LẬP TỨC sau
+// khi fill(), trước khi autosave debounce (800ms) kịp chạy — không thực sự
+// xác nhận bản vừa gõ đã được lưu. Đợi qua khỏi debounce trước khi kiểm tra
+// để tránh false positive.
+const waitForAutosave = async (target: import("@playwright/test").Page) => {
+  await target.waitForTimeout(1000);
+  await expect(target.getByText("Đã lưu", { exact: true })).toBeVisible({
+    timeout: 10_000,
+  });
+};
+
 test("completes the private Journal lifecycle through the BFF", async ({
   page,
 }) => {
@@ -25,7 +37,7 @@ test("completes the private Journal lifecycle through the BFF", async ({
   // pathname hiện tại đã thuộc nhóm đó — ở /me nó đang đóng.
   await page.goto("/journal");
   await expect(
-    page.getByRole("heading", { name: "Journal", exact: true }),
+    page.getByRole("heading", { name: "Nhật ký", exact: true }),
   ).toBeVisible();
 
   await page.getByRole("button", { name: "Viết entry mới" }).click();
@@ -33,9 +45,7 @@ test("completes the private Journal lifecycle through the BFF", async ({
 
   await page.getByLabel("Tiêu đề").fill(title);
   await page.getByLabel("Nội dung", { exact: true }).fill(content);
-  await expect(page.getByText("Đã lưu · revision 2")).toBeVisible({
-    timeout: 10_000,
-  });
+  await waitForAutosave(page);
 
   await page.reload();
   await expect(page.getByLabel("Tiêu đề")).toHaveValue(title);
@@ -43,17 +53,16 @@ test("completes the private Journal lifecycle through the BFF", async ({
     content,
   );
 
-  await page.getByRole("button", { name: "Thêm mood" }).click();
+  await page.getByRole("button", { name: "Thêm tâm trạng" }).click();
   await page.getByRole("button", { name: "Bình yên" }).click();
   await page.getByRole("button", { name: "Cường độ 3" }).click();
   await page
     .getByLabel("Ghi chú ngắn")
     .fill("Bình yên sau khi cơn mưa đi qua.");
-  await page.getByRole("button", { name: "Lưu mood" }).click();
-  await expect(page.getByText("mood revision 1")).toBeVisible({
+  await page.getByRole("button", { name: "Lưu tâm trạng" }).click();
+  await expect(page.getByText("Cường độ 3/5")).toBeVisible({
     timeout: 10_000,
   });
-  await expect(page.getByText("Cường độ 3/5")).toBeVisible();
   await expect(
     page.getByText("Bình yên sau khi cơn mưa đi qua."),
   ).toBeVisible();
@@ -65,8 +74,8 @@ test("completes the private Journal lifecycle through the BFF", async ({
   await page.getByRole("button", { name: "Thay đổi" }).click();
   await page.getByRole("button", { name: "Hy vọng" }).click();
   await page.getByRole("button", { name: "Cường độ 4" }).click();
-  await page.getByRole("button", { name: "Lưu mood" }).click();
-  await expect(page.getByText("mood revision 2")).toBeVisible();
+  await page.getByRole("button", { name: "Lưu tâm trạng" }).click();
+  await expect(page.getByText("Cường độ 4/5")).toBeVisible();
 
   await page.getByRole("button", { name: "Xem trước" }).click();
   await expect(
@@ -74,35 +83,39 @@ test("completes the private Journal lifecycle through the BFF", async ({
   ).toBeVisible();
   await page.getByRole("button", { name: "Viết", exact: true }).click();
 
-  await page.getByRole("button", { name: "Seal", exact: true }).click();
+  await page.getByRole("button", { name: "Niêm phong", exact: true }).click();
   await expect(page.getByLabel("Bản xem trước nội dung")).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Thay đổi" }),
   ).not.toBeVisible();
-  await page.getByRole("button", { name: "Reopen", exact: true }).click();
+  await page.getByRole("button", { name: "Mở lại", exact: true }).click();
   await expect(page.getByLabel("Nội dung", { exact: true })).toBeEditable();
 
   await page.getByRole("button", { name: "Thay đổi" }).click();
-  await page.getByRole("button", { name: "Loại bỏ mood" }).click();
+  await page.getByRole("button", { name: "Loại bỏ tâm trạng" }).click();
   await page.getByRole("button", { name: "Loại bỏ", exact: true }).click();
   await expect(
     page.getByText("Entry này chưa lưu lại trạng thái cảm xúc."),
   ).toBeVisible();
-  await expect(page.getByRole("button", { name: "Thêm mood" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Thêm tâm trạng" }),
+  ).toBeVisible();
 
   await page.reload();
   await expect(
     page.getByText("Entry này chưa lưu lại trạng thái cảm xúc."),
   ).toBeVisible();
-  await expect(page.getByRole("button", { name: "Thêm mood" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Thêm tâm trạng" }),
+  ).toBeVisible();
 
-  await page.getByRole("button", { name: "Đưa vào Trash" }).click();
+  await page.getByRole("button", { name: "Đưa vào Thùng rác" }).click();
   await expect(page).toHaveURL(/\/journal\?state=TRASHED$/);
   await page.getByRole("link", { name: new RegExp(title) }).click();
   await page.getByRole("button", { name: "Khôi phục" }).click();
-  await page.getByRole("button", { name: "Journal", exact: true }).click();
+  await page.getByRole("button", { name: "Nhật ký", exact: true }).click();
 
-  await page.getByLabel("Tìm trong journal").fill(title);
+  await page.getByLabel("Tìm trong nhật ký").fill(title);
   await page.getByRole("button", { name: "Tìm", exact: true }).click();
   await expect(page.getByText(title)).toBeVisible();
 
@@ -119,7 +132,7 @@ test("supports Journal search, reset and state filters", async ({ page }) => {
 
   // JournalSearch dùng next/form (submit thật), không còn debounce tự tìm
   // khi gõ — phải submit rõ ràng thì URL mới đổi.
-  await page.getByLabel("Tìm trong journal").fill(missingEntry);
+  await page.getByLabel("Tìm trong nhật ký").fill(missingEntry);
   await page.getByRole("button", { name: "Tìm" }).click();
   await expect(page).toHaveURL(new RegExp(`search=${missingEntry}`));
   await expect(
@@ -133,10 +146,10 @@ test("supports Journal search, reset and state filters", async ({ page }) => {
   await page.getByRole("link", { name: "Xóa từ khóa tìm kiếm" }).click();
   await expect(page).toHaveURL(/\/journal$/);
 
-  await page.getByRole("link", { name: "Trash", exact: true }).click();
+  await page.getByRole("link", { name: "Thùng rác", exact: true }).click();
   await expect(page).toHaveURL(/\/journal\?state=TRASHED$/);
   await expect(
-    page.getByRole("link", { name: "Trash", exact: true }),
+    page.getByRole("link", { name: "Thùng rác", exact: true }),
   ).toHaveAttribute("aria-current", "page");
 });
 
@@ -152,16 +165,12 @@ test("recovers an explicit concurrent-edit conflict without losing local work", 
   await page.goto("/journal");
   await page.getByRole("button", { name: "Viết entry mới" }).click();
   await page.getByLabel("Tiêu đề").fill(title);
-  await expect(page.getByText("Đã lưu · revision 2")).toBeVisible({
-    timeout: 10_000,
-  });
+  await waitForAutosave(page);
 
   const secondPage = await context.newPage();
   await secondPage.goto(page.url());
   await secondPage.getByLabel("Nội dung", { exact: true }).fill(remoteContent);
-  await expect(secondPage.getByText("Đã lưu · revision 3")).toBeVisible({
-    timeout: 10_000,
-  });
+  await waitForAutosave(secondPage);
 
   await page.getByLabel("Nội dung", { exact: true }).fill(localContent);
   await expect(
@@ -172,9 +181,10 @@ test("recovers an explicit concurrent-edit conflict without losing local work", 
   );
 
   await page.getByRole("button", { name: "Ghi nội dung đang gõ" }).click();
-  await expect(page.getByText("Đã lưu · revision 4")).toBeVisible({
+  await expect(page.getByText("Đã lưu", { exact: true })).toBeVisible({
     timeout: 10_000,
   });
+  await page.waitForTimeout(1000);
   await page.reload();
   await expect(page.getByLabel("Nội dung", { exact: true })).toHaveValue(
     localContent,
@@ -206,7 +216,7 @@ test("guards unsaved navigation and supports editor shortcuts", async ({
   await expect(page).toHaveURL(/\/journal\/[0-9a-f-]+$/);
 
   await page.keyboard.press("Control+s");
-  await expect(page.getByText("Đã lưu · revision 2")).toBeVisible({
+  await expect(page.getByText("Đã lưu", { exact: true })).toBeVisible({
     timeout: 10_000,
   });
   await page.keyboard.press("Control+Shift+p");
@@ -217,7 +227,7 @@ test("guards unsaved navigation and supports editor shortcuts", async ({
   await expect(page.locator("article")).not.toHaveClass(/fixed/);
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(page.getByRole("button", { name: "Journal" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Nhật ký" })).toBeVisible();
   await expect(page.getByLabel("Tiêu đề")).toBeVisible();
   expect(
     await page.evaluate(
@@ -254,7 +264,7 @@ test("keeps the draft when the browser cannot reach the Server Action", async ({
 
   await page.unroute("**/journal/**");
   await page.getByRole("button", { name: "Thử lưu lại" }).click();
-  await expect(page.getByText("Đã lưu · revision 2")).toBeVisible({
+  await expect(page.getByText("Đã lưu", { exact: true })).toBeVisible({
     timeout: 10_000,
   });
 });
@@ -270,13 +280,11 @@ test("preserves local work when another tab moves the entry to Trash", async ({
   await page.goto("/journal");
   await page.getByRole("button", { name: "Viết entry mới" }).click();
   await page.getByLabel("Tiêu đề").fill(title);
-  await expect(page.getByText("Đã lưu · revision 2")).toBeVisible({
-    timeout: 10_000,
-  });
+  await waitForAutosave(page);
 
   const secondPage = await context.newPage();
   await secondPage.goto(page.url());
-  await secondPage.getByRole("button", { name: "Đưa vào Trash" }).click();
+  await secondPage.getByRole("button", { name: "Đưa vào Thùng rác" }).click();
   await expect(secondPage).toHaveURL(/\/journal\?state=TRASHED$/);
 
   await page.getByLabel("Nội dung", { exact: true }).fill(localContent);
@@ -309,13 +317,11 @@ test("preserves local work when another tab permanently deletes the entry", asyn
   await page.goto("/journal");
   await page.getByRole("button", { name: "Viết entry mới" }).click();
   await page.getByLabel("Tiêu đề").fill(title);
-  await expect(page.getByText("Đã lưu · revision 2")).toBeVisible({
-    timeout: 10_000,
-  });
+  await waitForAutosave(page);
 
   const secondPage = await context.newPage();
   await secondPage.goto(page.url());
-  await secondPage.getByRole("button", { name: "Đưa vào Trash" }).click();
+  await secondPage.getByRole("button", { name: "Đưa vào Thùng rác" }).click();
   await secondPage.getByRole("link", { name: new RegExp(title) }).click();
   await secondPage.getByRole("button", { name: "Xóa vĩnh viễn" }).click();
   await secondPage

@@ -1,8 +1,9 @@
 import type { MemoryResponse } from "@repo/contracts";
+import { Pencil } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
-import { PageHeading } from "@/components/system/page-heading";
+import { ContextHero } from "@/components/system/context-hero";
 import { getMemory } from "@/features/memory/api/memory";
 import { MemoryEditor } from "@/features/memory/components/memory-editor";
 import { ApiError } from "@/lib/api";
@@ -48,18 +49,24 @@ export default async function EditMemoryPage({ params }: EditMemoryPageProps) {
       className="flex flex-col gap-8"
       aria-labelledby="edit-memory-heading"
     >
-      <PageHeading
+      <ContextHero
         id="edit-memory-heading"
-        eyebrow="Reflection"
+        icon={Pencil}
+        eyebrow="Reflection · Archive"
         title="Chỉnh sửa ký ức"
-        description="Điều chỉnh cách khoảnh khắc được ghi lại mà không làm mất nguồn gốc và lịch sử revision."
+        description="Điều chỉnh cách khoảnh khắc được ghi lại mà không làm mất nguồn gốc và lịch sử chỉnh sửa."
       />
 
-      <div className="mx-auto w-full max-w-3xl rounded-3xl border bg-card/55 p-5 shadow-sm sm:p-8">
-        <MemoryEditor
-          key={`${memory.id}:${memory.revision}`}
-          initialMemory={memory}
-        />
+      <div className="mx-auto w-full max-w-4xl overflow-hidden rounded-3xl border bg-card/70 shadow-sm">
+        <div className="flex items-center justify-between border-b bg-muted/20 px-5 py-3 font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground sm:px-8">
+          <span>Hồ sơ lưu trữ</span>
+        </div>
+        <div className="p-5 sm:p-8">
+          <MemoryEditor
+            key={`${memory.id}:${memory.revision}`}
+            initialMemory={memory}
+          />
+        </div>
       </div>
     </section>
   );

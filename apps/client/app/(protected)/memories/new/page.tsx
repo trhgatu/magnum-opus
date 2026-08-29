@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
+import { Gem } from "lucide-react";
 import { notFound } from "next/navigation";
 
-import { PageHeading } from "@/components/system/page-heading";
+import { ContextHero } from "@/components/system/context-hero";
 import { getJournalEntry } from "@/features/journal/api/journal";
 import { MemoryEditor } from "@/features/memory/components/memory-editor";
 import type { MemoryCreationSeed } from "@/features/memory/components/memory-editor";
@@ -40,7 +41,7 @@ export default async function NewMemoryPage({
 
       creationSeed = {
         sourceJournalEntryId: source.id,
-        title: source.title?.trim() || "Một ký ức từ Journal",
+        title: source.title?.trim() || "Một ký ức từ Nhật ký",
         content: source.content,
       };
     } catch (error) {
@@ -57,15 +58,21 @@ export default async function NewMemoryPage({
       className="flex flex-col gap-8"
       aria-labelledby="new-memory-heading"
     >
-      <PageHeading
+      <ContextHero
         id="new-memory-heading"
-        eyebrow="Reflection"
+        icon={Gem}
+        eyebrow="Reflection · Archive"
         title="Lưu một ký ức"
         description="Giữ lại một khoảnh khắc theo cách nó được nhớ: câu chuyện, cảm giác và thời điểm đã xảy ra."
       />
 
-      <div className="mx-auto w-full max-w-3xl rounded-3xl border bg-card/55 p-5 shadow-sm sm:p-8">
-        <MemoryEditor creationSeed={creationSeed} />
+      <div className="mx-auto w-full max-w-4xl overflow-hidden rounded-3xl border bg-card/70 shadow-sm">
+        <div className="border-b bg-muted/20 px-5 py-3 font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground sm:px-8">
+          New archive record
+        </div>
+        <div className="p-5 sm:p-8">
+          <MemoryEditor creationSeed={creationSeed} />
+        </div>
       </div>
     </section>
   );

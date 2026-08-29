@@ -49,7 +49,7 @@ test("completes the private Memory lifecycle through the BFF", async ({
 
   await expect(
     page.getByRole("heading", {
-      name: "Memories",
+      name: "Ký ức",
       exact: true,
     }),
   ).toBeVisible();
@@ -104,7 +104,6 @@ test("completes the private Memory lifecycle through the BFF", async ({
 
   await expect(page.getByText(originalContent)).toBeVisible();
   await expect(page.getByText("Tháng 8, 2024")).toBeVisible();
-  await expect(page.getByText("Revision 1")).toBeVisible();
 
   await page
     .getByRole("link", {
@@ -137,11 +136,10 @@ test("completes the private Memory lifecycle through the BFF", async ({
   ).toBeVisible();
 
   await expect(page.getByText(updatedContent)).toBeVisible();
-  await expect(page.getByText("Revision 2")).toBeVisible();
 
   await page
     .getByRole("button", {
-      name: "Đưa vào Trash",
+      name: "Đưa vào Thùng rác",
     })
     .click();
 
@@ -157,7 +155,7 @@ test("completes the private Memory lifecycle through the BFF", async ({
 
   await expect(
     page.locator('[data-slot="badge"]').filter({
-      hasText: /^Trash$/,
+      hasText: /^Thùng rác$/,
     }),
   ).toBeVisible();
 
@@ -175,15 +173,13 @@ test("completes the private Memory lifecycle through the BFF", async ({
 
   await expect(
     page.getByRole("button", {
-      name: "Đưa vào Trash",
+      name: "Đưa vào Thùng rác",
     }),
   ).toBeVisible();
 
-  await expect(page.getByText("Revision 4")).toBeVisible();
-
   await page
     .getByRole("button", {
-      name: "Đưa vào Trash",
+      name: "Đưa vào Thùng rác",
     })
     .click();
 
@@ -248,7 +244,10 @@ test("keeps a Memory after its source Journal entry is deleted", async ({
   await page.getByLabel("Tiêu đề").fill(journalTitle);
   await page.getByLabel("Nội dung", { exact: true }).fill(journalContent);
 
-  await expect(page.getByText("Đã lưu · revision 2")).toBeVisible({
+  // saveState mặc định là "saved" ngay khi mount, nên chờ qua khỏi autosave
+  // debounce (800ms) trước khi coi "Đã lưu" là bằng chứng đã lưu thật.
+  await page.waitForTimeout(1000);
+  await expect(page.getByText("Đã lưu", { exact: true })).toBeVisible({
     timeout: 10_000,
   });
 
@@ -276,13 +275,13 @@ test("keeps a Memory after its source Journal entry is deleted", async ({
   await expect(page.getByRole("heading", { name: journalTitle })).toBeVisible();
   await expect(page.getByText(memoryContent)).toBeVisible();
 
-  await page.getByRole("link", { name: "Mở Journal nguồn" }).click();
+  await page.getByRole("link", { name: "Mở Nhật ký nguồn" }).click();
   await expect(page).toHaveURL(journalUrl);
   await expect(page.getByLabel("Nội dung", { exact: true })).toHaveValue(
     journalContent,
   );
 
-  await page.getByRole("button", { name: "Đưa vào Trash" }).click();
+  await page.getByRole("button", { name: "Đưa vào Thùng rác" }).click();
   await expect(page).toHaveURL(/\/journal\?state=TRASHED$/);
   await page.getByRole("link", { name: new RegExp(journalTitle) }).click();
   await expect(page).toHaveURL(/\/journal\/[0-9a-f-]+$/);
@@ -300,10 +299,10 @@ test("keeps a Memory after its source Journal entry is deleted", async ({
   await expect(page.getByRole("heading", { name: journalTitle })).toBeVisible();
   await expect(page.getByText(memoryContent)).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "Mở Journal nguồn" }),
+    page.getByRole("link", { name: "Mở Nhật ký nguồn" }),
   ).not.toBeVisible();
 
-  await page.getByRole("button", { name: "Đưa vào Trash" }).click();
+  await page.getByRole("button", { name: "Đưa vào Thùng rác" }).click();
   await expect(page).toHaveURL(/\/memories\?state=TRASHED$/);
   await page.getByRole("link", { name: `Mở ký ức: ${journalTitle}` }).click();
   await expect(page).toHaveURL(/\/memories\/[0-9a-f-]+$/);

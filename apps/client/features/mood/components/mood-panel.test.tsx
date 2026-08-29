@@ -49,13 +49,13 @@ describe("MoodPanel", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Thêm mood" }));
+    fireEvent.click(screen.getByRole("button", { name: "Thêm tâm trạng" }));
     fireEvent.click(screen.getByRole("button", { name: "Bình yên" }));
     fireEvent.click(screen.getByRole("button", { name: "Cường độ 3" }));
     fireEvent.change(screen.getByLabelText("Ghi chú ngắn"), {
       target: { value: "Quiet after the rain" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Lưu mood" }));
+    fireEvent.click(screen.getByRole("button", { name: "Lưu tâm trạng" }));
 
     await waitFor(() =>
       expect(setMood).toHaveBeenCalledWith({
@@ -65,7 +65,7 @@ describe("MoodPanel", () => {
         note: "Quiet after the rain",
       }),
     );
-    expect(await screen.findByText("Đã lưu mood.")).toBeTruthy();
+    expect(await screen.findByText("Đã lưu tâm trạng.")).toBeTruthy();
     expect(screen.getByText("Cường độ 3/5")).toBeTruthy();
   });
 
@@ -85,9 +85,11 @@ describe("MoodPanel", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Thay đổi" }));
-    fireEvent.click(screen.getByRole("button", { name: "Lưu mood" }));
+    fireEvent.click(screen.getByRole("button", { name: "Lưu tâm trạng" }));
 
-    expect(await screen.findByText("Mood đã thay đổi ở nơi khác")).toBeTruthy();
+    expect(
+      await screen.findByText("Tâm trạng đã thay đổi ở nơi khác"),
+    ).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Tải bản mới nhất" }));
     expect(refresh).toHaveBeenCalledOnce();
   });
@@ -103,6 +105,8 @@ describe("MoodPanel", () => {
 
     expect(screen.getByText("Bình yên")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Thay đổi" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Loại bỏ mood" })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Loại bỏ tâm trạng" }),
+    ).toBeNull();
   });
 });

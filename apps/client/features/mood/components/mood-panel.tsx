@@ -124,7 +124,7 @@ export function MoodPanel({
       setIntensity(result.mood.intensity);
       setNote(result.mood.note ?? "");
       setIsEditing(false);
-      setMessage("Đã lưu mood.");
+      setMessage("Đã lưu tâm trạng.");
     });
   };
 
@@ -150,7 +150,7 @@ export function MoodPanel({
       setIntensity(null);
       setNote("");
       setIsEditing(false);
-      setMessage("Đã loại bỏ mood khỏi entry.");
+      setMessage("Đã loại bỏ tâm trạng khỏi entry.");
     });
   };
 
@@ -161,7 +161,7 @@ export function MoodPanel({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Sparkles className="size-4 text-primary" aria-hidden="true" />
-          Mood
+          Tâm trạng
         </CardTitle>
         <CardDescription>
           Ghi lại trạng thái bên trong của khoảnh khắc này.
@@ -175,7 +175,7 @@ export function MoodPanel({
               onClick={beginEditing}
               disabled={disabled || isPending}
             >
-              {mood ? "Thay đổi" : "Thêm mood"}
+              {mood ? "Thay đổi" : "Thêm tâm trạng"}
             </Button>
           </CardAction>
         ) : null}
@@ -272,7 +272,7 @@ export function MoodPanel({
                 onClick={save}
                 disabled={disabled || isPending}
               >
-                {isPending ? "Đang lưu…" : "Lưu mood"}
+                {isPending ? "Đang lưu…" : "Lưu tâm trạng"}
               </Button>
               <Button
                 type="button"
@@ -292,14 +292,14 @@ export function MoodPanel({
                       disabled={disabled || isPending}
                     >
                       <Trash2 aria-hidden="true" />
-                      Loại bỏ mood
+                      Loại bỏ tâm trạng
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Loại bỏ mood?</AlertDialogTitle>
+                      <AlertDialogTitle>Loại bỏ tâm trạng?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Chỉ mood bị loại bỏ. Nội dung Journal entry vẫn được giữ
+                        Chỉ tâm trạng bị loại bỏ. Nội dung Nhật ký vẫn được giữ
                         nguyên.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
@@ -326,9 +326,6 @@ export function MoodPanel({
                   Cường độ {mood.intensity}/5
                 </span>
               ) : null}
-              <span className="text-xs text-muted-foreground">
-                mood revision {mood.revision}
-              </span>
             </div>
             {mood.note ? (
               <p className="whitespace-pre-wrap text-sm leading-6">
@@ -352,7 +349,7 @@ export function MoodPanel({
             role={isConflict ? "alert" : "status"}
           >
             {isConflict ? (
-              <AlertTitle>Mood đã thay đổi ở nơi khác</AlertTitle>
+              <AlertTitle>Tâm trạng đã thay đổi ở nơi khác</AlertTitle>
             ) : null}
             <AlertDescription>{message}</AlertDescription>
             {isConflict ? (

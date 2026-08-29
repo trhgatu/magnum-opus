@@ -37,7 +37,7 @@ describe("MemoryCard", () => {
 
     expect(occurredOn.tagName).toBe("TIME");
     expect(occurredOn.getAttribute("datetime")).toBe("2024-08");
-    expect(screen.getByText("Từ Journal")).toBeTruthy();
+    expect(screen.getByText("Từ Nhật ký")).toBeTruthy();
   });
 
   it("renders unknown time without inventing a date", () => {
@@ -55,7 +55,7 @@ describe("MemoryCard", () => {
     const unknownTime = screen.getByText("Không rõ thời gian");
 
     expect(unknownTime.tagName).toBe("SPAN");
-    expect(screen.queryByText("Từ Journal")).toBeNull();
+    expect(screen.queryByText("Từ Nhật ký")).toBeNull();
   });
 
   it("marks a trashed Memory", () => {
@@ -69,6 +69,6 @@ describe("MemoryCard", () => {
       />,
     );
 
-    expect(screen.getByText("Trash")).toBeTruthy();
+    expect(screen.getByText("Thùng rác")).toBeTruthy();
   });
 });

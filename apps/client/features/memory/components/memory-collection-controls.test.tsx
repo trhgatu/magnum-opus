@@ -32,7 +32,7 @@ describe("MemoryCollectionControls", () => {
 
     expect(
       within(stateNavigation)
-        .getByRole("link", { name: "Trash" })
+        .getByRole("link", { name: "Thùng rác" })
         .getAttribute("href"),
     ).toBe("/memories?search=summer&state=TRASHED");
 
@@ -70,7 +70,7 @@ describe("MemoryCollectionControls", () => {
     );
 
     const trashLink = screen.getByRole("link", {
-      name: "Trash",
+      name: "Thùng rác",
     });
 
     const updatedAtLink = screen.getByRole("link", {

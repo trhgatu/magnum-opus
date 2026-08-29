@@ -17,7 +17,7 @@ const recoveryCopy: Record<
     title: "Entry không còn tồn tại trên server",
     description:
       "Phần đang gõ vẫn còn trên màn hình nhưng không thể lưu vào entry này.",
-    destination: "Về Journal",
+    destination: "Về Nhật ký",
   },
   session: {
     title: "Phiên đăng nhập đã kết thúc",
@@ -29,7 +29,7 @@ const recoveryCopy: Record<
     title: "Entry đã đổi trạng thái ở nơi khác",
     description:
       "Server không còn cho chỉnh sửa entry này. Phần đang gõ vẫn được giữ để sao chép trước khi rời trang.",
-    destination: "Về Journal",
+    destination: "Về Nhật ký",
   },
 };
 

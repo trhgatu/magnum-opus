@@ -11,7 +11,7 @@ import { ApiError } from "@/lib/api";
 import type { MemoryResponse } from "@repo/contracts";
 
 export const metadata: Metadata = {
-  title: "Journal entry",
+  title: "Nhật ký",
   robots: { index: false, follow: false },
 };
 

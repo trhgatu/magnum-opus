@@ -19,7 +19,7 @@ export function RoutineSearch({
       action="/routines"
       replace
       role="search"
-      className="flex min-w-0 gap-2"
+      className="flex min-w-0 items-center gap-2"
     >
       {location.status === "ARCHIVED" ? (
         <input type="hidden" name="status" value="ARCHIVED" />
@@ -28,15 +28,19 @@ export function RoutineSearch({
       <input type="hidden" name="sortOrder" value={location.sortOrder} />
       <div className="relative min-w-0 flex-1">
         <label htmlFor="routine-search" className="sr-only">
-          Tìm Routine
+          Tìm Trình tự
         </label>
         <Input
           id="routine-search"
           name="search"
           type="search"
           defaultValue={location.search}
-          placeholder="Tìm Routine…"
-          className="pr-9"
+          placeholder="Tìm theo tên Trình tự…"
+          className="h-10 bg-background/70 pl-9 pr-9"
+        />
+        <Search
+          className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+          aria-hidden="true"
         />
         {location.search ? (
           <Link
@@ -52,8 +56,8 @@ export function RoutineSearch({
           </Link>
         ) : null}
       </div>
-      <Button type="submit" variant="outline">
-        <Search aria-hidden="true" /> Tìm
+      <Button type="submit" variant="outline" size="lg">
+        Tìm Trình tự
       </Button>
     </Form>
   );

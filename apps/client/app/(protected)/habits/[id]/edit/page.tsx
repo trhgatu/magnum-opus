@@ -1,8 +1,9 @@
 import type { HabitResponse } from "@repo/contracts";
+import { Repeat2 } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { PageHeading } from "@/components/system/page-heading";
+import { ContextHero } from "@/components/system/context-hero";
 import { getHabit } from "@/features/habit/api/habit";
 import { HabitEditor } from "@/features/habit/components/habit-editor";
 import { ApiError } from "@/lib/api";
@@ -31,9 +32,10 @@ export default async function EditHabitPage({
   }
   if (!habit.isActive) notFound();
   return (
-    <section className="mx-auto flex w-full max-w-3xl flex-col gap-8">
-      <PageHeading
-        eyebrow="Forge · Habits"
+    <section className="mx-auto flex w-full max-w-4xl flex-col gap-6">
+      <ContextHero
+        icon={Repeat2}
+        eyebrow="Forge · Thói quen"
         title="Chỉnh sửa thói quen"
         description="Thay đổi định nghĩa hoặc lịch thực hiện mà không làm mất lịch sử check-in."
       />

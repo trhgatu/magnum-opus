@@ -1,11 +1,5 @@
-import { FormSkeleton } from "@/components/system/form-skeleton";
+import { RoutineFormSkeleton } from "@/features/routine/components/routine-skeletons";
 
 export default function Loading() {
-  return (
-    <FormSkeleton
-      eyebrow="Forge · Routines"
-      title="Tạo một trình tự"
-      description="Đang chuẩn bị biểu mẫu Routine."
-    />
-  );
+  return <RoutineFormSkeleton />;
 }

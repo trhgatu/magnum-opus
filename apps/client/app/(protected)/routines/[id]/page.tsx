@@ -7,7 +7,7 @@ import { RoutineDetail } from "@/features/routine/components/routine-detail";
 import { ApiError } from "@/lib/api";
 
 export const metadata: Metadata = {
-  title: "Routine",
+  title: "Trình tự",
   robots: { index: false, follow: false },
 };
 

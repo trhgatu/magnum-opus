@@ -25,12 +25,15 @@ test("shows a sealed Journal entry on the Timeline and links back to it", async 
 
   await page.getByLabel("Tiêu đề").fill(title);
   await page.getByLabel("Nội dung", { exact: true }).fill(content);
-  await expect(page.getByText("Đã lưu · revision 2")).toBeVisible({
+  // saveState mặc định là "saved" ngay khi mount, nên chờ qua khỏi autosave
+  // debounce (800ms) trước khi coi "Đã lưu" là bằng chứng đã lưu thật.
+  await page.waitForTimeout(1000);
+  await expect(page.getByText("Đã lưu", { exact: true })).toBeVisible({
     timeout: 10_000,
   });
 
   await page.getByRole("button", { name: "Xem trước" }).click();
-  await page.getByRole("button", { name: "Seal", exact: true }).click();
+  await page.getByRole("button", { name: "Niêm phong", exact: true }).click();
   await expect(page.getByLabel("Bản xem trước nội dung")).toBeVisible();
 
   const journalUrl = page.url();
@@ -41,10 +44,10 @@ test("shows a sealed Journal entry on the Timeline and links back to it", async 
   await expect(async () => {
     await page.reload();
     await expect(
-      page.getByRole("link", { name: `Mở journal: ${title}` }),
+      page.getByRole("link", { name: `Mở nhật ký: ${title}` }),
     ).toBeVisible();
   }).toPass({ timeout: 10_000 });
 
-  await page.getByRole("link", { name: `Mở journal: ${title}` }).click();
+  await page.getByRole("link", { name: `Mở nhật ký: ${title}` }).click();
   await expect(page).toHaveURL(journalUrl);
 });

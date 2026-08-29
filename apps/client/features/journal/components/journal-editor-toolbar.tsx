@@ -35,7 +35,6 @@ export type JournalViewMode = "write" | "preview";
 
 interface JournalEditorToolbarProps {
   state: JournalEntryState;
-  revision: number;
   saveState: JournalSaveState;
   dirty: boolean;
   editable: boolean;
@@ -51,6 +50,12 @@ interface JournalEditorToolbarProps {
   onCreateMemory: () => void;
 }
 
+const stateLabel: Record<JournalEntryState, string> = {
+  DRAFT: "Nháp",
+  SEALED: "Đã niêm phong",
+  TRASHED: "Thùng rác",
+};
+
 const saveStateLabel: Record<JournalSaveState, string> = {
   saving: "Đang lưu…",
   saved: "Đã lưu",
@@ -63,7 +68,6 @@ const saveStateLabel: Record<JournalSaveState, string> = {
 
 export function JournalEditorToolbar({
   state,
-  revision,
   saveState,
   dirty,
   editable,
@@ -80,13 +84,13 @@ export function JournalEditorToolbar({
 }: JournalEditorToolbarProps) {
   return (
     <header
-      className={`surface-glass sticky z-20 -mx-2 flex flex-wrap items-center gap-2 rounded-xl border px-2 py-2 shadow-sm ${focusMode ? "top-0" : "top-17"}`}
+      className={`surface-glass sticky z-20 flex flex-wrap items-center gap-2 rounded-2xl border px-2.5 py-2.5 shadow-sm ${focusMode ? "top-0" : "top-17"}`}
     >
       <Button type="button" onClick={onBack} variant="ghost">
         <ArrowLeft data-icon="inline-start" aria-hidden="true" />
-        Journal
+        Nhật ký
       </Button>
-      <Badge variant="outline">{state}</Badge>
+      <Badge variant="outline">{stateLabel[state]}</Badge>
       <span
         aria-live="polite"
         className={
@@ -96,7 +100,7 @@ export function JournalEditorToolbar({
             : "text-muted-foreground")
         }
       >
-        {editable ? saveStateLabel[saveState] : "Chỉ đọc"} · revision {revision}
+        {editable ? saveStateLabel[saveState] : "Chỉ đọc"}
       </span>
 
       <div className="ml-auto flex max-w-full items-center gap-2 overflow-x-auto pb-0.5 sm:pb-0">
@@ -121,7 +125,7 @@ export function JournalEditorToolbar({
           <Save aria-hidden="true" />
           <span className="hidden sm:inline">Lưu ngay</span>
         </Button>
-        <div className="flex shrink-0 rounded-lg bg-muted p-0.5 text-sm">
+        <div className="flex shrink-0 rounded-xl border bg-muted/70 p-0.5 text-sm">
           <Button
             type="button"
             onClick={() => onViewModeChange("write")}
@@ -191,7 +195,7 @@ export function JournalEditorToolbar({
             variant="outline"
           >
             <LockKeyhole aria-hidden="true" />
-            Seal
+            Niêm phong
           </Button>
         ) : null}
         {state === "SEALED" ? (
@@ -202,7 +206,7 @@ export function JournalEditorToolbar({
             variant="outline"
           >
             <Undo2 aria-hidden="true" />
-            Reopen
+            Mở lại
           </Button>
         ) : null}
         {state !== "TRASHED" ? (
@@ -213,7 +217,7 @@ export function JournalEditorToolbar({
             variant="destructive"
           >
             <Trash2 aria-hidden="true" />
-            Đưa vào Trash
+            Đưa vào Thùng rác
           </Button>
         ) : null}
         {state === "TRASHED" ? (

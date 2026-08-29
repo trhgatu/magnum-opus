@@ -1,5 +1,5 @@
-import { ArticleSkeleton } from "@/components/system/article-skeleton";
+import { HabitDetailSkeleton } from "@/features/habit/components/habit-skeletons";
 
 export default function Loading() {
-  return <ArticleSkeleton />;
+  return <HabitDetailSkeleton />;
 }

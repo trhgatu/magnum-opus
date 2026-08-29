@@ -1,11 +1,5 @@
-import { FormSkeleton } from "@/components/system/form-skeleton";
+import { HabitFormSkeleton } from "@/features/habit/components/habit-skeletons";
 
 export default function Loading() {
-  return (
-    <FormSkeleton
-      eyebrow="Forge · Habits"
-      title="Chỉnh sửa thói quen"
-      description="Đang chuẩn bị định nghĩa và lịch thực hiện hiện tại."
-    />
-  );
+  return <HabitFormSkeleton />;
 }

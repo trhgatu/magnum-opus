@@ -40,12 +40,12 @@ vi.mock("@/features/routine/components/routine-habit-picker", () => ({
     disabled?: boolean;
   }) => (
     <select
-      aria-label="Chọn Habit đang hoạt động"
+      aria-label="Chọn Thói quen đang hoạt động"
       value={value}
       disabled={disabled}
       onChange={(event) => onValueChange(event.target.value)}
     >
-      <option value="">Chọn Habit đang hoạt động</option>
+      <option value="">Chọn Thói quen đang hoạt động</option>
       <option value="a64413f3-1487-4500-8753-0795c3f973af">Meditate</option>
     </select>
   ),
@@ -92,7 +92,7 @@ describe("RoutineHabitManager", () => {
     fireEvent.change(screen.getByRole("combobox"), {
       target: { value: selectableHabitId },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Thêm vào Routine" }));
+    fireEvent.click(screen.getByRole("button", { name: "Thêm vào Trình tự" }));
 
     await waitFor(() =>
       expect(addRoutineHabit).toHaveBeenCalledWith({
@@ -121,9 +121,12 @@ describe("RoutineHabitManager", () => {
       }),
     );
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Gỡ Stretch khỏi Routine" }),
-    );
+    const removeButton = screen.getByRole("button", {
+      name: "Gỡ Stretch khỏi Trình tự",
+    });
+    await waitFor(() => expect(removeButton).not.toBeDisabled());
+
+    fireEvent.click(removeButton);
     await waitFor(() =>
       expect(removeRoutineHabit).toHaveBeenCalledWith({
         routineId: routine.id,
@@ -138,7 +141,7 @@ describe("RoutineHabitManager", () => {
 
     expect(screen.queryByRole("combobox")).toBeNull();
     expect(
-      screen.queryByRole("button", { name: /Gỡ .* khỏi Routine/ }),
+      screen.queryByRole("button", { name: /Gỡ .* khỏi Trình tự/ }),
     ).toBeNull();
   });
 
@@ -157,7 +160,7 @@ describe("RoutineHabitManager", () => {
 
     expect(
       await screen.findByText(
-        "Routine đã thay đổi. Tải lại bản mới nhất trước khi tiếp tục.",
+        "Trình tự đã thay đổi. Tải lại bản mới nhất trước khi tiếp tục.",
       ),
     ).toBeInTheDocument();
     expect(refresh).not.toHaveBeenCalled();

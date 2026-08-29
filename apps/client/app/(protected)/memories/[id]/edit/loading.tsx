@@ -1,11 +1,5 @@
-import { FormSkeleton } from "@/components/system/form-skeleton";
+import { MemoryFormSkeleton } from "@/features/memory/components/memory-skeletons";
 
 export default function Loading() {
-  return (
-    <FormSkeleton
-      eyebrow="Reflection"
-      title="Chỉnh sửa ký ức"
-      description="Điều chỉnh cách khoảnh khắc được ghi lại mà không làm mất nguồn gốc và lịch sử revision."
-    />
-  );
+  return <MemoryFormSkeleton />;
 }

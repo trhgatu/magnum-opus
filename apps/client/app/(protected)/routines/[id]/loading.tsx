@@ -1,5 +1,5 @@
-import { ArticleSkeleton } from "@/components/system/article-skeleton";
+import { RoutineDetailSkeleton } from "@/features/routine/components/routine-skeletons";
 
 export default function Loading() {
-  return <ArticleSkeleton />;
+  return <RoutineDetailSkeleton />;
 }

@@ -1,5 +1,5 @@
-import { EditorSkeleton } from "@/components/system/editor-skeleton";
+import { JournalEditorSkeleton } from "@/features/journal/components/journal-skeletons";
 
 export default function Loading() {
-  return <EditorSkeleton />;
+  return <JournalEditorSkeleton />;
 }

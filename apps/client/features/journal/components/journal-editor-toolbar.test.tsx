@@ -7,7 +7,6 @@ import { JournalEditorToolbar } from "./journal-editor-toolbar";
 
 const createProps = () => ({
   state: "DRAFT" as const,
-  revision: 2,
   saveState: "saved" as const,
   dirty: false,
   editable: true,

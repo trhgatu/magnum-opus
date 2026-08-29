@@ -8,9 +8,9 @@ import { Button, buttonVariants } from "@/components/ui/button";
 
 export default function JournalError({ reset }: { reset: () => void }) {
   return (
-    <section className="py-8" aria-label="Lỗi Journal">
+    <section className="py-8" aria-label="Lỗi Nhật ký">
       <EmptyState
-        title="Journal chưa thể mở"
+        title="Nhật ký chưa thể mở"
         description="Dữ liệu vẫn được giữ nguyên. Có thể kết nối đang gián đoạn; thử tải lại trước khi quay về không gian chính."
         action={
           <div className="flex flex-wrap justify-center gap-2">

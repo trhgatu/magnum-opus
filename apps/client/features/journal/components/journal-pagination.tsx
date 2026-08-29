@@ -21,7 +21,7 @@ export function JournalPagination({
 
   return (
     <nav
-      aria-label="Phân trang Journal"
+      aria-label="Phân trang Nhật ký"
       className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between"
     >
       <span className="text-muted-foreground" aria-live="polite">

@@ -1,11 +1,5 @@
-import { CollectionSkeleton } from "@/components/system/collection-skeleton";
+import { JournalCollectionSkeleton } from "@/features/journal/components/journal-skeletons";
 
 export default function Loading() {
-  return (
-    <CollectionSkeleton
-      eyebrow="Reflection"
-      title="Journal"
-      description="Một nơi riêng tư để giữ lại điều đang sống động, trước khi nó trôi qua."
-    />
-  );
+  return <JournalCollectionSkeleton />;
 }

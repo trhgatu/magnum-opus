@@ -78,7 +78,7 @@ test.describe("Client accessibility contract", () => {
 
     await page.goto("/journal");
     await expect(
-      page.getByRole("heading", { name: "Journal", exact: true }),
+      page.getByRole("heading", { name: "Nhật ký", exact: true }),
     ).toBeVisible();
     await expectNoWcagViolations(page);
 

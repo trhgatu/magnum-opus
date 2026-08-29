@@ -1,11 +1,5 @@
-import { CollectionSkeleton } from "@/components/system/collection-skeleton";
+import { MemoryCollectionSkeleton } from "@/features/memory/components/memory-skeletons";
 
 export default function Loading() {
-  return (
-    <CollectionSkeleton
-      eyebrow="Reflection"
-      title="Memories"
-      description="Những khoảnh khắc đã thực sự được sống, được giữ lại theo thời điểm chúng xảy ra."
-    />
-  );
+  return <MemoryCollectionSkeleton />;
 }
