@@ -81,7 +81,7 @@ export function MemoryDetail({ memory }: MemoryDetailProps) {
           aria-hidden="true"
           className="absolute inset-y-0 left-0 w-1 bg-primary/30"
         />
-        <div className="flex items-center justify-between border-b bg-muted/20 px-6 py-3 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground sm:px-10">
+        <div className="flex items-center justify-between border-b bg-muted/20 px-6 py-3 font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground sm:px-10">
           <span>Hồ sơ lưu trữ</span>
         </div>
         <div className="px-6 py-8 sm:px-10 sm:py-12 lg:px-14">

@@ -1,15 +1,7 @@
 "use client";
 
 import type { RoutineDetailResponse } from "@repo/contracts";
-import {
-  ArrowDown,
-  ArrowUp,
-  CircleDashed,
-  GripVertical,
-  Plus,
-  Route,
-  X,
-} from "lucide-react";
+import { ArrowDown, ArrowUp, CircleDashed, Plus, Route, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
@@ -141,10 +133,6 @@ export function RoutineHabitManager({
                 {String(index + 1).padStart(2, "0")}
               </span>
               <div className="flex min-w-0 items-center gap-3 rounded-xl border bg-card/70 px-4 py-3 transition-colors group-hover/step:border-primary/25">
-                <GripVertical
-                  className="size-4 shrink-0 text-muted-foreground/45"
-                  aria-hidden="true"
-                />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{habit.title}</p>
                   <p className="mt-0.5 text-xs text-muted-foreground">

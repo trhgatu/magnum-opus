@@ -130,7 +130,7 @@ export function RoutineHabitPicker({
           aria-label="Chọn Thói quen đang hoạt động"
           aria-expanded={open}
           disabled={disabled}
-          className="h-10 w-full justify-between bg-background sm:flex-1"
+          className="h-10 w-full justify-between sm:flex-1"
         >
           <span className="truncate">
             {selectedOption?.title ?? "Chọn Thói quen đang hoạt động"}

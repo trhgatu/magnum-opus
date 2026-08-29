@@ -26,9 +26,11 @@ const formatOccurredOn = (value: string) =>
 export function TimelineEntryCard({
   entry,
   index = 0,
+  isLast = false,
 }: {
   entry: TimelineEntryResponse;
   index?: number;
+  isLast?: boolean;
 }) {
   const config = entryTypeConfig[entry.entryType];
   const Icon = config.icon;
@@ -77,6 +79,9 @@ export function TimelineEntryCard({
       aria-hidden="true"
     >
       <span className="mt-6 size-2.5 rounded-full border-2 border-background bg-primary shadow-[0_0_0_4px_color-mix(in_oklch,var(--primary)_18%,transparent)]" />
+      {!isLast ? (
+        <span className="absolute left-1/2 top-8 -bottom-12 w-px -translate-x-1/2 bg-border" />
+      ) : null}
     </div>
   );
 

@@ -19,7 +19,7 @@ export function RoutineSearch({
       action="/routines"
       replace
       role="search"
-      className="flex min-w-0 gap-2"
+      className="flex min-w-0 items-center gap-2"
     >
       {location.status === "ARCHIVED" ? (
         <input type="hidden" name="status" value="ARCHIVED" />

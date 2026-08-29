@@ -67,6 +67,10 @@ export default async function RoutinesPage({
           <div className="flex items-center gap-3" aria-live="polite">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               {archived ? "Những trình tự đã dừng" : "Những trình tự đang rèn"}
+              <span className="sr-only">
+                {" "}
+                — {result.meta.totalItems} kết quả
+              </span>
             </p>
             <span className="h-px flex-1 bg-border" aria-hidden="true" />
           </div>

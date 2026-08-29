@@ -27,9 +27,9 @@ export function HabitCard({
       <Card className="relative min-h-64 gap-0 overflow-hidden rounded-2xl bg-card/75 py-0 transition duration-200 group-hover:-translate-y-1 group-hover:ring-primary/30 group-hover:shadow-lg motion-reduce:transform-none">
         <div
           aria-hidden="true"
-          className="absolute -right-12 -top-12 size-32 rounded-full border border-primary/10 transition-transform duration-300 group-hover:scale-110"
+          className="absolute -right-12 -top-12 size-32 rounded-full border border-primary/10 transition-transform duration-300 group-hover:scale-110 motion-reduce:transform-none"
         />
-        <CardHeader className="flex-row items-start justify-between gap-3 px-5 pb-0 pt-5">
+        <CardHeader className="flex flex-row items-start justify-between gap-3 px-5 pb-0 pt-5">
           <div className="flex items-center gap-3">
             <span className="grid size-9 place-items-center rounded-full border border-primary/20 bg-primary/10 text-primary">
               <Repeat2 className="size-4" aria-hidden="true" />

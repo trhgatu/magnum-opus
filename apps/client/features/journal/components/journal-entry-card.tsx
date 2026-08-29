@@ -10,7 +10,7 @@ import {
   CardHeader,
 } from "@/components/ui/card";
 
-const stateLabels: Record<JournalEntryState, string> = {
+export const stateLabels: Record<JournalEntryState, string> = {
   DRAFT: "Nháp",
   SEALED: "Đã niêm phong",
   TRASHED: "Thùng rác",

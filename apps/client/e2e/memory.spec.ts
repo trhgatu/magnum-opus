@@ -244,6 +244,9 @@ test("keeps a Memory after its source Journal entry is deleted", async ({
   await page.getByLabel("Tiêu đề").fill(journalTitle);
   await page.getByLabel("Nội dung", { exact: true }).fill(journalContent);
 
+  // saveState mặc định là "saved" ngay khi mount, nên chờ qua khỏi autosave
+  // debounce (800ms) trước khi coi "Đã lưu" là bằng chứng đã lưu thật.
+  await page.waitForTimeout(1000);
   await expect(page.getByText("Đã lưu", { exact: true })).toBeVisible({
     timeout: 10_000,
   });

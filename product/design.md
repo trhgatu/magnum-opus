@@ -52,13 +52,15 @@ Tên route và contract kỹ thuật không cần đổi theo tên hiển thị.
 
 ### Màu sắc
 
-Chỉ dùng semantic token đã có như `background`, `foreground`, `card`, `muted`, `primary`, `border`, `destructive` và `ring`.
+Chỉ dùng semantic token đã có trong hệ thống, không tự thêm token màu mới nằm ngoài hệ thống này. Danh sách dưới đây minh họa các token chính mà feature code hay dùng trực tiếp, không phải danh sách đầy đủ mọi token: `background`, `foreground`, `card`, `muted`, `primary`, `border`, `destructive` và `ring`.
 
 - `background`: không gian nền chính.
 - `card`: bề mặt chứa nội dung có trọng lượng.
 - `muted`: lớp phụ, metadata và vùng điều khiển thứ cấp.
 - `primary`: hành động có chủ đích, điểm neo và dấu mốc.
 - `destructive`: chỉ dành cho lỗi hoặc hành động phá hủy.
+
+Các token khác như `secondary`, `accent`, `popover` và `input` cũng hợp lệ — chúng đến từ các shadcn primitive có sẵn trong `components/ui` (button, badge, dropdown-menu, alert-dialog…) và feature code có thể tái sử dụng qua các primitive đó thay vì tự định nghĩa token mới.
 
 Không hard-code màu thương hiệu trực tiếp trong feature component. Khi cần thay đổi palette, chỉnh token toàn cục thay vì tìm và thay từng màn hình.
 

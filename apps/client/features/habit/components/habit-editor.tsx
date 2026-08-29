@@ -160,7 +160,7 @@ export function HabitEditor({
               }}
               disabled={isPending}
             >
-              <SelectTrigger className="h-10 w-full bg-background sm:w-72">
+              <SelectTrigger className="data-[size=default]:h-10 w-full bg-background sm:w-72">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

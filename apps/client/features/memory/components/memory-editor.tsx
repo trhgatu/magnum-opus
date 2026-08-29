@@ -250,7 +250,7 @@ export function MemoryEditor({
           required
           disabled={isPending}
           placeholder="Tên của khoảnh khắc được lưu giữ"
-          className="h-auto border-0 bg-transparent px-0 py-2 font-display text-3xl font-semibold shadow-none focus-visible:ring-0 sm:text-4xl"
+          className="h-auto border-0 bg-transparent px-0 py-2 font-display text-3xl font-semibold shadow-none focus-visible:ring-0 sm:text-4xl md:text-4xl"
           autoComplete="off"
         />
 
@@ -270,7 +270,7 @@ export function MemoryEditor({
           required
           disabled={isPending}
           placeholder="Điều gì đã xảy ra, cảm giác khi ấy ra sao, điều gì vẫn còn được nhớ..."
-          className="min-h-64 resize-y border-0 bg-transparent px-0 font-display text-base leading-8 shadow-none focus-visible:ring-0 sm:text-lg"
+          className="min-h-64 resize-y border-0 bg-transparent px-0 font-display text-base leading-8 shadow-none focus-visible:ring-0 sm:text-lg md:text-lg"
         />
       </div>
 

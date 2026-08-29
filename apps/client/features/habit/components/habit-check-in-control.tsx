@@ -1,7 +1,7 @@
 "use client";
 
 import type { HabitCheckInTodayResponse } from "@repo/contracts";
-import { Check, CircleCheckBig, Undo2 } from "lucide-react";
+import { Check, CircleCheckBig, CircleDashed, Undo2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
@@ -54,7 +54,11 @@ export function HabitCheckInControl({
               : "grid size-12 place-items-center rounded-full border border-dashed text-muted-foreground"
           }
         >
-          <CircleCheckBig className="size-5" aria-hidden="true" />
+          {today.checkedIn ? (
+            <CircleCheckBig className="size-5" aria-hidden="true" />
+          ) : (
+            <CircleDashed className="size-5" aria-hidden="true" />
+          )}
         </span>
         <div>
           <p className="font-medium">

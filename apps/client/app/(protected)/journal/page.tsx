@@ -11,7 +11,10 @@ import { buttonVariants } from "@/components/ui/button";
 import { createJournalEntry } from "@/features/journal/actions/journal";
 import { getJournalEntries } from "@/features/journal/api/journal";
 import { CreateEntryButton } from "@/features/journal/components/create-entry-button";
-import { JournalEntryCard } from "@/features/journal/components/journal-entry-card";
+import {
+  JournalEntryCard,
+  stateLabels,
+} from "@/features/journal/components/journal-entry-card";
 import { JournalPagination } from "@/features/journal/components/journal-pagination";
 import { JournalSearch } from "@/features/journal/components/journal-search";
 import { JournalStateFilter } from "@/features/journal/components/journal-state-filter";
@@ -64,7 +67,7 @@ export default async function JournalPage({ searchParams }: JournalPageProps) {
           <>
             <Badge variant="outline">{result.meta.totalItems} entry</Badge>
             <Badge variant="secondary">
-              {state === "TRASHED" ? "Thùng rác" : (state ?? "Đang lưu giữ")}
+              {state ? stateLabels[state] : "Đang lưu giữ"}
             </Badge>
           </>
         }
@@ -102,6 +105,10 @@ export default async function JournalPage({ searchParams }: JournalPageProps) {
           <div className="flex items-center gap-3" aria-live="polite">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               {hasFilters ? "Những trang phù hợp" : "Những trang đang lưu giữ"}
+              <span className="sr-only">
+                {" "}
+                — {result.meta.totalItems} kết quả
+              </span>
             </p>
             <span className="h-px flex-1 bg-border" aria-hidden="true" />
           </div>

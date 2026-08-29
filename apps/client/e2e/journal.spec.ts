@@ -11,6 +11,18 @@ const login = async (page: import("@playwright/test").Page) => {
   await expect(page).toHaveURL(/\/me$/);
 };
 
+// saveState mặc định là "saved" ngay từ khi mount (entry rỗng vừa tạo vốn đã
+// đồng bộ với server), nên getByText("Đã lưu") có thể khớp NGAY LẬP TỨC sau
+// khi fill(), trước khi autosave debounce (800ms) kịp chạy — không thực sự
+// xác nhận bản vừa gõ đã được lưu. Đợi qua khỏi debounce trước khi kiểm tra
+// để tránh false positive.
+const waitForAutosave = async (target: import("@playwright/test").Page) => {
+  await target.waitForTimeout(1000);
+  await expect(target.getByText("Đã lưu", { exact: true })).toBeVisible({
+    timeout: 10_000,
+  });
+};
+
 test("completes the private Journal lifecycle through the BFF", async ({
   page,
 }) => {
@@ -33,9 +45,7 @@ test("completes the private Journal lifecycle through the BFF", async ({
 
   await page.getByLabel("Tiêu đề").fill(title);
   await page.getByLabel("Nội dung", { exact: true }).fill(content);
-  await expect(page.getByText("Đã lưu", { exact: true })).toBeVisible({
-    timeout: 10_000,
-  });
+  await waitForAutosave(page);
 
   await page.reload();
   await expect(page.getByLabel("Tiêu đề")).toHaveValue(title);
@@ -43,7 +53,7 @@ test("completes the private Journal lifecycle through the BFF", async ({
     content,
   );
 
-  await page.getByRole("button", { name: "Thêm mood" }).click();
+  await page.getByRole("button", { name: "Thêm tâm trạng" }).click();
   await page.getByRole("button", { name: "Bình yên" }).click();
   await page.getByRole("button", { name: "Cường độ 3" }).click();
   await page
@@ -155,16 +165,12 @@ test("recovers an explicit concurrent-edit conflict without losing local work", 
   await page.goto("/journal");
   await page.getByRole("button", { name: "Viết entry mới" }).click();
   await page.getByLabel("Tiêu đề").fill(title);
-  await expect(page.getByText("Đã lưu", { exact: true })).toBeVisible({
-    timeout: 10_000,
-  });
+  await waitForAutosave(page);
 
   const secondPage = await context.newPage();
   await secondPage.goto(page.url());
   await secondPage.getByLabel("Nội dung", { exact: true }).fill(remoteContent);
-  await expect(secondPage.getByText("Đã lưu", { exact: true })).toBeVisible({
-    timeout: 10_000,
-  });
+  await waitForAutosave(secondPage);
 
   await page.getByLabel("Nội dung", { exact: true }).fill(localContent);
   await expect(
@@ -178,6 +184,7 @@ test("recovers an explicit concurrent-edit conflict without losing local work", 
   await expect(page.getByText("Đã lưu", { exact: true })).toBeVisible({
     timeout: 10_000,
   });
+  await page.waitForTimeout(1000);
   await page.reload();
   await expect(page.getByLabel("Nội dung", { exact: true })).toHaveValue(
     localContent,
@@ -273,9 +280,7 @@ test("preserves local work when another tab moves the entry to Trash", async ({
   await page.goto("/journal");
   await page.getByRole("button", { name: "Viết entry mới" }).click();
   await page.getByLabel("Tiêu đề").fill(title);
-  await expect(page.getByText("Đã lưu", { exact: true })).toBeVisible({
-    timeout: 10_000,
-  });
+  await waitForAutosave(page);
 
   const secondPage = await context.newPage();
   await secondPage.goto(page.url());
@@ -312,9 +317,7 @@ test("preserves local work when another tab permanently deletes the entry", asyn
   await page.goto("/journal");
   await page.getByRole("button", { name: "Viết entry mới" }).click();
   await page.getByLabel("Tiêu đề").fill(title);
-  await expect(page.getByText("Đã lưu", { exact: true })).toBeVisible({
-    timeout: 10_000,
-  });
+  await waitForAutosave(page);
 
   const secondPage = await context.newPage();
   await secondPage.goto(page.url());

@@ -52,13 +52,22 @@ export default async function TimelinePage({
           <div className="flex items-center gap-3" aria-live="polite">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               Biên niên cá nhân
+              <span className="sr-only">
+                {" "}
+                — {result.meta.totalItems} kết quả
+              </span>
             </p>
             <span className="h-px flex-1 bg-border" aria-hidden="true" />
           </div>
 
-          <div className="relative flex flex-col gap-4 before:absolute before:bottom-8 before:left-5 before:top-8 before:w-px before:bg-border sm:before:left-6">
+          <div className="relative flex flex-col gap-4">
             {result.data.map((entry, index) => (
-              <TimelineEntryCard key={entry.id} entry={entry} index={index} />
+              <TimelineEntryCard
+                key={entry.id}
+                entry={entry}
+                index={index}
+                isLast={index === result.data.length - 1}
+              />
             ))}
           </div>
         </div>

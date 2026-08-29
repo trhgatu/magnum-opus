@@ -126,6 +126,10 @@ export default async function MemoriesPage({
                 : isTrash
                   ? "Những ký ức trong Thùng rác"
                   : "Những ký ức đang lưu giữ"}
+              <span className="sr-only">
+                {" "}
+                — {result.meta.totalItems} kết quả
+              </span>
             </p>
             <span className="h-px flex-1 bg-border" aria-hidden="true" />
           </div>
