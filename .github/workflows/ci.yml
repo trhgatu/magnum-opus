@@ -299,3 +299,11 @@ jobs:
           docker tag "$IMAGE:${{ github.sha }}" "$IMAGE:latest"
           docker push "$IMAGE:${{ github.sha }}"
           docker push "$IMAGE:latest"
+
+      # Render deploy-from-registry không tự pull lại image khi có bản mới —
+      # phải chủ động báo qua Deploy Hook sau khi :latest đã lên GHCR.
+      - name: Trigger Render redeploy (server only)
+        if: >-
+          github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+          matrix.image == 'server'
+        run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_SERVER }}"
