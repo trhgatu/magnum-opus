@@ -22,6 +22,7 @@ const routeBudgets = new Map([
   // Routine detail includes the isolated shadcn Select used for membership.
   ["/routines/[id]", 660 * KIBIBYTE],
   ["/routines/[id]/edit", 570 * KIBIBYTE],
+  ["/today", 570 * KIBIBYTE],
 ]);
 
 const diagnosticsPath = resolve(

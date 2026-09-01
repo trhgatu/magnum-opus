@@ -1,10 +1,10 @@
-# Forge v1 — Habit & Routine
+# Forge v1 — Habit, Routine & Today
 
 Forge là context chứa Habit và Routine: những cam kết lặp lại vô thời hạn mà người dùng chủ động muốn duy trì. Tên context lấy từ vibe giả kim thuật của Magnum Opus — rèn luyện là hành động lặp lại, kiên trì để tinh luyện bản thân, không phải một lần thắng-thua.
 
 ## Trạng thái triển khai
 
-Product spec và data contract đã được chốt. Habit chạy thành một vertical slice từ PostgreSQL, NestJS đến Next.js: create, list/search/filter, detail, update, archive/restore, check-in/undo hôm nay và heatmap 90 ngày. Routine cũng đã chạy full-stack: collection có search/filter/sort/pagination, create/edit, detail read model, archive/restore, thêm/xóa Habit và đổi thứ tự bằng nút lên/xuống. Ownership, optimistic locking, idempotency, timezone boundary, lifecycle và thứ tự membership được kiểm tra bằng unit, component và HTTP E2E phù hợp với từng capability. Trang tổng hợp Today chưa được triển khai.
+Product spec và data contract đã được chốt. Habit chạy thành một vertical slice từ PostgreSQL, NestJS đến Next.js: create, list/search/filter, detail, update, archive/restore, check-in/undo hôm nay và heatmap 90 ngày. Routine cũng đã chạy full-stack: collection có search/filter/sort/pagination, create/edit, detail read model, archive/restore, thêm/xóa Habit và đổi thứ tự bằng nút lên/xuống. Today đã chạy full-stack tại `GET /forge/today` và route `/today`: tổng hợp đúng những Habit đến hạn theo timezone của owner, nhóm theo Routine và cho phép check-in/undo ngay trên cùng màn hình. Ownership, optimistic locking, idempotency, timezone boundary, lifecycle, thứ tự membership và việc đồng bộ một Habit xuất hiện nhiều lần được kiểm tra bằng unit, component và HTTP E2E phù hợp với từng capability.
 
 ## Vấn đề cần giải quyết
 
@@ -134,6 +134,17 @@ Trang detail không tải trước toàn bộ Habit vào React payload. Khi sele
 ### Trang "Hôm nay"
 
 Lấy toàn bộ Habit `ACTIVE` của owner, tính calendar date/ISO weekday theo `User.timeZone`, lọc theo frequency (DAILY luôn qua; WEEKLY chỉ qua nếu hôm nay thuộc `days`) rồi tra check-in hôm nay cho từng Habit trong một query duy nhất. Sau đó reader gắn mỗi Habit vào tất cả Routine `ACTIVE` chứa nó. Habit có thể xuất hiện ở nhiều khối nhưng mọi bản hiển thị dùng chung `habitId` và cùng trạng thái check-in; Habit không thuộc Routine active nào xuất hiện ở nhóm standalone. Mỗi ô check-in gọi đúng command dùng chung với trang chi tiết Habit — một hành động, nhiều điểm vào, cùng mức an toàn dữ liệu.
+
+Backend cố định một instant từ `TodayClock` cho toàn bộ request, sau đó `TodayReader` diễn giải instant đó bằng IANA timezone của owner. Vì vậy calendar date, ISO weekday và truy vấn check-in không thể lệch nhau khi request đi qua ranh giới nửa đêm. Today là read model tổng hợp, không phải aggregate mới và không sở hữu Habit, Routine hay Check-in.
+
+Client đọc Today bằng Server Component và chỉ đưa trạng thái tương tác xuống hook `useTodayCheckIns`. Hook chuẩn hóa các Habit trùng theo `habitId`, cập nhật mọi vị trí của cùng Habit trong một lần và gọi lại command check-in/undo đã có. Khi mutation thất bại, trạng thái trước thao tác được khôi phục và lỗi an toàn được hiển thị; khi thành công, route được refresh để nhận lại read model chuẩn từ server.
+
+Hai trạng thái rỗng mang ý nghĩa khác nhau:
+
+- `NO_ACTIVE_HABITS`: chưa có Habit active nào; màn hình dẫn tới flow tạo Habit.
+- `NOTHING_DUE`: có Habit active nhưng không Habit nào đến hạn trong calendar date hiện tại; đây là một ngày hợp lệ, không phải lỗi hay thất bại.
+
+Today v1 không tính tiến độ Routine, không phát sinh `RoutineCompletion`, không hiển thị streak, tỷ lệ hoàn thành hay phần thưởng. Một Habit chưa check-in chỉ là một hành động chưa được đánh dấu trong ngày, không phải một kết quả bị phán xét.
 
 ### Lưu trữ (archive)
 

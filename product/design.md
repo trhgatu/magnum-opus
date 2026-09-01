@@ -44,6 +44,7 @@ Tên hiển thị chuẩn:
 | Mood              | `Tâm trạng`        |
 | Habit             | `Thói quen`        |
 | Routine           | `Trình tự`         |
+| Today             | `Hôm nay`          |
 | Timeline          | `Dòng thời gian`   |
 
 Tên route và contract kỹ thuật không cần đổi theo tên hiển thị. Ví dụ, giao diện dùng `Nhật ký` nhưng route vẫn là `/journal`.
@@ -66,7 +67,7 @@ Không hard-code màu thương hiệu trực tiếp trong feature component. Khi
 
 ### Typography
 
-- `font-display`: heading, title của Journal, Ký ức, Habit và Routine.
+- `font-display`: heading, title của Journal, Ký ức, Habit, Routine và Today.
 - Font sans mặc định: control, label, mô tả và body UI.
 - `font-mono`: revision, ngày tháng, số thứ tự, trạng thái kỹ thuật và metadata ngắn.
 - Heading dùng `tracking-tight`; eyebrow và metadata uppercase dùng tracking rộng.
@@ -99,6 +100,7 @@ Forge chắc, có cấu trúc và thiên về thực hành.
 
 - **Habit — practice record:** hiển thị hành động, nhịp lặp và check-in gần nhất.
 - **Routine — assembly/workbench:** nhấn mạnh danh sách Habit có thứ tự và thao tác tổ chức.
+- **Today — daily execution surface:** nhóm những Habit đến hạn theo Trình tự, giữ thao tác check-in trực tiếp và nhẹ; không biến kết quả trong ngày thành điểm số, streak hoặc trạng thái hoàn thành cả Trình tự.
 - Control có thể dày hơn Reflection nhưng không biến thành dashboard năng suất.
 
 Nếu thêm context mới, trước tiên xác định ẩn dụ chức năng của context đó bằng một câu. Sau đó thể hiện ẩn dụ qua hierarchy và layout, không phải qua decoration.
@@ -263,6 +265,7 @@ Nếu một route vượt budget:
 - Timeline chronology: [`timeline-entry-card.tsx`](../apps/client/features/timeline/components/timeline-entry-card.tsx)
 - Habit practice detail: [`habit-detail.tsx`](../apps/client/features/habit/components/habit-detail.tsx)
 - Routine workbench: [`routine-habit-manager.tsx`](../apps/client/features/routine/components/routine-habit-manager.tsx)
+- Today execution surface: [`today-board.tsx`](../apps/client/features/today/components/today-board.tsx)
 
 Các file này là ví dụ hiện tại, không phải lý do để sao chép markup nguyên khối. Giữ pattern và điều chỉnh composition theo nội dung thực tế.
 
