@@ -55,6 +55,7 @@ describe("MemoryLifecycleControls", () => {
     render(
       <MemoryLifecycleControls
         id={memoryId}
+        title="Buổi chiều bên cửa sổ"
         state="ACTIVE"
         revision={revision}
       />,
@@ -102,6 +103,7 @@ describe("MemoryLifecycleControls", () => {
     render(
       <MemoryLifecycleControls
         id={memoryId}
+        title="Buổi chiều bên cửa sổ"
         state="TRASHED"
         revision={revision}
       />,
@@ -139,6 +141,7 @@ describe("MemoryLifecycleControls", () => {
     render(
       <MemoryLifecycleControls
         id={memoryId}
+        title="Buổi chiều bên cửa sổ"
         state="TRASHED"
         revision={revision}
       />,
@@ -189,6 +192,7 @@ describe("MemoryLifecycleControls", () => {
     render(
       <MemoryLifecycleControls
         id={memoryId}
+        title="Buổi chiều bên cửa sổ"
         state="ACTIVE"
         revision={revision}
       />,
@@ -227,6 +231,7 @@ describe("MemoryLifecycleControls", () => {
     render(
       <MemoryLifecycleControls
         id={memoryId}
+        title="Buổi chiều bên cửa sổ"
         state="TRASHED"
         revision={revision}
       />,
