@@ -143,6 +143,9 @@ test("completes the private Memory lifecycle through the BFF", async ({
     })
     .click();
 
+  await expect(
+    page.getByText(`Đã đưa "${updatedTitle}" vào Thùng rác`),
+  ).toBeVisible();
   await expect(page).toHaveURL(/\/memories\?state=TRASHED$/);
 
   await page
@@ -164,6 +167,8 @@ test("completes the private Memory lifecycle through the BFF", async ({
       name: "Khôi phục",
     })
     .click();
+
+  await expect(page.getByText(`Đã khôi phục "${updatedTitle}"`)).toBeVisible();
 
   await expect(
     page.getByRole("link", {
@@ -215,6 +220,9 @@ test("completes the private Memory lifecycle through the BFF", async ({
     })
     .click();
 
+  await expect(
+    page.getByText(`Đã xóa vĩnh viễn "${updatedTitle}"`),
+  ).toBeVisible();
   await expect(page).toHaveURL(/\/memories\?state=TRASHED$/);
 
   await expect(

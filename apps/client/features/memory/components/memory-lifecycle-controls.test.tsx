@@ -10,14 +10,21 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { changeMemoryState, deleteMemoryPermanently, push, replace, refresh } =
-  vi.hoisted(() => ({
-    changeMemoryState: vi.fn(),
-    deleteMemoryPermanently: vi.fn(),
-    push: vi.fn(),
-    replace: vi.fn(),
-    refresh: vi.fn(),
-  }));
+const {
+  changeMemoryState,
+  deleteMemoryPermanently,
+  push,
+  replace,
+  refresh,
+  notifySuccess,
+} = vi.hoisted(() => ({
+  changeMemoryState: vi.fn(),
+  deleteMemoryPermanently: vi.fn(),
+  push: vi.fn(),
+  replace: vi.fn(),
+  refresh: vi.fn(),
+  notifySuccess: vi.fn(),
+}));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
@@ -31,6 +38,15 @@ vi.mock("@/features/memory/actions/memory", () => ({
   changeMemoryState,
   deleteMemoryPermanently,
 }));
+
+vi.mock("@/lib/toast", () => ({
+  notifySuccess,
+}));
+
+const redirectError = (url: string) =>
+  Object.assign(new Error("NEXT_REDIRECT"), {
+    digest: `NEXT_REDIRECT;replace;${url};307;`,
+  });
 
 import { MemoryLifecycleControls } from "./memory-lifecycle-controls";
 
@@ -134,9 +150,29 @@ describe("MemoryLifecycleControls", () => {
   });
 
   it("requires confirmation before permanently deleting a Memory", async () => {
-    deleteMemoryPermanently.mockResolvedValue({
-      status: "success",
+    // deleteMemoryPermanently không bao giờ "return" khi thành công — Server
+    // Action tự redirect() trên server, Next.js hiện thực điều đó bằng cách
+    // throw một lỗi có digest NEXT_REDIRECT. Mock đúng hành vi thật thay vì
+    // một status:"success" không có thật trong runtime.
+    //
+    // Component cố ý re-throw lỗi đó sau khi xử lý (bắt buộc theo tài liệu
+    // Next.js, để runtime thật của framework tự thực hiện điều hướng) — môi
+    // trường test không có runtime đó để "tiêu thụ" rejection, nên bắt nó ở
+    // đây để xác nhận đúng hành vi thay vì để lọt ra thành unhandled error.
+    // React 19 báo lỗi ném ra từ async transition function qua reportError()
+    // (uncaughtException), không phải theo đường unhandledRejection thông
+    // thường — bắt đúng event đó để xác nhận rồi mới coi test hoàn tất.
+    const redirectRejection = new Promise<void>((resolve) => {
+      const handler = () => {
+        process.off("uncaughtException", handler);
+        resolve();
+      };
+      process.on("uncaughtException", handler);
     });
+
+    deleteMemoryPermanently.mockRejectedValue(
+      redirectError("/memories?state=TRASHED"),
+    );
 
     render(
       <MemoryLifecycleControls
@@ -176,9 +212,18 @@ describe("MemoryLifecycleControls", () => {
       }),
     );
 
-    expect(replace).toHaveBeenCalledWith("/memories?state=TRASHED");
+    // Điều hướng thật diễn ra qua redirect() phía server (Next.js tự xử lý
+    // NEXT_REDIRECT) — component không tự gọi router.replace/push nữa.
+    await waitFor(() =>
+      expect(notifySuccess).toHaveBeenCalledWith(
+        'Đã xóa vĩnh viễn "Buổi chiều bên cửa sổ"',
+      ),
+    );
+    expect(replace).not.toHaveBeenCalled();
     expect(push).not.toHaveBeenCalled();
     expect(refresh).not.toHaveBeenCalled();
+
+    await redirectRejection;
   });
 
   it("offers to reload when the revision is stale", async () => {
