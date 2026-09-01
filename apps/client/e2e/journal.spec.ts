@@ -110,8 +110,9 @@ test("completes the private Journal lifecycle through the BFF", async ({
   ).toBeVisible();
 
   await page.getByRole("button", { name: "Đưa vào Thùng rác" }).click();
-  await expect(page).toHaveURL(/\/journal\?state=TRASHED$/);
-  await page.getByRole("link", { name: new RegExp(title) }).click();
+  // Trash không rời trang — ở lại đúng entry, chỉ đổi sang chế độ đọc kèm
+  // nút "Khôi phục" ngay trên toolbar (giống hệt cách Seal/Reopen hoạt động).
+  await expect(page).toHaveURL(/\/journal\/[0-9a-f-]+$/);
   await page.getByRole("button", { name: "Khôi phục" }).click();
   await page.getByRole("button", { name: "Nhật ký", exact: true }).click();
 
@@ -285,7 +286,9 @@ test("preserves local work when another tab moves the entry to Trash", async ({
   const secondPage = await context.newPage();
   await secondPage.goto(page.url());
   await secondPage.getByRole("button", { name: "Đưa vào Thùng rác" }).click();
-  await expect(secondPage).toHaveURL(/\/journal\?state=TRASHED$/);
+  await expect(
+    secondPage.getByRole("button", { name: "Khôi phục" }),
+  ).toBeVisible();
 
   await page.getByLabel("Nội dung", { exact: true }).fill(localContent);
   await expect(
@@ -321,8 +324,9 @@ test("preserves local work when another tab permanently deletes the entry", asyn
 
   const secondPage = await context.newPage();
   await secondPage.goto(page.url());
+  // Trash không rời trang nữa — vẫn đang ở đúng entry, không cần bấm lại
+  // vào link trong danh sách như trước.
   await secondPage.getByRole("button", { name: "Đưa vào Thùng rác" }).click();
-  await secondPage.getByRole("link", { name: new RegExp(title) }).click();
   await secondPage.getByRole("button", { name: "Xóa vĩnh viễn" }).click();
   await secondPage
     .getByRole("button", { name: "Xóa vĩnh viễn" })

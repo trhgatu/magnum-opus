@@ -95,9 +95,9 @@ export function MemoryLifecycleControls({
             : `Đã khôi phục "${title}"`,
         );
 
-        if (action === "trash") {
-          router.push("/memories?state=TRASHED");
-        }
+        // Ở lại trang chi tiết dù trash hay restore — component đã tự
+        // render đúng theo state (badge, nút Khôi phục/Xóa vĩnh viễn),
+        // không cần điều hướng sang danh sách đã lọc.
         router.refresh();
       } catch {
         setError({

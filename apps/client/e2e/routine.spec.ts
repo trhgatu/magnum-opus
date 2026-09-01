@@ -80,11 +80,10 @@ test("completes the private Routine lifecycle through the BFF", async ({
   await page.getByRole("button", { name: "Lưu thay đổi" }).click();
   await expect(page.getByRole("heading", { name: updatedTitle })).toBeVisible();
 
+  // Lưu trữ không rời trang — ở lại đúng Trình tự, chỉ đổi nút thành
+  // "Khôi phục" (giống hệt cách Journal/Memory/Habit xử lý tại chỗ).
   await page.getByRole("button", { name: "Lưu trữ" }).click();
-  await expect(page).toHaveURL(/\/routines\?status=ARCHIVED$/);
-  await page
-    .getByRole("link", { name: `Mở Trình tự: ${updatedTitle}` })
-    .click();
+  await expect(page).toHaveURL(/\/routines\/[0-9a-f-]+$/);
   await page.getByRole("button", { name: "Khôi phục" }).click();
   await expect(page.getByRole("button", { name: "Lưu trữ" })).toBeVisible();
 

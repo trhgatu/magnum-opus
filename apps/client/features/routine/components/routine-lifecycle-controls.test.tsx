@@ -55,7 +55,8 @@ describe("RoutineLifecycleControls", () => {
       }),
     );
 
-    expect(push).toHaveBeenCalledWith("/routines?status=ARCHIVED");
+    // Lưu trữ không rời trang — chỉ refresh để re-render đúng state tại chỗ.
+    expect(push).not.toHaveBeenCalled();
     expect(refresh).toHaveBeenCalledOnce();
   });
 
@@ -81,7 +82,7 @@ describe("RoutineLifecycleControls", () => {
       }),
     );
 
-    expect(push).toHaveBeenCalledWith(`/routines/${routineId}`);
+    expect(push).not.toHaveBeenCalled();
     expect(refresh).toHaveBeenCalledOnce();
   });
 

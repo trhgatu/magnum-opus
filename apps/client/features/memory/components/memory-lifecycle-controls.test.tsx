@@ -103,7 +103,8 @@ describe("MemoryLifecycleControls", () => {
       }),
     );
 
-    expect(push).toHaveBeenCalledWith("/memories?state=TRASHED");
+    // Trash không rời trang — chỉ refresh để re-render đúng state tại chỗ.
+    expect(push).not.toHaveBeenCalled();
     expect(replace).not.toHaveBeenCalled();
     expect(refresh).toHaveBeenCalledOnce();
   });

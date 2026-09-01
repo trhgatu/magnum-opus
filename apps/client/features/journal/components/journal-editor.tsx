@@ -177,10 +177,9 @@ export function JournalEditor({
         return;
       }
       acceptPersistedEntry(result.entry);
-      if (action === "seal") setViewMode("preview");
+      if (action === "seal" || action === "trash") setViewMode("preview");
       if (action === "reopen" || action === "restore") setViewMode("write");
-      if (action === "trash") router.push("/journal?state=TRASHED");
-      else router.refresh();
+      router.refresh();
     } finally {
       setIsChangingState(false);
     }
@@ -188,16 +187,17 @@ export function JournalEditor({
 
   const deletePermanently = async () => {
     setIsChangingState(true);
+    // deleteJournalEntryPermanently tự redirect("/journal?state=TRASHED")
+    // trên server khi xóa thành công — không bao giờ chạy tới sau await ở
+    // trường hợp thành công, chỉ nhánh lỗi mới thực sự return ở đây.
     const result = await deleteJournalEntryPermanently({
       id: entry.id,
       expectedRevision: getRevision(),
     });
     if (result.status === "error") {
       setLifecycleMessage(result.message);
-      setIsChangingState(false);
-      return;
     }
-    router.push("/journal?state=TRASHED");
+    setIsChangingState(false);
   };
 
   const createMemoryFromEntry = async () => {

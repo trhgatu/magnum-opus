@@ -65,7 +65,8 @@ export function HabitLifecycleControls({
       void notifySuccess(
         isActive ? `Đã lưu trữ "${title}"` : `Đã khôi phục "${title}"`,
       );
-      router.push(isActive ? "/habits?status=ARCHIVED" : `/habits/${id}`);
+      // Ở lại trang chi tiết dù lưu trữ hay khôi phục — component đã tự
+      // render đúng theo isActive (badge, nút Lưu trữ/Khôi phục).
       router.refresh();
     });
   };

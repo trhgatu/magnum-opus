@@ -72,7 +72,8 @@ export function RoutineLifecycleControls({
           isActive ? `Đã lưu trữ "${title}"` : `Đã khôi phục "${title}"`,
         );
 
-        router.push(isActive ? "/routines?status=ARCHIVED" : `/routines/${id}`);
+        // Ở lại trang chi tiết dù lưu trữ hay khôi phục — component đã tự
+        // render đúng theo isActive (badge, nút Lưu trữ/Khôi phục).
         router.refresh();
       } catch {
         setError({
