@@ -36,6 +36,12 @@ export const productNavigation = [
     icon: Flame,
     status: "available",
     items: [
+      {
+        id: "today",
+        label: "Hôm nay",
+        href: "/today",
+        icon: Flame,
+      },
       { id: "habits", label: "Thói quen", href: "/habits", icon: Repeat2 },
       {
         id: "routines",
