@@ -15,6 +15,7 @@ import {
   type RoutineMutationResult,
 } from "@/features/routine/actions/routine";
 import { RoutineHabitPicker } from "@/features/routine/components/routine-habit-picker";
+import { notifySuccess } from "@/lib/toast";
 
 export function RoutineHabitManager({
   routine,
@@ -28,6 +29,7 @@ export function RoutineHabitManager({
 
   const run = (
     mutation: () => Promise<RoutineMutationResult>,
+    successMessage: string,
     onSuccess?: () => void,
   ) => {
     setMessage(undefined);
@@ -43,6 +45,7 @@ export function RoutineHabitManager({
         return;
       }
 
+      void notifySuccess(successMessage);
       onSuccess?.();
       router.refresh();
     });
@@ -58,6 +61,7 @@ export function RoutineHabitManager({
           habitId: selectedHabitId,
           expectedRevision: routine.revision,
         }),
+      "Đã thêm Thói quen vào Trình tự",
       () => setSelectedHabitId(""),
     );
   };
@@ -152,13 +156,15 @@ export function RoutineHabitManager({
                     aria-label={`Di chuyển ${habit.title} lên`}
                     disabled={isPending || index === 0}
                     onClick={() =>
-                      run(() =>
-                        moveRoutineHabit({
-                          routineId: routine.id,
-                          habitId: habit.id,
-                          direction: "up",
-                          expectedRevision: routine.revision,
-                        }),
+                      run(
+                        () =>
+                          moveRoutineHabit({
+                            routineId: routine.id,
+                            habitId: habit.id,
+                            direction: "up",
+                            expectedRevision: routine.revision,
+                          }),
+                        `Đã di chuyển "${habit.title}" lên`,
                       )
                     }
                   >
@@ -171,13 +177,15 @@ export function RoutineHabitManager({
                     aria-label={`Di chuyển ${habit.title} xuống`}
                     disabled={isPending || index === routine.habits.length - 1}
                     onClick={() =>
-                      run(() =>
-                        moveRoutineHabit({
-                          routineId: routine.id,
-                          habitId: habit.id,
-                          direction: "down",
-                          expectedRevision: routine.revision,
-                        }),
+                      run(
+                        () =>
+                          moveRoutineHabit({
+                            routineId: routine.id,
+                            habitId: habit.id,
+                            direction: "down",
+                            expectedRevision: routine.revision,
+                          }),
+                        `Đã di chuyển "${habit.title}" xuống`,
                       )
                     }
                   >
@@ -190,12 +198,14 @@ export function RoutineHabitManager({
                     aria-label={`Gỡ ${habit.title} khỏi Trình tự`}
                     disabled={isPending}
                     onClick={() =>
-                      run(() =>
-                        removeRoutineHabit({
-                          routineId: routine.id,
-                          habitId: habit.id,
-                          expectedRevision: routine.revision,
-                        }),
+                      run(
+                        () =>
+                          removeRoutineHabit({
+                            routineId: routine.id,
+                            habitId: habit.id,
+                            expectedRevision: routine.revision,
+                          }),
+                        `Đã gỡ "${habit.title}" khỏi Trình tự`,
                       )
                     }
                   >

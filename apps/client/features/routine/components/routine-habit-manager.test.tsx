@@ -11,13 +11,19 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { addRoutineHabit, moveRoutineHabit, removeRoutineHabit, refresh } =
-  vi.hoisted(() => ({
-    addRoutineHabit: vi.fn(),
-    moveRoutineHabit: vi.fn(),
-    removeRoutineHabit: vi.fn(),
-    refresh: vi.fn(),
-  }));
+const {
+  addRoutineHabit,
+  moveRoutineHabit,
+  removeRoutineHabit,
+  refresh,
+  notifySuccess,
+} = vi.hoisted(() => ({
+  addRoutineHabit: vi.fn(),
+  moveRoutineHabit: vi.fn(),
+  removeRoutineHabit: vi.fn(),
+  refresh: vi.fn(),
+  notifySuccess: vi.fn(),
+}));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh }),
@@ -27,6 +33,10 @@ vi.mock("@/features/routine/actions/routine", () => ({
   addRoutineHabit,
   moveRoutineHabit,
   removeRoutineHabit,
+}));
+
+vi.mock("@/lib/toast", () => ({
+  notifySuccess,
 }));
 
 vi.mock("@/features/routine/components/routine-habit-picker", () => ({
@@ -101,6 +111,9 @@ describe("RoutineHabitManager", () => {
         expectedRevision: routine.revision,
       }),
     );
+    expect(notifySuccess).toHaveBeenCalledWith(
+      "Đã thêm Thói quen vào Trình tự",
+    );
     expect(refresh).toHaveBeenCalledOnce();
   });
 
@@ -120,6 +133,9 @@ describe("RoutineHabitManager", () => {
         expectedRevision: routine.revision,
       }),
     );
+    expect(notifySuccess).toHaveBeenCalledWith(
+      'Đã di chuyển "Drink water" xuống',
+    );
 
     const removeButton = screen.getByRole("button", {
       name: "Gỡ Stretch khỏi Trình tự",
@@ -134,6 +150,7 @@ describe("RoutineHabitManager", () => {
         expectedRevision: routine.revision,
       }),
     );
+    expect(notifySuccess).toHaveBeenCalledWith('Đã gỡ "Stretch" khỏi Trình tự');
   });
 
   it("does not expose membership mutations for an archived Routine", () => {
