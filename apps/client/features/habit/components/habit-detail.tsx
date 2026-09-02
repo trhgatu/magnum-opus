@@ -66,6 +66,7 @@ export function HabitDetail({
             ) : null}
             <HabitLifecycleControls
               id={habit.id}
+              title={habit.title}
               isActive={habit.isActive}
               revision={habit.revision}
             />

@@ -2,13 +2,17 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 const KIBIBYTE = 1024;
+// +3 KiB trên /me và /memories, +2 KiB trên /journal/[id]: overhead cố
+// định của ToastProvider (components/system/toast-provider.tsx) dùng
+// next/dynamic ssr:false để tách sonner khỏi first-load JS — hạ tầng
+// toast dùng chung toàn client, không phải markup phình theo feature.
 const routeBudgets = new Map([
   ["/", 560 * KIBIBYTE],
   ["/login", 560 * KIBIBYTE],
-  ["/me", 560 * KIBIBYTE],
+  ["/me", 563 * KIBIBYTE],
   ["/journal", 570 * KIBIBYTE],
-  ["/journal/[id]", 625 * KIBIBYTE],
-  ["/memories", 565 * KIBIBYTE],
+  ["/journal/[id]", 627 * KIBIBYTE],
+  ["/memories", 568 * KIBIBYTE],
   // Memory editors include the isolated shadcn Calendar/Date Picker chunk.
   ["/memories/new", 670 * KIBIBYTE],
   ["/memories/[id]", 610 * KIBIBYTE],

@@ -47,6 +47,7 @@ export function RoutineDetail({ routine }: { routine: RoutineDetailResponse }) {
             ) : null}
             <RoutineLifecycleControls
               id={routine.id}
+              title={routine.title}
               isActive={routine.isActive}
               revision={routine.revision}
             />

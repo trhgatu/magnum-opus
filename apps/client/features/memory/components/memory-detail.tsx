@@ -70,6 +70,7 @@ export function MemoryDetail({ memory }: MemoryDetailProps) {
           )}
           <MemoryLifecycleControls
             id={memory.id}
+            title={memory.title}
             state={memory.state}
             revision={memory.revision}
           />

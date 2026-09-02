@@ -143,14 +143,10 @@ test("completes the private Memory lifecycle through the BFF", async ({
     })
     .click();
 
-  await expect(page).toHaveURL(/\/memories\?state=TRASHED$/);
-
-  await page
-    .getByRole("link", {
-      name: `Mở ký ức: ${updatedTitle}`,
-    })
-    .click();
-
+  await expect(
+    page.getByText(`Đã đưa "${updatedTitle}" vào Thùng rác`),
+  ).toBeVisible();
+  // Trash không rời trang — ở lại đúng ký ức, chỉ đổi badge + nút tại chỗ.
   await expect(page).toHaveURL(/\/memories\/[0-9a-f-]+$/);
 
   await expect(
@@ -164,6 +160,8 @@ test("completes the private Memory lifecycle through the BFF", async ({
       name: "Khôi phục",
     })
     .click();
+
+  await expect(page.getByText(`Đã khôi phục "${updatedTitle}"`)).toBeVisible();
 
   await expect(
     page.getByRole("link", {
@@ -180,14 +178,6 @@ test("completes the private Memory lifecycle through the BFF", async ({
   await page
     .getByRole("button", {
       name: "Đưa vào Thùng rác",
-    })
-    .click();
-
-  await expect(page).toHaveURL(/\/memories\?state=TRASHED$/);
-
-  await page
-    .getByRole("link", {
-      name: `Mở ký ức: ${updatedTitle}`,
     })
     .click();
 
@@ -215,6 +205,9 @@ test("completes the private Memory lifecycle through the BFF", async ({
     })
     .click();
 
+  await expect(
+    page.getByText(`Đã xóa vĩnh viễn "${updatedTitle}"`),
+  ).toBeVisible();
   await expect(page).toHaveURL(/\/memories\?state=TRASHED$/);
 
   await expect(
@@ -282,8 +275,6 @@ test("keeps a Memory after its source Journal entry is deleted", async ({
   );
 
   await page.getByRole("button", { name: "Đưa vào Thùng rác" }).click();
-  await expect(page).toHaveURL(/\/journal\?state=TRASHED$/);
-  await page.getByRole("link", { name: new RegExp(journalTitle) }).click();
   await expect(page).toHaveURL(/\/journal\/[0-9a-f-]+$/);
 
   await page.getByRole("button", { name: "Xóa vĩnh viễn" }).click();
@@ -303,8 +294,6 @@ test("keeps a Memory after its source Journal entry is deleted", async ({
   ).not.toBeVisible();
 
   await page.getByRole("button", { name: "Đưa vào Thùng rác" }).click();
-  await expect(page).toHaveURL(/\/memories\?state=TRASHED$/);
-  await page.getByRole("link", { name: `Mở ký ức: ${journalTitle}` }).click();
   await expect(page).toHaveURL(/\/memories\/[0-9a-f-]+$/);
 
   await page.getByRole("button", { name: "Xóa vĩnh viễn" }).click();

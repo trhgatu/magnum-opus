@@ -56,11 +56,10 @@ test("completes the private Habit lifecycle through the BFF", async ({
   await page.getByRole("button", { name: "Lưu thay đổi" }).click();
   await expect(page.getByRole("heading", { name: updatedTitle })).toBeVisible();
 
+  // Lưu trữ không rời trang — ở lại đúng thói quen, chỉ đổi nút thành
+  // "Khôi phục" (giống hệt cách Journal/Memory xử lý trash tại chỗ).
   await page.getByRole("button", { name: "Lưu trữ" }).click();
-  await expect(page).toHaveURL(/\/habits\?status=ARCHIVED$/);
-  await page
-    .getByRole("link", { name: `Mở thói quen: ${updatedTitle}` })
-    .click();
+  await expect(page).toHaveURL(/\/habits\/[0-9a-f-]+$/);
   await expect(page.getByRole("button", { name: "Khôi phục" })).toBeVisible();
   await page.getByRole("button", { name: "Khôi phục" }).click();
   await expect(page.getByRole("button", { name: "Lưu trữ" })).toBeVisible();

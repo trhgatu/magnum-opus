@@ -23,92 +23,114 @@ import {
   deleteMemoryPermanently,
   type MemoryLifecycleAction,
 } from "@/features/memory/actions/memory";
+import { isRedirectError } from "@/lib/next-redirect";
+import { notifySuccess } from "@/lib/toast";
 
 interface MemoryLifecycleControlsProps {
   id: string;
+  title: string;
   state: MemoryResponse["state"];
   revision: number;
 }
 
-const isRevisionConflict = (code?: string) =>
-  code === "MEMORY_REVISION_CONFLICT";
+type LifecycleError = {
+  message: string;
+  code?: string;
+};
+
+const MEMORY_REVISION_CONFLICT = "MEMORY_REVISION_CONFLICT";
+
+const isRevisionConflict = (code?: string) => code === MEMORY_REVISION_CONFLICT;
 
 export function MemoryLifecycleControls({
   id,
+  title,
   state,
   revision,
 }: MemoryLifecycleControlsProps) {
   const router = useRouter();
 
-  const [message, setMessage] = useState<string>();
-  const [hasConflict, setHasConflict] = useState(false);
+  const [error, setError] = useState<LifecycleError | null>(null);
+  const hasConflict = isRevisionConflict(error?.code);
+
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  const clearError = () => {
-    setMessage(undefined);
-    setHasConflict(false);
-  };
-
-  const showError = (error: { message: string; code?: string }) => {
-    setMessage(error.message);
-    setHasConflict(isRevisionConflict(error.code));
-  };
-
   const reloadLatestRevision = () => {
-    clearError();
+    setError(null);
     setDeleteOpen(false);
     router.refresh();
   };
 
   const runLifecycleAction = (action: MemoryLifecycleAction) => {
-    clearError();
+    setError(null);
 
     startTransition(async () => {
-      const result = await changeMemoryState({
-        id,
-        action,
-        expectedRevision: revision,
-      });
+      try {
+        const result = await changeMemoryState({
+          id,
+          action,
+          expectedRevision: revision,
+        });
 
-      if (result.status === "error") {
-        showError(result);
-        return;
+        if (result.status === "error") {
+          setError(result);
+          return;
+        }
+
+        void notifySuccess(
+          action === "trash"
+            ? `Đã đưa "${title}" vào Thùng rác`
+            : `Đã khôi phục "${title}"`,
+        );
+
+        // Ở lại trang chi tiết dù trash hay restore — component đã tự
+        // render đúng theo state (badge, nút Khôi phục/Xóa vĩnh viễn),
+        // không cần điều hướng sang danh sách đã lọc.
+        router.refresh();
+      } catch {
+        setError({
+          message: "Không thể cập nhật ký ức. Vui lòng thử lại.",
+        });
       }
-
-      if (action === "trash") {
-        router.push("/memories?state=TRASHED");
-      }
-
-      router.refresh();
     });
   };
 
   const runPermanentDelete = (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
-    clearError();
+    setError(null);
 
     startTransition(async () => {
-      const result = await deleteMemoryPermanently({
-        id,
-        expectedRevision: revision,
-      });
+      try {
+        // deleteMemoryPermanently chỉ return khi thất bại — thành công thì
+        // Server Action tự redirect("/memories?state=TRASHED"), không bao
+        // giờ chạy tới dòng dưới, mà nhảy thẳng xuống catch dạng lỗi
+        // NEXT_REDIRECT bên dưới.
+        const result = await deleteMemoryPermanently({
+          id,
+          expectedRevision: revision,
+        });
 
-      if (result.status === "error") {
-        showError(result);
-        return;
+        if (result.status === "error") {
+          setError(result);
+        }
+      } catch (error) {
+        if (isRedirectError(error)) {
+          await notifySuccess(`Đã xóa vĩnh viễn "${title}"`).catch(() => {});
+          throw error;
+        }
+
+        setError({
+          message: "Không thể xóa ký ức. Vui lòng thử lại.",
+        });
       }
-
-      setDeleteOpen(false);
-      router.replace("/memories?state=TRASHED");
     });
   };
 
-  const errorAlert = message ? (
+  const errorAlert = error ? (
     <Alert variant="destructive">
-      <AlertDescription>{message}</AlertDescription>
-
-      {hasConflict ? (
+      <AlertDescription>{error.message}</AlertDescription>
+      {hasConflict && (
         <Button
           type="button"
           variant="link"
@@ -118,12 +140,13 @@ export function MemoryLifecycleControls({
         >
           Tải bản mới nhất
         </Button>
-      ) : null}
+      )}
     </Alert>
   ) : null;
 
   return (
     <div
+      role="group"
       className="flex flex-col items-end gap-2"
       aria-busy={isPending}
       aria-label="Thao tác vòng đời ký ức"
@@ -163,7 +186,7 @@ export function MemoryLifecycleControls({
                 setDeleteOpen(open);
 
                 if (open) {
-                  clearError();
+                  setError(null);
                 }
               }}
             >

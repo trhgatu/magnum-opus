@@ -25,6 +25,8 @@ import { JournalEntryContent } from "@/features/journal/components/journal-entry
 import { useJournalDraft } from "@/features/journal/hooks/use-journal-draft";
 import { useJournalEditorShortcuts } from "@/features/journal/hooks/use-journal-editor-shortcuts";
 import { useUnsavedChangesWarning } from "@/hooks/use-unsaved-changes-warning";
+import { isRedirectError } from "@/lib/next-redirect";
+import { notifySuccess } from "@/lib/toast";
 
 const MoodPanel = dynamic(
   () =>
@@ -177,10 +179,9 @@ export function JournalEditor({
         return;
       }
       acceptPersistedEntry(result.entry);
-      if (action === "seal") setViewMode("preview");
+      if (action === "seal" || action === "trash") setViewMode("preview");
       if (action === "reopen" || action === "restore") setViewMode("write");
-      if (action === "trash") router.push("/journal?state=TRASHED");
-      else router.refresh();
+      router.refresh();
     } finally {
       setIsChangingState(false);
     }
@@ -188,16 +189,27 @@ export function JournalEditor({
 
   const deletePermanently = async () => {
     setIsChangingState(true);
-    const result = await deleteJournalEntryPermanently({
-      id: entry.id,
-      expectedRevision: getRevision(),
-    });
-    if (result.status === "error") {
-      setLifecycleMessage(result.message);
+    try {
+      // deleteJournalEntryPermanently chỉ return khi thất bại — thành công
+      // thì Server Action tự redirect("/journal?state=TRASHED"), không bao
+      // giờ chạy tới dòng dưới, mà nhảy thẳng xuống catch dạng lỗi
+      // NEXT_REDIRECT bên dưới.
+      const result = await deleteJournalEntryPermanently({
+        id: entry.id,
+        expectedRevision: getRevision(),
+      });
+      if (result.status === "error") {
+        setLifecycleMessage(result.message);
+      }
+    } catch (error) {
+      if (isRedirectError(error)) {
+        await notifySuccess(`Đã xóa vĩnh viễn "${title}"`).catch(() => {});
+        throw error;
+      }
+      setLifecycleMessage("Không thể xóa entry. Vui lòng thử lại.");
+    } finally {
       setIsChangingState(false);
-      return;
     }
-    router.push("/journal?state=TRASHED");
   };
 
   const createMemoryFromEntry = async () => {
