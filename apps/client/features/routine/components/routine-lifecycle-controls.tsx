@@ -85,6 +85,7 @@ export function RoutineLifecycleControls({
 
   return (
     <div
+      role="group"
       className="space-y-2"
       aria-busy={isPending}
       aria-label="Thao tác vòng đời trình tự"

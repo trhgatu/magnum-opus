@@ -127,7 +127,7 @@ export function MemoryLifecycleControls({
         }
       } catch (error) {
         if (isRedirectError(error)) {
-          void notifySuccess(`Đã xóa vĩnh viễn "${title}"`);
+          await notifySuccess(`Đã xóa vĩnh viễn "${title}"`).catch(() => {});
           throw error;
         }
 
@@ -157,6 +157,7 @@ export function MemoryLifecycleControls({
 
   return (
     <div
+      role="group"
       className="flex flex-col items-end gap-2"
       aria-busy={isPending}
       aria-label="Thao tác vòng đời ký ức"

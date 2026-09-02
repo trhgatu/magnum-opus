@@ -25,6 +25,18 @@ import { JournalEntryContent } from "@/features/journal/components/journal-entry
 import { useJournalDraft } from "@/features/journal/hooks/use-journal-draft";
 import { useJournalEditorShortcuts } from "@/features/journal/hooks/use-journal-editor-shortcuts";
 import { useUnsavedChangesWarning } from "@/hooks/use-unsaved-changes-warning";
+import { notifySuccess } from "@/lib/toast";
+
+// deleteJournalEntryPermanently gọi redirect() trên server khi xóa thành
+// công — Next.js hiện thực điều đó bằng cách throw một lỗi có digest bắt
+// đầu "NEXT_REDIRECT". Phải nhận diện và re-throw đúng lỗi này, nếu không
+// sẽ vô tình nuốt mất tín hiệu điều hướng (giống lỗi đã sửa ở Memory).
+const isRedirectError = (error: unknown): boolean =>
+  typeof error === "object" &&
+  error !== null &&
+  "digest" in error &&
+  typeof (error as { digest?: unknown }).digest === "string" &&
+  (error as { digest: string }).digest.startsWith("NEXT_REDIRECT");
 
 const MoodPanel = dynamic(
   () =>
@@ -187,17 +199,27 @@ export function JournalEditor({
 
   const deletePermanently = async () => {
     setIsChangingState(true);
-    // deleteJournalEntryPermanently tự redirect("/journal?state=TRASHED")
-    // trên server khi xóa thành công — không bao giờ chạy tới sau await ở
-    // trường hợp thành công, chỉ nhánh lỗi mới thực sự return ở đây.
-    const result = await deleteJournalEntryPermanently({
-      id: entry.id,
-      expectedRevision: getRevision(),
-    });
-    if (result.status === "error") {
-      setLifecycleMessage(result.message);
+    try {
+      // deleteJournalEntryPermanently chỉ return khi thất bại — thành công
+      // thì Server Action tự redirect("/journal?state=TRASHED"), không bao
+      // giờ chạy tới dòng dưới, mà nhảy thẳng xuống catch dạng lỗi
+      // NEXT_REDIRECT bên dưới.
+      const result = await deleteJournalEntryPermanently({
+        id: entry.id,
+        expectedRevision: getRevision(),
+      });
+      if (result.status === "error") {
+        setLifecycleMessage(result.message);
+      }
+    } catch (error) {
+      if (isRedirectError(error)) {
+        await notifySuccess(`Đã xóa vĩnh viễn "${title}"`).catch(() => {});
+        throw error;
+      }
+      setLifecycleMessage("Không thể xóa entry. Vui lòng thử lại.");
+    } finally {
+      setIsChangingState(false);
     }
-    setIsChangingState(false);
   };
 
   const createMemoryFromEntry = async () => {

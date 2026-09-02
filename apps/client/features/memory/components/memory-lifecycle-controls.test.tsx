@@ -23,7 +23,7 @@ const {
   push: vi.fn(),
   replace: vi.fn(),
   refresh: vi.fn(),
-  notifySuccess: vi.fn(),
+  notifySuccess: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -163,11 +163,31 @@ describe("MemoryLifecycleControls", () => {
     // React 19 báo lỗi ném ra từ async transition function qua reportError()
     // (uncaughtException), không phải theo đường unhandledRejection thông
     // thường — bắt đúng event đó để xác nhận rồi mới coi test hoàn tất.
-    const redirectRejection = new Promise<void>((resolve) => {
-      const handler = () => {
+    const redirectRejection = new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        process.off("uncaughtException", handler);
+        reject(
+          new Error(
+            "Expected a NEXT_REDIRECT uncaughtException, but none occurred",
+          ),
+        );
+      }, 1000);
+
+      const handler = (error: unknown) => {
+        const digest =
+          typeof error === "object" && error !== null && "digest" in error
+            ? (error as { digest?: unknown }).digest
+            : undefined;
+
+        if (typeof digest !== "string" || !digest.startsWith("NEXT_REDIRECT")) {
+          return;
+        }
+
+        clearTimeout(timeout);
         process.off("uncaughtException", handler);
         resolve();
       };
+
       process.on("uncaughtException", handler);
     });
 

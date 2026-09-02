@@ -3,10 +3,11 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { changeRoutineState, push, refresh } = vi.hoisted(() => ({
+const { changeRoutineState, push, refresh, notifySuccess } = vi.hoisted(() => ({
   changeRoutineState: vi.fn(),
   push: vi.fn(),
   refresh: vi.fn(),
+  notifySuccess: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -18,6 +19,10 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@/features/routine/actions/routine", () => ({
   changeRoutineState,
+}));
+
+vi.mock("@/lib/toast", () => ({
+  notifySuccess,
 }));
 
 import { RoutineLifecycleControls } from "./routine-lifecycle-controls";
@@ -58,6 +63,7 @@ describe("RoutineLifecycleControls", () => {
     // Lưu trữ không rời trang — chỉ refresh để re-render đúng state tại chỗ.
     expect(push).not.toHaveBeenCalled();
     expect(refresh).toHaveBeenCalledOnce();
+    expect(notifySuccess).toHaveBeenCalledWith(`Đã lưu trữ "${title}"`);
   });
 
   it("restores an archived Routine", async () => {
@@ -84,6 +90,7 @@ describe("RoutineLifecycleControls", () => {
 
     expect(push).not.toHaveBeenCalled();
     expect(refresh).toHaveBeenCalledOnce();
+    expect(notifySuccess).toHaveBeenCalledWith(`Đã khôi phục "${title}"`);
   });
 
   it("offers to reload when the revision is stale", async () => {
