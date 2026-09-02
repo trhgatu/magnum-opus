@@ -23,6 +23,7 @@ import {
   deleteMemoryPermanently,
   type MemoryLifecycleAction,
 } from "@/features/memory/actions/memory";
+import { isRedirectError } from "@/lib/next-redirect";
 import { notifySuccess } from "@/lib/toast";
 
 interface MemoryLifecycleControlsProps {
@@ -40,18 +41,6 @@ type LifecycleError = {
 const MEMORY_REVISION_CONFLICT = "MEMORY_REVISION_CONFLICT";
 
 const isRevisionConflict = (code?: string) => code === MEMORY_REVISION_CONFLICT;
-
-// deleteMemoryPermanently gọi redirect() trên server khi xóa thành công —
-// Next.js hiện thực điều đó bằng cách throw một lỗi có digest bắt đầu
-// "NEXT_REDIRECT". try/catch bọc quanh Server Action phải nhận diện và
-// re-throw đúng lỗi này, nếu không sẽ vô tình nuốt mất tín hiệu điều hướng
-// và code coi một lần xóa thành công là lỗi.
-const isRedirectError = (error: unknown): boolean =>
-  typeof error === "object" &&
-  error !== null &&
-  "digest" in error &&
-  typeof (error as { digest?: unknown }).digest === "string" &&
-  (error as { digest: string }).digest.startsWith("NEXT_REDIRECT");
 
 export function MemoryLifecycleControls({
   id,
