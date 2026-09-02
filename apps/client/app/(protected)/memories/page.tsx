@@ -18,7 +18,7 @@ import {
 } from "@/features/memory/lib/memory-url";
 
 export const metadata: Metadata = {
-  title: "Memories",
+  title: "Ký ức",
   robots: {
     index: false,
     follow: false,

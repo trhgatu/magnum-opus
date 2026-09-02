@@ -11,7 +11,10 @@ import { RoutineLifecycleControls } from "@/features/routine/components/routine-
 
 export function RoutineDetail({ routine }: { routine: RoutineDetailResponse }) {
   return (
-    <article className="mx-auto flex w-full max-w-5xl flex-col gap-6">
+    <article
+      className="mx-auto flex w-full max-w-5xl flex-col gap-6"
+      aria-labelledby="routine-title"
+    >
       <Link
         href="/routines"
         className={buttonVariants({
@@ -23,6 +26,7 @@ export function RoutineDetail({ routine }: { routine: RoutineDetailResponse }) {
       </Link>
 
       <ContextHero
+        id="routine-title"
         icon={ListChecks}
         eyebrow="Forge · Trình tự"
         title={routine.title}
