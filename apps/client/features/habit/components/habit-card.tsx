@@ -35,7 +35,7 @@ export function HabitCard({
               <Repeat2 className="size-4" aria-hidden="true" />
             </span>
             <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-              Practice {String(index + 1).padStart(2, "0")}
+              Thói quen {String(index + 1).padStart(2, "0")}
             </span>
           </div>
           {habit.isActive ? (

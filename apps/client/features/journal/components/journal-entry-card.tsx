@@ -40,6 +40,9 @@ export function JournalEntryCard({
   return (
     <Link
       href={`/journal/${entry.id}`}
+      aria-label={
+        entry.title ? `Mở entry: ${entry.title}` : "Mở entry chưa đặt tên"
+      }
       className="group rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-3"
     >
       <Card className="relative min-h-64 gap-0 overflow-hidden rounded-2xl bg-card/75 py-0 transition duration-200 group-hover:-translate-y-1 group-hover:ring-primary/30 group-hover:shadow-lg motion-reduce:transform-none">
