@@ -1,15 +1,15 @@
 import { Inject, Injectable } from '@nestjs/common';
 
 import {
-  CheckInHabitNotFoundException,
+  HabitCheckInNotFoundException,
   HabitCheckInForbiddenException,
 } from '../../domain/exceptions';
 import { HabitCheckInDate } from '../../domain/value-objects';
-import {
-  CHECK_IN_HABIT_READER,
-  type CheckInHabitReader,
-} from '../ports/check-in-habit-reader.port';
 import { CLOCK, type Clock } from '../ports/clock.port';
+import {
+  OWNED_HABIT_READER,
+  type OwnedHabitReader,
+} from '../ports/owned-habit-reader.port';
 import {
   USER_TIME_ZONE_READER,
   type UserTimeZoneReader,
@@ -18,8 +18,8 @@ import {
 @Injectable()
 export class HabitCheckInContextService {
   constructor(
-    @Inject(CHECK_IN_HABIT_READER)
-    private readonly habitReader: CheckInHabitReader,
+    @Inject(OWNED_HABIT_READER)
+    private readonly habitReader: OwnedHabitReader,
     @Inject(USER_TIME_ZONE_READER)
     private readonly timeZoneReader: UserTimeZoneReader,
     @Inject(CLOCK)
@@ -33,7 +33,7 @@ export class HabitCheckInContextService {
   ): Promise<{ date: HabitCheckInDate; now: Date }> {
     const habit = await this.habitReader.findByIdForOwner(habitId, ownerId);
     if (!habit) {
-      throw new CheckInHabitNotFoundException(habitId);
+      throw new HabitCheckInNotFoundException(habitId);
     }
     if (requireActive && !habit.isActive) {
       throw new HabitCheckInForbiddenException(habitId);
@@ -54,7 +54,7 @@ export class HabitCheckInContextService {
   ): Promise<void> {
     const habit = await this.habitReader.findByIdForOwner(habitId, ownerId);
     if (!habit) {
-      throw new CheckInHabitNotFoundException(habitId);
+      throw new HabitCheckInNotFoundException(habitId);
     }
   }
 }

@@ -2,10 +2,10 @@ import { Injectable } from '@nestjs/common';
 
 import { PrismaService } from '@infrastructure/database/prisma.service';
 
-import { CheckInHabitReader } from '../../application/ports/check-in-habit-reader.port';
+import { OwnedHabitReader } from '../../application/ports/owned-habit-reader.port';
 
 @Injectable()
-export class PrismaCheckInHabitReader implements CheckInHabitReader {
+export class PrismaOwnedHabitReader implements OwnedHabitReader {
   constructor(private readonly prisma: PrismaService) {}
 
   public findByIdForOwner(habitId: string, ownerId: string) {
