@@ -10,6 +10,7 @@ import {
   type ApiErrorKind,
   toPublicApiError,
 } from "@/lib/api";
+import { validId, validRevision } from "@/lib/validation";
 
 export type JournalLifecycleAction = "seal" | "reopen" | "trash" | "restore";
 
@@ -40,9 +41,6 @@ const failure = (error: unknown): JournalMutationResult => {
   };
 };
 
-const validRevision = (revision: number) =>
-  Number.isInteger(revision) && revision >= 1;
-
 export async function createJournalEntry(): Promise<void> {
   let entry: JournalEntryResponse | undefined;
   try {
@@ -65,7 +63,7 @@ export async function updateJournalEntry(input: {
   expectedRevision: number;
 }): Promise<JournalMutationResult> {
   if (
-    !input.id ||
+    !validId(input.id) ||
     (input.title !== null && input.title.length > 200) ||
     typeof input.content !== "string" ||
     !validRevision(input.expectedRevision)
@@ -96,7 +94,7 @@ export async function updateJournalEntry(input: {
 export async function reloadJournalEntry(
   id: string,
 ): Promise<JournalMutationResult> {
-  if (!id) {
+  if (!validId(id)) {
     return { status: "error", message: "Dữ liệu bản ghi không hợp lệ." };
   }
 
@@ -115,7 +113,7 @@ export async function changeJournalEntryState(input: {
   action: JournalLifecycleAction;
   expectedRevision: number;
 }): Promise<JournalMutationResult> {
-  if (!input.id || !validRevision(input.expectedRevision)) {
+  if (!validId(input.id) || !validRevision(input.expectedRevision)) {
     return { status: "error", message: "Dữ liệu bản ghi không hợp lệ." };
   }
 
@@ -139,7 +137,7 @@ export async function deleteJournalEntryPermanently(input: {
   id: string;
   expectedRevision: number;
 }): Promise<JournalDeleteResult> {
-  if (!input.id || !validRevision(input.expectedRevision)) {
+  if (!validId(input.id) || !validRevision(input.expectedRevision)) {
     return { status: "error", message: "Dữ liệu bản ghi không hợp lệ." };
   }
 

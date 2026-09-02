@@ -13,6 +13,7 @@ import {
   type ApiErrorKind,
   toPublicApiError,
 } from "@/lib/api";
+import { validId, validRevision } from "@/lib/validation";
 
 interface MoodMutationError {
   status: "error";
@@ -42,9 +43,6 @@ const failure = (error: unknown): MoodMutationError => {
   };
 };
 
-const validRevision = (revision: unknown): revision is number =>
-  typeof revision === "number" && Number.isInteger(revision) && revision >= 1;
-
 const validIntensity = (intensity: unknown): intensity is number | null =>
   intensity === null ||
   (typeof intensity === "number" &&
@@ -67,8 +65,7 @@ export async function setMood(input: {
     typeof input.note === "string" ? input.note.trim() || null : input.note;
 
   if (
-    typeof input.journalEntryId !== "string" ||
-    !input.journalEntryId ||
+    !validId(input.journalEntryId) ||
     !validLabel(input.label) ||
     !validIntensity(input.intensity) ||
     (input.note !== null && typeof input.note !== "string") ||
@@ -107,8 +104,7 @@ export async function removeMood(input: {
   expectedRevision: number;
 }): Promise<MoodRemoveResult> {
   if (
-    typeof input.journalEntryId !== "string" ||
-    !input.journalEntryId ||
+    !validId(input.journalEntryId) ||
     !validRevision(input.expectedRevision)
   ) {
     return { status: "error", message: "Dữ liệu tâm trạng không hợp lệ." };
