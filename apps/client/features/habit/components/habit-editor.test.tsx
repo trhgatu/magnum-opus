@@ -10,15 +10,15 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { createHabit, reloadHabit, updateHabit, push, refresh } = vi.hoisted(
-  () => ({
+const { createHabit, reloadHabit, updateHabit, push, refresh, notifySuccess } =
+  vi.hoisted(() => ({
     createHabit: vi.fn(),
     reloadHabit: vi.fn(),
     updateHabit: vi.fn(),
     push: vi.fn(),
     refresh: vi.fn(),
-  }),
-);
+    notifySuccess: vi.fn(),
+  }));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push, refresh }),
@@ -29,6 +29,8 @@ vi.mock("@/features/habit/actions/habit", () => ({
   reloadHabit,
   updateHabit,
 }));
+
+vi.mock("@/lib/toast", () => ({ notifySuccess }));
 
 import { HabitEditor } from "./habit-editor";
 
@@ -73,6 +75,9 @@ describe("HabitEditor", () => {
 
     expect(push).toHaveBeenCalledWith(`/habits/${existingHabit.id}`);
     expect(refresh).toHaveBeenCalledOnce();
+    expect(notifySuccess).toHaveBeenCalledWith(
+      `Đã tạo "${existingHabit.title}"`,
+    );
   });
 
   it("updates the current revision in edit mode", async () => {
@@ -102,6 +107,7 @@ describe("HabitEditor", () => {
 
     expect(createHabit).not.toHaveBeenCalled();
     expect(push).toHaveBeenCalledWith(`/habits/${existingHabit.id}`);
+    expect(notifySuccess).toHaveBeenCalledWith('Đã cập nhật "Thiền 15 phút"');
   });
 
   it("loads the latest revision without relying on router refresh", async () => {
@@ -203,6 +209,9 @@ describe("HabitEditor", () => {
 
     expect(push).toHaveBeenCalledWith(`/habits/${existingHabit.id}`);
     expect(refresh).toHaveBeenCalledOnce();
+    expect(notifySuccess).toHaveBeenCalledWith(
+      'Đã cập nhật "Bản local được giữ lại"',
+    );
   });
 
   it("keeps the draft on screen when the habit was archived elsewhere", async () => {

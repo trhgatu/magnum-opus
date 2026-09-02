@@ -9,15 +9,21 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MemoryResponse } from "@repo/contracts";
-const { createMemory, reloadMemory, updateMemory, push, refresh } = vi.hoisted(
-  () => ({
-    createMemory: vi.fn(),
-    reloadMemory: vi.fn(),
-    updateMemory: vi.fn(),
-    push: vi.fn(),
-    refresh: vi.fn(),
-  }),
-);
+const {
+  createMemory,
+  reloadMemory,
+  updateMemory,
+  push,
+  refresh,
+  notifySuccess,
+} = vi.hoisted(() => ({
+  createMemory: vi.fn(),
+  reloadMemory: vi.fn(),
+  updateMemory: vi.fn(),
+  push: vi.fn(),
+  refresh: vi.fn(),
+  notifySuccess: vi.fn(),
+}));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
@@ -31,6 +37,8 @@ vi.mock("@/features/memory/actions/memory", () => ({
   reloadMemory,
   updateMemory,
 }));
+
+vi.mock("@/lib/toast", () => ({ notifySuccess }));
 
 vi.mock("@/features/memory/components/memory-date-field", () => ({
   MemoryDateField: ({
@@ -101,6 +109,7 @@ describe("MemoryEditor", () => {
       status: "success",
       memory: {
         id: "72b45d9d-7ac6-4ec8-b3bc-5d67134b9676",
+        title: "Buổi chiều bên cửa sổ",
       },
     });
 
@@ -139,6 +148,9 @@ describe("MemoryEditor", () => {
     );
 
     expect(refresh).toHaveBeenCalledOnce();
+    expect(notifySuccess).toHaveBeenCalledWith(
+      'Đã lưu ký ức "Buổi chiều bên cửa sổ"',
+    );
   });
 
   it("creates an editable Memory from a Journal seed", async () => {
@@ -344,6 +356,7 @@ describe("MemoryEditor", () => {
       status: "success",
       memory: {
         ...existingMemory,
+        title: "Buổi chiều được nhớ lại",
         revision: 4,
       },
     });
@@ -376,6 +389,9 @@ describe("MemoryEditor", () => {
     expect(createMemory).not.toHaveBeenCalled();
 
     expect(push).toHaveBeenCalledWith(`/memories/${existingMemory.id}`);
+    expect(notifySuccess).toHaveBeenCalledWith(
+      'Đã cập nhật "Buổi chiều được nhớ lại"',
+    );
   });
 
   it("loads the latest revision without relying on router refresh", async () => {
@@ -495,5 +511,8 @@ describe("MemoryEditor", () => {
 
     expect(push).toHaveBeenCalledWith(`/memories/${existingMemory.id}`);
     expect(refresh).toHaveBeenCalledOnce();
+    expect(notifySuccess).toHaveBeenCalledWith(
+      'Đã cập nhật "Bản local được giữ lại"',
+    );
   });
 });

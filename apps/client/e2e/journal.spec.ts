@@ -84,11 +84,13 @@ test("completes the private Journal lifecycle through the BFF", async ({
   await page.getByRole("button", { name: "Viết", exact: true }).click();
 
   await page.getByRole("button", { name: "Niêm phong", exact: true }).click();
+  await expect(page.getByText(`Đã niêm phong "${title}"`)).toBeVisible();
   await expect(page.getByLabel("Bản xem trước nội dung")).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Thay đổi" }),
   ).not.toBeVisible();
   await page.getByRole("button", { name: "Mở lại", exact: true }).click();
+  await expect(page.getByText(`Đã mở lại "${title}"`)).toBeVisible();
   await expect(page.getByLabel("Nội dung", { exact: true })).toBeEditable();
 
   await page.getByRole("button", { name: "Thay đổi" }).click();
@@ -110,15 +112,20 @@ test("completes the private Journal lifecycle through the BFF", async ({
   ).toBeVisible();
 
   await page.getByRole("button", { name: "Đưa vào Thùng rác" }).click();
+  await expect(page.getByText(`Đã đưa "${title}" vào Thùng rác`)).toBeVisible();
   // Trash không rời trang — ở lại đúng entry, chỉ đổi sang chế độ đọc kèm
   // nút "Khôi phục" ngay trên toolbar (giống hệt cách Seal/Reopen hoạt động).
   await expect(page).toHaveURL(/\/journal\/[0-9a-f-]+$/);
   await page.getByRole("button", { name: "Khôi phục" }).click();
+  await expect(page.getByText(`Đã khôi phục "${title}"`)).toBeVisible();
   await page.getByRole("button", { name: "Nhật ký", exact: true }).click();
 
   await page.getByLabel("Tìm trong nhật ký").fill(title);
   await page.getByRole("button", { name: "Tìm", exact: true }).click();
-  await expect(page.getByText(title)).toBeVisible();
+  // getByText(title) trần có thể khớp luôn vào toast "Đã khôi phục ..."/"Đã
+  // đưa ... vào Thùng rác" vẫn còn hiện trên màn hình từ bước trước — dùng
+  // getByRole("link") để chỉ khớp đúng thẻ kết quả tìm kiếm.
+  await expect(page.getByRole("link", { name: title })).toBeVisible();
 
   expect(
     browserRequests.some((url) => url.startsWith("http://127.0.0.1:3101")),

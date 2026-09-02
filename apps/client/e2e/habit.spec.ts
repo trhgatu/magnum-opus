@@ -41,6 +41,7 @@ test("completes the private Habit lifecycle through the BFF", async ({
   await expect(page).toHaveURL(/\/habits\/[0-9a-f-]+$/);
   await expect(page.getByRole("heading", { name: title })).toBeVisible();
   await expect(page.getByText("T2 · T4 · T6")).toBeVisible();
+  await expect(page.getByText(`Đã tạo "${title}"`)).toBeVisible();
 
   await page.getByRole("button", { name: "Hoàn thành hôm nay" }).click();
   await expect(
@@ -55,6 +56,7 @@ test("completes the private Habit lifecycle through the BFF", async ({
   await page.getByLabel("Tên thói quen").fill(updatedTitle);
   await page.getByRole("button", { name: "Lưu thay đổi" }).click();
   await expect(page.getByRole("heading", { name: updatedTitle })).toBeVisible();
+  await expect(page.getByText(`Đã cập nhật "${updatedTitle}"`)).toBeVisible();
 
   // Lưu trữ không rời trang — ở lại đúng thói quen, chỉ đổi nút thành
   // "Khôi phục" (giống hệt cách Journal/Memory xử lý trash tại chỗ).

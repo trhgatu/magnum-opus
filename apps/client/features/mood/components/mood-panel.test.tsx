@@ -10,16 +10,18 @@ import {
 import type { MoodResponse } from "@repo/contracts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { refresh, removeMood, setMood } = vi.hoisted(() => ({
+const { refresh, removeMood, setMood, notifySuccess } = vi.hoisted(() => ({
   refresh: vi.fn(),
   removeMood: vi.fn(),
   setMood: vi.fn(),
+  notifySuccess: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh }),
 }));
 vi.mock("@/features/mood/actions/mood", () => ({ removeMood, setMood }));
+vi.mock("@/lib/toast", () => ({ notifySuccess }));
 
 import { MoodPanel } from "./mood-panel";
 
@@ -65,8 +67,38 @@ describe("MoodPanel", () => {
         note: "Quiet after the rain",
       }),
     );
-    expect(await screen.findByText("Đã lưu tâm trạng.")).toBeTruthy();
+    await waitFor(() =>
+      expect(notifySuccess).toHaveBeenCalledWith("Đã lưu tâm trạng."),
+    );
     expect(screen.getByText("Cường độ 3/5")).toBeTruthy();
+  });
+
+  it("removes a Mood and notifies success", async () => {
+    removeMood.mockResolvedValue({ status: "success" });
+
+    render(
+      <MoodPanel
+        journalEntryId={mood.journalEntryId}
+        initialMood={mood}
+        editable
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Thay đổi" }));
+    fireEvent.click(screen.getByRole("button", { name: "Loại bỏ tâm trạng" }));
+    fireEvent.click(screen.getByRole("button", { name: "Loại bỏ" }));
+
+    await waitFor(() =>
+      expect(removeMood).toHaveBeenCalledWith({
+        journalEntryId: mood.journalEntryId,
+        expectedRevision: mood.revision,
+      }),
+    );
+    await waitFor(() =>
+      expect(notifySuccess).toHaveBeenCalledWith(
+        "Đã loại bỏ tâm trạng khỏi entry.",
+      ),
+    );
   });
 
   it("offers a refresh instead of overwriting a concurrent change", async () => {

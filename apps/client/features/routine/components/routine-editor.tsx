@@ -16,6 +16,7 @@ import {
   reloadRoutine,
   updateRoutineTitle,
 } from "@/features/routine/actions/routine";
+import { notifySuccess } from "@/lib/toast";
 
 type PersistedRoutine = Pick<RoutineResponse, "id" | "title" | "revision">;
 
@@ -59,6 +60,12 @@ export function RoutineEditor({
         setHasConflict(result.code === "ROUTINE_REVISION_CONFLICT");
         return;
       }
+
+      void notifySuccess(
+        persistedRoutine
+          ? `Đã cập nhật "${result.routine.title}"`
+          : `Đã tạo "${result.routine.title}"`,
+      );
 
       router.push(`/routines/${result.routine.id}`);
       router.refresh();
@@ -110,6 +117,8 @@ export function RoutineEditor({
         );
         return;
       }
+
+      void notifySuccess(`Đã cập nhật "${result.routine.title}"`);
 
       router.push(`/routines/${result.routine.id}`);
       router.refresh();

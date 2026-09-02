@@ -181,6 +181,18 @@ export function JournalEditor({
       acceptPersistedEntry(result.entry);
       if (action === "seal" || action === "trash") setViewMode("preview");
       if (action === "reopen" || action === "restore") setViewMode("write");
+
+      const label = title ? `"${title}"` : "entry";
+      void notifySuccess(
+        action === "seal"
+          ? `Đã niêm phong ${label}`
+          : action === "reopen"
+            ? `Đã mở lại ${label}`
+            : action === "trash"
+              ? `Đã đưa ${label} vào Thùng rác`
+              : `Đã khôi phục ${label}`,
+      );
+
       router.refresh();
     } finally {
       setIsChangingState(false);

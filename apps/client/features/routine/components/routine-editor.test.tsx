@@ -11,14 +11,21 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { createRoutine, reloadRoutine, updateRoutineTitle, push, refresh } =
-  vi.hoisted(() => ({
-    createRoutine: vi.fn(),
-    reloadRoutine: vi.fn(),
-    updateRoutineTitle: vi.fn(),
-    push: vi.fn(),
-    refresh: vi.fn(),
-  }));
+const {
+  createRoutine,
+  reloadRoutine,
+  updateRoutineTitle,
+  push,
+  refresh,
+  notifySuccess,
+} = vi.hoisted(() => ({
+  createRoutine: vi.fn(),
+  reloadRoutine: vi.fn(),
+  updateRoutineTitle: vi.fn(),
+  push: vi.fn(),
+  refresh: vi.fn(),
+  notifySuccess: vi.fn(),
+}));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push, refresh }),
@@ -29,6 +36,8 @@ vi.mock("@/features/routine/actions/routine", () => ({
   reloadRoutine,
   updateRoutineTitle,
 }));
+
+vi.mock("@/lib/toast", () => ({ notifySuccess }));
 
 import { RoutineEditor } from "./routine-editor";
 
@@ -61,10 +70,14 @@ describe("RoutineEditor", () => {
     );
     expect(push).toHaveBeenCalledWith(`/routines/${routine.id}`);
     expect(refresh).toHaveBeenCalledOnce();
+    expect(notifySuccess).toHaveBeenCalledWith(`Đã tạo "${routine.title}"`);
   });
 
   it("updates the title at the current revision", async () => {
-    updateRoutineTitle.mockResolvedValue({ status: "success", routine });
+    updateRoutineTitle.mockResolvedValue({
+      status: "success",
+      routine: { ...routine, title: "Evening ritual" },
+    });
     render(<RoutineEditor initialRoutine={routine} />);
 
     fireEvent.change(screen.getByLabelText("Tên Trình tự"), {
@@ -81,6 +94,8 @@ describe("RoutineEditor", () => {
         expectedRevision: routine.revision,
       }),
     );
+
+    expect(notifySuccess).toHaveBeenCalledWith('Đã cập nhật "Evening ritual"');
   });
 
   it("offers to reload when the revision is stale", async () => {
@@ -182,6 +197,9 @@ describe("RoutineEditor", () => {
 
     expect(push).toHaveBeenCalledWith(`/routines/${routine.id}`);
     expect(refresh).toHaveBeenCalledOnce();
+    expect(notifySuccess).toHaveBeenCalledWith(
+      'Đã cập nhật "Bản local được giữ lại"',
+    );
   });
 
   it("keeps the draft on screen when the routine was archived elsewhere", async () => {

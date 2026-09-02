@@ -25,6 +25,7 @@ import {
   updateHabit,
 } from "@/features/habit/actions/habit";
 import { ISO_WEEKDAYS } from "@/features/habit/lib/habit-frequency";
+import { notifySuccess } from "@/lib/toast";
 
 export function HabitEditor({
   initialHabit,
@@ -82,6 +83,11 @@ export function HabitEditor({
         setHasConflict(result.code === "HABIT_REVISION_CONFLICT");
         return;
       }
+      void notifySuccess(
+        persistedHabit
+          ? `Đã cập nhật "${result.habit.title}"`
+          : `Đã tạo "${result.habit.title}"`,
+      );
       router.push(`/habits/${result.habit.id}`);
       router.refresh();
     });
@@ -135,6 +141,8 @@ export function HabitEditor({
         );
         return;
       }
+
+      void notifySuccess(`Đã cập nhật "${result.habit.title}"`);
 
       router.push(`/habits/${result.habit.id}`);
       router.refresh();

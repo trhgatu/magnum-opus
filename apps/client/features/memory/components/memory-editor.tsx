@@ -22,6 +22,7 @@ import {
   memoryOccurredOnInputValue,
   normalizeMemoryOccurredOnInput,
 } from "@/features/memory/lib/memory-form";
+import { notifySuccess } from "@/lib/toast";
 
 export interface MemoryCreationSeed {
   sourceJournalEntryId: string;
@@ -140,6 +141,12 @@ export function MemoryEditor({
         return;
       }
 
+      void notifySuccess(
+        persistedMemory
+          ? `Đã cập nhật "${result.memory.title}"`
+          : `Đã lưu ký ức "${result.memory.title}"`,
+      );
+
       router.push(`/memories/${result.memory.id}`);
       router.refresh();
     });
@@ -203,6 +210,8 @@ export function MemoryEditor({
         );
         return;
       }
+
+      void notifySuccess(`Đã cập nhật "${result.memory.title}"`);
 
       router.push(`/memories/${result.memory.id}`);
       router.refresh();
