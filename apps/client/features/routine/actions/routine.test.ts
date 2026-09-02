@@ -80,7 +80,7 @@ describe("Routine Server Actions", () => {
       }),
     ).resolves.toEqual({
       status: "error",
-      message: "Tiêu đề Routine không hợp lệ.",
+      message: "Tiêu đề Trình tự không hợp lệ.",
     });
 
     expect(apiFetch).not.toHaveBeenCalled();
@@ -128,7 +128,7 @@ describe("Routine Server Actions", () => {
       }),
     ).resolves.toEqual({
       status: "error",
-      message: "Dữ liệu Routine không hợp lệ.",
+      message: "Dữ liệu Trình tự không hợp lệ.",
     });
 
     expect(apiFetch).not.toHaveBeenCalled();
@@ -229,7 +229,7 @@ describe("Routine Server Actions", () => {
       }),
     ).resolves.toEqual({
       status: "error",
-      message: "Dữ liệu Routine không hợp lệ.",
+      message: "Dữ liệu Trình tự không hợp lệ.",
     });
 
     expect(apiFetch).not.toHaveBeenCalled();
@@ -346,7 +346,7 @@ describe("Routine Server Actions", () => {
       }),
     ).resolves.toEqual({
       status: "error",
-      message: "Dữ liệu Habit của Routine không hợp lệ.",
+      message: "Dữ liệu Thói quen của Trình tự không hợp lệ.",
     });
 
     expect(apiFetch).not.toHaveBeenCalled();
@@ -363,7 +363,7 @@ describe("Routine Server Actions", () => {
       }),
     ).resolves.toEqual({
       status: "error",
-      message: "Dữ liệu Habit của Routine không hợp lệ.",
+      message: "Dữ liệu Thói quen của Trình tự không hợp lệ.",
     });
 
     expect(apiFetch).not.toHaveBeenCalled();

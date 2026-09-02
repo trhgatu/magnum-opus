@@ -174,7 +174,7 @@ export async function changeHabitCheckIn(input: {
   action: "check-in" | "undo";
 }): Promise<HabitCheckInMutationResult> {
   if (!validId(input.id)) {
-    return { status: "error", message: "Thói quen không hợp lệ." };
+    return { status: "error", message: "Dữ liệu thói quen không hợp lệ." };
   }
 
   try {

@@ -318,7 +318,7 @@ describe("Habit Server Actions", () => {
       changeHabitCheckIn({ id: "not-a-uuid", action: "check-in" }),
     ).resolves.toEqual({
       status: "error",
-      message: "Thói quen không hợp lệ.",
+      message: "Dữ liệu thói quen không hợp lệ.",
     });
 
     expect(apiFetch).not.toHaveBeenCalled();
