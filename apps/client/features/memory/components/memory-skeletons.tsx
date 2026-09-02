@@ -1,3 +1,7 @@
+import {
+  CollectionDividerSkeleton,
+  CollectionFilterBarSkeleton,
+} from "@/components/system/collection-skeleton";
 import { ContextHeroSkeleton } from "@/components/system/context-hero-skeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -34,23 +38,8 @@ export function MemoryCollectionSkeleton() {
     <section className="flex flex-col gap-7" role="status" aria-live="polite">
       <span className="sr-only">Đang tải ký ức…</span>
       <ContextHeroSkeleton />
-      <div
-        aria-hidden="true"
-        className="rounded-2xl border bg-card/55 p-4 shadow-sm"
-      >
-        <Skeleton className="mb-3 h-3 w-24" />
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
-          <Skeleton className="h-10 w-full" />
-          <div className="flex gap-2">
-            <Skeleton className="h-10 w-48" />
-            <Skeleton className="h-10 w-64" />
-          </div>
-        </div>
-      </div>
-      <div aria-hidden="true" className="flex items-center gap-3">
-        <Skeleton className="h-3 w-44" />
-        <Skeleton className="h-px flex-1" />
-      </div>
+      <CollectionFilterBarSkeleton />
+      <CollectionDividerSkeleton />
       <div aria-hidden="true" className="grid gap-4 sm:grid-cols-2">
         {Array.from({ length: 4 }).map((_, index) => (
           <MemoryCardSkeleton key={index} />
