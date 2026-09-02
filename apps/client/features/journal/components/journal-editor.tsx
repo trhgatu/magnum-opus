@@ -202,10 +202,6 @@ export function JournalEditor({
   const deletePermanently = async () => {
     setIsChangingState(true);
     try {
-      // deleteJournalEntryPermanently chỉ return khi thất bại — thành công
-      // thì Server Action tự redirect("/journal?state=TRASHED"), không bao
-      // giờ chạy tới dòng dưới, mà nhảy thẳng xuống catch dạng lỗi
-      // NEXT_REDIRECT bên dưới.
       const result = await deleteJournalEntryPermanently({
         id: entry.id,
         expectedRevision: getRevision(),
@@ -277,6 +273,7 @@ export function JournalEditor({
           <ConflictAlert
             title="Entry đã được thay đổi ở nơi khác"
             description="Nội dung đang gõ vẫn còn nguyên trên màn hình. Chọn bản mới nhất để bỏ phần đang gõ, hoặc chủ động ghi nội dung này lên revision mới nhất."
+            keepLocalLabel="Ghi nội dung đang gõ"
             busy={isResolvingConflict}
             recoveryError={lifecycleMessage}
             onUseLatest={() => void resolveConflict(false)}

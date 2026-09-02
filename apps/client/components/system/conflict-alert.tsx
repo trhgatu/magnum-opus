@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 interface ConflictAlertProps {
   title: string;
   description: string;
+  keepLocalLabel?: string;
   busy: boolean;
   recoveryError?: string;
   onUseLatest: () => void;
@@ -17,6 +18,7 @@ interface ConflictAlertProps {
 export function ConflictAlert({
   title,
   description,
+  keepLocalLabel = "Ghi nội dung đang viết",
   busy,
   recoveryError,
   onUseLatest,
@@ -52,7 +54,7 @@ export function ConflictAlert({
           onClick={onKeepLocal}
         >
           <Upload aria-hidden="true" />
-          Ghi nội dung đang viết
+          {keepLocalLabel}
         </Button>
       </div>
     </Alert>
