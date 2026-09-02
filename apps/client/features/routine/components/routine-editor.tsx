@@ -6,42 +6,106 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState, useTransition } from "react";
 
+import { ConflictAlert } from "@/components/system/conflict-alert";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   createRoutine,
+  reloadRoutine,
   updateRoutineTitle,
 } from "@/features/routine/actions/routine";
+
+type PersistedRoutine = Pick<RoutineResponse, "id" | "title" | "revision">;
 
 export function RoutineEditor({
   initialRoutine,
 }: {
-  initialRoutine?: Pick<RoutineResponse, "id" | "title" | "revision">;
+  initialRoutine?: PersistedRoutine;
 }) {
   const router = useRouter();
+  const [persistedRoutine, setPersistedRoutine] = useState(initialRoutine);
   const [title, setTitle] = useState(initialRoutine?.title ?? "");
   const [message, setMessage] = useState<string>();
+  const [hasConflict, setHasConflict] = useState(false);
+  const [recoveryError, setRecoveryError] = useState<string>();
   const [isPending, startTransition] = useTransition();
+
+  const applyPersistedRoutine = (routine: PersistedRoutine) => {
+    setPersistedRoutine(routine);
+    setTitle(routine.title);
+    setMessage(undefined);
+    setHasConflict(false);
+    setRecoveryError(undefined);
+  };
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setMessage(undefined);
+    setRecoveryError(undefined);
 
     startTransition(async () => {
-      const result = initialRoutine
+      const result = persistedRoutine
         ? await updateRoutineTitle({
-            id: initialRoutine.id,
+            id: persistedRoutine.id,
             title,
-            expectedRevision: initialRoutine.revision,
+            expectedRevision: persistedRoutine.revision,
           })
         : await createRoutine({ title });
 
       if (result.status === "error") {
+        setMessage(result.message);
+        setHasConflict(result.code === "ROUTINE_REVISION_CONFLICT");
+        return;
+      }
+
+      router.push(`/routines/${result.routine.id}`);
+      router.refresh();
+    });
+  };
+
+  const resolveConflict = (keepLocal: boolean) => {
+    if (!persistedRoutine) {
+      return;
+    }
+
+    setRecoveryError(undefined);
+
+    startTransition(async () => {
+      const latest = await reloadRoutine(persistedRoutine.id);
+
+      if (latest.status === "error") {
+        setRecoveryError(latest.message);
+        return;
+      }
+
+      if (!keepLocal) {
+        applyPersistedRoutine(latest.routine);
+        return;
+      }
+
+      if (!latest.routine.isActive) {
+        setPersistedRoutine(latest.routine);
+        setHasConflict(false);
         setMessage(
+          "Trình tự đã được lưu trữ ở nơi khác. Nội dung đang viết vẫn được giữ trên màn hình để sao chép.",
+        );
+        return;
+      }
+
+      const result = await updateRoutineTitle({
+        id: latest.routine.id,
+        title,
+        expectedRevision: latest.routine.revision,
+      });
+
+      if (result.status === "error") {
+        setMessage(result.message);
+        setHasConflict(result.code === "ROUTINE_REVISION_CONFLICT");
+        setRecoveryError(
           result.code === "ROUTINE_REVISION_CONFLICT"
-            ? "Trình tự đã thay đổi ở nơi khác. Tải lại trang trước khi lưu tiếp."
+            ? "Trình tự lại thay đổi trong lúc xử lý. Nội dung đang viết vẫn được giữ."
             : result.message,
         );
         return;
@@ -54,7 +118,16 @@ export function RoutineEditor({
 
   return (
     <form onSubmit={submit} className="space-y-4" aria-busy={isPending}>
-      {message ? (
+      {hasConflict ? (
+        <ConflictAlert
+          title="Trình tự đã được thay đổi ở nơi khác"
+          description="Nội dung đang viết vẫn còn nguyên trên màn hình. Chọn bản mới nhất để bỏ phần đang viết, hoặc chủ động ghi nội dung này lên revision mới nhất."
+          busy={isPending}
+          recoveryError={recoveryError}
+          onUseLatest={() => resolveConflict(false)}
+          onKeepLocal={() => resolveConflict(true)}
+        />
+      ) : message ? (
         <Alert variant="destructive">
           <AlertDescription>{message}</AlertDescription>
         </Alert>
@@ -95,7 +168,7 @@ export function RoutineEditor({
             autoFocus
           />
 
-          {!initialRoutine ? (
+          {!persistedRoutine ? (
             <div className="mt-5 flex gap-3 rounded-2xl border border-dashed bg-muted/30 p-4 text-sm">
               <span className="grid size-7 shrink-0 place-items-center rounded-full bg-primary/10 font-mono text-xs font-semibold text-primary">
                 02
@@ -111,21 +184,23 @@ export function RoutineEditor({
         <footer className="flex flex-col-reverse gap-3 border-t bg-muted/30 px-5 py-4 sm:flex-row sm:justify-end sm:px-7">
           <Link
             href={
-              initialRoutine ? `/routines/${initialRoutine.id}` : "/routines"
+              persistedRoutine
+                ? `/routines/${persistedRoutine.id}`
+                : "/routines"
             }
             className={buttonVariants({ variant: "outline", size: "lg" })}
           >
             Hủy
           </Link>
           <Button type="submit" size="lg" disabled={isPending}>
-            {initialRoutine ? (
+            {persistedRoutine ? (
               <Save aria-hidden="true" />
             ) : (
               <ArrowRight aria-hidden="true" />
             )}
             {isPending
               ? "Đang lưu…"
-              : initialRoutine
+              : persistedRoutine
                 ? "Lưu thay đổi"
                 : "Tạo Trình tự"}
           </Button>

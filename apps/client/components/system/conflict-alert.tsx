@@ -5,31 +5,35 @@ import { Download, Upload } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 
-interface JournalConflictAlertProps {
+interface ConflictAlertProps {
+  title: string;
+  description: string;
   busy: boolean;
   recoveryError?: string;
   onUseLatest: () => void;
   onKeepLocal: () => void;
 }
 
-export function JournalConflictAlert({
+export function ConflictAlert({
+  title,
+  description,
   busy,
   recoveryError,
   onUseLatest,
   onKeepLocal,
-}: JournalConflictAlertProps) {
+}: ConflictAlertProps) {
   return (
     <Alert variant="destructive" role="alert">
       <AlertTitle role="heading" aria-level={2}>
-        Entry đã được thay đổi ở nơi khác
+        {title}
       </AlertTitle>
-      <AlertDescription>
-        Nội dung đang gõ vẫn còn nguyên trên màn hình. Chọn bản mới nhất để bỏ
-        phần đang gõ, hoặc chủ động ghi nội dung này lên revision mới nhất.
-      </AlertDescription>
+
+      <AlertDescription>{description}</AlertDescription>
+
       {recoveryError ? (
         <p className="mt-2 text-sm font-medium">{recoveryError}</p>
       ) : null}
+
       <div className="mt-3 flex flex-col gap-2 sm:flex-row">
         <Button
           type="button"
@@ -40,6 +44,7 @@ export function JournalConflictAlert({
           <Download aria-hidden="true" />
           Dùng bản mới nhất
         </Button>
+
         <Button
           type="button"
           variant="destructive"
@@ -47,7 +52,7 @@ export function JournalConflictAlert({
           onClick={onKeepLocal}
         >
           <Upload aria-hidden="true" />
-          Ghi nội dung đang gõ
+          Ghi nội dung đang viết
         </Button>
       </div>
     </Alert>

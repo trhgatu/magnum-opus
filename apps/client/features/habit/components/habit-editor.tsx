@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState, useTransition } from "react";
 
+import { ConflictAlert } from "@/components/system/conflict-alert";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +19,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { createHabit, updateHabit } from "@/features/habit/actions/habit";
+import {
+  createHabit,
+  reloadHabit,
+  updateHabit,
+} from "@/features/habit/actions/habit";
 import { ISO_WEEKDAYS } from "@/features/habit/lib/habit-frequency";
 
 export function HabitEditor({
@@ -27,6 +32,7 @@ export function HabitEditor({
   initialHabit?: HabitResponse;
 }) {
   const router = useRouter();
+  const [persistedHabit, setPersistedHabit] = useState(initialHabit);
   const [title, setTitle] = useState(initialHabit?.title ?? "");
   const [description, setDescription] = useState(
     initialHabit?.description ?? "",
@@ -36,6 +42,8 @@ export function HabitEditor({
   );
   const [days, setDays] = useState(initialHabit?.frequencyDays ?? []);
   const [message, setMessage] = useState<string>();
+  const [hasConflict, setHasConflict] = useState(false);
+  const [recoveryError, setRecoveryError] = useState<string>();
   const [isPending, startTransition] = useTransition();
 
   const toggleDay = (day: number) =>
@@ -45,24 +53,33 @@ export function HabitEditor({
         : [...current, day],
     );
 
+  const applyPersistedHabit = (habit: HabitResponse) => {
+    setPersistedHabit(habit);
+    setTitle(habit.title);
+    setDescription(habit.description ?? "");
+    setFrequencyType(habit.frequencyType);
+    setDays(habit.frequencyDays);
+    setMessage(undefined);
+    setHasConflict(false);
+    setRecoveryError(undefined);
+  };
+
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setMessage(undefined);
+    setRecoveryError(undefined);
     startTransition(async () => {
       const input = { title, description, frequencyType, frequencyDays: days };
-      const result = initialHabit
+      const result = persistedHabit
         ? await updateHabit({
             ...input,
-            id: initialHabit.id,
-            expectedRevision: initialHabit.revision,
+            id: persistedHabit.id,
+            expectedRevision: persistedHabit.revision,
           })
         : await createHabit(input);
       if (result.status === "error") {
-        setMessage(
-          result.code === "HABIT_REVISION_CONFLICT"
-            ? "Thói quen đã thay đổi ở nơi khác. Tải lại trang trước khi lưu tiếp."
-            : result.message,
-        );
+        setMessage(result.message);
+        setHasConflict(result.code === "HABIT_REVISION_CONFLICT");
         return;
       }
       router.push(`/habits/${result.habit.id}`);
@@ -70,9 +87,72 @@ export function HabitEditor({
     });
   };
 
+  const resolveConflict = (keepLocal: boolean) => {
+    if (!persistedHabit) {
+      return;
+    }
+
+    setRecoveryError(undefined);
+
+    startTransition(async () => {
+      const latest = await reloadHabit(persistedHabit.id);
+
+      if (latest.status === "error") {
+        setRecoveryError(latest.message);
+        return;
+      }
+
+      if (!keepLocal) {
+        applyPersistedHabit(latest.habit);
+        return;
+      }
+
+      if (!latest.habit.isActive) {
+        setPersistedHabit(latest.habit);
+        setHasConflict(false);
+        setMessage(
+          "Thói quen đã được lưu trữ ở nơi khác. Nội dung đang viết vẫn được giữ trên màn hình để sao chép.",
+        );
+        return;
+      }
+
+      const result = await updateHabit({
+        title,
+        description,
+        frequencyType,
+        frequencyDays: days,
+        id: latest.habit.id,
+        expectedRevision: latest.habit.revision,
+      });
+
+      if (result.status === "error") {
+        setMessage(result.message);
+        setHasConflict(result.code === "HABIT_REVISION_CONFLICT");
+        setRecoveryError(
+          result.code === "HABIT_REVISION_CONFLICT"
+            ? "Thói quen lại thay đổi trong lúc xử lý. Nội dung đang viết vẫn được giữ."
+            : result.message,
+        );
+        return;
+      }
+
+      router.push(`/habits/${result.habit.id}`);
+      router.refresh();
+    });
+  };
+
   return (
     <form onSubmit={submit} className="space-y-4" aria-busy={isPending}>
-      {message ? (
+      {hasConflict ? (
+        <ConflictAlert
+          title="Thói quen đã được thay đổi ở nơi khác"
+          description="Nội dung đang viết vẫn còn nguyên trên màn hình. Chọn bản mới nhất để bỏ phần đang viết, hoặc chủ động ghi nội dung này lên revision mới nhất."
+          busy={isPending}
+          recoveryError={recoveryError}
+          onUseLatest={() => resolveConflict(false)}
+          onKeepLocal={() => resolveConflict(true)}
+        />
+      ) : message ? (
         <Alert variant="destructive">
           <AlertDescription>{message}</AlertDescription>
         </Alert>
@@ -196,7 +276,7 @@ export function HabitEditor({
 
         <footer className="flex flex-col-reverse gap-3 bg-muted/30 px-5 py-4 sm:flex-row sm:justify-end sm:px-7">
           <Link
-            href={initialHabit ? `/habits/${initialHabit.id}` : "/habits"}
+            href={persistedHabit ? `/habits/${persistedHabit.id}` : "/habits"}
             className={buttonVariants({ variant: "outline", size: "lg" })}
           >
             Hủy
@@ -205,7 +285,7 @@ export function HabitEditor({
             <Save aria-hidden="true" />
             {isPending
               ? "Đang lưu…"
-              : initialHabit
+              : persistedHabit
                 ? "Lưu thay đổi"
                 : "Tạo thói quen"}
           </Button>

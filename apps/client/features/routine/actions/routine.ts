@@ -129,6 +129,28 @@ export async function createRoutine(
   }
 }
 
+export async function reloadRoutine(
+  id: string,
+): Promise<RoutineMutationResult> {
+  if (!validId(id)) {
+    return {
+      status: "error",
+      message: "Dữ liệu Trình tự không hợp lệ.",
+    };
+  }
+
+  try {
+    const routine = await apiFetch<RoutineResponse>(`/routines/${id}`);
+
+    return {
+      status: "success",
+      routine,
+    };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
 export async function updateRoutineTitle(
   input: UpdateRoutineTitleInput,
 ): Promise<RoutineMutationResult> {

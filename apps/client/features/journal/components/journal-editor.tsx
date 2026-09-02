@@ -9,6 +9,7 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 
+import { ConflictAlert } from "@/components/system/conflict-alert";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,7 +18,6 @@ import {
   reloadJournalEntry,
   type JournalLifecycleAction,
 } from "@/features/journal/actions/journal";
-import { JournalConflictAlert } from "@/features/journal/components/journal-conflict-alert";
 import { JournalDraftRecoveryAlert } from "@/features/journal/components/journal-draft-recovery-alert";
 import { JournalEditorToolbar } from "@/features/journal/components/journal-editor-toolbar";
 import type { JournalViewMode } from "@/features/journal/components/journal-editor-toolbar";
@@ -262,7 +262,9 @@ export function JournalEditor({
             content={content}
           />
         ) : saveState === "conflict" ? (
-          <JournalConflictAlert
+          <ConflictAlert
+            title="Entry đã được thay đổi ở nơi khác"
+            description="Nội dung đang gõ vẫn còn nguyên trên màn hình. Chọn bản mới nhất để bỏ phần đang gõ, hoặc chủ động ghi nội dung này lên revision mới nhất."
             busy={isResolvingConflict}
             recoveryError={lifecycleMessage}
             onUseLatest={() => void resolveConflict(false)}

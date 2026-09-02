@@ -119,6 +119,19 @@ export async function createHabit(
   }
 }
 
+export async function reloadHabit(id: string): Promise<HabitMutationResult> {
+  if (!validId(id)) {
+    return { status: "error", message: "Dữ liệu thói quen không hợp lệ." };
+  }
+
+  try {
+    const habit = await apiFetch<HabitResponse>(`/habits/${id}`);
+    return { status: "success", habit };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
 export async function updateHabit(
   input: UpdateHabitInput,
 ): Promise<HabitMutationResult> {

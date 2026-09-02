@@ -18,14 +18,17 @@ const routeBudgets = new Map([
   ["/memories/[id]", 610 * KIBIBYTE],
   ["/memories/[id]/edit", 670 * KIBIBYTE],
   ["/habits", 565 * KIBIBYTE],
-  ["/habits/new", 655 * KIBIBYTE],
+  // +2 KiB trên /new và /edit: ConflictAlert dùng chung
+  // (components/system/conflict-alert.tsx) + logic reload-on-conflict
+  // nâng habit-editor lên cùng chuẩn xử lý xung đột với memory/journal-editor.
+  ["/habits/new", 658 * KIBIBYTE],
   ["/habits/[id]", 570 * KIBIBYTE],
-  ["/habits/[id]/edit", 655 * KIBIBYTE],
+  ["/habits/[id]/edit", 658 * KIBIBYTE],
   ["/routines", 565 * KIBIBYTE],
-  ["/routines/new", 570 * KIBIBYTE],
+  ["/routines/new", 572 * KIBIBYTE],
   // Routine detail includes the isolated shadcn Select used for membership.
   ["/routines/[id]", 660 * KIBIBYTE],
-  ["/routines/[id]/edit", 570 * KIBIBYTE],
+  ["/routines/[id]/edit", 572 * KIBIBYTE],
   ["/today", 570 * KIBIBYTE],
 ]);
 
