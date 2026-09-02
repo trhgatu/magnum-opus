@@ -28,6 +28,12 @@ import { useUnsavedChangesWarning } from "@/hooks/use-unsaved-changes-warning";
 import { isRedirectError } from "@/lib/next-redirect";
 import { notifySuccess } from "@/lib/toast";
 
+const formatUpdatedAt = (value: string) =>
+  new Intl.DateTimeFormat("vi-VN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+
 const MoodPanel = dynamic(
   () =>
     import("@/features/mood/components/mood-panel").then(
@@ -325,6 +331,14 @@ export function JournalEditor({
           }
           onCreateMemory={() => void createMemoryFromEntry()}
         />
+
+        <footer className="flex flex-col gap-1 border-t pt-5 font-mono text-[11px] text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+          <time dateTime={entry.updatedAt}>
+            Cập nhật {formatUpdatedAt(entry.updatedAt)}
+          </time>
+
+          <span>Magnum Opus · Reflection</span>
+        </footer>
       </div>
     </article>
   );
