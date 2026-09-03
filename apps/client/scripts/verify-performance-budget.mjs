@@ -24,9 +24,10 @@ const routeBudgets = new Map([
   // ConflictAlert dùng chung (components/system/conflict-alert.tsx) + logic
   // reload-on-conflict nâng habit-editor lên cùng chuẩn xử lý xung đột với
   // memory/journal-editor: +3 KiB trên /habits/new và /habits/[id]/edit.
-  ["/habits/new", 661 * KIBIBYTE],
+  // +0.3 KiB thêm nữa từ useUnsavedChangesWarning (đồng bộ với journal-editor).
+  ["/habits/new", 662 * KIBIBYTE],
   ["/habits/[id]", 572 * KIBIBYTE],
-  ["/habits/[id]/edit", 661 * KIBIBYTE],
+  ["/habits/[id]/edit", 662 * KIBIBYTE],
   ["/routines", 568 * KIBIBYTE],
   // Cùng ConflictAlert/reload-on-conflict trên routine-editor: +2 KiB trên
   // /routines/new và /routines/[id]/edit.
