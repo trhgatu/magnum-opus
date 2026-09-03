@@ -1,6 +1,6 @@
 "use server";
 
-import type { RoutineResponse } from "@repo/contracts";
+import type { RoutineDetailResponse, RoutineResponse } from "@repo/contracts";
 import { revalidatePath } from "next/cache";
 
 import {
@@ -23,6 +23,13 @@ export type RoutineMutationResult =
   | {
       status: "success";
       routine: RoutineResponse;
+    }
+  | RoutineMutationError;
+
+export type ReloadRoutineResult =
+  | {
+      status: "success";
+      routine: RoutineDetailResponse;
     }
   | RoutineMutationError;
 
@@ -121,9 +128,7 @@ export async function createRoutine(
   }
 }
 
-export async function reloadRoutine(
-  id: string,
-): Promise<RoutineMutationResult> {
+export async function reloadRoutine(id: string): Promise<ReloadRoutineResult> {
   if (!validId(id)) {
     return {
       status: "error",
@@ -132,7 +137,7 @@ export async function reloadRoutine(
   }
 
   try {
-    const routine = await apiFetch<RoutineResponse>(`/routines/${id}`);
+    const routine = await apiFetch<RoutineDetailResponse>(`/routines/${id}`);
 
     return {
       status: "success",

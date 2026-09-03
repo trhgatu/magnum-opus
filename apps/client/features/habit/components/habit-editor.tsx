@@ -45,6 +45,9 @@ export function HabitEditor({
   const [message, setMessage] = useState<string>();
   const [hasConflict, setHasConflict] = useState(false);
   const [recoveryError, setRecoveryError] = useState<string>();
+  const [isEditable, setIsEditable] = useState(
+    !initialHabit || initialHabit.isActive,
+  );
   const [isPending, startTransition] = useTransition();
 
   const toggleDay = (day: number) =>
@@ -63,10 +66,12 @@ export function HabitEditor({
     setMessage(undefined);
     setHasConflict(false);
     setRecoveryError(undefined);
+    setIsEditable(habit.isActive);
   };
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!isEditable) return;
     setMessage(undefined);
     setRecoveryError(undefined);
     startTransition(async () => {
@@ -110,12 +115,18 @@ export function HabitEditor({
 
       if (!keepLocal) {
         applyPersistedHabit(latest.habit);
+        if (!latest.habit.isActive) {
+          setMessage(
+            "Thói quen không còn ở trạng thái có thể chỉnh sửa. Nội dung mới nhất đã được hiển thị để xem qua.",
+          );
+        }
         return;
       }
 
       if (!latest.habit.isActive) {
         setPersistedHabit(latest.habit);
         setHasConflict(false);
+        setIsEditable(false);
         setMessage(
           "Thói quen đã được lưu trữ ở nơi khác. Nội dung đang viết vẫn được giữ trên màn hình để sao chép.",
         );
@@ -289,7 +300,7 @@ export function HabitEditor({
           >
             Hủy
           </Link>
-          <Button type="submit" size="lg" disabled={isPending}>
+          <Button type="submit" size="lg" disabled={isPending || !isEditable}>
             <Save aria-hidden="true" />
             {isPending
               ? "Đang lưu…"

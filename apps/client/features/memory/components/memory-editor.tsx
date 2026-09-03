@@ -69,6 +69,9 @@ export function MemoryEditor({
   const [message, setMessage] = useState<string>();
   const [hasConflict, setHasConflict] = useState(false);
   const [recoveryError, setRecoveryError] = useState<string>();
+  const [isEditable, setIsEditable] = useState(
+    !initialMemory || initialMemory.state === "ACTIVE",
+  );
   const [isPending, startTransition] = useTransition();
 
   const isEditing = Boolean(persistedMemory);
@@ -98,10 +101,12 @@ export function MemoryEditor({
     setMessage(undefined);
     setHasConflict(false);
     setRecoveryError(undefined);
+    setIsEditable(memory.state === "ACTIVE");
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!isEditable) return;
     setMessage(undefined);
     setRecoveryError(undefined);
 
@@ -169,12 +174,18 @@ export function MemoryEditor({
 
       if (!keepLocal) {
         applyPersistedMemory(latest.memory);
+        if (latest.memory.state !== "ACTIVE") {
+          setMessage(
+            "Ký ức không còn ở trạng thái có thể chỉnh sửa. Nội dung mới nhất đã được hiển thị để xem qua.",
+          );
+        }
         return;
       }
 
       if (latest.memory.state !== "ACTIVE") {
         setPersistedMemory(latest.memory);
         setHasConflict(false);
+        setIsEditable(false);
         setMessage(
           "Ký ức không còn ở trạng thái có thể chỉnh sửa. Nội dung đang viết vẫn được giữ trên màn hình để sao chép.",
         );
@@ -305,7 +316,7 @@ export function MemoryEditor({
           Hủy
         </Link>
 
-        <Button type="submit" size="lg" disabled={isPending}>
+        <Button type="submit" size="lg" disabled={isPending || !isEditable}>
           <Save data-icon="inline-start" aria-hidden="true" />
 
           {isPending ? "Đang lưu…" : isEditing ? "Lưu thay đổi" : "Lưu ký ức"}

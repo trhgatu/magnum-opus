@@ -21,13 +21,15 @@ const routeBudgets = new Map([
   // thêm (EmptyState + Button + Link) — Journal/Memories đã có sẵn boundary
   // này từ đầu, khoản overhead tương đương đã nằm trong budget của chúng.
   ["/habits", 568 * KIBIBYTE],
-  // +2 KiB trên /new và /edit: ConflictAlert dùng chung
-  // (components/system/conflict-alert.tsx) + logic reload-on-conflict
-  // nâng habit-editor lên cùng chuẩn xử lý xung đột với memory/journal-editor.
+  // ConflictAlert dùng chung (components/system/conflict-alert.tsx) + logic
+  // reload-on-conflict nâng habit-editor lên cùng chuẩn xử lý xung đột với
+  // memory/journal-editor: +3 KiB trên /habits/new và /habits/[id]/edit.
   ["/habits/new", 661 * KIBIBYTE],
   ["/habits/[id]", 572 * KIBIBYTE],
   ["/habits/[id]/edit", 661 * KIBIBYTE],
   ["/routines", 568 * KIBIBYTE],
+  // Cùng ConflictAlert/reload-on-conflict trên routine-editor: +2 KiB trên
+  // /routines/new và /routines/[id]/edit.
   ["/routines/new", 575 * KIBIBYTE],
   // Routine detail includes the isolated shadcn Select used for membership.
   ["/routines/[id]", 660 * KIBIBYTE],

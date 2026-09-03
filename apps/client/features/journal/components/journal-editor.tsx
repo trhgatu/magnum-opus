@@ -188,7 +188,7 @@ export function JournalEditor({
       if (action === "seal" || action === "trash") setViewMode("preview");
       if (action === "reopen" || action === "restore") setViewMode("write");
 
-      const label = title ? `"${title}"` : "entry";
+      const label = result.entry.title ? `"${result.entry.title}"` : "entry";
       void notifySuccess(
         action === "seal"
           ? `Đã niêm phong ${label}`
