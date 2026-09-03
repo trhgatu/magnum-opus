@@ -33,6 +33,36 @@ function JournalEntryCardSkeleton() {
   );
 }
 
+export function JournalMetaSkeleton() {
+  return (
+    <span className="flex gap-2" role="status" aria-live="polite">
+      <span className="sr-only">Đang tải thông tin Nhật ký…</span>
+      <Skeleton className="h-6 w-16 rounded-full" aria-hidden="true" />
+      <Skeleton className="h-6 w-28 rounded-full" aria-hidden="true" />
+    </span>
+  );
+}
+
+function JournalEntryCardGridSkeleton() {
+  return (
+    <div aria-hidden="true" className="grid gap-4 sm:grid-cols-2">
+      {Array.from({ length: 4 }).map((_, index) => (
+        <JournalEntryCardSkeleton key={index} />
+      ))}
+    </div>
+  );
+}
+
+export function JournalListSkeleton() {
+  return (
+    <div className="space-y-4" role="status" aria-live="polite">
+      <span className="sr-only">Đang tải Nhật ký…</span>
+      <CollectionDividerSkeleton />
+      <JournalEntryCardGridSkeleton />
+    </div>
+  );
+}
+
 export function JournalCollectionSkeleton() {
   return (
     <section className="flex flex-col gap-7" role="status" aria-live="polite">
@@ -40,11 +70,7 @@ export function JournalCollectionSkeleton() {
       <ContextHeroSkeleton />
       <CollectionFilterBarSkeleton filterCount={1} />
       <CollectionDividerSkeleton />
-      <div aria-hidden="true" className="grid gap-4 sm:grid-cols-2">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <JournalEntryCardSkeleton key={index} />
-        ))}
-      </div>
+      <JournalEntryCardGridSkeleton />
     </section>
   );
 }

@@ -5,7 +5,11 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { TimelineSkeleton } from "./timeline-skeleton";
+import {
+  TimelineListSkeleton,
+  TimelineMetaSkeleton,
+  TimelineSkeleton,
+} from "./timeline-skeleton";
 
 afterEach(cleanup);
 
@@ -14,6 +18,20 @@ describe("TimelineSkeleton", () => {
     render(<TimelineSkeleton />);
     expect(screen.getByRole("status")).toHaveTextContent(
       "Đang tải Dòng thời gian…",
+    );
+  });
+
+  it("announces the list-only loading state", () => {
+    render(<TimelineListSkeleton />);
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Đang tải Dòng thời gian…",
+    );
+  });
+
+  it("announces the meta loading state", () => {
+    render(<TimelineMetaSkeleton />);
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Đang tải thông tin Dòng thời gian…",
     );
   });
 });

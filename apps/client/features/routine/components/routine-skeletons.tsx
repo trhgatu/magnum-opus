@@ -37,6 +37,39 @@ function RoutineCardSkeleton() {
   );
 }
 
+export function RoutineMetaSkeleton() {
+  return (
+    <span className="flex gap-2" role="status" aria-live="polite">
+      <span className="sr-only">Đang tải thông tin Nếp sinh hoạt…</span>
+      <Skeleton className="h-6 w-28 rounded-full" aria-hidden="true" />
+      <Skeleton className="h-6 w-28 rounded-full" aria-hidden="true" />
+    </span>
+  );
+}
+
+function RoutineCardGridSkeleton() {
+  return (
+    <div
+      aria-hidden="true"
+      className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+    >
+      {Array.from({ length: 6 }).map((_, index) => (
+        <RoutineCardSkeleton key={index} />
+      ))}
+    </div>
+  );
+}
+
+export function RoutineListSkeleton() {
+  return (
+    <div className="space-y-4" role="status" aria-live="polite">
+      <span className="sr-only">Đang tải danh sách Nếp sinh hoạt…</span>
+      <CollectionDividerSkeleton />
+      <RoutineCardGridSkeleton />
+    </div>
+  );
+}
+
 export function RoutineCollectionSkeleton() {
   return (
     <section className="flex flex-col gap-7" role="status" aria-live="polite">
@@ -44,14 +77,7 @@ export function RoutineCollectionSkeleton() {
       <ContextHeroSkeleton />
       <CollectionFilterBarSkeleton />
       <CollectionDividerSkeleton />
-      <div
-        aria-hidden="true"
-        className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
-      >
-        {Array.from({ length: 6 }).map((_, index) => (
-          <RoutineCardSkeleton key={index} />
-        ))}
-      </div>
+      <RoutineCardGridSkeleton />
     </section>
   );
 }

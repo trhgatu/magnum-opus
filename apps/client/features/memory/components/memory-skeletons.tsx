@@ -33,6 +33,36 @@ function MemoryCardSkeleton() {
   );
 }
 
+export function MemoryMetaSkeleton() {
+  return (
+    <span className="flex gap-2" role="status" aria-live="polite">
+      <span className="sr-only">Đang tải thông tin ký ức…</span>
+      <Skeleton className="h-6 w-20 rounded-full" aria-hidden="true" />
+      <Skeleton className="h-6 w-28 rounded-full" aria-hidden="true" />
+    </span>
+  );
+}
+
+function MemoryCardGridSkeleton() {
+  return (
+    <div aria-hidden="true" className="grid gap-4 sm:grid-cols-2">
+      {Array.from({ length: 4 }).map((_, index) => (
+        <MemoryCardSkeleton key={index} />
+      ))}
+    </div>
+  );
+}
+
+export function MemoryListSkeleton() {
+  return (
+    <div className="space-y-4" role="status" aria-live="polite">
+      <span className="sr-only">Đang tải ký ức…</span>
+      <CollectionDividerSkeleton />
+      <MemoryCardGridSkeleton />
+    </div>
+  );
+}
+
 export function MemoryCollectionSkeleton() {
   return (
     <section className="flex flex-col gap-7" role="status" aria-live="polite">
@@ -40,11 +70,7 @@ export function MemoryCollectionSkeleton() {
       <ContextHeroSkeleton />
       <CollectionFilterBarSkeleton />
       <CollectionDividerSkeleton />
-      <div aria-hidden="true" className="grid gap-4 sm:grid-cols-2">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <MemoryCardSkeleton key={index} />
-        ))}
-      </div>
+      <MemoryCardGridSkeleton />
     </section>
   );
 }

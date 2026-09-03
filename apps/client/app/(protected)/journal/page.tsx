@@ -2,9 +2,10 @@ import type { JournalEntryState } from "@repo/contracts";
 import { BookOpenText, SlidersHorizontal } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 
-import { EmptyState } from "@/components/system/empty-state";
 import { ContextHero } from "@/components/system/context-hero";
+import { EmptyState } from "@/components/system/empty-state";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -17,6 +18,10 @@ import {
 } from "@/features/journal/components/journal-entry-card";
 import { JournalPagination } from "@/features/journal/components/journal-pagination";
 import { JournalSearch } from "@/features/journal/components/journal-search";
+import {
+  JournalListSkeleton,
+  JournalMetaSkeleton,
+} from "@/features/journal/components/journal-skeletons";
 import { JournalStateFilter } from "@/features/journal/components/journal-state-filter";
 
 export const metadata: Metadata = {
@@ -42,64 +47,39 @@ const numberFrom = (value: string | string[] | undefined) => {
   return Number.isInteger(candidate) && candidate > 0 ? candidate : 1;
 };
 
-export default async function JournalPage({ searchParams }: JournalPageProps) {
-  const params = await searchParams;
-  const page = numberFrom(params.page);
-  const search = String(
-    Array.isArray(params.search) ? params.search[0] : (params.search ?? ""),
-  ).trim();
-  const state = stateFrom(params.state);
-  const result = await getJournalEntries({ page, limit: 20, search, state });
-  const hasFilters = Boolean(search || state);
-  const createFailed = Array.isArray(params.createFailed)
-    ? params.createFailed[0] === "1"
-    : params.createFailed === "1";
+async function JournalMeta({
+  entriesPromise,
+  state,
+}: {
+  entriesPromise: ReturnType<typeof getJournalEntries>;
+  state: JournalEntryState | undefined;
+}) {
+  const result = await entriesPromise;
+  return (
+    <>
+      <Badge variant="outline">{result.meta.totalItems} trang</Badge>
+      <Badge variant="secondary">
+        {state ? stateLabels[state] : "Đang lưu giữ"}
+      </Badge>
+    </>
+  );
+}
+
+async function JournalList({
+  entriesPromise,
+  search,
+  state,
+  hasFilters,
+}: {
+  entriesPromise: ReturnType<typeof getJournalEntries>;
+  search: string;
+  state: JournalEntryState | undefined;
+  hasFilters: boolean;
+}) {
+  const result = await entriesPromise;
 
   return (
-    <section className="flex flex-col gap-7" aria-labelledby="journal-heading">
-      <ContextHero
-        id="journal-heading"
-        icon={BookOpenText}
-        eyebrow="Reflection · Nhật ký"
-        title="Nhật ký"
-        description="Một căn phòng riêng để đặt xuống điều đang sống động — chưa cần hoàn hảo, chưa cần trở thành bất cứ điều gì khác."
-        meta={
-          <>
-            <Badge variant="outline">{result.meta.totalItems} trang</Badge>
-            <Badge variant="secondary">
-              {state ? stateLabels[state] : "Đang lưu giữ"}
-            </Badge>
-          </>
-        }
-        actions={
-          <form action={createJournalEntry}>
-            <CreateEntryButton />
-          </form>
-        }
-      />
-
-      {createFailed ? (
-        <Alert variant="destructive" role="alert">
-          <AlertDescription>
-            Chưa thể tạo trang mới. Hãy thử lại sau một lát.
-          </AlertDescription>
-        </Alert>
-      ) : null}
-
-      <section
-        aria-label="Tìm kiếm và lọc Nhật ký"
-        className="rounded-2xl border bg-card/55 p-3 shadow-sm sm:p-4"
-      >
-        <div className="mb-3 flex items-center gap-2 px-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-          <SlidersHorizontal className="size-3.5" aria-hidden="true" />
-          Mục lục riêng
-        </div>
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-          <JournalSearch initialSearch={search} state={state} />
-          <JournalStateFilter search={search} state={state} />
-        </div>
-      </section>
-
+    <>
       {result.data.length ? (
         <div className="space-y-4">
           <div className="flex items-center gap-3" aria-live="polite">
@@ -147,6 +127,77 @@ export default async function JournalPage({ searchParams }: JournalPageProps) {
         search={search}
         state={state}
       />
+    </>
+  );
+}
+
+export default async function JournalPage({ searchParams }: JournalPageProps) {
+  const params = await searchParams;
+  const page = numberFrom(params.page);
+  const search = String(
+    Array.isArray(params.search) ? params.search[0] : (params.search ?? ""),
+  ).trim();
+  const state = stateFrom(params.state);
+  const hasFilters = Boolean(search || state);
+  const createFailed = Array.isArray(params.createFailed)
+    ? params.createFailed[0] === "1"
+    : params.createFailed === "1";
+  // Một promise dùng chung cho cả badge tổng số lẫn danh sách — apiFetch
+  // không dedupe theo URL (x-correlation-id random mỗi lần), nên gọi lại
+  // getJournalEntries() ở hai nơi sẽ tốn 2 round-trip thật thay vì được
+  // cache lại.
+  const entriesPromise = getJournalEntries({ page, limit: 20, search, state });
+
+  return (
+    <section className="flex flex-col gap-7" aria-labelledby="journal-heading">
+      <ContextHero
+        id="journal-heading"
+        icon={BookOpenText}
+        eyebrow="Reflection · Nhật ký"
+        title="Nhật ký"
+        description="Một căn phòng riêng để đặt xuống điều đang sống động — chưa cần hoàn hảo, chưa cần trở thành bất cứ điều gì khác."
+        meta={
+          <Suspense fallback={<JournalMetaSkeleton />}>
+            <JournalMeta entriesPromise={entriesPromise} state={state} />
+          </Suspense>
+        }
+        actions={
+          <form action={createJournalEntry}>
+            <CreateEntryButton />
+          </form>
+        }
+      />
+
+      {createFailed ? (
+        <Alert variant="destructive" role="alert">
+          <AlertDescription>
+            Chưa thể tạo trang mới. Hãy thử lại sau một lát.
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
+      <section
+        aria-label="Tìm kiếm và lọc Nhật ký"
+        className="rounded-2xl border bg-card/55 p-3 shadow-sm sm:p-4"
+      >
+        <div className="mb-3 flex items-center gap-2 px-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          <SlidersHorizontal className="size-3.5" aria-hidden="true" />
+          Mục lục riêng
+        </div>
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+          <JournalSearch initialSearch={search} state={state} />
+          <JournalStateFilter search={search} state={state} />
+        </div>
+      </section>
+
+      <Suspense fallback={<JournalListSkeleton />}>
+        <JournalList
+          entriesPromise={entriesPromise}
+          search={search}
+          state={state}
+          hasFilters={hasFilters}
+        />
+      </Suspense>
     </section>
   );
 }
