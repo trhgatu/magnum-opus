@@ -31,6 +31,7 @@ export function RoutineEditor({
   const [message, setMessage] = useState<string>();
   const [hasConflict, setHasConflict] = useState(false);
   const [recoveryError, setRecoveryError] = useState<string>();
+  const [isEditable, setIsEditable] = useState(true);
   const [isPending, startTransition] = useTransition();
 
   const applyPersistedRoutine = (routine: PersistedRoutine) => {
@@ -43,6 +44,7 @@ export function RoutineEditor({
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!isEditable) return;
     setMessage(undefined);
     setRecoveryError(undefined);
 
@@ -89,12 +91,19 @@ export function RoutineEditor({
 
       if (!keepLocal) {
         applyPersistedRoutine(latest.routine);
+        setIsEditable(latest.routine.isActive);
+        if (!latest.routine.isActive) {
+          setMessage(
+            "Trình tự không còn ở trạng thái có thể chỉnh sửa. Nội dung mới nhất đã được hiển thị để xem qua.",
+          );
+        }
         return;
       }
 
       if (!latest.routine.isActive) {
         setPersistedRoutine(latest.routine);
         setHasConflict(false);
+        setIsEditable(false);
         setMessage(
           "Trình tự đã được lưu trữ ở nơi khác. Nội dung đang viết vẫn được giữ trên màn hình để sao chép.",
         );
@@ -201,7 +210,7 @@ export function RoutineEditor({
           >
             Hủy
           </Link>
-          <Button type="submit" size="lg" disabled={isPending}>
+          <Button type="submit" size="lg" disabled={isPending || !isEditable}>
             {persistedRoutine ? (
               <Save aria-hidden="true" />
             ) : (

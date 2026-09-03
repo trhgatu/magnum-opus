@@ -136,11 +136,21 @@ describe("Routine Server Actions", () => {
   });
 
   it("reloads a Routine by id", async () => {
-    apiFetch.mockResolvedValue(routine);
+    const routineDetail = {
+      id: routine.id,
+      title: routine.title,
+      habits: [{ id: habitId, title: "Meditate", isActive: true, order: 0 }],
+      isActive: routine.isActive,
+      revision: routine.revision,
+      createdAt: routine.createdAt,
+      updatedAt: routine.updatedAt,
+    };
+
+    apiFetch.mockResolvedValue(routineDetail);
 
     await expect(reloadRoutine(routine.id)).resolves.toEqual({
       status: "success",
-      routine,
+      routine: routineDetail,
     });
 
     expect(apiFetch).toHaveBeenCalledWith(`/routines/${routine.id}`);

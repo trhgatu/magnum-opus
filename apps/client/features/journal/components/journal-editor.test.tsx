@@ -223,9 +223,11 @@ describe("JournalEditor", () => {
   });
 
   it("notifies success and re-throws the NEXT_REDIRECT signal when permanently deleting", async () => {
+    let timeout: ReturnType<typeof setTimeout>;
+    let handler: (reason: unknown) => void;
+
     const redirectRejection = new Promise<void>((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        process.off("unhandledRejection", handler);
+      timeout = setTimeout(() => {
         reject(
           new Error(
             "Expected an unhandled NEXT_REDIRECT rejection, but none occurred",
@@ -233,7 +235,7 @@ describe("JournalEditor", () => {
         );
       }, 1000);
 
-      const handler = (reason: unknown) => {
+      handler = (reason: unknown) => {
         const digest =
           typeof reason === "object" && reason !== null && "digest" in reason
             ? (reason as { digest?: unknown }).digest
@@ -246,42 +248,45 @@ describe("JournalEditor", () => {
           return;
         }
 
-        clearTimeout(timeout);
-        process.off("unhandledRejection", handler);
         resolve();
       };
 
       process.on("unhandledRejection", handler);
     });
 
-    deleteJournalEntryPermanently.mockRejectedValue(
-      redirectError("/journal?state=TRASHED"),
-    );
+    try {
+      deleteJournalEntryPermanently.mockRejectedValue(
+        redirectError("/journal?state=TRASHED"),
+      );
 
-    renderEditor(trashedEntry);
+      renderEditor(trashedEntry);
 
-    fireEvent.click(screen.getByRole("button", { name: "Xóa vĩnh viễn" }));
+      fireEvent.click(screen.getByRole("button", { name: "Xóa vĩnh viễn" }));
 
-    const dialog = await screen.findByRole("alertdialog");
+      const dialog = await screen.findByRole("alertdialog");
 
-    fireEvent.click(
-      within(dialog).getByRole("button", { name: "Xóa vĩnh viễn" }),
-    );
+      fireEvent.click(
+        within(dialog).getByRole("button", { name: "Xóa vĩnh viễn" }),
+      );
 
-    await waitFor(() =>
-      expect(deleteJournalEntryPermanently).toHaveBeenCalledWith({
-        id: trashedEntry.id,
-        expectedRevision: trashedEntry.revision,
-      }),
-    );
+      await waitFor(() =>
+        expect(deleteJournalEntryPermanently).toHaveBeenCalledWith({
+          id: trashedEntry.id,
+          expectedRevision: trashedEntry.revision,
+        }),
+      );
 
-    await waitFor(() =>
-      expect(notifySuccess).toHaveBeenCalledWith(
-        `Đã xóa vĩnh viễn "${trashedEntry.title}"`,
-      ),
-    );
+      await waitFor(() =>
+        expect(notifySuccess).toHaveBeenCalledWith(
+          `Đã xóa vĩnh viễn "${trashedEntry.title}"`,
+        ),
+      );
 
-    await redirectRejection;
+      await redirectRejection;
+    } finally {
+      clearTimeout(timeout!);
+      process.off("unhandledRejection", handler!);
+    }
   });
 
   it("navigates to memory creation with the source entry id", async () => {
