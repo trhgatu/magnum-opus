@@ -36,7 +36,13 @@ export class CreateMemoryHandler implements ICommandHandler<
   public async execute(
     command: CreateMemoryCommand,
   ): Promise<Result<Memory, DomainException>> {
-    await this.ensureValidSource(command.sourceJournalEntryId, command.ownerId);
+    const sourceCheck = await this.ensureValidSource(
+      command.sourceJournalEntryId,
+      command.ownerId,
+    );
+    if (sourceCheck.isFailure) {
+      return Result.fail(sourceCheck.getError());
+    }
 
     const occurredOn = MemoryOccurredOn.rehydrate(
       command.occurredOn,
@@ -58,9 +64,9 @@ export class CreateMemoryHandler implements ICommandHandler<
   private async ensureValidSource(
     journalEntryId: string | null,
     ownerId: string,
-  ): Promise<void> {
+  ): Promise<Result<void, DomainException>> {
     if (!journalEntryId) {
-      return;
+      return Result.ok(undefined);
     }
 
     const status = await this.sourceJournalReader.getStatusForOwner(
@@ -69,11 +75,17 @@ export class CreateMemoryHandler implements ICommandHandler<
     );
 
     if (status === MemorySourceJournalStatus.NOT_FOUND) {
-      throw new MemorySourceJournalNotFoundException(journalEntryId);
+      return Result.fail(
+        new MemorySourceJournalNotFoundException(journalEntryId),
+      );
     }
 
     if (status === MemorySourceJournalStatus.TRASHED) {
-      throw new InvalidMemorySourceJournalException(journalEntryId);
+      return Result.fail(
+        new InvalidMemorySourceJournalException(journalEntryId),
+      );
     }
+
+    return Result.ok(undefined);
   }
 }

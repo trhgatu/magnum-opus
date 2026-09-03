@@ -1,5 +1,7 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { Result } from '@shared/domain/result';
+import { DomainException } from '@shared/domain/exceptions/domain.exception';
 import {
   EMAIL_VERIFICATION_TOKEN_STORE,
   type EmailVerificationTokenStore,
@@ -15,7 +17,7 @@ import { OPAQUE_TOKEN, type OpaqueToken } from '../../ports/opaque-token.port';
 @CommandHandler(VerifyEmailCommand)
 export class VerifyEmailHandler implements ICommandHandler<
   VerifyEmailCommand,
-  void
+  Result<void, DomainException>
 > {
   constructor(
     @Inject(EMAIL_VERIFICATION_TOKEN_STORE)
@@ -24,15 +26,21 @@ export class VerifyEmailHandler implements ICommandHandler<
     @Inject(OPAQUE_TOKEN) private readonly opaqueToken: OpaqueToken,
   ) {}
 
-  async execute(command: VerifyEmailCommand): Promise<void> {
+  async execute(
+    command: VerifyEmailCommand,
+  ): Promise<Result<void, DomainException>> {
     const hash = this.opaqueToken.hash(command.token);
     const subject = await this.tokens.consume(hash, new Date());
-    if (!subject) throw new InvalidEmailVerificationTokenException();
+    if (!subject)
+      return Result.fail(new InvalidEmailVerificationTokenException());
     const verified = await this.users.markEmailVerified(
       subject.userId,
       subject.email,
       new Date(),
     );
-    if (!verified) throw new InvalidEmailVerificationTokenException();
+    if (!verified)
+      return Result.fail(new InvalidEmailVerificationTokenException());
+
+    return Result.ok(undefined);
   }
 }
