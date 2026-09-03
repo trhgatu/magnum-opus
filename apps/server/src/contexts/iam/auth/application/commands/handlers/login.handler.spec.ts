@@ -130,7 +130,7 @@ describe('LoginCommandHandler', () => {
       new LoginCommand(
         'member@example.com',
         'password123',
-        '127.0.0.1',
+        'test-client-ip',
         'Mozilla',
       ),
     );
@@ -151,7 +151,7 @@ describe('LoginCommandHandler', () => {
     expect(sessions.saveRefreshToken).toHaveBeenCalledWith(
       'user-id',
       'jti-1',
-      expect.objectContaining({ ip: '127.0.0.1', userAgent: 'Mozilla' }),
+      expect.objectContaining({ ip: 'test-client-ip', userAgent: 'Mozilla' }),
       expect.any(Number),
     );
   });

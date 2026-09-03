@@ -120,7 +120,7 @@ describe('AuthController', () => {
 
     const response = await controller.login(
       { email: 'member@example.com', password: 'a-strong-password' } as never,
-      { ip: '127.0.0.1', userAgent: 'Mozilla' },
+      { ip: 'test-client-ip', userAgent: 'Mozilla' },
       res,
     );
 
@@ -128,7 +128,7 @@ describe('AuthController', () => {
       new LoginCommand(
         'member@example.com',
         'a-strong-password',
-        '127.0.0.1',
+        'test-client-ip',
         'Mozilla',
       ),
     );
