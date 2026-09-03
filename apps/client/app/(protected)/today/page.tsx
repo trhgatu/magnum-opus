@@ -24,7 +24,7 @@ export default async function TodayPage() {
         icon={CalendarCheck2}
         eyebrow="Forge · Hôm nay"
         title="Hôm nay"
-        description="Những Thói quen đến lịch được đặt theo Trình tự, cùng trạng thái ghi dấu của ngày hiện tại."
+        description="Những Thói quen đến lịch được đặt theo Nếp sinh hoạt, cùng trạng thái ghi dấu của ngày hiện tại."
         meta={
           <>
             <Badge variant="outline">

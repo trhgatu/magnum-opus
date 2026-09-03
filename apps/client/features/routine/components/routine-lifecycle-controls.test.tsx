@@ -113,7 +113,7 @@ describe("RoutineLifecycleControls", () => {
 
     expect(
       await screen.findByText(
-        "Trình tự đã thay đổi ở một phiên làm việc khác.",
+        "Nếp sinh hoạt đã thay đổi ở một phiên làm việc khác.",
       ),
     ).toBeTruthy();
 
@@ -128,7 +128,8 @@ describe("RoutineLifecycleControls", () => {
   it("shows the server message for a non-conflict error without a reload action", async () => {
     changeRoutineState.mockResolvedValue({
       status: "error",
-      message: "Không thể lưu trữ trình tự đang hoạt động trong Routine.",
+      message:
+        "Không thể lưu trữ Nếp sinh hoạt khi còn Thói quen đang hoạt động.",
       code: "ROUTINE_HAS_ACTIVE_HABITS",
     });
 
@@ -145,7 +146,7 @@ describe("RoutineLifecycleControls", () => {
 
     expect(
       await screen.findByText(
-        "Không thể lưu trữ trình tự đang hoạt động trong Routine.",
+        "Không thể lưu trữ Nếp sinh hoạt khi còn Thói quen đang hoạt động.",
       ),
     ).toBeTruthy();
 
@@ -169,7 +170,9 @@ describe("RoutineLifecycleControls", () => {
     fireEvent.click(screen.getByRole("button", { name: "Lưu trữ" }));
 
     expect(
-      await screen.findByText("Không thể cập nhật trình tự. Vui lòng thử lại."),
+      await screen.findByText(
+        "Không thể cập nhật Nếp sinh hoạt. Vui lòng thử lại.",
+      ),
     ).toBeTruthy();
 
     expect(push).not.toHaveBeenCalled();

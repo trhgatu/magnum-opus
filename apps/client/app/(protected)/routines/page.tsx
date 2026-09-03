@@ -14,7 +14,7 @@ import { RoutineSearch } from "@/features/routine/components/routine-search";
 import { parseRoutineLocation } from "@/features/routine/lib/routine-url";
 
 export const metadata: Metadata = {
-  title: "Trình tự",
+  title: "Nếp sinh hoạt",
   robots: { index: false, follow: false },
 };
 
@@ -32,12 +32,14 @@ export default async function RoutinesPage({
       <ContextHero
         id="routines-heading"
         icon={ListChecks}
-        eyebrow="Forge · Trình tự"
-        title="Trình tự"
+        eyebrow="Forge · Nếp sinh hoạt"
+        title="Nếp sinh hoạt"
         description="Xếp những Thói quen riêng lẻ thành một nghi thức có điểm bắt đầu, nhịp chuyển tiếp và khoảnh khắc hoàn thành rõ ràng."
         meta={
           <>
-            <Badge variant="outline">{result.meta.totalItems} Trình tự</Badge>
+            <Badge variant="outline">
+              {result.meta.totalItems} Nếp sinh hoạt
+            </Badge>
             <Badge variant="secondary">
               {archived ? "Kho lưu trữ" : "Đang rèn luyện"}
             </Badge>
@@ -45,12 +47,12 @@ export default async function RoutinesPage({
         }
         actions={
           <Link href="/routines/new" className={buttonVariants({ size: "lg" })}>
-            <Plus aria-hidden="true" /> Tạo Trình tự
+            <Plus aria-hidden="true" /> Tạo Nếp sinh hoạt
           </Link>
         }
       />
       <section
-        aria-label="Tìm kiếm và sắp xếp Trình tự"
+        aria-label="Tìm kiếm và sắp xếp Nếp sinh hoạt"
         className="rounded-2xl border bg-card/55 p-3 shadow-sm sm:p-4"
       >
         <div className="mb-3 flex items-center gap-2 px-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
@@ -66,7 +68,9 @@ export default async function RoutinesPage({
         <div className="space-y-4">
           <div className="flex items-center gap-3" aria-live="polite">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-              {archived ? "Những trình tự đã dừng" : "Những trình tự đang rèn"}
+              {archived
+                ? "Những Nếp sinh hoạt đã dừng"
+                : "Những Nếp sinh hoạt đang rèn"}
               <span className="sr-only">
                 {" "}
                 — {result.meta.totalItems} kết quả
@@ -84,16 +88,16 @@ export default async function RoutinesPage({
         <EmptyState
           title={
             location.search
-              ? "Không tìm thấy Trình tự"
+              ? "Không tìm thấy Nếp sinh hoạt"
               : archived
                 ? "Kho lưu trữ đang trống"
-                : "Chưa có Trình tự nào"
+                : "Chưa có Nếp sinh hoạt nào"
           }
           description={
             location.search
               ? "Thử từ khóa khác hoặc xóa bộ lọc hiện tại."
               : archived
-                ? "Các Trình tự đã dừng sẽ xuất hiện tại đây."
+                ? "Các Nếp sinh hoạt đã dừng sẽ xuất hiện tại đây."
                 : "Bắt đầu bằng cách gom những thói quen thường đi cùng nhau."
           }
           action={
@@ -102,7 +106,7 @@ export default async function RoutinesPage({
                 href="/routines"
                 className={buttonVariants({ variant: "outline" })}
               >
-                Về Trình tự đang hoạt động
+                Về Nếp sinh hoạt đang hoạt động
               </Link>
             ) : undefined
           }

@@ -22,7 +22,7 @@ export function RoutineCard({
   return (
     <Link
       href={`/routines/${routine.id}`}
-      aria-label={`Mở Trình tự: ${routine.title}`}
+      aria-label={`Mở Nếp sinh hoạt: ${routine.title}`}
       className="group rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-3"
     >
       <Card className="relative min-h-64 gap-0 overflow-hidden rounded-2xl bg-card/75 py-0 transition duration-200 group-hover:-translate-y-1 group-hover:ring-primary/30 group-hover:shadow-lg motion-reduce:transform-none">
@@ -36,7 +36,7 @@ export function RoutineCard({
               <ListChecks className="size-4" aria-hidden="true" />
             </span>
             <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-              Trình tự {String(index + 1).padStart(2, "0")}
+              Nếp sinh hoạt {String(index + 1).padStart(2, "0")}
             </span>
           </div>
           {routine.isActive ? (
@@ -85,7 +85,8 @@ export function RoutineCard({
 
         <CardFooter className="justify-end bg-muted/35 px-5 py-3 font-mono text-[11px] text-muted-foreground">
           <span className="flex items-center gap-1 font-sans text-xs font-medium text-foreground/70 transition-colors group-hover:text-primary">
-            Mở trình tự <ArrowUpRight className="size-3.5" aria-hidden="true" />
+            Mở Nếp sinh hoạt{" "}
+            <ArrowUpRight className="size-3.5" aria-hidden="true" />
           </span>
         </CardFooter>
       </Card>

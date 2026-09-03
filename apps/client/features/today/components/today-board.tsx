@@ -127,7 +127,7 @@ export function TodayBoard({ today }: { today: ForgeTodayResponse }) {
             </span>
             <div className="min-w-0">
               <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-                Trình tự {String(index + 1).padStart(2, "0")}
+                Nếp sinh hoạt {String(index + 1).padStart(2, "0")}
               </p>
               <h2
                 id={`today-routine-${routine.id}`}
@@ -152,7 +152,7 @@ export function TodayBoard({ today }: { today: ForgeTodayResponse }) {
             </span>
             <div>
               <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-                Ngoài Trình tự
+                Ngoài Nếp sinh hoạt
               </p>
               <h2
                 id="today-standalone-heading"

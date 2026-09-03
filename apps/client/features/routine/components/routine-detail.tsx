@@ -22,15 +22,15 @@ export function RoutineDetail({ routine }: { routine: RoutineDetailResponse }) {
           className: "self-start",
         })}
       >
-        <ArrowLeft aria-hidden="true" /> Tất cả Trình tự
+        <ArrowLeft aria-hidden="true" /> Tất cả Nếp sinh hoạt
       </Link>
 
       <ContextHero
         id="routine-title"
         icon={ListChecks}
-        eyebrow="Forge · Trình tự"
+        eyebrow="Forge · Nếp sinh hoạt"
         title={routine.title}
-        description="Một trình tự có chủ ý: mỗi Thói quen là một bước, mỗi bước hoàn thành mở đường cho bước kế tiếp."
+        description="Một Nếp sinh hoạt có chủ ý: mỗi Thói quen là một bước, mỗi bước hoàn thành mở đường cho bước kế tiếp."
         meta={
           <>
             <Badge variant="outline">{routine.habits.length} Thói quen</Badge>

@@ -18,21 +18,23 @@ describe("Routine skeletons", () => {
     render(<RoutineCollectionSkeleton />);
 
     expect(screen.getByRole("status")).toHaveTextContent(
-      "Đang tải danh sách Trình tự…",
+      "Đang tải danh sách Nếp sinh hoạt…",
     );
   });
 
   it("announces the Routine detail loading state", () => {
     render(<RoutineDetailSkeleton />);
 
-    expect(screen.getByRole("status")).toHaveTextContent("Đang tải Trình tự…");
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Đang tải Nếp sinh hoạt…",
+    );
   });
 
   it("announces the Routine form loading state", () => {
     render(<RoutineFormSkeleton />);
 
     expect(screen.getByRole("status")).toHaveTextContent(
-      "Đang chuẩn bị biểu mẫu Trình tự…",
+      "Đang chuẩn bị biểu mẫu Nếp sinh hoạt…",
     );
   });
 });
