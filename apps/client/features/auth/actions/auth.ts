@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { API_URL, ApiError, apiFetchPublic, toPublicApiError } from "@/lib/api";
-import type { ActionState } from "@/lib/action-state";
+import type { ActionState } from "@/features/auth/lib/action-state";
 import { clearSession, getSession, setSession } from "@/lib/session";
 import { safeRedirectPath } from "@/lib/safe-redirect";
 
