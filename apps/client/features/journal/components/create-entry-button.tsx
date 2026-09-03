@@ -14,7 +14,7 @@ export function CreateEntryButton() {
       className="w-full sm:w-auto"
     >
       <PenLine data-icon="inline-start" aria-hidden="true" />
-      {pending ? "Đang mở trang viết…" : "Viết entry mới"}
+      {pending ? "Đang mở trang viết…" : "Viết trang mới"}
     </Button>
   );
 }

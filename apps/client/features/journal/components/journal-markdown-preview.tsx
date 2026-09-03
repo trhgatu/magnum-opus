@@ -12,7 +12,7 @@ export function JournalMarkdownPreview({ content }: { content: string }) {
       {content ? (
         <Markdown remarkPlugins={[remarkGfm]}>{content}</Markdown>
       ) : (
-        <p className="text-muted-foreground">Entry này chưa có nội dung.</p>
+        <p className="text-muted-foreground">Trang này chưa có nội dung.</p>
       )}
     </div>
   );

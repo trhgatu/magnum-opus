@@ -235,7 +235,7 @@ test("keeps a Memory after its source Journal entry is deleted", async ({
   await login(page);
 
   await page.goto("/journal");
-  await page.getByRole("button", { name: "Viết entry mới" }).click();
+  await page.getByRole("button", { name: "Viết trang mới" }).click();
   await page.getByLabel("Tiêu đề").fill(journalTitle);
   await page.getByLabel("Nội dung", { exact: true }).fill(journalContent);
 
@@ -249,7 +249,7 @@ test("keeps a Memory after its source Journal entry is deleted", async ({
   const journalUrl = page.url();
 
   // Trang chi tiết Journal có 2 nút "Giữ lại như ký ức" (toolbar và khối
-  // "Ký ức từ entry này") dùng chung nhãn có chủ đích — .first() lấy đúng
+  // "Ký ức từ trang này") dùng chung nhãn có chủ đích — .first() lấy đúng
   // nút trên toolbar.
   await page.getByRole("button", { name: "Giữ lại như ký ức" }).first().click();
 

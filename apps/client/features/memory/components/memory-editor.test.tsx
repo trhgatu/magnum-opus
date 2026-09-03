@@ -184,7 +184,7 @@ describe("MemoryEditor", () => {
     expect(
       screen
         .getByRole("link", {
-          name: "Mở entry nguồn",
+          name: "Mở trang nguồn",
         })
         .getAttribute("href"),
     ).toBe(`/journal/${sourceJournalEntryId}`);

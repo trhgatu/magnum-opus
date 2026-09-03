@@ -188,7 +188,7 @@ export function JournalEditor({
       if (action === "seal" || action === "trash") setViewMode("preview");
       if (action === "reopen" || action === "restore") setViewMode("write");
 
-      const label = result.entry.title ? `"${result.entry.title}"` : "entry";
+      const label = result.entry.title ? `"${result.entry.title}"` : "trang";
       void notifySuccess(
         action === "seal"
           ? `Đã niêm phong ${label}`
@@ -220,7 +220,7 @@ export function JournalEditor({
         await notifySuccess(`Đã xóa vĩnh viễn "${title}"`).catch(() => {});
         throw error;
       }
-      setLifecycleMessage("Không thể xóa entry. Vui lòng thử lại.");
+      setLifecycleMessage("Không thể xóa trang. Vui lòng thử lại.");
     } finally {
       setIsChangingState(false);
     }
@@ -277,7 +277,7 @@ export function JournalEditor({
           />
         ) : saveState === "conflict" ? (
           <ConflictAlert
-            title="Entry đã được thay đổi ở nơi khác"
+            title="Trang đã được thay đổi ở nơi khác"
             description="Nội dung đang gõ vẫn còn nguyên trên màn hình. Chọn bản mới nhất để bỏ phần đang gõ, hoặc chủ động ghi nội dung này lên revision mới nhất."
             keepLocalLabel="Ghi nội dung đang gõ"
             busy={isResolvingConflict}

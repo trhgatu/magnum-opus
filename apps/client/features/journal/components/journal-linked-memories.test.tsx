@@ -36,7 +36,7 @@ describe("JournalLinkedMemories", () => {
     );
 
     expect(
-      screen.getByRole("heading", { name: "Ký ức từ entry này" }),
+      screen.getByRole("heading", { name: "Ký ức từ trang này" }),
     ).not.toBeNull();
     expect(
       screen.getByRole("link", { name: /Mở ký ức: A quiet afternoon/ }),
@@ -104,7 +104,7 @@ describe("JournalLinkedMemories", () => {
       />,
     );
 
-    expect(screen.getByText("và 3 ký ức khác từ entry này.")).not.toBeNull();
+    expect(screen.getByText("và 3 ký ức khác từ trang này.")).not.toBeNull();
   });
 
   it("shows an empty message when no memory was created from the entry yet", () => {
@@ -119,7 +119,7 @@ describe("JournalLinkedMemories", () => {
     );
 
     expect(
-      screen.getByText("Chưa có ký ức nào được lưu từ entry này."),
+      screen.getByText("Chưa có ký ức nào được lưu từ trang này."),
     ).not.toBeNull();
   });
 });

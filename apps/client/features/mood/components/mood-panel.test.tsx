@@ -96,7 +96,7 @@ describe("MoodPanel", () => {
     );
     await waitFor(() =>
       expect(notifySuccess).toHaveBeenCalledWith(
-        "Đã loại bỏ tâm trạng khỏi entry.",
+        "Đã loại bỏ tâm trạng khỏi trang.",
       ),
     );
   });

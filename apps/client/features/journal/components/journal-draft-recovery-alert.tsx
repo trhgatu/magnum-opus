@@ -14,9 +14,9 @@ const recoveryCopy: Record<
   { title: string; description: string; destination: string }
 > = {
   missing: {
-    title: "Entry không còn tồn tại trên server",
+    title: "Trang không còn tồn tại trên server",
     description:
-      "Phần đang gõ vẫn còn trên màn hình nhưng không thể lưu vào entry này.",
+      "Phần đang gõ vẫn còn trên màn hình nhưng không thể lưu vào trang này.",
     destination: "Về Nhật ký",
   },
   session: {
@@ -26,9 +26,9 @@ const recoveryCopy: Record<
     destination: "Đăng nhập lại",
   },
   remote_state: {
-    title: "Entry đã đổi trạng thái ở nơi khác",
+    title: "Trang đã đổi trạng thái ở nơi khác",
     description:
-      "Server không còn cho chỉnh sửa entry này. Phần đang gõ vẫn được giữ để sao chép trước khi rời trang.",
+      "Server không còn cho chỉnh sửa trang này. Phần đang gõ vẫn được giữ để sao chép trước khi rời trang.",
     destination: "Về Nhật ký",
   },
 };
