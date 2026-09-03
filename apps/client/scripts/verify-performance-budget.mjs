@@ -9,7 +9,9 @@ const KIBIBYTE = 1024;
 const routeBudgets = new Map([
   ["/", 560 * KIBIBYTE],
   ["/login", 560 * KIBIBYTE],
-  ["/me", 563 * KIBIBYTE],
+  // +0.4 KiB: loading.tsx/error.tsx mới thêm cho /me (đồng bộ boundary với
+  // các route protected khác).
+  ["/me", 564 * KIBIBYTE],
   ["/journal", 570 * KIBIBYTE],
   ["/journal/[id]", 627 * KIBIBYTE],
   ["/memories", 568 * KIBIBYTE],
@@ -35,7 +37,9 @@ const routeBudgets = new Map([
   // Routine detail includes the isolated shadcn Select used for membership.
   ["/routines/[id]", 660 * KIBIBYTE],
   ["/routines/[id]/edit", 575 * KIBIBYTE],
-  ["/today", 570 * KIBIBYTE],
+  // +0.7 KiB: error.tsx mới thêm cho /today (đồng bộ boundary với các route
+  // protected khác).
+  ["/today", 571 * KIBIBYTE],
 ]);
 
 const diagnosticsPath = resolve(
