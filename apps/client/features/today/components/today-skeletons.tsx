@@ -2,9 +2,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export function TodayMetaSkeleton() {
   return (
-    <span className="flex gap-2" aria-hidden="true">
-      <Skeleton className="h-6 w-28 rounded-full" />
-      <Skeleton className="h-6 w-24 rounded-full" />
+    <span className="flex gap-2" role="status" aria-live="polite">
+      <span className="sr-only">Đang tải thông tin hôm nay…</span>
+      <Skeleton className="h-6 w-28 rounded-full" aria-hidden="true" />
+      <Skeleton className="h-6 w-24 rounded-full" aria-hidden="true" />
     </span>
   );
 }
