@@ -41,7 +41,9 @@ export function JournalEntryCard({
     <Link
       href={`/journal/${entry.id}`}
       aria-label={
-        entry.title ? `Mở entry: ${entry.title}` : "Mở entry chưa đặt tên"
+        entry.title
+          ? `Mở trang: ${entry.title} — ${stateLabels[entry.state]}`
+          : `Mở trang chưa đặt tên — ${stateLabels[entry.state]}`
       }
       className="group rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-3"
     >
