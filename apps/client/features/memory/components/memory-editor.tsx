@@ -22,6 +22,7 @@ import {
   memoryOccurredOnInputValue,
   normalizeMemoryOccurredOnInput,
 } from "@/features/memory/lib/memory-form";
+import { useUnsavedChangesWarning } from "@/hooks/use-unsaved-changes-warning";
 import { notifySuccess } from "@/lib/toast";
 
 export interface MemoryCreationSeed {
@@ -73,6 +74,19 @@ export function MemoryEditor({
     !initialMemory || initialMemory.state === "ACTIVE",
   );
   const [isPending, startTransition] = useTransition();
+
+  const isDirty =
+    title !== (persistedMemory?.title ?? creationSeed?.title ?? "") ||
+    content !== (persistedMemory?.content ?? creationSeed?.content ?? "") ||
+    precision !== (persistedMemory?.occurredOnPrecision ?? "UNKNOWN") ||
+    occurredOnInput !==
+      (persistedMemory
+        ? memoryOccurredOnInputValue(
+            persistedMemory.occurredOn,
+            persistedMemory.occurredOnPrecision,
+          )
+        : "");
+  useUnsavedChangesWarning(isDirty);
 
   const isEditing = Boolean(persistedMemory);
 

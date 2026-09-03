@@ -246,4 +246,27 @@ describe("RoutineEditor", () => {
     expect(updateRoutineTitle).toHaveBeenCalledTimes(1);
     expect(push).not.toHaveBeenCalled();
   });
+
+  it("does not warn about leaving before the title is edited", () => {
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    render(<RoutineEditor initialRoutine={routine} />);
+
+    fireEvent.click(screen.getByRole("link", { name: "Hủy" }));
+
+    expect(confirmSpy).not.toHaveBeenCalled();
+    confirmSpy.mockRestore();
+  });
+
+  it("warns about leaving once the title has unsaved changes", () => {
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    render(<RoutineEditor initialRoutine={routine} />);
+
+    fireEvent.change(screen.getByLabelText("Tên Trình tự"), {
+      target: { value: "Evening ritual" },
+    });
+    fireEvent.click(screen.getByRole("link", { name: "Hủy" }));
+
+    expect(confirmSpy).toHaveBeenCalledOnce();
+    confirmSpy.mockRestore();
+  });
 });

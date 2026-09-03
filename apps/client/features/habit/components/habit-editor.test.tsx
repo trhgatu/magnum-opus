@@ -256,4 +256,48 @@ describe("HabitEditor", () => {
     expect(updateHabit).toHaveBeenCalledTimes(1);
     expect(push).not.toHaveBeenCalled();
   });
+
+  it("does not warn about leaving before any field is edited", () => {
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    render(<HabitEditor initialHabit={existingHabit} />);
+
+    fireEvent.click(screen.getByRole("link", { name: "Hủy" }));
+
+    expect(confirmSpy).not.toHaveBeenCalled();
+    confirmSpy.mockRestore();
+  });
+
+  it("warns about leaving once a field has unsaved changes", () => {
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    render(<HabitEditor initialHabit={existingHabit} />);
+
+    fireEvent.change(screen.getByLabelText("Tên thói quen"), {
+      target: { value: "Thiền 20 phút" },
+    });
+    fireEvent.click(screen.getByRole("link", { name: "Hủy" }));
+
+    expect(confirmSpy).toHaveBeenCalledOnce();
+    confirmSpy.mockRestore();
+  });
+
+  it("stops warning again once the days selection matches the persisted habit", () => {
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    render(
+      <HabitEditor
+        initialHabit={{
+          ...existingHabit,
+          frequencyType: "WEEKLY",
+          frequencyDays: [1, 3],
+        }}
+      />,
+    );
+
+    const dayOne = screen.getByRole("button", { name: "T2" });
+    fireEvent.click(dayOne);
+    fireEvent.click(dayOne);
+    fireEvent.click(screen.getByRole("link", { name: "Hủy" }));
+
+    expect(confirmSpy).not.toHaveBeenCalled();
+    confirmSpy.mockRestore();
+  });
 });
