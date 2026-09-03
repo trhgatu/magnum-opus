@@ -9,6 +9,7 @@ import {
   RoutineCollectionSkeleton,
   RoutineDetailSkeleton,
   RoutineFormSkeleton,
+  RoutineListSkeleton,
 } from "./routine-skeletons";
 
 afterEach(cleanup);
@@ -35,6 +36,14 @@ describe("Routine skeletons", () => {
 
     expect(screen.getByRole("status")).toHaveTextContent(
       "Đang chuẩn bị biểu mẫu Nếp sinh hoạt…",
+    );
+  });
+
+  it("announces the Routine list loading state", () => {
+    render(<RoutineListSkeleton />);
+
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Đang tải danh sách Nếp sinh hoạt…",
     );
   });
 });

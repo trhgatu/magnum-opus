@@ -33,6 +33,32 @@ function JournalEntryCardSkeleton() {
   );
 }
 
+export function JournalMetaSkeleton() {
+  return (
+    <span className="flex gap-2" aria-hidden="true">
+      <Skeleton className="h-6 w-16 rounded-full" />
+      <Skeleton className="h-6 w-28 rounded-full" />
+    </span>
+  );
+}
+
+export function JournalListSkeleton() {
+  return (
+    <div className="space-y-4" role="status" aria-live="polite">
+      <span className="sr-only">Đang tải Nhật ký…</span>
+      <div className="flex items-center gap-3" aria-hidden="true">
+        <Skeleton className="h-3 w-32" />
+        <span className="h-px flex-1 bg-border" />
+      </div>
+      <div aria-hidden="true" className="grid gap-4 sm:grid-cols-2">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <JournalEntryCardSkeleton key={index} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function JournalCollectionSkeleton() {
   return (
     <section className="flex flex-col gap-7" role="status" aria-live="polite">
