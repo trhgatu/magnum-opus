@@ -8,29 +8,16 @@ import type {
 import { revalidatePath } from "next/cache";
 
 import { normalizeFrequencyDays } from "@/features/habit/lib/habit-frequency";
-import {
-  ApiError,
-  apiFetch,
-  type ApiErrorKind,
-  toPublicApiError,
-} from "@/lib/api";
+import { apiFetch, type MutationError, toMutationError } from "@/lib/api";
 import { validId, validRevision } from "@/lib/validation";
-
-interface HabitMutationError {
-  status: "error";
-  message: string;
-  kind?: ApiErrorKind;
-  code?: string;
-  correlationId?: string;
-}
 
 export type HabitMutationResult =
   | { status: "success"; habit: HabitResponse }
-  | HabitMutationError;
+  | MutationError;
 
 export type HabitCheckInMutationResult =
   | { status: "success"; today: HabitCheckInTodayResponse }
-  | HabitMutationError;
+  | MutationError;
 
 export interface HabitFormInput {
   title: string;
@@ -73,19 +60,6 @@ const normalizeForm = (input: HabitFormInput) => {
   return { title, description, frequencyType, frequencyDays };
 };
 
-const failure = (error: unknown): HabitMutationError => {
-  const publicError = toPublicApiError(error);
-  return {
-    status: "error",
-    message: publicError.message,
-    kind: publicError.kind,
-    ...(error instanceof ApiError && error.code ? { code: error.code } : {}),
-    ...(publicError.correlationId
-      ? { correlationId: publicError.correlationId }
-      : {}),
-  };
-};
-
 const revalidateHabit = (id: string) => {
   revalidatePath("/habits");
   revalidatePath(`/habits/${id}`);
@@ -107,7 +81,7 @@ export async function createHabit(
     revalidatePath("/habits");
     return { status: "success", habit };
   } catch (error) {
-    return failure(error);
+    return toMutationError(error);
   }
 }
 
@@ -120,7 +94,7 @@ export async function reloadHabit(id: string): Promise<HabitMutationResult> {
     const habit = await apiFetch<HabitResponse>(`/habits/${id}`);
     return { status: "success", habit };
   } catch (error) {
-    return failure(error);
+    return toMutationError(error);
   }
 }
 
@@ -143,7 +117,7 @@ export async function updateHabit(
     revalidateHabit(input.id);
     return { status: "success", habit };
   } catch (error) {
-    return failure(error);
+    return toMutationError(error);
   }
 }
 
@@ -165,7 +139,7 @@ export async function changeHabitState(
     revalidateHabit(input.id);
     return { status: "success", habit };
   } catch (error) {
-    return failure(error);
+    return toMutationError(error);
   }
 }
 
@@ -187,6 +161,6 @@ export async function changeHabitCheckIn(input: {
     revalidateHabit(input.id);
     return { status: "success", today };
   } catch (error) {
-    return failure(error);
+    return toMutationError(error);
   }
 }

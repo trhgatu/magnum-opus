@@ -10,28 +10,15 @@ import { redirect } from "next/navigation";
 
 import { isValidMemoryCalendarDate } from "@/features/memory/lib/memory-date";
 
-import {
-  ApiError,
-  apiFetch,
-  type ApiErrorKind,
-  toPublicApiError,
-} from "@/lib/api";
+import { apiFetch, type MutationError, toMutationError } from "@/lib/api";
 import { validId, validRevision } from "@/lib/validation";
-
-interface MemoryMutationError {
-  status: "error";
-  message: string;
-  kind?: ApiErrorKind;
-  code?: string;
-  correlationId?: string;
-}
 
 export type MemoryMutationResult =
   | {
       status: "success";
       memory: MemoryResponse;
     }
-  | MemoryMutationError;
+  | MutationError;
 
 export interface CreateMemoryInput {
   sourceJournalEntryId: string | null;
@@ -65,26 +52,12 @@ export type MemoryDeleteResult =
   | {
       status: "success";
     }
-  | MemoryMutationError;
+  | MutationError;
 
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 const validLifecycleAction = (value: unknown): value is MemoryLifecycleAction =>
   value === "trash" || value === "restore";
-
-const failure = (error: unknown): MemoryMutationError => {
-  const publicError = toPublicApiError(error);
-
-  return {
-    status: "error",
-    message: publicError.message,
-    kind: publicError.kind,
-    ...(error instanceof ApiError && error.code ? { code: error.code } : {}),
-    ...(publicError.correlationId
-      ? { correlationId: publicError.correlationId }
-      : {}),
-  };
-};
 
 const revalidateMemory = (id: string) => {
   revalidatePath("/memories");
@@ -170,7 +143,7 @@ export async function createMemory(
       memory,
     };
   } catch (error) {
-    return failure(error);
+    return toMutationError(error);
   }
 }
 
@@ -215,7 +188,7 @@ export async function updateMemory(
       memory,
     };
   } catch (error) {
-    return failure(error);
+    return toMutationError(error);
   }
 }
 
@@ -235,7 +208,7 @@ export async function reloadMemory(id: string): Promise<MemoryMutationResult> {
       memory,
     };
   } catch (error) {
-    return failure(error);
+    return toMutationError(error);
   }
 }
 
@@ -271,7 +244,7 @@ export async function changeMemoryState(
       memory,
     };
   } catch (error) {
-    return failure(error);
+    return toMutationError(error);
   }
 }
 
@@ -293,7 +266,7 @@ export async function deleteMemoryPermanently(
       },
     );
   } catch (error) {
-    return failure(error);
+    return toMutationError(error);
   }
 
   revalidatePath("/memories");

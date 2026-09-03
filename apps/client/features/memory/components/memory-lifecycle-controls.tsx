@@ -5,7 +5,7 @@ import { RotateCcw, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type MouseEvent, useState, useTransition } from "react";
 
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { LifecycleErrorAlert } from "@/components/system/lifecycle-error-alert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -128,20 +128,11 @@ export function MemoryLifecycleControls({
   };
 
   const errorAlert = error ? (
-    <Alert variant="destructive">
-      <AlertDescription>{error.message}</AlertDescription>
-      {hasConflict && (
-        <Button
-          type="button"
-          variant="link"
-          size="sm"
-          className="mt-1 h-auto justify-start p-0 text-destructive"
-          onClick={reloadLatestRevision}
-        >
-          Tải bản mới nhất
-        </Button>
-      )}
-    </Alert>
+    <LifecycleErrorAlert
+      message={error.message}
+      hasConflict={hasConflict}
+      onReload={reloadLatestRevision}
+    />
   ) : null;
 
   return (

@@ -4,7 +4,7 @@ import { Archive, RotateCcw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { LifecycleErrorAlert } from "@/components/system/lifecycle-error-alert";
 import { Button } from "@/components/ui/button";
 import { changeHabitState } from "@/features/habit/actions/habit";
 import { notifySuccess } from "@/lib/toast";
@@ -79,21 +79,11 @@ export function HabitLifecycleControls({
       aria-label="Thao tác vòng đời thói quen"
     >
       {message ? (
-        <Alert variant="destructive">
-          <AlertDescription>{message}</AlertDescription>
-
-          {hasConflict ? (
-            <Button
-              type="button"
-              variant="link"
-              size="sm"
-              className="mt-1 h-auto justify-start p-0 text-destructive"
-              onClick={reloadLatestRevision}
-            >
-              Tải bản mới nhất
-            </Button>
-          ) : null}
-        </Alert>
+        <LifecycleErrorAlert
+          message={message}
+          hasConflict={hasConflict}
+          onReload={reloadLatestRevision}
+        />
       ) : null}
       <Button
         type="button"
