@@ -307,7 +307,7 @@ describe("JournalEditor", () => {
     updateJournalEntry.mockResolvedValue({
       status: "error",
       code: "JOURNAL_ENTRY_REVISION_CONFLICT",
-      message: "Entry đã thay đổi ở nơi khác.",
+      message: "Trang đã thay đổi ở nơi khác.",
     });
     reloadJournalEntry.mockResolvedValue({
       status: "success",
@@ -324,7 +324,7 @@ describe("JournalEditor", () => {
 
     expect(
       await screen.findByRole("heading", {
-        name: "Entry đã được thay đổi ở nơi khác",
+        name: "Trang đã được thay đổi ở nơi khác",
       }),
     ).toBeTruthy();
 

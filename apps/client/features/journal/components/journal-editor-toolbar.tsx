@@ -61,7 +61,7 @@ const saveStateLabel: Record<JournalSaveState, string> = {
   saved: "Đã lưu",
   conflict: "Có xung đột",
   error: "Lưu thất bại",
-  missing: "Entry không còn tồn tại",
+  missing: "Trang không còn tồn tại",
   session: "Phiên đã hết hạn",
   remote_state: "Trạng thái đã đổi",
 };
@@ -241,7 +241,7 @@ export function JournalEditorToolbar({
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Xóa vĩnh viễn entry?</AlertDialogTitle>
+                <AlertDialogTitle>Xóa vĩnh viễn trang?</AlertDialogTitle>
                 <AlertDialogDescription>
                   Nội dung này sẽ biến mất khỏi Magnum Opus và không thể khôi
                   phục. Chỉ tiếp tục khi nội dung này thực sự không còn cần

@@ -236,10 +236,10 @@ export function MemoryEditor({
           <BookOpenText aria-hidden="true" />
           <AlertTitle>Được kết tinh từ Nhật ký</AlertTitle>
           <AlertDescription>
-            Nội dung đã được điền từ entry nguồn. Có thể chọn lọc và viết lại
+            Nội dung đã được điền từ trang nguồn. Có thể chọn lọc và viết lại
             trước khi lưu. Nhật ký sẽ không bị thay đổi.{" "}
             <Link href={`/journal/${creationSeed.sourceJournalEntryId}`}>
-              Mở entry nguồn
+              Mở trang nguồn
             </Link>
           </AlertDescription>
         </Alert>

@@ -126,9 +126,9 @@ export function useJournalDraft(
           );
           setMessage(
             conflict
-              ? "Entry đã thay đổi ở nơi khác. Nội dung đang gõ vẫn được giữ; hãy tải lại để đối chiếu trước khi tiếp tục."
+              ? "Trang đã thay đổi ở nơi khác. Nội dung đang gõ vẫn được giữ; hãy tải lại để đối chiếu trước khi tiếp tục."
               : missing
-                ? "Entry không còn tồn tại trên server. Nội dung đang gõ vẫn được giữ trên màn hình."
+                ? "Trang không còn tồn tại trên server. Nội dung đang gõ vẫn được giữ trên màn hình."
                 : sessionExpired
                   ? "Phiên đăng nhập đã hết hạn. Nội dung đang gõ vẫn được giữ trên màn hình."
                   : result.message,
@@ -188,7 +188,7 @@ export function useJournalDraft(
     setRevision(next.revision);
     setSaveState("remote_state");
     setMessage(
-      "Entry đã đổi trạng thái ở nơi khác. Nội dung đang gõ vẫn được giữ trên màn hình để sao chép.",
+      "Trang đã đổi trạng thái ở nơi khác. Nội dung đang gõ vẫn được giữ trên màn hình để sao chép.",
     );
   }, []);
 

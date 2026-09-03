@@ -151,7 +151,7 @@ export function MoodPanel({
       setIntensity(null);
       setNote("");
       setIsEditing(false);
-      void notifySuccess("Đã loại bỏ tâm trạng khỏi entry.");
+      void notifySuccess("Đã loại bỏ tâm trạng khỏi trang.");
     });
   };
 
@@ -340,7 +340,7 @@ export function MoodPanel({
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">
-            Entry này chưa lưu lại trạng thái cảm xúc.
+            Trang này chưa lưu lại trạng thái cảm xúc.
           </p>
         )}
 

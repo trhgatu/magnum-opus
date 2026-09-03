@@ -30,7 +30,7 @@ export function JournalLinkedMemories({
           className="flex items-center gap-2 font-display text-lg font-semibold"
         >
           <Gem className="size-4 text-primary" aria-hidden="true" />
-          Ký ức từ entry này
+          Ký ức từ trang này
         </h2>
 
         {canCreateMemory ? (
@@ -56,13 +56,13 @@ export function JournalLinkedMemories({
           </div>
           {totalCount > memories.length ? (
             <p className="text-sm text-muted-foreground">
-              và {totalCount - memories.length} ký ức khác từ entry này.
+              và {totalCount - memories.length} ký ức khác từ trang này.
             </p>
           ) : null}
         </>
       ) : (
         <p className="text-sm text-muted-foreground">
-          Chưa có ký ức nào được lưu từ entry này.
+          Chưa có ký ức nào được lưu từ trang này.
         </p>
       )}
     </section>

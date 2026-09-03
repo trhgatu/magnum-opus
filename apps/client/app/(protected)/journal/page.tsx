@@ -65,7 +65,7 @@ export default async function JournalPage({ searchParams }: JournalPageProps) {
         description="Một căn phòng riêng để đặt xuống điều đang sống động — chưa cần hoàn hảo, chưa cần trở thành bất cứ điều gì khác."
         meta={
           <>
-            <Badge variant="outline">{result.meta.totalItems} entry</Badge>
+            <Badge variant="outline">{result.meta.totalItems} trang</Badge>
             <Badge variant="secondary">
               {state ? stateLabels[state] : "Đang lưu giữ"}
             </Badge>
@@ -81,7 +81,7 @@ export default async function JournalPage({ searchParams }: JournalPageProps) {
       {createFailed ? (
         <Alert variant="destructive" role="alert">
           <AlertDescription>
-            Chưa thể tạo entry mới. Hãy thử lại sau một lát.
+            Chưa thể tạo trang mới. Hãy thử lại sau một lát.
           </AlertDescription>
         </Alert>
       ) : null}
@@ -120,7 +120,7 @@ export default async function JournalPage({ searchParams }: JournalPageProps) {
         </div>
       ) : (
         <EmptyState
-          title="Chưa có entry phù hợp"
+          title="Chưa có trang phù hợp"
           description={
             search
               ? "Thử một từ khóa khác hoặc bỏ bộ lọc hiện tại."
