@@ -16,6 +16,7 @@ import {
   reloadRoutine,
   updateRoutineTitle,
 } from "@/features/routine/actions/routine";
+import { useUnsavedChangesWarning } from "@/hooks/use-unsaved-changes-warning";
 import { notifySuccess } from "@/lib/toast";
 
 type PersistedRoutine = Pick<RoutineResponse, "id" | "title" | "revision">;
@@ -33,6 +34,9 @@ export function RoutineEditor({
   const [recoveryError, setRecoveryError] = useState<string>();
   const [isEditable, setIsEditable] = useState(true);
   const [isPending, startTransition] = useTransition();
+
+  const isDirty = title !== (persistedRoutine?.title ?? "");
+  useUnsavedChangesWarning(isDirty);
 
   const applyPersistedRoutine = (routine: PersistedRoutine) => {
     setPersistedRoutine(routine);

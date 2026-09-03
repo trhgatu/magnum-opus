@@ -25,6 +25,7 @@ import {
   updateHabit,
 } from "@/features/habit/actions/habit";
 import { ISO_WEEKDAYS } from "@/features/habit/lib/habit-frequency";
+import { useUnsavedChangesWarning } from "@/hooks/use-unsaved-changes-warning";
 import { notifySuccess } from "@/lib/toast";
 
 export function HabitEditor({
@@ -49,6 +50,14 @@ export function HabitEditor({
     !initialHabit || initialHabit.isActive,
   );
   const [isPending, startTransition] = useTransition();
+
+  const isDirty =
+    title !== (persistedHabit?.title ?? "") ||
+    description !== (persistedHabit?.description ?? "") ||
+    frequencyType !== (persistedHabit?.frequencyType ?? "DAILY") ||
+    JSON.stringify([...days].sort()) !==
+      JSON.stringify([...(persistedHabit?.frequencyDays ?? [])].sort());
+  useUnsavedChangesWarning(isDirty);
 
   const toggleDay = (day: number) =>
     setDays((current) =>
