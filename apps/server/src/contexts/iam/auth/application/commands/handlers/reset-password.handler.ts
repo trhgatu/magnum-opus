@@ -1,5 +1,7 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { Result } from '@shared/domain/result';
+import { DomainException } from '@shared/domain/exceptions/domain.exception';
 import {
   PASSWORD_HASHER,
   type PasswordHasher,
@@ -23,7 +25,7 @@ import { OPAQUE_TOKEN, type OpaqueToken } from '../../ports/opaque-token.port';
 @CommandHandler(ResetPasswordCommand)
 export class ResetPasswordHandler implements ICommandHandler<
   ResetPasswordCommand,
-  void
+  Result<void, DomainException>
 > {
   constructor(
     @Inject(PASSWORD_RESET_TOKEN_STORE)
@@ -34,14 +36,18 @@ export class ResetPasswordHandler implements ICommandHandler<
     @Inject(OPAQUE_TOKEN) private readonly opaqueToken: OpaqueToken,
   ) {}
 
-  async execute(command: ResetPasswordCommand): Promise<void> {
+  async execute(
+    command: ResetPasswordCommand,
+  ): Promise<Result<void, DomainException>> {
     const tokenHash = this.opaqueToken.hash(command.token);
     const userId = await this.tokens.consume(tokenHash, new Date());
-    if (!userId) throw new InvalidPasswordResetTokenException();
+    if (!userId) return Result.fail(new InvalidPasswordResetTokenException());
 
     const passwordHash = await this.hasher.hash(command.passwordRaw);
     await this.sessions.revokeAllUserSessions(userId);
     const changed = await this.users.changePassword(userId, passwordHash);
-    if (!changed) throw new InvalidPasswordResetTokenException();
+    if (!changed) return Result.fail(new InvalidPasswordResetTokenException());
+
+    return Result.ok(undefined);
   }
 }

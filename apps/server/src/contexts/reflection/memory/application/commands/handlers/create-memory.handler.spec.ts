@@ -78,17 +78,18 @@ describe('CreateMemoryHandler', () => {
       MemorySourceJournalStatus.NOT_FOUND,
     );
 
-    await expect(
-      handler.execute(
-        new CreateMemoryCommand({
-          ownerId: 'owner-1',
-          sourceJournalEntryId: 'journal-1',
-          title: 'Private source',
-          content: 'This must not cross ownership boundaries.',
-        }),
-      ),
-    ).rejects.toBeInstanceOf(MemorySourceJournalNotFoundException);
+    const result = await handler.execute(
+      new CreateMemoryCommand({
+        ownerId: 'owner-1',
+        sourceJournalEntryId: 'journal-1',
+        title: 'Private source',
+        content: 'This must not cross ownership boundaries.',
+      }),
+    );
 
+    expect(result.getError()).toBeInstanceOf(
+      MemorySourceJournalNotFoundException,
+    );
     expect(memoryRepository.create).not.toHaveBeenCalled();
   });
 
@@ -97,17 +98,18 @@ describe('CreateMemoryHandler', () => {
       MemorySourceJournalStatus.TRASHED,
     );
 
-    await expect(
-      handler.execute(
-        new CreateMemoryCommand({
-          ownerId: 'owner-1',
-          sourceJournalEntryId: 'journal-1',
-          title: 'Trashed source',
-          content: 'A trashed entry is not an active source.',
-        }),
-      ),
-    ).rejects.toBeInstanceOf(InvalidMemorySourceJournalException);
+    const result = await handler.execute(
+      new CreateMemoryCommand({
+        ownerId: 'owner-1',
+        sourceJournalEntryId: 'journal-1',
+        title: 'Trashed source',
+        content: 'A trashed entry is not an active source.',
+      }),
+    );
 
+    expect(result.getError()).toBeInstanceOf(
+      InvalidMemorySourceJournalException,
+    );
     expect(memoryRepository.create).not.toHaveBeenCalled();
   });
 });

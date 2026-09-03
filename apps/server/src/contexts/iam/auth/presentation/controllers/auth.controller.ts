@@ -84,9 +84,10 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Password reset successfully' })
   @ApiResponse({ status: 400, description: 'Token invalid or expired' })
   async resetPassword(@Body() dto: ResetPasswordDto) {
-    await this.commandBus.execute(
+    const result = await this.commandBus.execute(
       new ResetPasswordCommand(dto.token, dto.password),
     );
+    result.unwrap();
     return { success: true };
   }
 
@@ -107,7 +108,10 @@ export class AuthController {
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
   async verifyEmail(@Body() dto: VerifyEmailDto) {
-    await this.commandBus.execute(new VerifyEmailCommand(dto.token));
+    const result = await this.commandBus.execute(
+      new VerifyEmailCommand(dto.token),
+    );
+    result.unwrap();
     return { success: true };
   }
 

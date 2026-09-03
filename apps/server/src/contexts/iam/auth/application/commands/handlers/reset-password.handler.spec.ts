@@ -33,9 +33,12 @@ describe('ResetPasswordHandler', () => {
 
   it('rejects an invalid, expired, or already-consumed token uniformly', async () => {
     tokens.consume.mockResolvedValue(null);
-    await expect(
-      handler.execute(new ResetPasswordCommand('invalid', 'new-password-123')),
-    ).rejects.toBeInstanceOf(InvalidPasswordResetTokenException);
+    const result = await handler.execute(
+      new ResetPasswordCommand('invalid', 'new-password-123'),
+    );
+    expect(result.getError()).toBeInstanceOf(
+      InvalidPasswordResetTokenException,
+    );
     expect(users.changePassword).not.toHaveBeenCalled();
   });
 

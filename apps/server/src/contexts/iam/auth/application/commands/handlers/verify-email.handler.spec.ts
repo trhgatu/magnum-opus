@@ -21,9 +21,10 @@ describe('VerifyEmailHandler', () => {
 
   it('rejects an invalid, expired, or reused token uniformly', async () => {
     tokens.consume.mockResolvedValue(null);
-    await expect(
-      handler.execute(new VerifyEmailCommand('invalid')),
-    ).rejects.toBeInstanceOf(InvalidEmailVerificationTokenException);
+    const result = await handler.execute(new VerifyEmailCommand('invalid'));
+    expect(result.getError()).toBeInstanceOf(
+      InvalidEmailVerificationTokenException,
+    );
   });
 
   it('marks the token owner verified after atomic consumption', async () => {
@@ -51,9 +52,12 @@ describe('VerifyEmailHandler', () => {
     });
     users.markEmailVerified.mockResolvedValue(false);
 
-    await expect(
-      handler.execute(new VerifyEmailCommand('valid-old-token')),
-    ).rejects.toBeInstanceOf(InvalidEmailVerificationTokenException);
+    const result = await handler.execute(
+      new VerifyEmailCommand('valid-old-token'),
+    );
+    expect(result.getError()).toBeInstanceOf(
+      InvalidEmailVerificationTokenException,
+    );
     expect(users.markEmailVerified).toHaveBeenCalledWith(
       'user-id',
       'old@example.com',
