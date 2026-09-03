@@ -78,7 +78,7 @@ Redis có nhiều vai trò: session store, application cache và BullMQ backing 
 
 ## Queue
 
-`QueueModule` bind `JobQueuePort` với `BullMqQueueAdapter`. `bull-connection.ts` tạo BullMQ connection options từ config. Adapter test đảm bảo job name, payload và options đi đúng queue.
+`QueueModule` bind `JobQueuePort` với `BullmqQueueAdapter`. `bull-connection.ts` tạo BullMQ connection options từ config. Adapter test đảm bảo job name, payload và options đi đúng queue.
 
 API process chỉ enqueue. Worker process consume. Queue payload phải là plain serializable object và chứa correlation ID nếu job bắt nguồn từ request, để log nối được từ HTTP sang background processing.
 

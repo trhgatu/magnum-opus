@@ -109,7 +109,7 @@ Runtime hiện cung cấp ba endpoint owner-scoped:
 - `GET /habits/:habitId/check-ins?from=YYYY-MM-DD&to=YYYY-MM-DD`: trả các ngày đã check-in trong khoảng, tối đa 366 ngày, làm dữ liệu đầu vào cho heatmap.
 - `GET /habits/:habitId/check-ins/today`: trả calendar date theo `User.timeZone` cùng trạng thái check-in hiện tại. Client dùng endpoint này thay vì suy đoán “hôm nay” bằng timezone của browser hoặc Next.js process.
 
-Luồng ghi không import `Habit` aggregate trực tiếp. `HabitCheckInContextService` đọc `{ id, isActive }` qua `CheckInHabitReader`, đọc IANA timezone qua `UserTimeZoneReader`, lấy instant qua `Clock`, rồi mới tạo calendar date. Nhờ vậy Habit và HabitCheckIn vẫn là hai aggregate độc lập; test có thể cố định clock/timezone mà không sửa thời gian của máy chạy test. Habit đã archive không nhận check-in mới, nhưng vẫn được undo check-in hôm nay để sửa một thao tác nhầm trước đó.
+Luồng ghi không import `Habit` aggregate trực tiếp. `HabitCheckInContextService` đọc `{ id, isActive }` qua `OwnedHabitReader`, đọc IANA timezone qua `UserTimeZoneReader`, lấy instant qua `Clock`, rồi mới tạo calendar date. Nhờ vậy Habit và HabitCheckIn vẫn là hai aggregate độc lập; test có thể cố định clock/timezone mà không sửa thời gian của máy chạy test. Habit đã archive không nhận check-in mới, nhưng vẫn được undo check-in hôm nay để sửa một thao tác nhầm trước đó.
 
 ### Xem chi tiết Habit — heatmap
 

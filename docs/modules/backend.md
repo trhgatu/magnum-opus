@@ -224,7 +224,7 @@ Hai điểm kỹ thuật đáng nhớ khi mở rộng pattern này cho aggregate
 
 Forge được đăng ký vào API qua `ForgeModule`, hiện gom `HabitModule`, `HabitCheckInModule` và `RoutineModule`. Habit có các endpoint `POST /habits`, `GET /habits`, `GET /habits/:id`, `PUT /habits/:id`, `PATCH /habits/:id/archive` và `PATCH /habits/:id/restore`. Check-in có `PUT /habits/:habitId/check-ins/today`, `DELETE /habits/:habitId/check-ins/today`, `GET /habits/:habitId/check-ins/today` và `GET /habits/:habitId/check-ins?from=...&to=...`. Endpoint đọc `today` trả cả calendar date theo `User.timeZone` và record hiện tại để client không phải suy đoán ngày nghiệp vụ. Tất cả đều đi qua `JwtAuthGuard`, lấy owner từ access token và không nhận owner trong payload.
 
-Check-in hôm nay không dùng ngày của API process. Handler đọc Habit owner-scoped qua `CheckInHabitReader`, đọc `User.timeZone` qua `UserTimeZoneReader`, lấy instant qua `Clock`, rồi `HabitCheckInDate` chuyển instant đó thành `YYYY-MM-DD`. Repository thử insert; nếu Prisma trả `P2002`, nó chỉ coi là idempotent-success sau khi query lại và tìm thấy đúng record `(habitId, ownerId, date)`. Cách xác minh bằng dữ liệu này không phụ thuộc shape `meta.target` vốn đã thay đổi giữa các Prisma adapter.
+Check-in hôm nay không dùng ngày của API process. Handler đọc Habit owner-scoped qua `OwnedHabitReader`, đọc `User.timeZone` qua `UserTimeZoneReader`, lấy instant qua `Clock`, rồi `HabitCheckInDate` chuyển instant đó thành `YYYY-MM-DD`. Repository thử insert; nếu Prisma trả `P2002`, nó chỉ coi là idempotent-success sau khi query lại và tìm thấy đúng record `(habitId, ownerId, date)`. Cách xác minh bằng dữ liệu này không phụ thuộc shape `meta.target` vốn đã thay đổi giữa các Prisma adapter.
 
 `HabitMutationService` dùng chung flow owner-scoped load → preflight revision check → domain mutation → compare-and-swap update; nó không chứa business rule thay aggregate. Repository ghi bằng mapper tường minh, lookup luôn dùng `(id, ownerId)`, còn update dùng `(id, ownerId, expectedRevision)`. E2E kiểm tra cả ownership isolation, stale revision, list filter, archive và restore trên PostgreSQL thật.
 
@@ -268,7 +268,7 @@ Dashboard là read model tổng hợp users, roles, trạng thái hệ thống v
 
 Menu trả navigation items phù hợp với permissions. Dữ liệu menu được seed trong database để có thể cấu hình hierarchy/order/icon mà không hard-code toàn bộ ở frontend.
 
-`GetMenusHandler` nhận principal permissions, `PrismaMenuReader` đọc menu, rồi kết quả chỉ chứa item caller được phép nhìn thấy. Ẩn menu ở UI không thay thế backend guard; đây chỉ là usability layer.
+`GetMenusQueryHandler` nhận principal permissions, `PrismaMenuReader` đọc menu, rồi kết quả chỉ chứa item caller được phép nhìn thấy. Ẩn menu ở UI không thay thế backend guard; đây chỉ là usability layer.
 
 ## Storage
 
