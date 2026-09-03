@@ -515,4 +515,27 @@ describe("MemoryEditor", () => {
       'Đã cập nhật "Bản local được giữ lại"',
     );
   });
+
+  it("does not warn about leaving before any field is edited", () => {
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    render(<MemoryEditor initialMemory={existingMemory} />);
+
+    fireEvent.click(screen.getByRole("link", { name: "Hủy" }));
+
+    expect(confirmSpy).not.toHaveBeenCalled();
+    confirmSpy.mockRestore();
+  });
+
+  it("warns about leaving once a field has unsaved changes", () => {
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    render(<MemoryEditor initialMemory={existingMemory} />);
+
+    fireEvent.change(screen.getByLabelText("Nội dung"), {
+      target: { value: "Một câu vừa được thêm vào." },
+    });
+    fireEvent.click(screen.getByRole("link", { name: "Hủy" }));
+
+    expect(confirmSpy).toHaveBeenCalledOnce();
+    confirmSpy.mockRestore();
+  });
 });
