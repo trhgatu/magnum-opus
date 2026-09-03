@@ -252,6 +252,30 @@ export const toPublicApiError = (
       }
     : { kind: "unexpected", message: fallbackMessage };
 
+/** Nhánh lỗi dùng chung cho mọi Server Action dạng mutation trả về kết quả. */
+export interface MutationError {
+  status: "error";
+  message: string;
+  kind?: ApiErrorKind;
+  code?: string;
+  correlationId?: string;
+}
+
+/** Chuẩn hóa một lỗi bắt được trong Server Action thành MutationError. */
+export const toMutationError = (error: unknown): MutationError => {
+  const publicError = toPublicApiError(error);
+
+  return {
+    status: "error",
+    message: publicError.message,
+    kind: publicError.kind,
+    ...(error instanceof ApiError && error.code ? { code: error.code } : {}),
+    ...(publicError.correlationId
+      ? { correlationId: publicError.correlationId }
+      : {}),
+  };
+};
+
 /** Gọi API công khai (không cần đăng nhập). */
 export async function apiFetchPublic<T>(
   path: string,

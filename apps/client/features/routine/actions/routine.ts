@@ -3,35 +3,22 @@
 import type { RoutineDetailResponse, RoutineResponse } from "@repo/contracts";
 import { revalidatePath } from "next/cache";
 
-import {
-  ApiError,
-  apiFetch,
-  type ApiErrorKind,
-  toPublicApiError,
-} from "@/lib/api";
+import { apiFetch, type MutationError, toMutationError } from "@/lib/api";
 import { validId, validRevision } from "@/lib/validation";
-
-interface RoutineMutationError {
-  status: "error";
-  message: string;
-  kind?: ApiErrorKind;
-  code?: string;
-  correlationId?: string;
-}
 
 export type RoutineMutationResult =
   | {
       status: "success";
       routine: RoutineResponse;
     }
-  | RoutineMutationError;
+  | MutationError;
 
 export type ReloadRoutineResult =
   | {
       status: "success";
       routine: RoutineDetailResponse;
     }
-  | RoutineMutationError;
+  | MutationError;
 
 export interface CreateRoutineInput {
   title: string;
@@ -81,20 +68,6 @@ const normalizeTitle = (value: unknown): string | null => {
   return title;
 };
 
-const failure = (error: unknown): RoutineMutationError => {
-  const publicError = toPublicApiError(error);
-
-  return {
-    status: "error",
-    message: publicError.message,
-    kind: publicError.kind,
-    ...(error instanceof ApiError && error.code ? { code: error.code } : {}),
-    ...(publicError.correlationId
-      ? { correlationId: publicError.correlationId }
-      : {}),
-  };
-};
-
 const revalidateRoutine = (id: string) => {
   revalidatePath("/routines");
   revalidatePath(`/routines/${id}`);
@@ -124,7 +97,7 @@ export async function createRoutine(
       routine,
     };
   } catch (error) {
-    return failure(error);
+    return toMutationError(error);
   }
 }
 
@@ -144,7 +117,7 @@ export async function reloadRoutine(id: string): Promise<ReloadRoutineResult> {
       routine,
     };
   } catch (error) {
-    return failure(error);
+    return toMutationError(error);
   }
 }
 
@@ -176,7 +149,7 @@ export async function updateRoutineTitle(
       routine,
     };
   } catch (error) {
-    return failure(error);
+    return toMutationError(error);
   }
 }
 export async function changeRoutineState(
@@ -213,7 +186,7 @@ export async function changeRoutineState(
       routine,
     };
   } catch (error) {
-    return failure(error);
+    return toMutationError(error);
   }
 }
 
@@ -250,7 +223,7 @@ export async function addRoutineHabit(
       routine,
     };
   } catch (error) {
-    return failure(error);
+    return toMutationError(error);
   }
 }
 export async function removeRoutineHabit(
@@ -285,7 +258,7 @@ export async function removeRoutineHabit(
       routine,
     };
   } catch (error) {
-    return failure(error);
+    return toMutationError(error);
   }
 }
 
@@ -324,6 +297,6 @@ export async function moveRoutineHabit(
       routine,
     };
   } catch (error) {
-    return failure(error);
+    return toMutationError(error);
   }
 }

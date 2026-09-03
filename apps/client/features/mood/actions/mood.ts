@@ -7,41 +7,14 @@ import {
 } from "@repo/contracts";
 import { revalidatePath } from "next/cache";
 
-import {
-  ApiError,
-  apiFetch,
-  type ApiErrorKind,
-  toPublicApiError,
-} from "@/lib/api";
+import { apiFetch, type MutationError, toMutationError } from "@/lib/api";
 import { validId, validRevision } from "@/lib/validation";
-
-interface MoodMutationError {
-  status: "error";
-  message: string;
-  kind?: ApiErrorKind;
-  code?: string;
-  correlationId?: string;
-}
 
 export type MoodMutationResult =
   | { status: "success"; mood: MoodResponse }
-  | MoodMutationError;
+  | MutationError;
 
-export type MoodRemoveResult = { status: "success" } | MoodMutationError;
-
-const failure = (error: unknown): MoodMutationError => {
-  const publicError = toPublicApiError(error);
-
-  return {
-    status: "error",
-    message: publicError.message,
-    kind: publicError.kind,
-    ...(error instanceof ApiError && error.code ? { code: error.code } : {}),
-    ...(publicError.correlationId
-      ? { correlationId: publicError.correlationId }
-      : {}),
-  };
-};
+export type MoodRemoveResult = { status: "success" } | MutationError;
 
 const validIntensity = (intensity: unknown): intensity is number | null =>
   intensity === null ||
@@ -95,7 +68,7 @@ export async function setMood(input: {
     revalidatePath(`/journal/${input.journalEntryId}`);
     return { status: "success", mood };
   } catch (error) {
-    return failure(error);
+    return toMutationError(error);
   }
 }
 
@@ -119,6 +92,6 @@ export async function removeMood(input: {
     revalidatePath(`/journal/${input.journalEntryId}`);
     return { status: "success" };
   } catch (error) {
-    return failure(error);
+    return toMutationError(error);
   }
 }

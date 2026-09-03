@@ -4,42 +4,16 @@ import type { JournalEntryResponse } from "@repo/contracts";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import {
-  ApiError,
-  apiFetch,
-  type ApiErrorKind,
-  toPublicApiError,
-} from "@/lib/api";
+import { apiFetch, type MutationError, toMutationError } from "@/lib/api";
 import { validId, validRevision } from "@/lib/validation";
 
 export type JournalLifecycleAction = "seal" | "reopen" | "trash" | "restore";
 
-interface JournalMutationError {
-  status: "error";
-  message: string;
-  kind?: ApiErrorKind;
-  code?: string;
-  correlationId?: string;
-}
-
 export type JournalMutationResult =
   | { status: "success"; entry: JournalEntryResponse }
-  | JournalMutationError;
+  | MutationError;
 
-export type JournalDeleteResult = { status: "success" } | JournalMutationError;
-
-const failure = (error: unknown): JournalMutationResult => {
-  const publicError = toPublicApiError(error);
-  return {
-    status: "error",
-    message: publicError.message,
-    kind: publicError.kind,
-    ...(error instanceof ApiError && error.code ? { code: error.code } : {}),
-    ...(publicError.correlationId
-      ? { correlationId: publicError.correlationId }
-      : {}),
-  };
-};
+export type JournalDeleteResult = { status: "success" } | MutationError;
 
 export async function createJournalEntry(): Promise<void> {
   let entry: JournalEntryResponse | undefined;
@@ -53,7 +27,7 @@ export async function createJournalEntry(): Promise<void> {
   if (!entry) redirect("/journal?createFailed=1");
 
   revalidatePath("/journal");
-  redirect("/journal/" + entry.id);
+  redirect(`/journal/${entry.id}`);
 }
 
 export async function updateJournalEntry(input: {
@@ -73,7 +47,7 @@ export async function updateJournalEntry(input: {
 
   try {
     const entry = await apiFetch<JournalEntryResponse>(
-      "/journal/entries/" + input.id,
+      `/journal/entries/${input.id}`,
       {
         method: "PUT",
         body: JSON.stringify({
@@ -84,10 +58,10 @@ export async function updateJournalEntry(input: {
       },
     );
     revalidatePath("/journal");
-    revalidatePath("/journal/" + input.id);
+    revalidatePath(`/journal/${input.id}`);
     return { status: "success", entry };
   } catch (error) {
-    return failure(error);
+    return toMutationError(error);
   }
 }
 
@@ -100,11 +74,11 @@ export async function reloadJournalEntry(
 
   try {
     const entry = await apiFetch<JournalEntryResponse>(
-      "/journal/entries/" + id,
+      `/journal/entries/${id}`,
     );
     return { status: "success", entry };
   } catch (error) {
-    return failure(error);
+    return toMutationError(error);
   }
 }
 
@@ -119,17 +93,17 @@ export async function changeJournalEntryState(input: {
 
   try {
     const entry = await apiFetch<JournalEntryResponse>(
-      "/journal/entries/" + input.id + "/" + input.action,
+      `/journal/entries/${input.id}/${input.action}`,
       {
         method: "PATCH",
         body: JSON.stringify({ expectedRevision: input.expectedRevision }),
       },
     );
     revalidatePath("/journal");
-    revalidatePath("/journal/" + input.id);
+    revalidatePath(`/journal/${input.id}`);
     return { status: "success", entry };
   } catch (error) {
-    return failure(error);
+    return toMutationError(error);
   }
 }
 
@@ -143,17 +117,11 @@ export async function deleteJournalEntryPermanently(input: {
 
   try {
     await apiFetch<void>(
-      "/journal/entries/" +
-        input.id +
-        "?expectedRevision=" +
-        input.expectedRevision,
+      `/journal/entries/${input.id}?expectedRevision=${input.expectedRevision}`,
       { method: "DELETE" },
     );
   } catch (error) {
-    const result = failure(error);
-    return result.status === "error"
-      ? result
-      : { status: "error", message: "Không thể xóa bản ghi." };
+    return toMutationError(error);
   }
 
   revalidatePath("/journal");

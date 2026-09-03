@@ -4,7 +4,13 @@ import type { Session } from "./session";
 const getSession = vi.fn<() => Promise<Session | null>>();
 vi.mock("./session", () => ({ getSession: () => getSession() }));
 
-import { ApiError, apiFetch, apiFetchPublic, toPublicApiError } from "./api";
+import {
+  ApiError,
+  apiFetch,
+  apiFetchPublic,
+  toMutationError,
+  toPublicApiError,
+} from "./api";
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -193,6 +199,34 @@ describe("toPublicApiError", () => {
       correlationId: "request-456",
     });
     expect(toPublicApiError(new Error("secret detail"))).toEqual({
+      kind: "unexpected",
+      message: "Đã xảy ra lỗi. Vui lòng thử lại.",
+    });
+  });
+});
+
+describe("toMutationError", () => {
+  it("giữ lại code nghiệp vụ để nhận diện xung đột revision", () => {
+    const error = new ApiError({
+      kind: "conflict",
+      status: 409,
+      code: "HABIT_REVISION_CONFLICT",
+      correlationId: "request-789",
+      message: "Thói quen đã thay đổi ở một phiên làm việc khác.",
+    });
+
+    expect(toMutationError(error)).toEqual({
+      status: "error",
+      kind: "conflict",
+      message: "Thói quen đã thay đổi ở một phiên làm việc khác.",
+      code: "HABIT_REVISION_CONFLICT",
+      correlationId: "request-789",
+    });
+  });
+
+  it("không lộ chi tiết lỗi nội bộ cho error không phải ApiError", () => {
+    expect(toMutationError(new Error("secret detail"))).toEqual({
+      status: "error",
       kind: "unexpected",
       message: "Đã xảy ra lỗi. Vui lòng thử lại.",
     });
