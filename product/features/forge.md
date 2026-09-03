@@ -129,7 +129,7 @@ Create, list và mutation response trả `habitIds` vì các flow đó chỉ c�
 
 Client tổ chức theo feature boundary `features/routine/{api,actions,lib,components}`. Collection và detail là Server Component; API adapter chỉ chạy phía server. Editor, lifecycle và membership manager là các Client Component nhỏ gọi Server Action. Mọi mutation gửi `expectedRevision`, giữ lại error code an toàn để UI nhận biết conflict, rồi revalidate collection và detail. URL là nguồn sự thật cho search, trạng thái, sort và pagination; reload hoặc back/forward không làm mất view hiện tại.
 
-Trang detail không tải trước toàn bộ Habit vào React payload. Khi selector được mở, Client Component tìm kiếm qua Next.js BFF Route Handler; backend phân trang và loại ngay trong PostgreSQL các Habit đã thuộc Routine, đã archive hoặc thuộc owner khác. Browser chỉ nhận read model tối thiểu `{ id, title }`. Habit đã archive nhưng đã tồn tại trong membership vẫn được hiển thị trong trình tự để không làm mất lịch sử.
+Trang detail không tải trước toàn bộ Habit vào React payload. Khi selector được mở, Client Component tìm kiếm qua Next.js BFF Route Handler; backend phân trang và loại ngay trong PostgreSQL các Habit đã thuộc Routine, đã archive hoặc thuộc owner khác. Browser chỉ nhận read model tối thiểu `{ id, title }`. Habit đã archive nhưng đã tồn tại trong membership vẫn được hiển thị trong nếp sinh hoạt để không làm mất lịch sử.
 
 ### Trang "Hôm nay"
 

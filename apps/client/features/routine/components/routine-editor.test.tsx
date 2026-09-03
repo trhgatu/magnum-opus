@@ -58,11 +58,13 @@ describe("RoutineEditor", () => {
     createRoutine.mockResolvedValue({ status: "success", routine });
     render(<RoutineEditor />);
 
-    fireEvent.change(screen.getByLabelText("Tên Trình tự"), {
+    fireEvent.change(screen.getByLabelText("Tên Nếp sinh hoạt"), {
       target: { value: "Morning ritual" },
     });
     fireEvent.submit(
-      screen.getByRole("button", { name: "Tạo Trình tự" }).closest("form")!,
+      screen
+        .getByRole("button", { name: "Tạo Nếp sinh hoạt" })
+        .closest("form")!,
     );
 
     await waitFor(() =>
@@ -80,7 +82,7 @@ describe("RoutineEditor", () => {
     });
     render(<RoutineEditor initialRoutine={routine} />);
 
-    fireEvent.change(screen.getByLabelText("Tên Trình tự"), {
+    fireEvent.change(screen.getByLabelText("Tên Nếp sinh hoạt"), {
       target: { value: "Evening ritual" },
     });
     fireEvent.submit(
@@ -101,7 +103,7 @@ describe("RoutineEditor", () => {
   it("offers to reload when the revision is stale", async () => {
     updateRoutineTitle.mockResolvedValue({
       status: "error",
-      message: "Trình tự đã thay đổi ở một phiên làm việc khác.",
+      message: "Nếp sinh hoạt đã thay đổi ở một phiên làm việc khác.",
       kind: "conflict",
       code: "ROUTINE_REVISION_CONFLICT",
     });
@@ -123,7 +125,7 @@ describe("RoutineEditor", () => {
 
     expect(
       await screen.findByRole("heading", {
-        name: "Trình tự đã được thay đổi ở nơi khác",
+        name: "Nếp sinh hoạt đã được thay đổi ở nơi khác",
       }),
     ).toBeInTheDocument();
 
@@ -140,7 +142,7 @@ describe("RoutineEditor", () => {
     await waitFor(() => expect(reloadRoutine).toHaveBeenCalledWith(routine.id));
 
     expect(
-      (screen.getByLabelText("Tên Trình tự") as HTMLInputElement).value,
+      (screen.getByLabelText("Tên Nếp sinh hoạt") as HTMLInputElement).value,
     ).toBe("Bản mới nhất từ server");
     expect(push).not.toHaveBeenCalled();
   });
@@ -149,7 +151,7 @@ describe("RoutineEditor", () => {
     updateRoutineTitle
       .mockResolvedValueOnce({
         status: "error",
-        message: "Trình tự đã thay đổi ở một phiên làm việc khác.",
+        message: "Nếp sinh hoạt đã thay đổi ở một phiên làm việc khác.",
         kind: "conflict",
         code: "ROUTINE_REVISION_CONFLICT",
       })
@@ -169,7 +171,7 @@ describe("RoutineEditor", () => {
 
     render(<RoutineEditor initialRoutine={routine} />);
 
-    fireEvent.change(screen.getByLabelText("Tên Trình tự"), {
+    fireEvent.change(screen.getByLabelText("Tên Nếp sinh hoạt"), {
       target: { value: "Bản local được giữ lại" },
     });
 
@@ -205,7 +207,7 @@ describe("RoutineEditor", () => {
   it("keeps the draft on screen when the routine was archived elsewhere", async () => {
     updateRoutineTitle.mockResolvedValue({
       status: "error",
-      message: "Trình tự đã thay đổi ở một phiên làm việc khác.",
+      message: "Nếp sinh hoạt đã thay đổi ở một phiên làm việc khác.",
       kind: "conflict",
       code: "ROUTINE_REVISION_CONFLICT",
     });
@@ -216,7 +218,7 @@ describe("RoutineEditor", () => {
 
     render(<RoutineEditor initialRoutine={routine} />);
 
-    fireEvent.change(screen.getByLabelText("Tên Trình tự"), {
+    fireEvent.change(screen.getByLabelText("Tên Nếp sinh hoạt"), {
       target: { value: "Bản đang viết dở" },
     });
 
@@ -236,12 +238,12 @@ describe("RoutineEditor", () => {
 
     expect(
       await screen.findByText(
-        "Trình tự đã được lưu trữ ở nơi khác. Nội dung đang viết vẫn được giữ trên màn hình để sao chép.",
+        "Nếp sinh hoạt đã được lưu trữ ở nơi khác. Nội dung đang viết vẫn được giữ trên màn hình để sao chép.",
       ),
     ).toBeInTheDocument();
 
     expect(
-      (screen.getByLabelText("Tên Trình tự") as HTMLInputElement).value,
+      (screen.getByLabelText("Tên Nếp sinh hoạt") as HTMLInputElement).value,
     ).toBe("Bản đang viết dở");
     expect(updateRoutineTitle).toHaveBeenCalledTimes(1);
     expect(push).not.toHaveBeenCalled();
@@ -261,7 +263,7 @@ describe("RoutineEditor", () => {
     const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
     render(<RoutineEditor initialRoutine={routine} />);
 
-    fireEvent.change(screen.getByLabelText("Tên Trình tự"), {
+    fireEvent.change(screen.getByLabelText("Tên Nếp sinh hoạt"), {
       target: { value: "Evening ritual" },
     });
     fireEvent.click(screen.getByRole("link", { name: "Hủy" }));

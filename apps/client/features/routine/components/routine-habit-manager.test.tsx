@@ -102,7 +102,9 @@ describe("RoutineHabitManager", () => {
     fireEvent.change(screen.getByRole("combobox"), {
       target: { value: selectableHabitId },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Thêm vào Trình tự" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Thêm vào Nếp sinh hoạt" }),
+    );
 
     await waitFor(() =>
       expect(addRoutineHabit).toHaveBeenCalledWith({
@@ -112,7 +114,7 @@ describe("RoutineHabitManager", () => {
       }),
     );
     expect(notifySuccess).toHaveBeenCalledWith(
-      "Đã thêm Thói quen vào Trình tự",
+      "Đã thêm Thói quen vào Nếp sinh hoạt",
     );
     expect(refresh).toHaveBeenCalledOnce();
   });
@@ -138,7 +140,7 @@ describe("RoutineHabitManager", () => {
     );
 
     const removeButton = screen.getByRole("button", {
-      name: "Gỡ Stretch khỏi Trình tự",
+      name: "Gỡ Stretch khỏi Nếp sinh hoạt",
     });
     await waitFor(() => expect(removeButton).not.toBeDisabled());
 
@@ -150,7 +152,9 @@ describe("RoutineHabitManager", () => {
         expectedRevision: routine.revision,
       }),
     );
-    expect(notifySuccess).toHaveBeenCalledWith('Đã gỡ "Stretch" khỏi Trình tự');
+    expect(notifySuccess).toHaveBeenCalledWith(
+      'Đã gỡ "Stretch" khỏi Nếp sinh hoạt',
+    );
   });
 
   it("does not expose membership mutations for an archived Routine", () => {
@@ -158,7 +162,7 @@ describe("RoutineHabitManager", () => {
 
     expect(screen.queryByRole("combobox")).toBeNull();
     expect(
-      screen.queryByRole("button", { name: /Gỡ .* khỏi Trình tự/ }),
+      screen.queryByRole("button", { name: /Gỡ .* khỏi Nếp sinh hoạt/ }),
     ).toBeNull();
   });
 
@@ -177,7 +181,7 @@ describe("RoutineHabitManager", () => {
 
     expect(
       await screen.findByText(
-        "Trình tự đã thay đổi. Tải lại bản mới nhất trước khi tiếp tục.",
+        "Nếp sinh hoạt đã thay đổi. Tải lại bản mới nhất trước khi tiếp tục.",
       ),
     ).toBeInTheDocument();
     expect(refresh).not.toHaveBeenCalled();

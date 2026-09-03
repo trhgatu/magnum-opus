@@ -61,7 +61,7 @@ export function RoutineLifecycleControls({
           setError({
             code: result.code,
             message: isRevisionConflict(result.code)
-              ? "Trình tự đã thay đổi ở một phiên làm việc khác."
+              ? "Nếp sinh hoạt đã thay đổi ở một phiên làm việc khác."
               : result.message,
           });
 
@@ -77,7 +77,7 @@ export function RoutineLifecycleControls({
         router.refresh();
       } catch {
         setError({
-          message: "Không thể cập nhật trình tự. Vui lòng thử lại.",
+          message: "Không thể cập nhật Nếp sinh hoạt. Vui lòng thử lại.",
         });
       }
     });
@@ -88,7 +88,7 @@ export function RoutineLifecycleControls({
       role="group"
       className="space-y-2"
       aria-busy={isPending}
-      aria-label="Thao tác vòng đời trình tự"
+      aria-label="Thao tác vòng đời Nếp sinh hoạt"
     >
       {error ? (
         <LifecycleErrorAlert

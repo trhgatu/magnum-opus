@@ -98,7 +98,7 @@ export function RoutineEditor({
         setIsEditable(latest.routine.isActive);
         if (!latest.routine.isActive) {
           setMessage(
-            "Trình tự không còn ở trạng thái có thể chỉnh sửa. Nội dung mới nhất đã được hiển thị để xem qua.",
+            "Nếp sinh hoạt không còn ở trạng thái có thể chỉnh sửa. Nội dung mới nhất đã được hiển thị để xem qua.",
           );
         }
         return;
@@ -109,7 +109,7 @@ export function RoutineEditor({
         setHasConflict(false);
         setIsEditable(false);
         setMessage(
-          "Trình tự đã được lưu trữ ở nơi khác. Nội dung đang viết vẫn được giữ trên màn hình để sao chép.",
+          "Nếp sinh hoạt đã được lưu trữ ở nơi khác. Nội dung đang viết vẫn được giữ trên màn hình để sao chép.",
         );
         return;
       }
@@ -125,7 +125,7 @@ export function RoutineEditor({
         setHasConflict(result.code === "ROUTINE_REVISION_CONFLICT");
         setRecoveryError(
           result.code === "ROUTINE_REVISION_CONFLICT"
-            ? "Trình tự lại thay đổi trong lúc xử lý. Nội dung đang viết vẫn được giữ."
+            ? "Nếp sinh hoạt lại thay đổi trong lúc xử lý. Nội dung đang viết vẫn được giữ."
             : result.message,
         );
         return;
@@ -142,7 +142,7 @@ export function RoutineEditor({
     <form onSubmit={submit} className="space-y-4" aria-busy={isPending}>
       {hasConflict ? (
         <ConflictAlert
-          title="Trình tự đã được thay đổi ở nơi khác"
+          title="Nếp sinh hoạt đã được thay đổi ở nơi khác"
           description="Nội dung đang viết vẫn còn nguyên trên màn hình. Chọn bản mới nhất để bỏ phần đang viết, hoặc chủ động ghi nội dung này lên revision mới nhất."
           busy={isPending}
           recoveryError={recoveryError}
@@ -162,10 +162,11 @@ export function RoutineEditor({
             </span>
             <div>
               <h2 className="font-display text-xl font-semibold">
-                Định danh trình tự
+                Định danh Nếp sinh hoạt
               </h2>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                Một tên ngắn, gợi đúng khoảnh khắc Trình tự sẽ được thực hiện.
+                Một tên ngắn, gợi đúng khoảnh khắc Nếp sinh hoạt sẽ được thực
+                hiện.
               </p>
             </div>
           </div>
@@ -173,7 +174,7 @@ export function RoutineEditor({
 
         <div className="space-y-3 px-5 py-6 sm:px-7 sm:py-7">
           <div className="flex items-center justify-between gap-3">
-            <Label htmlFor="routine-title">Tên Trình tự</Label>
+            <Label htmlFor="routine-title">Tên Nếp sinh hoạt</Label>
             <span className="font-mono text-[11px] text-muted-foreground">
               {title.length}/200
             </span>
@@ -197,7 +198,7 @@ export function RoutineEditor({
               </span>
               <p className="leading-6 text-muted-foreground">
                 Sau khi tạo, các Thói quen sẽ được chọn và sắp xếp trong trang
-                chi tiết để hình thành trình tự hoàn chỉnh.
+                chi tiết để hình thành Nếp sinh hoạt hoàn chỉnh.
               </p>
             </div>
           ) : null}
@@ -224,7 +225,7 @@ export function RoutineEditor({
               ? "Đang lưu…"
               : persistedRoutine
                 ? "Lưu thay đổi"
-                : "Tạo Trình tự"}
+                : "Tạo Nếp sinh hoạt"}
           </Button>
         </footer>
       </section>

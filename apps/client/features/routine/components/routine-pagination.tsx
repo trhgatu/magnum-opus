@@ -18,7 +18,7 @@ export function RoutinePagination({
 
   return (
     <nav
-      aria-label="Phân trang Trình tự"
+      aria-label="Phân trang Nếp sinh hoạt"
       className="flex items-center justify-between text-sm"
     >
       <span className="text-muted-foreground">

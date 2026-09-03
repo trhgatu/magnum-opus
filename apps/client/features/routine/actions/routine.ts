@@ -81,7 +81,7 @@ export async function createRoutine(
   if (!title) {
     return {
       status: "error",
-      message: "Tiêu đề Trình tự không hợp lệ.",
+      message: "Tiêu đề Nếp sinh hoạt không hợp lệ.",
     };
   }
 
@@ -105,7 +105,7 @@ export async function reloadRoutine(id: string): Promise<ReloadRoutineResult> {
   if (!validId(id)) {
     return {
       status: "error",
-      message: "Dữ liệu Trình tự không hợp lệ.",
+      message: "Dữ liệu Nếp sinh hoạt không hợp lệ.",
     };
   }
 
@@ -129,7 +129,7 @@ export async function updateRoutineTitle(
   if (!validId(input.id) || !validRevision(input.expectedRevision) || !title) {
     return {
       status: "error",
-      message: "Dữ liệu Trình tự không hợp lệ.",
+      message: "Dữ liệu Nếp sinh hoạt không hợp lệ.",
     };
   }
 
@@ -164,7 +164,7 @@ export async function changeRoutineState(
   ) {
     return {
       status: "error",
-      message: "Dữ liệu Trình tự không hợp lệ.",
+      message: "Dữ liệu Nếp sinh hoạt không hợp lệ.",
     };
   }
 
@@ -200,7 +200,7 @@ export async function addRoutineHabit(
   ) {
     return {
       status: "error",
-      message: "Dữ liệu Thói quen của Trình tự không hợp lệ.",
+      message: "Dữ liệu Thói quen của Nếp sinh hoạt không hợp lệ.",
     };
   }
 
@@ -236,7 +236,7 @@ export async function removeRoutineHabit(
   ) {
     return {
       status: "error",
-      message: "Dữ liệu Thói quen của Trình tự không hợp lệ.",
+      message: "Dữ liệu Thói quen của Nếp sinh hoạt không hợp lệ.",
     };
   }
   const params = new URLSearchParams({
@@ -275,7 +275,7 @@ export async function moveRoutineHabit(
   ) {
     return {
       status: "error",
-      message: "Dữ liệu Thói quen của Trình tự không hợp lệ.",
+      message: "Dữ liệu Thói quen của Nếp sinh hoạt không hợp lệ.",
     };
   }
 

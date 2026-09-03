@@ -45,7 +45,7 @@ export const productNavigation = [
       { id: "habits", label: "Thói quen", href: "/habits", icon: Repeat2 },
       {
         id: "routines",
-        label: "Trình tự",
+        label: "Nếp sinh hoạt",
         href: "/routines",
         icon: ListChecks,
       },

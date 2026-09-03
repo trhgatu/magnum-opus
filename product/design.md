@@ -43,7 +43,7 @@ Tên hiển thị chuẩn:
 | Memory / Memories | `Ký ức`            |
 | Mood              | `Tâm trạng`        |
 | Habit             | `Thói quen`        |
-| Routine           | `Trình tự`         |
+| Routine           | `Nếp sinh hoạt`    |
 | Today             | `Hôm nay`          |
 | Timeline          | `Dòng thời gian`   |
 
@@ -100,7 +100,7 @@ Forge chắc, có cấu trúc và thiên về thực hành.
 
 - **Habit — practice record:** hiển thị hành động, nhịp lặp và check-in gần nhất.
 - **Routine — assembly/workbench:** nhấn mạnh danh sách Habit có thứ tự và thao tác tổ chức.
-- **Today — daily execution surface:** nhóm những Habit đến hạn theo Trình tự, giữ thao tác check-in trực tiếp và nhẹ; không biến kết quả trong ngày thành điểm số, streak hoặc trạng thái hoàn thành cả Trình tự.
+- **Today — daily execution surface:** nhóm những Habit đến hạn theo Nếp sinh hoạt, giữ thao tác check-in trực tiếp và nhẹ; không biến kết quả trong ngày thành điểm số, streak hoặc trạng thái hoàn thành cả Nếp sinh hoạt.
 - Control có thể dày hơn Reflection nhưng không biến thành dashboard năng suất.
 
 Nếu thêm context mới, trước tiên xác định ẩn dụ chức năng của context đó bằng một câu. Sau đó thể hiện ẩn dụ qua hierarchy và layout, không phải qua decoration.

@@ -80,7 +80,7 @@ describe("Routine Server Actions", () => {
       }),
     ).resolves.toEqual({
       status: "error",
-      message: "Tiêu đề Trình tự không hợp lệ.",
+      message: "Tiêu đề Nếp sinh hoạt không hợp lệ.",
     });
 
     expect(apiFetch).not.toHaveBeenCalled();
@@ -128,7 +128,7 @@ describe("Routine Server Actions", () => {
       }),
     ).resolves.toEqual({
       status: "error",
-      message: "Dữ liệu Trình tự không hợp lệ.",
+      message: "Dữ liệu Nếp sinh hoạt không hợp lệ.",
     });
 
     expect(apiFetch).not.toHaveBeenCalled();
@@ -159,7 +159,7 @@ describe("Routine Server Actions", () => {
   it("rejects an invalid id when reloading a Routine", async () => {
     await expect(reloadRoutine("not-a-uuid")).resolves.toEqual({
       status: "error",
-      message: "Dữ liệu Trình tự không hợp lệ.",
+      message: "Dữ liệu Nếp sinh hoạt không hợp lệ.",
     });
 
     expect(apiFetch).not.toHaveBeenCalled();
@@ -239,7 +239,7 @@ describe("Routine Server Actions", () => {
       }),
     ).resolves.toEqual({
       status: "error",
-      message: "Dữ liệu Trình tự không hợp lệ.",
+      message: "Dữ liệu Nếp sinh hoạt không hợp lệ.",
     });
 
     expect(apiFetch).not.toHaveBeenCalled();
@@ -356,7 +356,7 @@ describe("Routine Server Actions", () => {
       }),
     ).resolves.toEqual({
       status: "error",
-      message: "Dữ liệu Thói quen của Trình tự không hợp lệ.",
+      message: "Dữ liệu Thói quen của Nếp sinh hoạt không hợp lệ.",
     });
 
     expect(apiFetch).not.toHaveBeenCalled();
@@ -373,7 +373,7 @@ describe("Routine Server Actions", () => {
       }),
     ).resolves.toEqual({
       status: "error",
-      message: "Dữ liệu Thói quen của Trình tự không hợp lệ.",
+      message: "Dữ liệu Thói quen của Nếp sinh hoạt không hợp lệ.",
     });
 
     expect(apiFetch).not.toHaveBeenCalled();

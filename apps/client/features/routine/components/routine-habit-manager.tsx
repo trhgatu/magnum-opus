@@ -39,7 +39,7 @@ export function RoutineHabitManager({
       if (result.status === "error") {
         setMessage(
           result.code === "ROUTINE_REVISION_CONFLICT"
-            ? "Trình tự đã thay đổi. Tải lại bản mới nhất trước khi tiếp tục."
+            ? "Nếp sinh hoạt đã thay đổi. Tải lại bản mới nhất trước khi tiếp tục."
             : result.message,
         );
         return;
@@ -61,7 +61,7 @@ export function RoutineHabitManager({
           habitId: selectedHabitId,
           expectedRevision: routine.revision,
         }),
-      "Đã thêm Thói quen vào Trình tự",
+      "Đã thêm Thói quen vào Nếp sinh hoạt",
       () => setSelectedHabitId(""),
     );
   };
@@ -78,10 +78,10 @@ export function RoutineHabitManager({
               id="routine-habits-heading"
               className="font-display text-2xl font-semibold tracking-tight"
             >
-              Trình tự Thói quen
+              Thói quen trong Nếp sinh hoạt
             </h2>
             <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              Từ trên xuống dưới là nhịp thực hiện của Trình tự.
+              Từ trên xuống dưới là nhịp thực hiện của Nếp sinh hoạt.
             </p>
           </div>
         </div>
@@ -114,7 +114,7 @@ export function RoutineHabitManager({
               onClick={addSelectedHabit}
               disabled={isPending || !selectedHabitId}
             >
-              <Plus aria-hidden="true" /> Thêm vào Trình tự
+              <Plus aria-hidden="true" /> Thêm vào Nếp sinh hoạt
             </Button>
           </div>
         </div>
@@ -195,7 +195,7 @@ export function RoutineHabitManager({
                     type="button"
                     size="icon-sm"
                     variant="ghost"
-                    aria-label={`Gỡ ${habit.title} khỏi Trình tự`}
+                    aria-label={`Gỡ ${habit.title} khỏi Nếp sinh hoạt`}
                     disabled={isPending}
                     onClick={() =>
                       run(
@@ -205,7 +205,7 @@ export function RoutineHabitManager({
                             habitId: habit.id,
                             expectedRevision: routine.revision,
                           }),
-                        `Đã gỡ "${habit.title}" khỏi Trình tự`,
+                        `Đã gỡ "${habit.title}" khỏi Nếp sinh hoạt`,
                       )
                     }
                   >
@@ -222,10 +222,10 @@ export function RoutineHabitManager({
             <CircleDashed className="size-5" aria-hidden="true" />
           </span>
           <p className="mt-4 font-display text-lg font-semibold">
-            Trình tự chưa được khởi tạo
+            Nếp sinh hoạt chưa được khởi tạo
           </p>
           <p className="mt-1 max-w-sm text-sm leading-6 text-muted-foreground">
-            Thêm Thói quen đầu tiên để đặt viên đá mở đầu cho Trình tự này.
+            Thêm Thói quen đầu tiên để đặt viên đá mở đầu cho Nếp sinh hoạt này.
           </p>
         </div>
       )}

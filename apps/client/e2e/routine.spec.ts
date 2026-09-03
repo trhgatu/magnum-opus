@@ -38,11 +38,11 @@ test("completes the private Routine lifecycle through the BFF", async ({
 
   await page.goto("/routines");
   await expect(
-    page.getByRole("heading", { name: "Trình tự", exact: true }),
+    page.getByRole("heading", { name: "Nếp sinh hoạt", exact: true }),
   ).toBeVisible();
-  await page.getByRole("link", { name: "Tạo Trình tự" }).click();
-  await page.getByLabel("Tên Trình tự").fill(title);
-  await page.getByRole("button", { name: "Tạo Trình tự" }).click();
+  await page.getByRole("link", { name: "Tạo Nếp sinh hoạt" }).click();
+  await page.getByLabel("Tên Nếp sinh hoạt").fill(title);
+  await page.getByRole("button", { name: "Tạo Nếp sinh hoạt" }).click();
 
   await expect(page).toHaveURL(/\/routines\/[0-9a-f-]+$/);
   await expect(page.getByRole("heading", { name: title })).toBeVisible();
@@ -53,7 +53,7 @@ test("completes the private Routine lifecycle through the BFF", async ({
     .getByRole("textbox", { name: "Tìm Thói quen theo tên" })
     .fill(firstHabit);
   await page.getByRole("option", { name: firstHabit }).click();
-  await page.getByRole("button", { name: "Thêm vào Trình tự" }).click();
+  await page.getByRole("button", { name: "Thêm vào Nếp sinh hoạt" }).click();
   await expect(page.getByText(firstHabit, { exact: true })).toBeVisible();
 
   await page.getByRole("combobox").click();
@@ -61,7 +61,7 @@ test("completes the private Routine lifecycle through the BFF", async ({
     .getByRole("textbox", { name: "Tìm Thói quen theo tên" })
     .fill(secondHabit);
   await page.getByRole("option", { name: secondHabit }).click();
-  await page.getByRole("button", { name: "Thêm vào Trình tự" }).click();
+  await page.getByRole("button", { name: "Thêm vào Nếp sinh hoạt" }).click();
   await expect(page.getByText(secondHabit, { exact: true })).toBeVisible();
 
   await page
@@ -72,17 +72,17 @@ test("completes the private Routine lifecycle through the BFF", async ({
   await expect(orderedHabits.nth(1)).toContainText(firstHabit);
 
   await page
-    .getByRole("button", { name: `Gỡ ${firstHabit} khỏi Trình tự` })
+    .getByRole("button", { name: `Gỡ ${firstHabit} khỏi Nếp sinh hoạt` })
     .click();
   await expect(page.getByText(firstHabit, { exact: true })).not.toBeVisible();
 
   await page.getByRole("link", { name: "Chỉnh sửa" }).click();
-  await page.getByLabel("Tên Trình tự").fill(updatedTitle);
+  await page.getByLabel("Tên Nếp sinh hoạt").fill(updatedTitle);
   await page.getByRole("button", { name: "Lưu thay đổi" }).click();
   await expect(page.getByRole("heading", { name: updatedTitle })).toBeVisible();
   await expect(page.getByText(`Đã cập nhật "${updatedTitle}"`)).toBeVisible();
 
-  // Lưu trữ không rời trang — ở lại đúng Trình tự, chỉ đổi nút thành
+  // Lưu trữ không rời trang — ở lại đúng Nếp sinh hoạt, chỉ đổi nút thành
   // "Khôi phục" (giống hệt cách Journal/Memory/Habit xử lý tại chỗ).
   await page.getByRole("button", { name: "Lưu trữ" }).click();
   await expect(page).toHaveURL(/\/routines\/[0-9a-f-]+$/);
