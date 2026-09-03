@@ -32,6 +32,35 @@ function HabitCardSkeleton() {
   );
 }
 
+export function HabitMetaSkeleton() {
+  return (
+    <span className="flex gap-2" aria-hidden="true">
+      <Skeleton className="h-6 w-24 rounded-full" />
+      <Skeleton className="h-6 w-28 rounded-full" />
+    </span>
+  );
+}
+
+export function HabitListSkeleton() {
+  return (
+    <div className="space-y-4" role="status" aria-live="polite">
+      <span className="sr-only">Đang tải danh sách Thói quen…</span>
+      <div className="flex items-center gap-3" aria-hidden="true">
+        <Skeleton className="h-3 w-32" />
+        <span className="h-px flex-1 bg-border" />
+      </div>
+      <div
+        aria-hidden="true"
+        className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+      >
+        {Array.from({ length: 6 }).map((_, index) => (
+          <HabitCardSkeleton key={index} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function HabitCollectionSkeleton() {
   return (
     <section className="flex flex-col gap-7" role="status" aria-live="polite">
