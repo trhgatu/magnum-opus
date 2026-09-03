@@ -1,12 +1,6 @@
 // @vitest-environment jsdom
 
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -39,9 +33,9 @@ describe("JournalDraftRecoveryAlert", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Sao chép nội dung" }));
 
-    await waitFor(() =>
-      expect(writeText).toHaveBeenCalledWith("# A title\n\nBody"),
-    );
-    expect(screen.getByRole("button", { name: "Đã sao chép" })).toBeTruthy();
+    expect(
+      await screen.findByRole("button", { name: "Đã sao chép" }),
+    ).toBeTruthy();
+    expect(writeText).toHaveBeenCalledWith("# A title\n\nBody");
   });
 });
