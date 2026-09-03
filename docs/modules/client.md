@@ -210,7 +210,7 @@ Search form dùng `next/form`: nếu JavaScript chưa sẵn sàng, browser vẫn
 
 Memory có thể được tạo độc lập hoặc từ Journal. Link “Giữ lại như một ký ức” chỉ chuyển sang form mới với `sourceJournalEntryId`; nó không tự tạo record. Server Component owner-scope Journal để tạo seed, còn backend kiểm tra lại source trước khi persist. Hai lớp kiểm tra phục vụ hai mục đích khác nhau: frontend tạo trải nghiệm đúng, backend bảo vệ trust boundary.
 
-Route segment `/memories` có `error.tsx` riêng. Boundary giữ lời nhắn an toàn rằng dữ liệu không bị thay đổi, đồng thời cung cấp nút retry và đường quay về không gian chính. Collection cố ý không dùng route-level `loading.tsx`: một thao tác search hoặc filter không được thay PageHeading, toolbar và toàn bộ nội dung bằng skeleton. Giao diện hiện tại được giữ nguyên cho tới khi Server Component mới sẵn sàng thay thế. Root boundary vẫn là lớp dự phòng cuối cùng cho lỗi nằm ngoài feature.
+Route segment `/memories` có `error.tsx` riêng. Boundary giữ lời nhắn an toàn rằng dữ liệu không bị thay đổi, đồng thời cung cấp nút retry và đường quay về không gian chính. `page.tsx` tách phần hero/toolbar (render đồng bộ) khỏi phần dữ liệu: danh sách nằm trong `<Suspense fallback={<MemoryListSkeleton />}>` và số đếm meta nằm trong `<Suspense fallback={<MemoryMetaSkeleton />}>` riêng, nên một thao tác search/filter chỉ thay skeleton ở đúng phần đang chờ dữ liệu thay vì thay toàn bộ PageHeading, toolbar và nội dung. Root boundary vẫn là lớp dự phòng cuối cùng cho lỗi nằm ngoài feature.
 
 Editor chuyển input `DAY`, `MONTH`, `YEAR`, `UNKNOWN` sang representation chuẩn trước khi gọi Server Action. Khi update gặp revision conflict, local form không bị thay đổi. Người dùng chọn một trong hai flow:
 
