@@ -1,3 +1,7 @@
+import {
+  CollectionDividerSkeleton,
+  CollectionFilterBarSkeleton,
+} from "@/components/system/collection-skeleton";
 import { ContextHeroSkeleton } from "@/components/system/context-hero-skeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -38,25 +42,8 @@ export function RoutineCollectionSkeleton() {
     <section className="flex flex-col gap-7" role="status" aria-live="polite">
       <span className="sr-only">Đang tải danh sách Trình tự…</span>
       <ContextHeroSkeleton />
-
-      <div
-        aria-hidden="true"
-        className="rounded-2xl border bg-card/55 p-3 shadow-sm sm:p-4"
-      >
-        <Skeleton className="mb-3 h-3 w-28" />
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
-          <Skeleton className="h-10 w-full" />
-          <div className="flex gap-2">
-            <Skeleton className="h-10 w-48" />
-            <Skeleton className="h-10 w-48" />
-          </div>
-        </div>
-      </div>
-
-      <div aria-hidden="true" className="flex items-center gap-3">
-        <Skeleton className="h-3 w-40" />
-        <Skeleton className="h-px flex-1" />
-      </div>
+      <CollectionFilterBarSkeleton />
+      <CollectionDividerSkeleton />
       <div
         aria-hidden="true"
         className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"

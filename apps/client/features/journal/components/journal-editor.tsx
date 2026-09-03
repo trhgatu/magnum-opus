@@ -9,6 +9,7 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 
+import { ConflictAlert } from "@/components/system/conflict-alert";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,7 +18,6 @@ import {
   reloadJournalEntry,
   type JournalLifecycleAction,
 } from "@/features/journal/actions/journal";
-import { JournalConflictAlert } from "@/features/journal/components/journal-conflict-alert";
 import { JournalDraftRecoveryAlert } from "@/features/journal/components/journal-draft-recovery-alert";
 import { JournalEditorToolbar } from "@/features/journal/components/journal-editor-toolbar";
 import type { JournalViewMode } from "@/features/journal/components/journal-editor-toolbar";
@@ -27,6 +27,12 @@ import { useJournalEditorShortcuts } from "@/features/journal/hooks/use-journal-
 import { useUnsavedChangesWarning } from "@/hooks/use-unsaved-changes-warning";
 import { isRedirectError } from "@/lib/next-redirect";
 import { notifySuccess } from "@/lib/toast";
+
+const formatUpdatedAt = (value: string) =>
+  new Intl.DateTimeFormat("vi-VN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
 
 const MoodPanel = dynamic(
   () =>
@@ -181,6 +187,18 @@ export function JournalEditor({
       acceptPersistedEntry(result.entry);
       if (action === "seal" || action === "trash") setViewMode("preview");
       if (action === "reopen" || action === "restore") setViewMode("write");
+
+      const label = title ? `"${title}"` : "entry";
+      void notifySuccess(
+        action === "seal"
+          ? `Đã niêm phong ${label}`
+          : action === "reopen"
+            ? `Đã mở lại ${label}`
+            : action === "trash"
+              ? `Đã đưa ${label} vào Thùng rác`
+              : `Đã khôi phục ${label}`,
+      );
+
       router.refresh();
     } finally {
       setIsChangingState(false);
@@ -190,10 +208,6 @@ export function JournalEditor({
   const deletePermanently = async () => {
     setIsChangingState(true);
     try {
-      // deleteJournalEntryPermanently chỉ return khi thất bại — thành công
-      // thì Server Action tự redirect("/journal?state=TRASHED"), không bao
-      // giờ chạy tới dòng dưới, mà nhảy thẳng xuống catch dạng lỗi
-      // NEXT_REDIRECT bên dưới.
       const result = await deleteJournalEntryPermanently({
         id: entry.id,
         expectedRevision: getRevision(),
@@ -262,7 +276,10 @@ export function JournalEditor({
             content={content}
           />
         ) : saveState === "conflict" ? (
-          <JournalConflictAlert
+          <ConflictAlert
+            title="Entry đã được thay đổi ở nơi khác"
+            description="Nội dung đang gõ vẫn còn nguyên trên màn hình. Chọn bản mới nhất để bỏ phần đang gõ, hoặc chủ động ghi nội dung này lên revision mới nhất."
+            keepLocalLabel="Ghi nội dung đang gõ"
             busy={isResolvingConflict}
             recoveryError={lifecycleMessage}
             onUseLatest={() => void resolveConflict(false)}
@@ -314,6 +331,14 @@ export function JournalEditor({
           }
           onCreateMemory={() => void createMemoryFromEntry()}
         />
+
+        <footer className="flex flex-col gap-1 border-t pt-5 font-mono text-[11px] text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+          <time dateTime={entry.updatedAt}>
+            Cập nhật {formatUpdatedAt(entry.updatedAt)}
+          </time>
+
+          <span>Magnum Opus · Reflection</span>
+        </footer>
       </div>
     </article>
   );

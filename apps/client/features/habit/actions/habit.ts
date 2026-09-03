@@ -14,6 +14,7 @@ import {
   type ApiErrorKind,
   toPublicApiError,
 } from "@/lib/api";
+import { validId, validRevision } from "@/lib/validation";
 
 interface HabitMutationError {
   status: "error";
@@ -47,15 +48,6 @@ export interface HabitRevisionInput {
   id: string;
   expectedRevision: number;
 }
-
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-const validId = (value: unknown): value is string =>
-  typeof value === "string" && UUID_PATTERN.test(value);
-
-const validRevision = (value: unknown): value is number =>
-  typeof value === "number" && Number.isInteger(value) && value >= 1;
 
 const normalizeForm = (input: HabitFormInput) => {
   const title = typeof input.title === "string" ? input.title.trim() : "";
@@ -119,6 +111,19 @@ export async function createHabit(
   }
 }
 
+export async function reloadHabit(id: string): Promise<HabitMutationResult> {
+  if (!validId(id)) {
+    return { status: "error", message: "Dữ liệu thói quen không hợp lệ." };
+  }
+
+  try {
+    const habit = await apiFetch<HabitResponse>(`/habits/${id}`);
+    return { status: "success", habit };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
 export async function updateHabit(
   input: UpdateHabitInput,
 ): Promise<HabitMutationResult> {
@@ -169,7 +174,7 @@ export async function changeHabitCheckIn(input: {
   action: "check-in" | "undo";
 }): Promise<HabitCheckInMutationResult> {
   if (!validId(input.id)) {
-    return { status: "error", message: "Thói quen không hợp lệ." };
+    return { status: "error", message: "Dữ liệu thói quen không hợp lệ." };
   }
 
   try {

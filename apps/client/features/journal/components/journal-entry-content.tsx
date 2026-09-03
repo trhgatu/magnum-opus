@@ -40,6 +40,11 @@ export function JournalEntryContent({
 }: JournalEntryContentProps) {
   return (
     <div className="flex min-h-[58vh] flex-col">
+      {/* Input phía dưới đã mang vai trò thị giác của tiêu đề trang, nhưng
+          role="heading" không hợp lệ trên input (ARIA in HTML không cho phép
+          ghi đè role của textbox) — thêm h1 ẩn để trang có đúng 1 heading
+          cấp 1 mà screen reader điều hướng được. */}
+      <h1 className="sr-only">{title || "Chưa đặt tiêu đề"}</h1>
       <label className="sr-only" htmlFor="journal-title">
         Tiêu đề
       </label>

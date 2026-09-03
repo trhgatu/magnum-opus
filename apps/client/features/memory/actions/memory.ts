@@ -16,6 +16,7 @@ import {
   type ApiErrorKind,
   toPublicApiError,
 } from "@/lib/api";
+import { validId, validRevision } from "@/lib/validation";
 
 interface MemoryMutationError {
   status: "error";
@@ -67,15 +68,6 @@ export type MemoryDeleteResult =
   | MemoryMutationError;
 
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-const validMemoryId = (value: unknown): value is string =>
-  typeof value === "string" && UUID_PATTERN.test(value);
-
-const validRevision = (value: unknown): value is number =>
-  typeof value === "number" && Number.isInteger(value) && value >= 1;
 
 const validLifecycleAction = (value: unknown): value is MemoryLifecycleAction =>
   value === "trash" || value === "restore";
@@ -143,9 +135,7 @@ export async function createMemory(
       : input.sourceJournalEntryId;
 
   const sourceIsValid =
-    sourceJournalEntryId === null ||
-    (typeof sourceJournalEntryId === "string" &&
-      UUID_PATTERN.test(sourceJournalEntryId));
+    sourceJournalEntryId === null || validId(sourceJournalEntryId);
 
   if (
     !title ||
@@ -192,7 +182,7 @@ export async function updateMemory(
   const content = typeof input.content === "string" ? input.content.trim() : "";
 
   if (
-    !validMemoryId(input.id) ||
+    !validId(input.id) ||
     !title ||
     [...title].length > 200 ||
     !content ||
@@ -230,7 +220,7 @@ export async function updateMemory(
 }
 
 export async function reloadMemory(id: string): Promise<MemoryMutationResult> {
-  if (!validMemoryId(id)) {
+  if (!validId(id)) {
     return {
       status: "error",
       message: "Dữ liệu ký ức không hợp lệ.",
@@ -253,7 +243,7 @@ export async function changeMemoryState(
   input: ChangeMemoryStateInput,
 ): Promise<MemoryMutationResult> {
   if (
-    !validMemoryId(input.id) ||
+    !validId(input.id) ||
     !validLifecycleAction(input.action) ||
     !validRevision(input.expectedRevision)
   ) {
@@ -288,7 +278,7 @@ export async function changeMemoryState(
 export async function deleteMemoryPermanently(
   input: MemoryRevisionInput,
 ): Promise<MemoryDeleteResult> {
-  if (!validMemoryId(input.id) || !validRevision(input.expectedRevision)) {
+  if (!validId(input.id) || !validRevision(input.expectedRevision)) {
     return {
       status: "error",
       message: "Dữ liệu ký ức không hợp lệ.",

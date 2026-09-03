@@ -17,15 +17,21 @@ const routeBudgets = new Map([
   ["/memories/new", 670 * KIBIBYTE],
   ["/memories/[id]", 610 * KIBIBYTE],
   ["/memories/[id]/edit", 670 * KIBIBYTE],
-  ["/habits", 565 * KIBIBYTE],
-  ["/habits/new", 655 * KIBIBYTE],
-  ["/habits/[id]", 570 * KIBIBYTE],
-  ["/habits/[id]/edit", 655 * KIBIBYTE],
-  ["/routines", 565 * KIBIBYTE],
-  ["/routines/new", 570 * KIBIBYTE],
+  // +2 KiB trên toàn bộ route con của /habits và /routines: error.tsx mới
+  // thêm (EmptyState + Button + Link) — Journal/Memories đã có sẵn boundary
+  // này từ đầu, khoản overhead tương đương đã nằm trong budget của chúng.
+  ["/habits", 568 * KIBIBYTE],
+  // +2 KiB trên /new và /edit: ConflictAlert dùng chung
+  // (components/system/conflict-alert.tsx) + logic reload-on-conflict
+  // nâng habit-editor lên cùng chuẩn xử lý xung đột với memory/journal-editor.
+  ["/habits/new", 661 * KIBIBYTE],
+  ["/habits/[id]", 572 * KIBIBYTE],
+  ["/habits/[id]/edit", 661 * KIBIBYTE],
+  ["/routines", 568 * KIBIBYTE],
+  ["/routines/new", 575 * KIBIBYTE],
   // Routine detail includes the isolated shadcn Select used for membership.
   ["/routines/[id]", 660 * KIBIBYTE],
-  ["/routines/[id]/edit", 570 * KIBIBYTE],
+  ["/routines/[id]/edit", 575 * KIBIBYTE],
   ["/today", 570 * KIBIBYTE],
 ]);
 

@@ -1,5 +1,5 @@
 import type { MemoryResponse } from "@repo/contracts";
-import { BookOpenText, Gem, Trash2 } from "lucide-react";
+import { ArrowUpRight, BookOpenText, Gem, Trash2 } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
@@ -85,7 +85,7 @@ export function MemoryCard({ memory }: MemoryCardProps) {
             Hồ sơ lưu trữ
           </span>
           <span className="flex items-center gap-1 text-xs font-medium text-foreground/70 transition-colors group-hover:text-primary">
-            Mở ký ức <span aria-hidden="true">↗</span>
+            Mở ký ức <ArrowUpRight className="size-3.5" aria-hidden="true" />
           </span>
         </footer>
       </article>

@@ -104,6 +104,7 @@ test("completes the private Memory lifecycle through the BFF", async ({
 
   await expect(page.getByText(originalContent)).toBeVisible();
   await expect(page.getByText("Tháng 8, 2024")).toBeVisible();
+  await expect(page.getByText(`Đã lưu ký ức "${originalTitle}"`)).toBeVisible();
 
   await page
     .getByRole("link", {
@@ -136,6 +137,7 @@ test("completes the private Memory lifecycle through the BFF", async ({
   ).toBeVisible();
 
   await expect(page.getByText(updatedContent)).toBeVisible();
+  await expect(page.getByText(`Đã cập nhật "${updatedTitle}"`)).toBeVisible();
 
   await page
     .getByRole("button", {

@@ -24,6 +24,7 @@ import {
   changeRoutineState,
   createRoutine,
   moveRoutineHabit,
+  reloadRoutine,
   removeRoutineHabit,
   updateRoutineTitle,
 } from "./routine";
@@ -79,7 +80,7 @@ describe("Routine Server Actions", () => {
       }),
     ).resolves.toEqual({
       status: "error",
-      message: "Tiêu đề Routine không hợp lệ.",
+      message: "Tiêu đề Trình tự không hợp lệ.",
     });
 
     expect(apiFetch).not.toHaveBeenCalled();
@@ -127,11 +128,31 @@ describe("Routine Server Actions", () => {
       }),
     ).resolves.toEqual({
       status: "error",
-      message: "Dữ liệu Routine không hợp lệ.",
+      message: "Dữ liệu Trình tự không hợp lệ.",
     });
 
     expect(apiFetch).not.toHaveBeenCalled();
     expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("reloads a Routine by id", async () => {
+    apiFetch.mockResolvedValue(routine);
+
+    await expect(reloadRoutine(routine.id)).resolves.toEqual({
+      status: "success",
+      routine,
+    });
+
+    expect(apiFetch).toHaveBeenCalledWith(`/routines/${routine.id}`);
+  });
+
+  it("rejects an invalid id when reloading a Routine", async () => {
+    await expect(reloadRoutine("not-a-uuid")).resolves.toEqual({
+      status: "error",
+      message: "Dữ liệu Trình tự không hợp lệ.",
+    });
+
+    expect(apiFetch).not.toHaveBeenCalled();
   });
 
   it("preserves a revision conflict returned by the backend", async () => {
@@ -208,7 +229,7 @@ describe("Routine Server Actions", () => {
       }),
     ).resolves.toEqual({
       status: "error",
-      message: "Dữ liệu Routine không hợp lệ.",
+      message: "Dữ liệu Trình tự không hợp lệ.",
     });
 
     expect(apiFetch).not.toHaveBeenCalled();
@@ -325,7 +346,7 @@ describe("Routine Server Actions", () => {
       }),
     ).resolves.toEqual({
       status: "error",
-      message: "Dữ liệu Habit của Routine không hợp lệ.",
+      message: "Dữ liệu Thói quen của Trình tự không hợp lệ.",
     });
 
     expect(apiFetch).not.toHaveBeenCalled();
@@ -342,7 +363,7 @@ describe("Routine Server Actions", () => {
       }),
     ).resolves.toEqual({
       status: "error",
-      message: "Dữ liệu Habit của Routine không hợp lệ.",
+      message: "Dữ liệu Thói quen của Trình tự không hợp lệ.",
     });
 
     expect(apiFetch).not.toHaveBeenCalled();

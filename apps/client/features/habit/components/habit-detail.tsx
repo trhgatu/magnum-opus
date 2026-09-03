@@ -25,7 +25,10 @@ export function HabitDetail({
   history: HabitCheckInHistoryResponse;
 }) {
   return (
-    <article className="mx-auto flex w-full max-w-5xl flex-col gap-6">
+    <article
+      className="mx-auto flex w-full max-w-5xl flex-col gap-6"
+      aria-labelledby="habit-title"
+    >
       <Link
         href="/habits"
         className={buttonVariants({
@@ -37,6 +40,7 @@ export function HabitDetail({
       </Link>
 
       <ContextHero
+        id="habit-title"
         icon={Repeat2}
         eyebrow="Forge · Thói quen"
         title={habit.title}
@@ -83,7 +87,7 @@ export function HabitDetail({
               </span>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-                  Daily mark
+                  Hằng ngày
                 </p>
                 <h2 className="font-display text-xl font-semibold">
                   Nhịp của hôm nay

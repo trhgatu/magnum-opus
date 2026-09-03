@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState, useTransition } from "react";
 
+import { ConflictAlert } from "@/components/system/conflict-alert";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,12 +17,12 @@ import {
   reloadMemory,
   updateMemory,
 } from "@/features/memory/actions/memory";
-import { MemoryConflictAlert } from "@/features/memory/components/memory-conflict-alert";
 import { MemoryDateField } from "@/features/memory/components/memory-date-field";
 import {
   memoryOccurredOnInputValue,
   normalizeMemoryOccurredOnInput,
 } from "@/features/memory/lib/memory-form";
+import { notifySuccess } from "@/lib/toast";
 
 export interface MemoryCreationSeed {
   sourceJournalEntryId: string;
@@ -140,6 +141,12 @@ export function MemoryEditor({
         return;
       }
 
+      void notifySuccess(
+        persistedMemory
+          ? `Đã cập nhật "${result.memory.title}"`
+          : `Đã lưu ký ức "${result.memory.title}"`,
+      );
+
       router.push(`/memories/${result.memory.id}`);
       router.refresh();
     });
@@ -204,6 +211,8 @@ export function MemoryEditor({
         return;
       }
 
+      void notifySuccess(`Đã cập nhật "${result.memory.title}"`);
+
       router.push(`/memories/${result.memory.id}`);
       router.refresh();
     });
@@ -226,7 +235,9 @@ export function MemoryEditor({
       ) : null}
 
       {hasConflict ? (
-        <MemoryConflictAlert
+        <ConflictAlert
+          title="Ký ức đã được thay đổi ở nơi khác"
+          description="Nội dung đang viết vẫn còn nguyên trên màn hình. Chọn bản mới nhất để bỏ phần đang viết, hoặc chủ động ghi nội dung này lên revision mới nhất."
           busy={isPending}
           recoveryError={recoveryError}
           onUseLatest={() => resolveConflict(false)}

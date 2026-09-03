@@ -11,11 +11,20 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { createRoutine, updateRoutineTitle, push, refresh } = vi.hoisted(() => ({
+const {
+  createRoutine,
+  reloadRoutine,
+  updateRoutineTitle,
+  push,
+  refresh,
+  notifySuccess,
+} = vi.hoisted(() => ({
   createRoutine: vi.fn(),
+  reloadRoutine: vi.fn(),
   updateRoutineTitle: vi.fn(),
   push: vi.fn(),
   refresh: vi.fn(),
+  notifySuccess: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -24,8 +33,11 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@/features/routine/actions/routine", () => ({
   createRoutine,
+  reloadRoutine,
   updateRoutineTitle,
 }));
+
+vi.mock("@/lib/toast", () => ({ notifySuccess }));
 
 import { RoutineEditor } from "./routine-editor";
 
@@ -58,10 +70,14 @@ describe("RoutineEditor", () => {
     );
     expect(push).toHaveBeenCalledWith(`/routines/${routine.id}`);
     expect(refresh).toHaveBeenCalledOnce();
+    expect(notifySuccess).toHaveBeenCalledWith(`Đã tạo "${routine.title}"`);
   });
 
   it("updates the title at the current revision", async () => {
-    updateRoutineTitle.mockResolvedValue({ status: "success", routine });
+    updateRoutineTitle.mockResolvedValue({
+      status: "success",
+      routine: { ...routine, title: "Evening ritual" },
+    });
     render(<RoutineEditor initialRoutine={routine} />);
 
     fireEvent.change(screen.getByLabelText("Tên Trình tự"), {
@@ -78,15 +94,27 @@ describe("RoutineEditor", () => {
         expectedRevision: routine.revision,
       }),
     );
+
+    expect(notifySuccess).toHaveBeenCalledWith('Đã cập nhật "Evening ritual"');
   });
 
-  it("keeps the editor open after a revision conflict", async () => {
+  it("offers to reload when the revision is stale", async () => {
     updateRoutineTitle.mockResolvedValue({
       status: "error",
-      message: "Conflict",
+      message: "Trình tự đã thay đổi ở một phiên làm việc khác.",
       kind: "conflict",
       code: "ROUTINE_REVISION_CONFLICT",
     });
+    reloadRoutine.mockResolvedValue({
+      status: "success",
+      routine: {
+        ...routine,
+        isActive: true,
+        title: "Bản mới nhất từ server",
+        revision: 4,
+      },
+    });
+
     render(<RoutineEditor initialRoutine={routine} />);
 
     fireEvent.submit(
@@ -94,10 +122,128 @@ describe("RoutineEditor", () => {
     );
 
     expect(
+      await screen.findByRole("heading", {
+        name: "Trình tự đã được thay đổi ở nơi khác",
+      }),
+    ).toBeInTheDocument();
+
+    const useLatestButton = screen.getByRole("button", {
+      name: "Dùng bản mới nhất",
+    });
+
+    await waitFor(() =>
+      expect((useLatestButton as HTMLButtonElement).disabled).toBe(false),
+    );
+
+    fireEvent.click(useLatestButton);
+
+    await waitFor(() => expect(reloadRoutine).toHaveBeenCalledWith(routine.id));
+
+    expect(
+      (screen.getByLabelText("Tên Trình tự") as HTMLInputElement).value,
+    ).toBe("Bản mới nhất từ server");
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("rebases preserved local content onto the latest revision", async () => {
+    updateRoutineTitle
+      .mockResolvedValueOnce({
+        status: "error",
+        message: "Trình tự đã thay đổi ở một phiên làm việc khác.",
+        kind: "conflict",
+        code: "ROUTINE_REVISION_CONFLICT",
+      })
+      .mockResolvedValueOnce({
+        status: "success",
+        routine: { ...routine, title: "Bản local được giữ lại", revision: 5 },
+      });
+    reloadRoutine.mockResolvedValue({
+      status: "success",
+      routine: {
+        ...routine,
+        isActive: true,
+        title: "Bản mới nhất từ server",
+        revision: 4,
+      },
+    });
+
+    render(<RoutineEditor initialRoutine={routine} />);
+
+    fireEvent.change(screen.getByLabelText("Tên Trình tự"), {
+      target: { value: "Bản local được giữ lại" },
+    });
+
+    fireEvent.submit(
+      screen.getByRole("button", { name: "Lưu thay đổi" }).closest("form")!,
+    );
+
+    const keepLocalButton = await screen.findByRole("button", {
+      name: "Ghi nội dung đang viết",
+    });
+
+    await waitFor(() =>
+      expect((keepLocalButton as HTMLButtonElement).disabled).toBe(false),
+    );
+
+    fireEvent.click(keepLocalButton);
+
+    await waitFor(() => expect(updateRoutineTitle).toHaveBeenCalledTimes(2));
+
+    expect(updateRoutineTitle).toHaveBeenLastCalledWith({
+      id: routine.id,
+      title: "Bản local được giữ lại",
+      expectedRevision: 4,
+    });
+
+    expect(push).toHaveBeenCalledWith(`/routines/${routine.id}`);
+    expect(refresh).toHaveBeenCalledOnce();
+    expect(notifySuccess).toHaveBeenCalledWith(
+      'Đã cập nhật "Bản local được giữ lại"',
+    );
+  });
+
+  it("keeps the draft on screen when the routine was archived elsewhere", async () => {
+    updateRoutineTitle.mockResolvedValue({
+      status: "error",
+      message: "Trình tự đã thay đổi ở một phiên làm việc khác.",
+      kind: "conflict",
+      code: "ROUTINE_REVISION_CONFLICT",
+    });
+    reloadRoutine.mockResolvedValue({
+      status: "success",
+      routine: { ...routine, isActive: false, revision: 4 },
+    });
+
+    render(<RoutineEditor initialRoutine={routine} />);
+
+    fireEvent.change(screen.getByLabelText("Tên Trình tự"), {
+      target: { value: "Bản đang viết dở" },
+    });
+
+    fireEvent.submit(
+      screen.getByRole("button", { name: "Lưu thay đổi" }).closest("form")!,
+    );
+
+    const keepLocalButton = await screen.findByRole("button", {
+      name: "Ghi nội dung đang viết",
+    });
+
+    await waitFor(() =>
+      expect((keepLocalButton as HTMLButtonElement).disabled).toBe(false),
+    );
+
+    fireEvent.click(keepLocalButton);
+
+    expect(
       await screen.findByText(
-        "Trình tự đã thay đổi ở nơi khác. Tải lại trang trước khi lưu tiếp.",
+        "Trình tự đã được lưu trữ ở nơi khác. Nội dung đang viết vẫn được giữ trên màn hình để sao chép.",
       ),
     ).toBeInTheDocument();
+
+    expect(
+      (screen.getByLabelText("Tên Trình tự") as HTMLInputElement).value,
+    ).toBe("Bản đang viết dở");
+    expect(updateRoutineTitle).toHaveBeenCalledTimes(1);
     expect(push).not.toHaveBeenCalled();
   });
 });

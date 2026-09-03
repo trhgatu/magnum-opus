@@ -46,6 +46,7 @@ test("completes the private Routine lifecycle through the BFF", async ({
 
   await expect(page).toHaveURL(/\/routines\/[0-9a-f-]+$/);
   await expect(page.getByRole("heading", { name: title })).toBeVisible();
+  await expect(page.getByText(`Đã tạo "${title}"`)).toBeVisible();
 
   await page.getByRole("combobox").click();
   await page
@@ -79,6 +80,7 @@ test("completes the private Routine lifecycle through the BFF", async ({
   await page.getByLabel("Tên Trình tự").fill(updatedTitle);
   await page.getByRole("button", { name: "Lưu thay đổi" }).click();
   await expect(page.getByRole("heading", { name: updatedTitle })).toBeVisible();
+  await expect(page.getByText(`Đã cập nhật "${updatedTitle}"`)).toBeVisible();
 
   // Lưu trữ không rời trang — ở lại đúng Trình tự, chỉ đổi nút thành
   // "Khôi phục" (giống hệt cách Journal/Memory/Habit xử lý tại chỗ).

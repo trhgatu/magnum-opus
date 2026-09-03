@@ -30,6 +30,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { removeMood, setMood } from "@/features/mood/actions/mood";
+import { notifySuccess } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
 const MOOD_OPTIONS: ReadonlyArray<{
@@ -124,7 +125,7 @@ export function MoodPanel({
       setIntensity(result.mood.intensity);
       setNote(result.mood.note ?? "");
       setIsEditing(false);
-      setMessage("Đã lưu tâm trạng.");
+      void notifySuccess("Đã lưu tâm trạng.");
     });
   };
 
@@ -150,7 +151,7 @@ export function MoodPanel({
       setIntensity(null);
       setNote("");
       setIsEditing(false);
-      setMessage("Đã loại bỏ tâm trạng khỏi entry.");
+      void notifySuccess("Đã loại bỏ tâm trạng khỏi entry.");
     });
   };
 

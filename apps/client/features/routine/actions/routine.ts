@@ -9,6 +9,7 @@ import {
   type ApiErrorKind,
   toPublicApiError,
 } from "@/lib/api";
+import { validId, validRevision } from "@/lib/validation";
 
 interface RoutineMutationError {
   status: "error";
@@ -49,15 +50,6 @@ export interface RoutineHabitInput {
 export type RoutineHabitMoveDirection = "up" | "down";
 
 export type RoutineLifecycleAction = "archive" | "restore";
-
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-const validId = (value: unknown): value is string =>
-  typeof value === "string" && UUID_PATTERN.test(value);
-
-const validRevision = (value: unknown): value is number =>
-  typeof value === "number" && Number.isInteger(value) && value >= 1;
 
 const validMoveDirection = (
   value: unknown,
@@ -109,7 +101,7 @@ export async function createRoutine(
   if (!title) {
     return {
       status: "error",
-      message: "Tiêu đề Routine không hợp lệ.",
+      message: "Tiêu đề Trình tự không hợp lệ.",
     };
   }
 
@@ -129,6 +121,28 @@ export async function createRoutine(
   }
 }
 
+export async function reloadRoutine(
+  id: string,
+): Promise<RoutineMutationResult> {
+  if (!validId(id)) {
+    return {
+      status: "error",
+      message: "Dữ liệu Trình tự không hợp lệ.",
+    };
+  }
+
+  try {
+    const routine = await apiFetch<RoutineResponse>(`/routines/${id}`);
+
+    return {
+      status: "success",
+      routine,
+    };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
 export async function updateRoutineTitle(
   input: UpdateRoutineTitleInput,
 ): Promise<RoutineMutationResult> {
@@ -137,7 +151,7 @@ export async function updateRoutineTitle(
   if (!validId(input.id) || !validRevision(input.expectedRevision) || !title) {
     return {
       status: "error",
-      message: "Dữ liệu Routine không hợp lệ.",
+      message: "Dữ liệu Trình tự không hợp lệ.",
     };
   }
 
@@ -172,7 +186,7 @@ export async function changeRoutineState(
   ) {
     return {
       status: "error",
-      message: "Dữ liệu Routine không hợp lệ.",
+      message: "Dữ liệu Trình tự không hợp lệ.",
     };
   }
 
@@ -208,7 +222,7 @@ export async function addRoutineHabit(
   ) {
     return {
       status: "error",
-      message: "Dữ liệu Habit của Routine không hợp lệ.",
+      message: "Dữ liệu Thói quen của Trình tự không hợp lệ.",
     };
   }
 
@@ -244,7 +258,7 @@ export async function removeRoutineHabit(
   ) {
     return {
       status: "error",
-      message: "Dữ liệu Habit của Routine không hợp lệ.",
+      message: "Dữ liệu Thói quen của Trình tự không hợp lệ.",
     };
   }
   const params = new URLSearchParams({
@@ -283,7 +297,7 @@ export async function moveRoutineHabit(
   ) {
     return {
       status: "error",
-      message: "Dữ liệu Habit của Routine không hợp lệ.",
+      message: "Dữ liệu Thói quen của Trình tự không hợp lệ.",
     };
   }
 
