@@ -20,7 +20,7 @@ test("shows a sealed Journal entry on the Timeline and links back to it", async 
   await login(page);
 
   await page.goto("/journal");
-  await page.getByRole("button", { name: "Viết entry mới" }).click();
+  await page.getByRole("button", { name: "Viết trang mới" }).click();
   await expect(page).toHaveURL(/\/journal\/[0-9a-f-]+$/);
 
   await page.getByLabel("Tiêu đề").fill(title);

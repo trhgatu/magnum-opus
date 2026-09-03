@@ -40,7 +40,7 @@ test("completes the private Journal lifecycle through the BFF", async ({
     page.getByRole("heading", { name: "Nhật ký", exact: true }),
   ).toBeVisible();
 
-  await page.getByRole("button", { name: "Viết entry mới" }).click();
+  await page.getByRole("button", { name: "Viết trang mới" }).click();
   await expect(page).toHaveURL(/\/journal\/[0-9a-f-]+$/);
 
   await page.getByLabel("Tiêu đề").fill(title);
@@ -97,7 +97,7 @@ test("completes the private Journal lifecycle through the BFF", async ({
   await page.getByRole("button", { name: "Loại bỏ tâm trạng" }).click();
   await page.getByRole("button", { name: "Loại bỏ", exact: true }).click();
   await expect(
-    page.getByText("Entry này chưa lưu lại trạng thái cảm xúc."),
+    page.getByText("Trang này chưa lưu lại trạng thái cảm xúc."),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Thêm tâm trạng" }),
@@ -105,7 +105,7 @@ test("completes the private Journal lifecycle through the BFF", async ({
 
   await page.reload();
   await expect(
-    page.getByText("Entry này chưa lưu lại trạng thái cảm xúc."),
+    page.getByText("Trang này chưa lưu lại trạng thái cảm xúc."),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Thêm tâm trạng" }),
@@ -144,7 +144,7 @@ test("supports Journal search, reset and state filters", async ({ page }) => {
   await page.getByRole("button", { name: "Tìm" }).click();
   await expect(page).toHaveURL(new RegExp(`search=${missingEntry}`));
   await expect(
-    page.getByRole("heading", { name: "Chưa có entry phù hợp" }),
+    page.getByRole("heading", { name: "Chưa có trang phù hợp" }),
   ).toBeVisible();
   await expect(
     page.getByRole("link", { name: "Xóa tìm kiếm và bộ lọc" }),
@@ -171,7 +171,7 @@ test("recovers an explicit concurrent-edit conflict without losing local work", 
 
   await login(page);
   await page.goto("/journal");
-  await page.getByRole("button", { name: "Viết entry mới" }).click();
+  await page.getByRole("button", { name: "Viết trang mới" }).click();
   await page.getByLabel("Tiêu đề").fill(title);
   await waitForAutosave(page);
 
@@ -182,7 +182,7 @@ test("recovers an explicit concurrent-edit conflict without losing local work", 
 
   await page.getByLabel("Nội dung", { exact: true }).fill(localContent);
   await expect(
-    page.getByRole("heading", { name: "Entry đã được thay đổi ở nơi khác" }),
+    page.getByRole("heading", { name: "Trang đã được thay đổi ở nơi khác" }),
   ).toBeVisible({ timeout: 10_000 });
   await expect(page.getByLabel("Nội dung", { exact: true })).toHaveValue(
     localContent,
@@ -206,7 +206,7 @@ test("guards unsaved navigation and supports editor shortcuts", async ({
 }) => {
   await login(page);
   await page.goto("/journal");
-  await page.getByRole("button", { name: "Viết entry mới" }).click();
+  await page.getByRole("button", { name: "Viết trang mới" }).click();
 
   await page
     .getByLabel("Nội dung", { exact: true })
@@ -251,7 +251,7 @@ test("keeps the draft when the browser cannot reach the Server Action", async ({
 
   await login(page);
   await page.goto("/journal");
-  await page.getByRole("button", { name: "Viết entry mới" }).click();
+  await page.getByRole("button", { name: "Viết trang mới" }).click();
 
   await page.route("**/journal/**", async (route) => {
     const request = route.request();
@@ -286,7 +286,7 @@ test("preserves local work when another tab moves the entry to Trash", async ({
 
   await login(page);
   await page.goto("/journal");
-  await page.getByRole("button", { name: "Viết entry mới" }).click();
+  await page.getByRole("button", { name: "Viết trang mới" }).click();
   await page.getByLabel("Tiêu đề").fill(title);
   await waitForAutosave(page);
 
@@ -299,13 +299,13 @@ test("preserves local work when another tab moves the entry to Trash", async ({
 
   await page.getByLabel("Nội dung", { exact: true }).fill(localContent);
   await expect(
-    page.getByRole("heading", { name: "Entry đã được thay đổi ở nơi khác" }),
+    page.getByRole("heading", { name: "Trang đã được thay đổi ở nơi khác" }),
   ).toBeVisible({ timeout: 10_000 });
   await page.getByRole("button", { name: "Ghi nội dung đang gõ" }).click();
 
   await expect(
     page.getByRole("heading", {
-      name: "Entry đã đổi trạng thái ở nơi khác",
+      name: "Trang đã đổi trạng thái ở nơi khác",
     }),
   ).toBeVisible();
   await expect(page.getByText(localContent)).toBeVisible();
@@ -325,7 +325,7 @@ test("preserves local work when another tab permanently deletes the entry", asyn
 
   await login(page);
   await page.goto("/journal");
-  await page.getByRole("button", { name: "Viết entry mới" }).click();
+  await page.getByRole("button", { name: "Viết trang mới" }).click();
   await page.getByLabel("Tiêu đề").fill(title);
   await waitForAutosave(page);
 
@@ -344,7 +344,7 @@ test("preserves local work when another tab permanently deletes the entry", asyn
   await page.getByLabel("Nội dung", { exact: true }).fill(localContent);
   await expect(
     page.getByRole("heading", {
-      name: "Entry không còn tồn tại trên server",
+      name: "Trang không còn tồn tại trên server",
     }),
   ).toBeVisible({ timeout: 10_000 });
   await expect(page.getByLabel("Nội dung", { exact: true })).toHaveValue(
