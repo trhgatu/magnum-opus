@@ -44,11 +44,14 @@ Mỗi domain đi qua các giai đoạn theo thứ tự:
 
 ## Trạng thái theo domain
 
-| Domain                                 | overview | requirements | business-rules | state-model | use-cases | traceability |
-| -------------------------------------- | -------- | ------------ | -------------- | ----------- | --------- | ------------ |
-| [Journal](domains/journal/overview.md) | Xong     | Chưa         | Chưa           | Chưa        | Chưa      | Chưa         |
-| Mood                                   | Chưa     | Chưa         | Chưa           | Chưa        | Chưa      | Chưa         |
-| Memory                                 | Chưa     | Chưa         | Chưa           | Chưa        | Chưa      | Chưa         |
-| Habit & Routine (Forge)                | Chưa     | Chưa         | Chưa           | Chưa        | Chưa      | Chưa         |
+| Domain                                                            | overview | requirements | business-rules | state-model | use-cases | traceability |
+| ----------------------------------------------------------------- | -------- | ------------ | -------------- | ----------- | --------- | ------------ |
+| [Journal](contexts/reflection/journal/01-ba-overview.md)          | Xong     | Chưa         | Chưa           | Chưa        | Chưa      | Chưa         |
+| Mood                                                              | Chưa     | Chưa         | Chưa           | Chưa        | Chưa      | Chưa         |
+| Memory                                                            | Chưa     | Chưa         | Chưa           | Chưa        | Chưa      | Chưa         |
+| Habit & Routine (Forge)                                           | Chưa     | Chưa         | Chưa           | Chưa        | Chưa      | Chưa         |
+| [Project (Crucible)](contexts/crucible/project/01-ba-overview.md) | Xong     | Xong         | Xong           | Xong        | Xong      | Chưa         |
 
 Cập nhật bảng này mỗi khi một file mới được thêm cho một domain.
+
+`Project (Crucible)` đi theo pipeline mở rộng hơn 6 file gốc ở trên (`product/ba/contexts/crucible/project/01`–`08`: BA Overview → Lifecycle & Behavior Analysis → Functional Requirements & Business Rules → Use Cases & Acceptance Criteria → Product Specification → Domain Analysis → API Contract → Database Schema). Cấu trúc `product/ba/contexts/<context>/<module>/` này mới hơn `domains/<domain>/` mô tả ở mục "Cấu trúc" bên trên; mục đó chưa được cập nhật theo pipeline mới.
