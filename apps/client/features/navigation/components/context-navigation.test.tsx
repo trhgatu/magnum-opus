@@ -32,11 +32,13 @@ describe("ContextNavigation", () => {
     ).toBe("page");
   });
 
-  it("does not expose planned spaces as dead navigation", () => {
+  it("exposes every available space, including Crucible", () => {
     render(<ContextNavigation />);
 
-    expect(screen.queryByText("Engineering")).toBeNull();
-    expect(screen.queryByRole("link", { name: "Projects" })).toBeNull();
+    expect(screen.queryByText("Crucible")).not.toBeNull();
+    expect(
+      screen.getByRole("link", { name: "Project" }).getAttribute("href"),
+    ).toBe("/projects");
   });
 
   it("notifies the mobile shell after choosing a capability", () => {
