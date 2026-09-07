@@ -351,6 +351,53 @@ export const Errors = {
     translationKey: 'exceptions.routine.habit.inactive',
     statusCode: 409,
   },
+
+  // Crucible / Project
+  INVALID_PROJECT_ID: {
+    code: 'INVALID_PROJECT_ID',
+    translationKey: 'exceptions.project.id.invalid',
+    statusCode: 400,
+  },
+  INVALID_PROJECT_TITLE: {
+    code: 'INVALID_PROJECT_TITLE',
+    translationKey: 'exceptions.project.title.invalid',
+    statusCode: 400,
+  },
+  INVALID_PROJECT_CYCLE_ID: {
+    code: 'INVALID_PROJECT_CYCLE_ID',
+    translationKey: 'exceptions.project.cycle.id.invalid',
+    statusCode: 400,
+  },
+  INVALID_INTENDED_OUTCOME: {
+    code: 'INVALID_INTENDED_OUTCOME',
+    translationKey: 'exceptions.project.intended.outcome.invalid',
+    statusCode: 400,
+  },
+  PROJECT_NOT_FOUND: {
+    code: 'PROJECT_NOT_FOUND',
+    translationKey: 'exceptions.project.not.found',
+    statusCode: 404,
+  },
+  PROJECT_CYCLE_NOT_FOUND: {
+    code: 'PROJECT_CYCLE_NOT_FOUND',
+    translationKey: 'exceptions.project.cycle.not.found',
+    statusCode: 404,
+  },
+  PROJECT_REVISION_CONFLICT: {
+    code: 'PROJECT_REVISION_CONFLICT',
+    translationKey: 'exceptions.project.revision.conflict',
+    statusCode: 409,
+  },
+  INVALID_PROJECT_TRANSITION: {
+    code: 'INVALID_PROJECT_TRANSITION',
+    translationKey: 'exceptions.project.transition.invalid',
+    statusCode: 409,
+  },
+  PROJECT_DELETION_NOT_ALLOWED: {
+    code: 'PROJECT_DELETION_NOT_ALLOWED',
+    translationKey: 'exceptions.project.deletion.not.allowed',
+    statusCode: 409,
+  },
 } as const;
 
 export type ErrorDefinition = (typeof Errors)[keyof typeof Errors];

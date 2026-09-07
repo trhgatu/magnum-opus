@@ -25,6 +25,8 @@ model User {
   habits   Habit[]
   routines Routine[]
 
+  projects Project[]
+
   userRoles               UserRole[]
   notifications           Notification[]
   passwordResetTokens     PasswordResetToken[]
@@ -365,3 +367,82 @@ model RoutineHabit {
   @@unique([routineId, order])
   @@map("routine_habits")
 }
+
+enum ProjectLifecycleState {
+  NOT_STARTED
+  ACTIVE
+  PAUSED
+  STOPPED
+  COMPLETED
+}
+
+enum ProjectCycleEndReason {
+  STOPPED
+  COMPLETED
+}
+
+enum ProjectLifecycleAction {
+  START
+  PAUSE 
+  RESUME 
+  STOP 
+  COMPLETE 
+  REOPEN
+}
+
+model Project {
+  id String @id @default(uuid())
+  ownerId String @map("owner_id")
+  title String @db.VarChar(200)
+  description String? @db.Text
+  lifecycleState ProjectLifecycleState @default(NOT_STARTED) @map("lifecycle_state")
+  revision Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @map("updated_at")
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  cycles ProjectCycle[]
+  transitions ProjectLifecycleTransition[]
+
+  @@unique([id, ownerId])
+  @@index([ownerId, lifecycleState])
+  @@index([ownerId, createdAt(sort: Desc)])
+  @@map("projects")
+}
+
+model ProjectCycle {
+  id String @id @default(uuid())
+  projectId String @map("project_id")
+  ownerId String @map("owner_id")
+  cycleNumber Int @map("cycle_number")
+  intendedOutcome String? @map("intended_outcome") @db.Text
+  startedAt DateTime @map("started_at")
+  endedAt DateTime? @map("ended_at")
+  endReason ProjectCycleEndReason? @map("end_reason")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  transitions ProjectLifecycleTransition[]
+
+  @@unique([projectId, cycleNumber])
+  @@index([projectId, endedAt])
+  @@map("project_cycles")
+}
+
+model ProjectLifecycleTransition {
+  id String @id @default(uuid())
+  projectId String @map("project_id")
+  cycleId String? @map("cycle_id")
+  action ProjectLifecycleAction
+  fromState ProjectLifecycleState @map("from_state")
+  toState ProjectLifecycleState @map("to_state")
+  occurredAt DateTime @map("occurred_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  cycle ProjectCycle? @relation(fields: [cycleId], references: [id], onDelete: SetNull)
+
+  @@index([projectId, occurredAt(sort: Desc)])
+  @@index([cycleId])
+  @@map("project_lifecycle_transitions")
+}
+

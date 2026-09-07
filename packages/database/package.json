@@ -22,7 +22,7 @@
     "lint": "eslint . --max-warnings=0",
     "check-types": "tsc --noEmit",
     "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
+    "db:migrate": "dotenv -e ../../.env -- prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:verify-migrations": "prisma migrate deploy && prisma migrate diff --from-config-datasource --to-schema=prisma/schema.prisma --exit-code",
     "db:seed": "pnpm --filter @repo/contracts build && prisma db seed",
