@@ -223,6 +223,158 @@ describe("ProjectLifecycleControls", () => {
     expect(refresh).not.toHaveBeenCalled();
   });
 
+  it("requires confirmation before completing a Project", async () => {
+    changeProjectLifecycle.mockResolvedValue({
+      status: "success",
+      project: {},
+    });
+
+    render(
+      <ProjectLifecycleControls
+        id={projectId}
+        title={title}
+        lifecycleState="ACTIVE"
+        revision={revision}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Hoàn thành" }));
+
+    expect(changeProjectLifecycle).not.toHaveBeenCalled();
+
+    const dialog = await screen.findByRole("alertdialog");
+
+    expect(
+      within(dialog).getByRole("heading", {
+        name: "Đánh dấu Project này đã hoàn thành?",
+      }),
+    ).toBeTruthy();
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Hoàn thành" }));
+
+    await waitFor(() =>
+      expect(changeProjectLifecycle).toHaveBeenCalledWith({
+        id: projectId,
+        expectedRevision: revision,
+        action: "complete",
+      }),
+    );
+
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
+    expect(refresh).toHaveBeenCalledOnce();
+    expect(notifySuccess).toHaveBeenCalledWith(`Đã hoàn thành "${title}"`);
+  });
+
+  it("requires confirmation before stopping a Project", async () => {
+    changeProjectLifecycle.mockResolvedValue({
+      status: "success",
+      project: {},
+    });
+
+    render(
+      <ProjectLifecycleControls
+        id={projectId}
+        title={title}
+        lifecycleState="ACTIVE"
+        revision={revision}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Dừng lại" }));
+
+    const dialog = await screen.findByRole("alertdialog");
+
+    expect(
+      within(dialog).getByRole("heading", {
+        name: "Dừng Project này lại?",
+      }),
+    ).toBeTruthy();
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Dừng lại" }));
+
+    await waitFor(() =>
+      expect(changeProjectLifecycle).toHaveBeenCalledWith({
+        id: projectId,
+        expectedRevision: revision,
+        action: "stop",
+      }),
+    );
+
+    expect(notifySuccess).toHaveBeenCalledWith(`Đã dừng "${title}"`);
+  });
+
+  it("does not require confirmation for low-risk actions like Start", () => {
+    render(
+      <ProjectLifecycleControls
+        id={projectId}
+        title={title}
+        lifecycleState="NOT_STARTED"
+        revision={revision}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Bắt đầu" }));
+
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    expect(changeProjectLifecycle).toHaveBeenCalledWith({
+      id: projectId,
+      expectedRevision: revision,
+      action: "start",
+    });
+  });
+
+  it("cancels a pending confirmation without calling the action", async () => {
+    render(
+      <ProjectLifecycleControls
+        id={projectId}
+        title={title}
+        lifecycleState="ACTIVE"
+        revision={revision}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Hoàn thành" }));
+
+    const dialog = await screen.findByRole("alertdialog");
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Hủy" }));
+
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
+    expect(changeProjectLifecycle).not.toHaveBeenCalled();
+  });
+
+  it("keeps the confirmation dialog open and shows the error when completing fails", async () => {
+    changeProjectLifecycle.mockResolvedValue({
+      status: "error",
+      message: "Conflict",
+      code: "PROJECT_REVISION_CONFLICT",
+    });
+
+    render(
+      <ProjectLifecycleControls
+        id={projectId}
+        title={title}
+        lifecycleState="ACTIVE"
+        revision={revision}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Hoàn thành" }));
+
+    const dialog = await screen.findByRole("alertdialog");
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Hoàn thành" }));
+
+    expect(
+      await within(dialog).findByText(
+        "Project đã thay đổi ở một phiên làm việc khác.",
+      ),
+    ).toBeTruthy();
+
+    expect(screen.getByRole("alertdialog")).toBeTruthy();
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
   it("requires confirmation before permanently deleting a Project", async () => {
     // deleteProjectPermanently không bao giờ "return" khi thành công — Server
     // Action tự redirect() trên server, Next.js hiện thực điều đó bằng cách

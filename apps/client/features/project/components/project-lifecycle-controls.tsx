@@ -100,6 +100,26 @@ const ACTION_META: Record<
   },
 };
 
+// Complete/Stop đóng Cycle vĩnh viễn (BR-PRJ-019/027 — không thể sửa hay xóa
+// sau đó), nên cần xác nhận trước khi thực thi để chặn misclick — khác
+// Start/Pause/Resume/Reopen vốn rủi ro thấp hơn nhiều. Đây thuần là UI-level
+// safeguard chống bấm nhầm, KHÔNG phải cơ chế cho phép đổi ý sau khi đã xác
+// nhận — domain vẫn không có khái niệm "hối lại".
+const CONFIRM_REQUIRED_ACTIONS: Partial<
+  Record<ProjectLifecycleAction, { title: string; description: string }>
+> = {
+  complete: {
+    title: "Đánh dấu Project này đã hoàn thành?",
+    description:
+      "Cycle hiện tại sẽ đóng lại vĩnh viễn với lý do COMPLETED. Bạn vẫn có thể Reopen sau đó để tiếp tục, nhưng lịch sử Cycle này không thể sửa hay xóa.",
+  },
+  stop: {
+    title: "Dừng Project này lại?",
+    description:
+      "Cycle hiện tại (nếu có) sẽ đóng lại vĩnh viễn với lý do STOPPED. Bạn vẫn có thể Reopen sau đó để tiếp tục, nhưng lịch sử Cycle này không thể sửa hay xóa.",
+  },
+};
+
 type ProjectLifecycleControlsProps = {
   id: string;
   title: string;
@@ -124,13 +144,18 @@ export function ProjectLifecycleControls({
   const hasConflict = isRevisionConflict(error?.code);
 
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [confirmingAction, setConfirmingAction] =
+    useState<ProjectLifecycleAction | null>(null);
   const [pendingAction, setPendingAction] =
     useState<ProjectLifecycleAction | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  const anyDialogOpen = deleteOpen || confirmingAction !== null;
+
   const reloadLatestRevision = () => {
     setError(null);
     setDeleteOpen(false);
+    setConfirmingAction(null);
     router.refresh();
   };
 
@@ -156,6 +181,7 @@ export function ProjectLifecycleControls({
           return;
         }
 
+        setConfirmingAction(null);
         void notifySuccess(ACTION_META[action].successMessage(title));
         router.refresh();
       } catch {
@@ -208,6 +234,10 @@ export function ProjectLifecycleControls({
     />
   ) : null;
 
+  const confirmMeta = confirmingAction
+    ? CONFIRM_REQUIRED_ACTIONS[confirmingAction]
+    : undefined;
+
   return (
     <div
       role="group"
@@ -215,12 +245,13 @@ export function ProjectLifecycleControls({
       aria-busy={isPending}
       aria-label="Thao tác vòng đời Project"
     >
-      {!deleteOpen ? errorAlert : null}
+      {!anyDialogOpen ? errorAlert : null}
 
       <div className="flex flex-wrap items-center justify-end gap-2">
         {AVAILABLE_ACTIONS[lifecycleState].map((action) => {
           const { label, icon: Icon } = ACTION_META[action];
           const isThisPending = isPending && pendingAction === action;
+          const requiresConfirm = action in CONFIRM_REQUIRED_ACTIONS;
 
           return (
             <Button
@@ -228,7 +259,11 @@ export function ProjectLifecycleControls({
               type="button"
               variant="outline"
               disabled={isPending}
-              onClick={() => runLifecycleAction(action)}
+              onClick={() =>
+                requiresConfirm
+                  ? setConfirmingAction(action)
+                  : runLifecycleAction(action)
+              }
             >
               <Icon aria-hidden="true" />
               {isThisPending ? "Đang cập nhật…" : label}
@@ -280,6 +315,45 @@ export function ProjectLifecycleControls({
           </AlertDialog>
         ) : null}
       </div>
+
+      <AlertDialog
+        open={confirmingAction !== null}
+        onOpenChange={(open) => {
+          if (isPending) return;
+          if (!open) {
+            setConfirmingAction(null);
+            setError(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{confirmMeta?.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmMeta?.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          {confirmingAction !== null ? errorAlert : null}
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isPending}>Hủy</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isPending}
+              onClick={(event) => {
+                event.preventDefault();
+                if (confirmingAction) runLifecycleAction(confirmingAction);
+              }}
+            >
+              {isPending && confirmingAction
+                ? "Đang cập nhật…"
+                : confirmingAction
+                  ? ACTION_META[confirmingAction].label
+                  : ""}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
