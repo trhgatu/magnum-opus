@@ -285,16 +285,17 @@ project.resume()
 project.stop()
 project.complete()
 project.reopen()
-project.setIntendedOutcome(outcome)
 ```
 
-Mỗi method:
+Mỗi method trên:
 
 1. kiểm tra transition eligibility;
 2. thay đổi state nếu hợp lệ;
 3. tạo hoặc đóng Project Cycle tương ứng;
-4. raise Domain Event;
+4. raise `ProjectLifecycleTransitionedEvent` (xem §3.6);
 5. throw exception nếu không hợp lệ.
+
+`project.setIntendedOutcome(outcome)` cũng do Aggregate Root enforce (yêu cầu current Cycle đang mở), nhưng không phải lifecycle transition — không tạo/đóng Cycle, không raise event nào (xem §5.7).
 
 ---
 
@@ -311,7 +312,7 @@ state → ACTIVE
 Cycle 1 created (startedAt = now)
 
 Event raised:
-ProjectStarted
+ProjectLifecycleTransitionedEvent (action = START)
 ```
 
 ---
@@ -327,7 +328,7 @@ state → PAUSED
 Current Cycle remains open
 
 Event raised:
-ProjectPaused
+ProjectLifecycleTransitionedEvent (action = PAUSE)
 ```
 
 ---
@@ -343,7 +344,7 @@ state → ACTIVE
 Current Cycle remains open
 
 Event raised:
-ProjectResumed
+ProjectLifecycleTransitionedEvent (action = RESUME)
 ```
 
 ---
@@ -363,7 +364,7 @@ state → STOPPED
 Current Cycle closed (endedAt = now, endReason = STOPPED)
 
 Event raised:
-ProjectStopped
+ProjectLifecycleTransitionedEvent (action = STOP)
 ```
 
 ---
@@ -379,7 +380,7 @@ state → COMPLETED
 Current Cycle closed (endedAt = now, endReason = COMPLETED)
 
 Event raised:
-ProjectCompleted
+ProjectLifecycleTransitionedEvent (action = COMPLETE)
 ```
 
 ---
@@ -396,7 +397,7 @@ New Cycle created (startedAt = now)
 New Cycle has no IntendedOutcome
 
 Event raised:
-ProjectReopened
+ProjectLifecycleTransitionedEvent (action = REOPEN)
 ```
 
 ---
@@ -412,7 +413,8 @@ Effect:
 Current Cycle.intendedOutcome = outcome
 
 Event raised:
-ProjectCycleIntendedOutcomeSet
+none — not a lifecycle transition (no fromState/toState), so nothing
+for ProjectLifecycleTransitionedEvent to record (see §3.6)
 ```
 
 ---
