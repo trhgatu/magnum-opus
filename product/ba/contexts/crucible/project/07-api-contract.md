@@ -315,7 +315,7 @@ ProjectResponse
 
 | Status | Reason                      |
 | ------ | --------------------------- |
-| 400    | Project không ở NOT_STARTED |
+| 409    | Project không ở NOT_STARTED |
 | 401    | Unauthorized                |
 | 404    | Project không tồn tại       |
 | 409    | expectedRevision conflict   |
@@ -359,7 +359,7 @@ ProjectResponse
 
 | Status | Reason                    |
 | ------ | ------------------------- |
-| 400    | Project không ở ACTIVE    |
+| 409    | Project không ở ACTIVE    |
 | 401    | Unauthorized              |
 | 404    | Project không tồn tại     |
 | 409    | expectedRevision conflict |
@@ -403,7 +403,7 @@ ProjectResponse
 
 | Status | Reason                    |
 | ------ | ------------------------- |
-| 400    | Project không ở PAUSED    |
+| 409    | Project không ở PAUSED    |
 | 401    | Unauthorized              |
 | 404    | Project không tồn tại     |
 | 409    | expectedRevision conflict |
@@ -447,7 +447,7 @@ ProjectResponse
 
 | Status | Reason                                |
 | ------ | ------------------------------------- |
-| 400    | Project đang ở STOPPED hoặc COMPLETED |
+| 409    | Project đang ở STOPPED hoặc COMPLETED |
 | 401    | Unauthorized                          |
 | 404    | Project không tồn tại                 |
 | 409    | expectedRevision conflict             |
@@ -493,7 +493,7 @@ ProjectResponse
 
 | Status | Reason                             |
 | ------ | ---------------------------------- |
-| 400    | Project không ở ACTIVE hoặc PAUSED |
+| 409    | Project không ở ACTIVE hoặc PAUSED |
 | 401    | Unauthorized                       |
 | 404    | Project không tồn tại              |
 | 409    | expectedRevision conflict          |
@@ -538,7 +538,7 @@ ProjectResponse
 
 | Status | Reason                                 |
 | ------ | -------------------------------------- |
-| 400    | Project không ở STOPPED hoặc COMPLETED |
+| 409    | Project không ở STOPPED hoặc COMPLETED |
 | 401    | Unauthorized                           |
 | 404    | Project không tồn tại                  |
 | 409    | expectedRevision conflict              |
@@ -585,7 +585,7 @@ ProjectResponse
 
 | Status | Reason                             |
 | ------ | ---------------------------------- |
-| 400    | Project không ở ACTIVE hoặc PAUSED |
+| 409    | Project không ở ACTIVE hoặc PAUSED |
 | 400    | intendedOutcome không hợp lệ       |
 | 401    | Unauthorized                       |
 | 404    | Project không tồn tại              |
@@ -641,7 +641,7 @@ interface DeleteProjectQueryDto {
 
 | Status | Reason                                       |
 | ------ | -------------------------------------------- |
-| 400    | Project đã từng có ít nhất một Project Cycle |
+| 409    | Project đã từng có ít nhất một Project Cycle |
 | 401    | Unauthorized                                 |
 | 404    | Project không tồn tại                        |
 | 409    | expectedRevision conflict                    |
@@ -661,13 +661,13 @@ interface DeleteProjectQueryDto {
 
 ## 5. Error Semantics
 
-### 5.1. Invalid Lifecycle Transition (400)
+### 5.1. Invalid Lifecycle Transition (409)
 
 Khi người dùng thực hiện lifecycle action không hợp lệ với current state:
 
 ```json
 {
-  "statusCode": 400,
+  "statusCode": 409,
   "message": "Invalid project transition: cannot pause a PAUSED project",
   "error": "Bad Request"
 }
