@@ -216,21 +216,17 @@ Domain Event là signal để notify các handler khác.
 
 ### 3.6. Domain Events
 
-Projects V1 raise các Domain Event sau khi lifecycle transition xảy ra thành công:
+Projects V1 raise một Domain Event duy nhất — `ProjectLifecycleTransitionedEvent` — sau khi một trong 6 lifecycle action (`Start`/`Pause`/`Resume`/`Stop`/`Complete`/`Reopen`) xảy ra thành công. `Update` và `SetIntendedOutcome` không raise Domain Event vì chúng không phải lifecycle transition (không có `fromState`/`toState`).
 
-```text
-ProjectCreated
-ProjectStarted
-ProjectPaused
-ProjectResumed
-ProjectStopped
-ProjectCompleted
-ProjectReopened
-ProjectUpdated
-ProjectCycleIntendedOutcomeSet
-```
+Domain Event này **không** đi qua Outbox pattern.
 
-Domain Event được publish thông qua Outbox pattern, nhất quán với codebase hiện tại.
+Lý do: Outbox tồn tại để đảm bảo delivery đáng tin cậy cho side-effect bất đồng bộ tới consumer _bên ngoài_ aggregate (gửi email, ghi Timeline, push realtime — xem `OutboxEventRouter`). Theo `DAP-PRJ-005`, Crucible không có cross-context dependency trong V1 — không có consumer nào cần được notify khi Project chuyển lifecycle state. Publish một event không ai consume qua Outbox sẽ khiến publisher throw lỗi liên tục (`No outbox route registered`).
+
+Domain Event ở đây chỉ đóng vai trò tín hiệu **nội bộ, đồng bộ**: `Project` aggregate tự `addDomainEvent()`, và `PrismaProjectRepository.update()` `pullDomainEvents()` ngay trong cùng transaction đang ghi `project`/`project_cycles`, rồi map event thành 1 row `ProjectLifecycleTransition` và ghi trực tiếp — không có publisher, không có retry, không có bảng `outbox_events` nào được dùng.
+
+Điều này nhất quán với precedent `Habit`/`Routine` trong codebase — cả hai đều raise **0 domain event** vì không có consumer nào tồn tại. Projects V1 raise đúng 1 event, nhưng chỉ để phục vụ chính nhu cầu ghi lịch sử của nó (§7), không phải để notify ai khác.
+
+Nếu trong tương lai xuất hiện consumer thật (ví dụ Timeline cần biết khi Project complete), đây sẽ là lúc thêm domain event riêng cho từng action và route qua Outbox — một quyết định mới, không phải mặc định của V1.
 
 ---
 
@@ -466,9 +462,7 @@ newCycleNumber = closedCycles.length + 1
 
 Product Specification yêu cầu lifecycle history được preserve.
 
-Codebase dùng Domain Event với Outbox pattern.
-
-Hai concern này khác nhau:
+Đây là hai concern khác nhau về bản chất:
 
 ```text
 Domain Event
@@ -482,13 +476,15 @@ Lifecycle Transition Record
 → là authoritative lifecycle history
 ```
 
-Do đó Projects V1 sử dụng cả hai:
+Domain Event vẫn được dùng trong Projects V1, nhưng chỉ như cơ chế nội bộ để derive Lifecycle Transition Record — không đi qua Outbox, không notify handler nào bên ngoài aggregate (xem §3.6 vì sao Outbox không cần thiết ở đây):
 
 ```text
 Lifecycle action xảy ra
         ↓
-Domain Event raised (notify handlers)
-        +
+Domain Event raised (in-process signal)
+        ↓
+Repository pulls event trong cùng transaction
+        ↓
 Lifecycle Transition Record persisted (historical fact)
 ```
 
@@ -690,63 +686,21 @@ Xem Product Specification mục 23.
 
 ---
 
-## 13. Domain Event Payload Candidates
+## 13. Domain Event Payload
+
+Projects V1 dùng một event class duy nhất cho cả 6 lifecycle action (xem §3.6 vì sao không tách 9 event riêng như candidate ban đầu):
 
 ```text
-ProjectCreated
+ProjectLifecycleTransitionedEvent
 ├── projectId
-├── title
-├── description
-└── occurredAt
-
-ProjectStarted
-├── projectId
-├── cycleId
-├── cycleNumber
-└── occurredAt
-
-ProjectPaused
-├── projectId
-├── cycleId
-└── occurredAt
-
-ProjectResumed
-├── projectId
-├── cycleId
-└── occurredAt
-
-ProjectStopped
-├── projectId
-├── cycleId (nullable)
-└── occurredAt
-
-ProjectCompleted
-├── projectId
-├── cycleId
-└── occurredAt
-
-ProjectReopened
-├── projectId
-├── previousCycleId
-├── newCycleId
-├── newCycleNumber
-└── occurredAt
-
-ProjectUpdated
-├── projectId
-├── title
-├── description
-└── occurredAt
-
-ProjectCycleIntendedOutcomeSet
-├── projectId
-├── cycleId
-└── occurredAt
+├── cycleId    (nullable — null khi NOT_STARTED → STOPPED)
+├── action     (START | PAUSE | RESUME | STOP | COMPLETE | REOPEN)
+├── fromState
+├── toState
+└── occurredOn  (kế thừa từ DomainEvent base class)
 ```
 
-Domain Event payload không cần chứa toàn bộ aggregate state.
-
-Payload chỉ cần đủ để handler thực hiện concern của mình.
+Payload chỉ cần đủ để derive đúng 1 row `ProjectLifecycleTransition` — không cần chứa toàn bộ aggregate state, vì event này không có handler nào khác tiêu thụ ngoài chính repository ghi lịch sử.
 
 ---
 
@@ -813,7 +767,6 @@ Các quyết định sau chưa được chốt và thuộc Infrastructure / Tech
 - Schema chi tiết của từng table.
 - Index strategy cho lifecycle transition queries.
 - Archive behavior (delete đã được baseline: hard delete, chỉ khi `cycles.length == 0` — xem mục 5.8, 8.2, 10, 11).
-- Cách persist Lifecycle Transition — cùng transaction với Project hay separate.
 - Timeline / history read model nếu cần trong tương lai.
 - Cross-context reference pattern khi Crucible link với Reflection.
 - Authorization — ai có thể thực hiện lifecycle action.
@@ -835,7 +788,7 @@ ProjectCycle → Entity
 IntendedOutcome → Value Object
 LifecycleState → Value Object
 LifecycleTransition → Persistent Record
-Domain Events → 9 events
+Domain Event → 1 event (in-process, no Outbox)
 ```
 
 API Contract cần xác định:
