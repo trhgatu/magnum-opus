@@ -83,7 +83,9 @@ Nếu `expectedRevision` không khớp với revision hiện tại của Project
 
 ### 2.6. Error Format
 
-Nhất quán với error format hiện tại của codebase:
+Có 2 shape khác nhau tùy nguồn gốc lỗi:
+
+**Validation lỗi ở tầng DTO** (`class-validator`, ví dụ thiếu `title`, sai kiểu request body) — dùng shape mặc định của NestJS `ValidationPipe`:
 
 ```json
 {
@@ -92,6 +94,22 @@ Nhất quán với error format hiện tại của codebase:
   "error": "Bad Request"
 }
 ```
+
+**Lỗi từ domain layer** (mọi `DomainException` — not found, revision conflict, invalid transition, deletion not allowed) — đi qua `DomainExceptionFilter` dùng chung của codebase, shape khác hẳn:
+
+```json
+{
+  "statusCode": 409,
+  "code": "INVALID_PROJECT_TRANSITION",
+  "translationKey": "exceptions.project.transition.invalid",
+  "message": "Cannot pause a Project in state PAUSED",
+  "args": { "currentState": "PAUSED", "action": "pause" },
+  "error": "InvalidProjectTransitionException",
+  "timestamp": "2026-09-07T14:00:00.000Z"
+}
+```
+
+`code` là giá trị ổn định, an toàn để client rẽ nhánh logic theo đó (ví dụ phân biệt `PROJECT_REVISION_CONFLICT` với `PROJECT_DELETION_NOT_ALLOWED` dù cả hai đều `statusCode: 409`). `error` là tên class exception, không phải HTTP reason phrase.
 
 ---
 
@@ -668,12 +686,16 @@ Khi người dùng thực hiện lifecycle action không hợp lệ với curren
 ```json
 {
   "statusCode": 409,
-  "message": "Invalid project transition: cannot pause a PAUSED project",
-  "error": "Bad Request"
+  "code": "INVALID_PROJECT_TRANSITION",
+  "translationKey": "exceptions.project.transition.invalid",
+  "message": "Cannot pause a Project in state PAUSED",
+  "args": { "currentState": "PAUSED", "action": "pause" },
+  "error": "InvalidProjectTransitionException",
+  "timestamp": "2026-09-07T14:00:00.000Z"
 }
 ```
 
-Message phải đủ rõ để người dùng hiểu tại sao action bị từ chối.
+`message` phải đủ rõ để người dùng hiểu tại sao action bị từ chối.
 
 ---
 
@@ -684,8 +706,12 @@ Khi `expectedRevision` không khớp:
 ```json
 {
   "statusCode": 409,
-  "message": "Project revision conflict",
-  "error": "Conflict"
+  "code": "PROJECT_REVISION_CONFLICT",
+  "translationKey": "exceptions.project.revision.conflict",
+  "message": "Project \"a1b2c3d4-...\" revision conflict (expected 3)",
+  "args": { "projectId": "a1b2c3d4-...", "expectedRevision": 3 },
+  "error": "ProjectRevisionConflictException",
+  "timestamp": "2026-09-07T14:00:00.000Z"
 }
 ```
 
@@ -696,8 +722,12 @@ Khi `expectedRevision` không khớp:
 ```json
 {
   "statusCode": 404,
-  "message": "Project not found",
-  "error": "Not Found"
+  "code": "PROJECT_NOT_FOUND",
+  "translationKey": "exceptions.project.not.found",
+  "message": "Project with ID \"a1b2c3d4-...\" was not found",
+  "args": { "projectId": "a1b2c3d4-..." },
+  "error": "ProjectNotFoundException",
+  "timestamp": "2026-09-07T14:00:00.000Z"
 }
 ```
 
