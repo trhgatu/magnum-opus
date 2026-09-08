@@ -19,7 +19,8 @@
 
 **Exception Flow:**
 
-- `title` rỗng hoặc vượt 200 ký tự → 400 `INVALID_HABIT_TITLE`.
+- `title` vượt 200 ký tự → bị chặn ở tầng DTO (`@MaxLength(200)`) trước khi chạm domain — 400 dạng `ValidationPipe` chung (`{ statusCode, message, error: "Bad Request" }`), không phải `INVALID_HABIT_TITLE`.
+- `title` rỗng hoặc chỉ chứa khoảng trắng — DTO không chặn được (chuỗi toàn khoảng trắng vẫn qua `@IsString()`), chạm tới domain và bị `Habit.normalizeTitle()` từ chối → 400 `INVALID_HABIT_TITLE` (đi qua `DomainExceptionFilter`, shape khác `ValidationPipe` dù cùng statusCode 400 — xem `07-api-contract.md` §1.6).
 - `frequency` không hợp lệ (DAILY kèm ngày, hoặc WEEKLY không có ngày) → 400 `INVALID_HABIT_FREQUENCY`.
 
 **Postconditions:** Habit tồn tại, `ACTIVE`, sẵn sàng xuất hiện trong danh sách và tổng hợp "hôm nay" nếu đến hạn.

@@ -71,6 +71,7 @@ UUID wrapper, sinh qua `HabitId.generate()` — static factory, không cần coo
 ```text
 Habit (Aggregate Root)
 ├── HabitId          (Value Object)
+├── ownerId           (string)
 ├── title             (string)
 ├── description       (string | null)
 ├── HabitFrequency    (Value Object)
