@@ -82,10 +82,15 @@ Habit (Aggregate Root, cập nhật)
 Habit.create(input):
   type = BUILD → input.frequency bắt buộc có, input.quitStartedAt
                  bắt buộc KHÔNG có
-  type = QUIT  → input.quitStartedAt bắt buộc có (và không phải ngày
-                 tương lai, BR-HAB2-005), input.frequency bắt buộc
-                 KHÔNG có
-  Vi phạm 1 trong 2 điều trên → InvalidHabitTypeException
+                 Vi phạm → InvalidHabitTypeException
+  type = QUIT  → input.frequency bắt buộc KHÔNG có
+                 Vi phạm → InvalidHabitTypeException
+                 input.quitStartedAt: nếu không truyền, mặc định ngày
+                 tạo (BR-HAB2-002) — không phải lỗi
+                 input.quitStartedAt là ngày tương lai (BR-HAB2-005)
+                 → InvalidQuitStartedAtException (KHÔNG dùng
+                 InvalidHabitTypeException — hai lỗi khác bản chất:
+                 field sai chỗ vs. giá trị field không hợp lệ)
 
 Habit.update(input):
   type không nằm trong input — không có cách nào đổi type qua Update
@@ -93,10 +98,14 @@ Habit.update(input):
   Chỉ field thuộc type hiện tại của Habit mới được chấp nhận:
     Habit đang BUILD → input phải có frequency, KHÔNG được có
                         quitStartedAt
+                        Vi phạm → InvalidHabitTypeException
     Habit đang QUIT  → input phải có quitStartedAt, KHÔNG được có
                         frequency
-  Vi phạm → InvalidHabitTypeException (dùng chung, không cần exception
-  riêng cho Update — nguyên nhân giống hệt create: field không khớp type)
+                        Vi phạm → InvalidHabitTypeException
+                        input.quitStartedAt là ngày tương lai
+                        (BR-HAB2-005) → InvalidQuitStartedAtException
+                        (cùng lý do tách biệt như ở create, áp dụng vì
+                        KD-HAB2-009 cho phép sửa quitStartedAt lúc ACTIVE)
 ```
 
 ### Domain Exceptions mới
@@ -135,7 +144,7 @@ Chỉ có `create()` — không có `update()`/`delete()` (append-only, nhất q
 ```text
 HabitProgressReader (port mới, hoặc mở rộng HabitReader hiện có)
 └── getProgressFor(habitId, ownerId)
-    → { sinceDate: Date, source: 'RELAPSE' | 'QUIT_STARTED_AT' }
+    → { sinceDate: Date, sinceReason: 'RELAPSE' | 'QUIT_STARTED_AT' }
 ```
 
 `sinceDate` = `occurredAt` của relapse gần nhất **có `occurredAt >= quitStartedAt` hiện tại**, ngược lại (không có relapse nào thỏa, kể cả khi có relapse cũ hơn `quitStartedAt`) = `quitStartedAt` của Habit. Relapse cũ hơn `quitStartedAt` hiện tại bị bỏ qua — tránh trường hợp sửa `quitStartedAt` lùi về sau khiến "since" tính ra âm (`BR-HAB2-004`).

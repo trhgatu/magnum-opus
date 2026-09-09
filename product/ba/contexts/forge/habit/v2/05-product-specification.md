@@ -35,8 +35,9 @@ Habit (mở rộng V2)
 ```text
 Create QUIT   → title + description? + quitStartedAt        → ACTIVE
 Log Relapse   → ghi 1 bản ghi mới, không giới hạn số lần/ngày → chỉ khi ACTIVE
-View Progress → hôm nay − (relapse gần nhất, hoặc quitStartedAt nếu chưa
-                từng relapse)
+View Progress → hôm nay − (relapse gần nhất có occurredAt >= quitStartedAt
+                hiện tại, hoặc quitStartedAt nếu không có relapse nào
+                thỏa — BR-HAB2-004)
 Update QUIT   → title, description, quitStartedAt (không đổi type) → chỉ khi ACTIVE
 Filter        → theo type (BUILD/QUIT), cùng danh sách /habits
 ```
@@ -45,17 +46,17 @@ Filter        → theo type (BUILD/QUIT), cùng danh sách /habits
 
 ## 3. Invariant Summary (phần mới của V2)
 
-| Invariant                                     | Enforced By                                                                                                                                                                                                    |
-| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| QUIT-type không có frequency                  | Validation khi tạo/sửa Habit loại QUIT                                                                                                                                                                         |
-| QUIT-type bắt buộc có quitStartedAt           | Validation khi tạo Habit loại QUIT                                                                                                                                                                             |
-| Relapse chỉ ghi khi Habit ACTIVE và type QUIT | Tương tự `HABIT_CHECK_IN_FORBIDDEN` (`BR-HAB2-006`)                                                                                                                                                            |
-| Relapse là append-only, không idempotent      | Không có unique constraint theo ngày                                                                                                                                                                           |
-| Progress tính từ relapse gần nhất             | Query `MAX(occurredAt)` hoặc `quitStartedAt`                                                                                                                                                                   |
-| QUIT-type không vào được Routine              | Application handler (`AddRoutineHabitHandler`) kiểm tra `type` qua reader trước khi gọi `routine.addHabit()` — nhất quán cách guard `isActive` hiện tại đã làm, không phải check bên trong aggregate `Routine` |
-| QUIT-type không xuất hiện trong Today         | Hệ quả tự nhiên từ thiếu frequency, không cần enforce riêng                                                                                                                                                    |
-| Type bất biến sau khi tạo                     | Không có API đổi type                                                                                                                                                                                          |
-| Habit cũ mặc định BUILD khi migrate           | Migration script                                                                                                                                                                                               |
+| Invariant                                                        | Enforced By                                                                                                                                                                                                    |
+| ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| QUIT-type không có frequency                                     | Validation khi tạo/sửa Habit loại QUIT                                                                                                                                                                         |
+| QUIT-type bắt buộc có quitStartedAt                              | Validation khi tạo Habit loại QUIT                                                                                                                                                                             |
+| Relapse chỉ ghi khi Habit ACTIVE và type QUIT                    | Tương tự `HABIT_CHECK_IN_FORBIDDEN` (`BR-HAB2-006`)                                                                                                                                                            |
+| Relapse là append-only, không idempotent                         | Không có unique constraint theo ngày                                                                                                                                                                           |
+| Progress tính từ relapse gần nhất có occurredAt >= quitStartedAt | Query `MAX(occurredAt) WHERE occurredAt >= quitStartedAt`, fallback `quitStartedAt` (`BR-HAB2-004`)                                                                                                            |
+| QUIT-type không vào được Routine                                 | Application handler (`AddRoutineHabitHandler`) kiểm tra `type` qua reader trước khi gọi `routine.addHabit()` — nhất quán cách guard `isActive` hiện tại đã làm, không phải check bên trong aggregate `Routine` |
+| QUIT-type không xuất hiện trong Today                            | Hệ quả tự nhiên từ thiếu frequency, không cần enforce riêng                                                                                                                                                    |
+| Type bất biến sau khi tạo                                        | Không có API đổi type                                                                                                                                                                                          |
+| Habit cũ mặc định BUILD khi migrate                              | Migration script                                                                                                                                                                                               |
 
 ---
 

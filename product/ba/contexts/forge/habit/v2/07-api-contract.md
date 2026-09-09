@@ -48,7 +48,8 @@ interface CreateHabitDto {
   frequencyType?: 'DAILY' | 'WEEKLY';
   frequencyDays?: number[];
 
-  // Bắt buộc khi type = QUIT, bị từ chối nếu gửi kèm type = BUILD
+  // Tùy chọn khi type = QUIT — mặc định là ngày tạo nếu không truyền
+  // (BR-HAB2-002); bị từ chối nếu gửi kèm type = BUILD
   quitStartedAt?: string; // ISO 8601 date
 }
 ```
@@ -57,7 +58,8 @@ interface CreateHabitDto {
 | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 400    | title không hợp lệ                                                                                                                                                                         |
 | 400    | type = BUILD nhưng thiếu/sai frequency, hoặc kèm quitStartedAt (`INVALID_HABIT_TYPE`, domain: `InvalidHabitTypeException` — xem `06-domain-analysis.md` §4 "Aggregate Method Constraints") |
-| 400    | type = QUIT nhưng thiếu quitStartedAt, hoặc kèm frequency (`INVALID_HABIT_TYPE`, cùng exception)                                                                                           |
+| 400    | type = QUIT nhưng kèm frequency (`INVALID_HABIT_TYPE`, cùng exception)                                                                                                                     |
+| 400    | quitStartedAt là ngày trong tương lai (`INVALID_QUIT_STARTED_AT`, domain: `InvalidQuitStartedAtException` — `BR-HAB2-005`)                                                                 |
 | 401    | Unauthorized                                                                                                                                                                               |
 
 ### 3.2. List Habits — `GET /habits`
@@ -92,6 +94,7 @@ interface UpdateHabitDto {
 | Status | Reason                                                                                                                                                                       |
 | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 400    | field gửi lên không khớp type hiện tại của Habit (`INVALID_HABIT_TYPE`, domain: `InvalidHabitTypeException` — xem `06-domain-analysis.md` §4 "Aggregate Method Constraints") |
+| 400    | Habit là QUIT và `quitStartedAt` gửi lên là ngày trong tương lai (`INVALID_QUIT_STARTED_AT`, domain: `InvalidQuitStartedAtException` — `BR-HAB2-005`)                        |
 | 409    | Habit ARCHIVED, hoặc revision conflict                                                                                                                                       |
 
 ---

@@ -46,7 +46,7 @@ ARCHIVED
    └── Restore ──→ ACTIVE
 ```
 
-Giữ nguyên `BR-HAB-003`/`004` (chỉ ACTIVE mới Archive được, chỉ ARCHIVED mới Restore được) cho cả 2 loại — xem `KD-HAB2-005` (V1 §9... _tham chiếu 01-ba-overview.md_) về việc tái sử dụng cơ chế này cho QUIT-type thay vì phát minh state mới.
+Giữ nguyên `BR-HAB-003`/`004` (chỉ ACTIVE mới Archive được, chỉ ARCHIVED mới Restore được) cho cả 2 loại — xem `KD-HAB2-010` (`01-ba-overview.md` §9) về việc tái sử dụng cơ chế này cho QUIT-type thay vì phát minh state mới.
 
 Với QUIT-type, ý nghĩa `ARCHIVED` là: **tạm ngưng theo dõi nỗ lực từ bỏ này** (không xóa lịch sử relapse đã có) — người dùng có thể Restore lại bất kỳ lúc nào, "ngày bắt đầu"/lịch sử relapse cũ vẫn nguyên vẹn.
 

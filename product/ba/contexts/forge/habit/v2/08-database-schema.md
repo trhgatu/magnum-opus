@@ -51,7 +51,10 @@ model Habit {
 **Giải thích thay đổi:**
 
 - `type` mặc định `BUILD` — Habit cũ migrate vào sẽ tự động nhận giá trị này (`BR-HAB2-012`), không cần backfill script riêng nếu dùng default ở tầng migration.
-- `frequencyType` chuyển từ bắt buộc sang **nullable** — phá vỡ giả định cũ "mọi Habit đều có frequency". Đây là thay đổi schema có rủi ro (xem §5). **Đã verify**: `PrismaTodayReader` (`prisma-today.reader.ts`) build query bằng `OR: [{frequencyType: 'DAILY'}, {frequencyType: 'WEEKLY', frequencyDays: {has: ...}}]` — đây là equality filter SQL thuần túy, `frequencyType = null` không khớp điều kiện nào nên bị loại tự nhiên khỏi kết quả, **không throw lỗi, không cần sửa query** để hỗ trợ `BR-HAB2-011`. Grep toàn bộ `apps/server/src/contexts/forge/` xác nhận không có nơi nào khác đọc `frequencyType` ngoài `today/` và chính `habit/` context (đã cover bởi Aggregate Method Constraints, `06-domain-analysis.md` §4).
+- `frequencyType` chuyển từ bắt buộc sang **nullable** — phá vỡ giả định cũ "mọi Habit đều có frequency". Đây là thay đổi schema có rủi ro (xem §5). **Đã verify**: `PrismaTodayReader` (`prisma-today.reader.ts`) build query bằng `OR: [{frequencyType: 'DAILY'}, {frequencyType: 'WEEKLY', frequencyDays: {has: ...}}]` — đây là equality filter SQL thuần túy, `frequencyType = null` không khớp điều kiện nào nên bị loại tự nhiên khỏi kết quả, **không throw lỗi, không cần sửa query** để hỗ trợ `BR-HAB2-011`.
+
+  Tuy nhiên `PrismaHabitMapper` (`prisma-habit.mapper.ts`) **có** cần sửa: `toDomain()` tra `domainFrequencyTypes[raw.frequencyType]` — với `raw.frequencyType = null` (Habit QUIT), lookup này ra `undefined`, không throw nhưng tạo ra `HabitFrequency.rehydrate(undefined, [])` sai kiểu. Tương tự `toPersistence()` tra `persistenceFrequencyTypes[props.frequencyType]` sẽ `undefined` nếu `frequencyType` domain là null cho QUIT-type. Đây là thay đổi implementation thực sự cần làm ở mapper (thêm nhánh xử lý `type = QUIT` tách biệt khỏi `frequency`), nằm ngoài phạm vi "Aggregate Method Constraints" ở `06-domain-analysis.md` §4 (chỉ cover validation trong `create()`/`update()`, không cover persistence mapping).
+
 - `quitStartedAt` chỉ có giá trị khi `type = QUIT`. Không enforce được bằng schema thuần túy (Prisma không hỗ trợ CHECK constraint điều kiện theo cột khác) — phải enforce ở tầng domain (`Habit.create()`).
 - Index `[ownerId, type]` phục vụ filter theo loại (`FR-HAB2-004`).
 
@@ -135,4 +138,4 @@ Nếu không có kết quả (kể cả khi có relapse cũ hơn `quit_started_a
 
 ## 8. Next Step
 
-Bộ tài liệu Habit V2 (quit-type) hoàn tất (01–08, candidate/draft). Bước tiếp theo: review lại toàn bộ với người phụ trách sản phẩm trước khi implement — chỉ còn 1 điểm chưa chốt: ý nghĩa archive/restore cho QUIT-type (xem `01-ba-overview.md` §10). `type` bất biến (`KD-HAB2-008`) và `quitStartedAt` sửa được khi ACTIVE (`KD-HAB2-009`) đã xác nhận.
+Bộ tài liệu Habit V2 (quit-type) hoàn tất (01–08, candidate/draft) — không còn câu hỏi mở, toàn bộ đã chốt thành Known Decision (`01-ba-overview.md` §9, `KD-HAB2-001` đến `010`). Bước tiếp theo: review lại toàn bộ với người phụ trách sản phẩm trước khi implement.

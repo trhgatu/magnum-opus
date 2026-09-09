@@ -84,6 +84,8 @@ Mỗi lần ghi nhận tái phạm tạo một bản ghi mới, độc lập, c�
 
 Hệ quả: nếu `quitStartedAt` được sửa lùi về sau (thành ngày muộn hơn 1 relapse đã ghi trước đó), relapse đó tự động bị bỏ qua khi tính "since" — được hiểu là thuộc về lần cố gắng cai trước, không phải lỗi dữ liệu cần chặn. Không cần validate chéo giữa `quitStartedAt` và relapse đã có khi tạo/sửa Habit — chỉ cần tính đúng công thức này ở phía đọc.
 
+**Ranh giới ngày (timezone):** `occurredAt` là instant đầy đủ (giờ/phút/giây), còn `quitStartedAt` chỉ là ngày (`@db.Date`, không có thời gian) — "daysSince" là hiệu số **ngày lịch** (calendar day), không phải hiệu số 24h thô. Ranh giới ngày lịch xác định theo timezone của owner, nhất quán với cách `Today` context đã làm (`resolveTodayCalendarDate(instant, owner.timeZone)`) — không dùng UTC hay giờ server. Ví dụ: relapse lúc 23:50 giờ địa phương của owner và "hôm nay" lúc 00:10 hôm sau (giờ địa phương) → `daysSince = 1`, dù khoảng cách tuyệt đối chưa tới 20 phút.
+
 ## BR-HAB2-005 — Quit Start Date Cannot Be in the Future
 
 `quitStartedAt` không được là ngày sau ngày hiện tại — QUIT-type luôn có hiệu lực kể từ bây giờ, không có khái niệm "sẽ bắt đầu cai từ tương lai".

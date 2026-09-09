@@ -121,8 +121,8 @@ SC-HAB2-007 — QUIT-type Habit sống trong danh sách Habit chung
   trọng: hệ thống hiện tại (V1) chưa có bất kỳ chỉ số phái sinh nào (kể cả
   streak cho BUILD-type) — chỉ có raw check-in log + đếm số ngày trong
   1 khoảng hiển thị dạng heatmap.
-- Đổi loại (BUILD ⇄ QUIT) sau khi đã tạo Habit — chưa xác định có cần
-  hay không (xem Open Analysis).
+- Đổi loại (BUILD ⇄ QUIT) sau khi đã tạo Habit — đã quyết định KHÔNG hỗ
+  trợ, `type` bất biến sau khi tạo (`KD-HAB2-008`).
 - Lý do/ghi chú kèm theo mỗi lần tái phạm.
 - Phân biệt "quên tick" với "thật sự tái phạm" — cố tình không làm, vì
   không thể xác minh và không giải quyết được vấn đề gốc (xem Problem
