@@ -46,6 +46,17 @@ export function HabitRelapseControl({
       }
       if (result.progress) {
         setProgress(result.progress);
+      } else {
+        // Relapse đã ghi thành công và không thể hoàn tác — chỉ là
+        // không lấy lại được progress mới nhất ngay lúc này. Cập nhật
+        // lạc quan để không hiển thị số liệu cũ (router.refresh() chỉ
+        // làm mới cây server component, không tự đồng bộ lại state của
+        // client component này).
+        setProgress((current) => ({
+          ...current,
+          sinceReason: "RELAPSE",
+          daysSince: 0,
+        }));
       }
       setOpen(false);
       router.refresh();

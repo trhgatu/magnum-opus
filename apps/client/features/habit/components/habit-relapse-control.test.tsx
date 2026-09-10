@@ -68,6 +68,28 @@ describe("HabitRelapseControl", () => {
     expect(refresh).toHaveBeenCalledOnce();
   });
 
+  it("optimistically resets the streak to 0 when the relapse succeeds but refreshing progress fails", async () => {
+    mutation.mockResolvedValue({ status: "success", progress: null });
+
+    render(
+      <HabitRelapseControl
+        habitId="550e8400-e29b-41d4-a716-446655440000"
+        initialProgress={{
+          habitId: "550e8400-e29b-41d4-a716-446655440000",
+          since: "2026-08-01",
+          sinceReason: "QUIT_STARTED_AT",
+          daysSince: 12,
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Tôi đã tái phạm" }));
+    fireEvent.click(screen.getByRole("button", { name: "Xác nhận tái phạm" }));
+
+    await waitFor(() => expect(screen.getByText("0")).toBeTruthy());
+    expect(screen.queryByText("12")).toBeNull();
+  });
+
   it("does not open the confirm dialog for an archived Habit", () => {
     render(
       <HabitRelapseControl

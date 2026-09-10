@@ -53,6 +53,7 @@ beforeEach(() => {
 });
 
 afterEach(cleanup);
+afterEach(() => vi.useRealTimers());
 
 describe("HabitEditor", () => {
   it("creates a Habit and navigates to its detail", async () => {
@@ -112,8 +113,6 @@ describe("HabitEditor", () => {
       quitStartedAt: "2026-08-14",
     });
     expect(push).toHaveBeenCalledWith(`/habits/${quitHabit.id}`);
-
-    vi.useRealTimers();
   });
 
   it("shows the type as a read-only badge when editing", () => {
