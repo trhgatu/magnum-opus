@@ -8,3 +8,4 @@ export * from './routine-not-found.exception';
 export * from './routine-revision-conflict.exception';
 export * from './routine-habit-reference-not-found.exception';
 export * from './routine-habit-inactive.exception';
+export * from './habit-type-not-allowed-in-routine.exception';

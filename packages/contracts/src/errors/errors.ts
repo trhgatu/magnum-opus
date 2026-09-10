@@ -260,6 +260,16 @@ export const Errors = {
     translationKey: 'exceptions.habit.frequency.invalid',
     statusCode: 400,
   },
+  INVALID_HABIT_TYPE: {
+    code: 'INVALID_HABIT_TYPE',
+    translationKey: 'exceptions.habit.type.invalid',
+    statusCode: 400,
+  },
+  INVALID_QUIT_STARTED_AT: {
+    code: 'INVALID_QUIT_STARTED_AT',
+    translationKey: 'exceptions.habit.quit.started.at.invalid',
+    statusCode: 400,
+  },
   HABIT_NOT_FOUND: {
     code: 'HABIT_NOT_FOUND',
     translationKey: 'exceptions.habit.not.found',
@@ -293,6 +303,21 @@ export const Errors = {
   HABIT_CHECK_IN_FORBIDDEN: {
     code: 'HABIT_CHECK_IN_FORBIDDEN',
     translationKey: 'exceptions.habit.check.in.forbidden',
+    statusCode: 409,
+  },
+  INVALID_HABIT_RELAPSE_ID: {
+    code: 'INVALID_HABIT_RELAPSE_ID',
+    translationKey: 'exceptions.habit.relapse.id.invalid',
+    statusCode: 400,
+  },
+  HABIT_RELAPSE_FORBIDDEN: {
+    code: 'HABIT_RELAPSE_FORBIDDEN',
+    translationKey: 'exceptions.habit.relapse.forbidden',
+    statusCode: 409,
+  },
+  HABIT_PROGRESS_NOT_APPLICABLE: {
+    code: 'HABIT_PROGRESS_NOT_APPLICABLE',
+    translationKey: 'exceptions.habit.progress.not.applicable',
     statusCode: 409,
   },
 
@@ -349,6 +374,11 @@ export const Errors = {
   ROUTINE_HABIT_INACTIVE: {
     code: 'ROUTINE_HABIT_INACTIVE',
     translationKey: 'exceptions.routine.habit.inactive',
+    statusCode: 409,
+  },
+  HABIT_TYPE_NOT_ALLOWED_IN_ROUTINE: {
+    code: 'HABIT_TYPE_NOT_ALLOWED_IN_ROUTINE',
+    translationKey: 'exceptions.routine.habit.type.not.allowed',
     statusCode: 409,
   },
 

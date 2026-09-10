@@ -30,6 +30,7 @@ export class CheckInHabitHandler implements ICommandHandler<
       command.habitId,
       command.ownerId,
       true,
+      true,
     );
     const checkIn = HabitCheckIn.create({
       habitId: command.habitId,

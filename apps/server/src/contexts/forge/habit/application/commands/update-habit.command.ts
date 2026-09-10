@@ -8,8 +8,9 @@ export class UpdateHabitCommand implements ICommand {
   public readonly expectedRevision: number;
   public readonly title: string;
   public readonly description: string | null;
-  public readonly frequencyType: HabitFrequencyType;
+  public readonly frequencyType: HabitFrequencyType | null;
   public readonly frequencyDays: number[];
+  public readonly quitStartedAt: Date | null;
 
   constructor(props: {
     habitId: string;
@@ -17,15 +18,17 @@ export class UpdateHabitCommand implements ICommand {
     expectedRevision: number;
     title: string;
     description?: string | null;
-    frequencyType: HabitFrequencyType;
+    frequencyType?: HabitFrequencyType | null;
     frequencyDays?: number[];
+    quitStartedAt?: Date | null;
   }) {
     this.habitId = props.habitId;
     this.ownerId = props.ownerId;
     this.expectedRevision = props.expectedRevision;
     this.title = props.title;
     this.description = props.description ?? null;
-    this.frequencyType = props.frequencyType;
+    this.frequencyType = props.frequencyType ?? null;
     this.frequencyDays = [...(props.frequencyDays ?? [])];
+    this.quitStartedAt = props.quitStartedAt ?? null;
   }
 }

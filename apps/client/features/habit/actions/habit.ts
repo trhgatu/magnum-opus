@@ -76,7 +76,7 @@ export async function createHabit(
   try {
     const habit = await apiFetch<HabitResponse>("/habits", {
       method: "POST",
-      body: JSON.stringify(body),
+      body: JSON.stringify({ ...body, type: "BUILD" }),
     });
     revalidatePath("/habits");
     return { status: "success", habit };

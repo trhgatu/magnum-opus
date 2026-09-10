@@ -5,7 +5,7 @@ import {
   CreateHabitCommand,
 } from '../../application/commands';
 import { GetHabitsQuery } from '../../application/queries';
-import { HabitFrequencyType } from '../../domain/enums';
+import { HabitFrequencyType, HabitType } from '../../domain/enums';
 import { Habit } from '../../domain/habit.aggregate';
 import { HabitFrequency, HabitId } from '../../domain/value-objects';
 import { HabitController } from './habit.controller';
@@ -26,6 +26,7 @@ describe('HabitController', () => {
     const response = await controller.create('owner-id', {
       title: 'Morning walk',
       description: null,
+      type: HabitType.BUILD,
       frequencyType: HabitFrequencyType.WEEKLY,
       frequencyDays: [1, 5],
     });
@@ -96,7 +97,9 @@ function createHabit(): Habit {
     ownerId: 'owner-id',
     title: 'Morning walk',
     description: null,
+    type: HabitType.BUILD,
     frequency: HabitFrequency.weekly([1, 5]),
+    quitStartedAt: null,
     isActive: true,
     revision: 1,
     createdAt: new Date('2026-08-20T10:00:00.000Z'),

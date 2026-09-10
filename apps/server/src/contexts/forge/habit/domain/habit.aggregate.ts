@@ -1,9 +1,11 @@
 import { AggregateRoot } from '@shared/domain/aggregate-root';
 
-import { HabitFrequencyType } from './enums';
+import { HabitFrequencyType, HabitType } from './enums';
 import {
   InvalidHabitTitleException,
   InvalidHabitTransitionException,
+  InvalidHabitTypeException,
+  InvalidQuitStartedAtException,
 } from './exceptions';
 import { HabitFrequency, HabitId } from './value-objects';
 
@@ -14,7 +16,9 @@ export interface HabitProps {
   ownerId: string;
   title: string;
   description: string | null;
-  frequency: HabitFrequency;
+  type: HabitType;
+  frequency: HabitFrequency | null;
+  quitStartedAt: Date | null;
   isActive: boolean;
   revision: number;
   createdAt: Date;
@@ -26,12 +30,19 @@ export interface HabitPrimitives {
   ownerId: string;
   title: string;
   description: string | null;
-  frequencyType: HabitFrequencyType;
+  type: HabitType;
+  frequencyType: HabitFrequencyType | null;
   frequencyDays: number[];
+  quitStartedAt: Date | null;
   isActive: boolean;
   revision: number;
   createdAt: Date;
   updatedAt: Date;
+}
+
+interface TypeScopedFields {
+  frequency: HabitFrequency | null;
+  quitStartedAt: Date | null;
 }
 
 export class Habit extends AggregateRoot {
@@ -43,16 +54,26 @@ export class Habit extends AggregateRoot {
     ownerId: string;
     title: string;
     description?: string | null;
-    frequency: HabitFrequency;
+    type: HabitType;
+    frequency?: HabitFrequency | null;
+    quitStartedAt?: Date | null;
   }): Habit {
     const now = new Date();
+    const { frequency, quitStartedAt } = Habit.resolveFieldsForCreate(
+      input.type,
+      input.frequency ?? null,
+      input.quitStartedAt ?? null,
+      now,
+    );
 
     return new Habit({
       id: HabitId.generate(),
       ownerId: input.ownerId,
       title: Habit.normalizeTitle(input.title),
       description: Habit.normalizeDescription(input.description),
-      frequency: input.frequency,
+      type: input.type,
+      frequency,
+      quitStartedAt,
       isActive: true,
       revision: 1,
       createdAt: now,
@@ -80,8 +101,16 @@ export class Habit extends AggregateRoot {
     return this.props.description;
   }
 
-  public get frequency(): HabitFrequency {
+  public get type(): HabitType {
+    return this.props.type;
+  }
+
+  public get frequency(): HabitFrequency | null {
     return this.props.frequency;
+  }
+
+  public get quitStartedAt(): Date | null {
+    return this.props.quitStartedAt;
   }
 
   public get isActive(): boolean {
@@ -103,16 +132,24 @@ export class Habit extends AggregateRoot {
   public update(input: {
     title: string;
     description?: string | null;
-    frequency: HabitFrequency;
+    frequency?: HabitFrequency | null;
+    quitStartedAt?: Date | null;
   }): void {
     this.ensureActive();
 
     const nextTitle = Habit.normalizeTitle(input.title);
     const nextDescription = Habit.normalizeDescription(input.description);
+    const { frequency: nextFrequency, quitStartedAt: nextQuitStartedAt } =
+      this.resolveFieldsForUpdate(
+        input.frequency ?? null,
+        input.quitStartedAt ?? null,
+      );
+
     const changed =
       this.props.title !== nextTitle ||
       this.props.description !== nextDescription ||
-      !this.props.frequency.equals(input.frequency);
+      !Habit.frequenciesEqual(this.props.frequency, nextFrequency) ||
+      !Habit.datesEqual(this.props.quitStartedAt, nextQuitStartedAt);
 
     if (!changed) {
       return;
@@ -120,7 +157,8 @@ export class Habit extends AggregateRoot {
 
     this.props.title = nextTitle;
     this.props.description = nextDescription;
-    this.props.frequency = input.frequency;
+    this.props.frequency = nextFrequency;
+    this.props.quitStartedAt = nextQuitStartedAt;
     this.trackChange();
   }
 
@@ -143,7 +181,11 @@ export class Habit extends AggregateRoot {
   }
 
   public isDueOn(isoWeekday: number): boolean {
-    return this.props.isActive && this.props.frequency.isDueOn(isoWeekday);
+    return (
+      this.props.isActive &&
+      this.props.frequency !== null &&
+      this.props.frequency.isDueOn(isoWeekday)
+    );
   }
 
   public toPrimitives(): HabitPrimitives {
@@ -152,8 +194,10 @@ export class Habit extends AggregateRoot {
       ownerId: this.props.ownerId,
       title: this.props.title,
       description: this.props.description,
-      frequencyType: this.props.frequency.type,
-      frequencyDays: this.props.frequency.days,
+      type: this.props.type,
+      frequencyType: this.props.frequency?.type ?? null,
+      frequencyDays: this.props.frequency?.days ?? [],
+      quitStartedAt: this.props.quitStartedAt,
       isActive: this.props.isActive,
       revision: this.props.revision,
       createdAt: this.props.createdAt,
@@ -170,6 +214,90 @@ export class Habit extends AggregateRoot {
   private trackChange(): void {
     this.props.revision += 1;
     this.props.updatedAt = new Date();
+  }
+
+  private resolveFieldsForUpdate(
+    frequency: HabitFrequency | null,
+    quitStartedAt: Date | null,
+  ): TypeScopedFields {
+    if (this.props.type === HabitType.BUILD) {
+      if (!frequency || quitStartedAt) {
+        throw new InvalidHabitTypeException();
+      }
+
+      return { frequency, quitStartedAt: null };
+    }
+
+    if (frequency || !quitStartedAt) {
+      throw new InvalidHabitTypeException();
+    }
+
+    const normalizedQuitStartedAt = Habit.startOfUtcDay(quitStartedAt);
+    Habit.ensureNotFutureDate(normalizedQuitStartedAt);
+
+    return { frequency: null, quitStartedAt: normalizedQuitStartedAt };
+  }
+
+  private static resolveFieldsForCreate(
+    type: HabitType,
+    frequency: HabitFrequency | null,
+    quitStartedAt: Date | null,
+    now: Date,
+  ): TypeScopedFields {
+    if (type === HabitType.BUILD) {
+      if (!frequency || quitStartedAt) {
+        throw new InvalidHabitTypeException();
+      }
+
+      return { frequency, quitStartedAt: null };
+    }
+
+    if (type !== HabitType.QUIT) {
+      throw new InvalidHabitTypeException();
+    }
+
+    if (frequency) {
+      throw new InvalidHabitTypeException();
+    }
+
+    const resolvedQuitStartedAt = Habit.startOfUtcDay(quitStartedAt ?? now);
+    Habit.ensureNotFutureDate(resolvedQuitStartedAt);
+
+    return { frequency: null, quitStartedAt: resolvedQuitStartedAt };
+  }
+
+  private static ensureNotFutureDate(date: Date): void {
+    if (
+      Habit.startOfUtcDay(date).getTime() >
+      Habit.startOfUtcDay(new Date()).getTime()
+    ) {
+      throw new InvalidQuitStartedAtException();
+    }
+  }
+
+  private static startOfUtcDay(date: Date): Date {
+    return new Date(
+      Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
+    );
+  }
+
+  private static frequenciesEqual(
+    a: HabitFrequency | null,
+    b: HabitFrequency | null,
+  ): boolean {
+    if (a === null || b === null) {
+      return a === b;
+    }
+
+    return a.equals(b);
+  }
+
+  private static datesEqual(a: Date | null, b: Date | null): boolean {
+    if (a === null || b === null) {
+      return a === b;
+    }
+
+    return a.getTime() === b.getTime();
   }
 
   private static normalizeTitle(title: string): string {

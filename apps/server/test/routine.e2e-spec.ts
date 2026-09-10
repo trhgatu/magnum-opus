@@ -465,6 +465,7 @@ describe('Routine (E2E)', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({
         title,
+        type: 'BUILD',
         frequencyType: 'DAILY',
         frequencyDays: [],
       })

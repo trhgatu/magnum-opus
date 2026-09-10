@@ -1,4 +1,5 @@
 import {
+  HabitTypeNotAllowedInRoutineException,
   RoutineHabitAlreadyExistsException,
   RoutineHabitInactiveException,
   RoutineHabitReferenceNotFoundException,
@@ -21,10 +22,7 @@ describe('AddRoutineHabitHandler', () => {
 
   const mutationService = new RoutineMutationService(repository as never);
 
-  const handler = new AddRoutineHabitHandler(
-    habitReader as never,
-    mutationService,
-  );
+  const handler = new AddRoutineHabitHandler(habitReader, mutationService);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -34,6 +32,7 @@ describe('AddRoutineHabitHandler', () => {
     habitReader.findByIdForOwner.mockResolvedValue({
       id: 'habit-second',
       isActive: true,
+      type: 'BUILD',
     });
   });
 
@@ -73,11 +72,30 @@ describe('AddRoutineHabitHandler', () => {
     habitReader.findByIdForOwner.mockResolvedValue({
       id: 'habit-second',
       isActive: false,
+      type: 'BUILD',
     });
 
     const result = await handler.execute(createCommand('habit-second'));
 
     expect(result.getError()).toBeInstanceOf(RoutineHabitInactiveException);
+
+    expect(repository.findByIdForOwner).not.toHaveBeenCalled();
+
+    expect(repository.update).not.toHaveBeenCalled();
+  });
+
+  it('does not add a QUIT-type Habit', async () => {
+    habitReader.findByIdForOwner.mockResolvedValue({
+      id: 'habit-second',
+      isActive: true,
+      type: 'QUIT',
+    });
+
+    const result = await handler.execute(createCommand('habit-second'));
+
+    expect(result.getError()).toBeInstanceOf(
+      HabitTypeNotAllowedInRoutineException,
+    );
 
     expect(repository.findByIdForOwner).not.toHaveBeenCalled();
 

@@ -49,6 +49,7 @@ describe('Habit (E2E)', () => {
       .send({
         title: 'Morning walk',
         description: 'Outside without headphones',
+        type: 'BUILD',
         frequencyType: 'WEEKLY',
         frequencyDays: [5, 1],
       })
@@ -57,6 +58,7 @@ describe('Habit (E2E)', () => {
     const habitId = created.body.id as string;
     expect(created.body).toMatchObject({
       title: 'Morning walk',
+      type: 'BUILD',
       frequencyType: 'WEEKLY',
       frequencyDays: [1, 5],
       isActive: true,
@@ -143,6 +145,7 @@ describe('Habit (E2E)', () => {
       .set('Authorization', `Bearer ${ownerToken}`)
       .send({
         title: 'Drink water',
+        type: 'BUILD',
         frequencyType: 'DAILY',
         frequencyDays: [],
       })

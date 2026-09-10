@@ -58,8 +58,10 @@ export class HabitController {
         ownerId,
         title: body.title,
         description: body.description,
+        type: body.type,
         frequencyType: body.frequencyType,
         frequencyDays: body.frequencyDays,
+        quitStartedAt: body.quitStartedAt ? new Date(body.quitStartedAt) : null,
       }),
     );
 
@@ -81,6 +83,7 @@ export class HabitController {
         query.search,
         query.sortBy,
         query.sortOrder,
+        query.type,
       ),
     );
     const { habits, total } = result.unwrap() as {
@@ -125,6 +128,7 @@ export class HabitController {
         description: body.description,
         frequencyType: body.frequencyType,
         frequencyDays: body.frequencyDays,
+        quitStartedAt: body.quitStartedAt ? new Date(body.quitStartedAt) : null,
       }),
     );
 

@@ -1,8 +1,9 @@
 import {
   HabitNotFoundException,
   HabitRevisionConflictException,
+  InvalidHabitTypeException,
 } from '../../../domain/exceptions';
-import { HabitFrequencyType } from '../../../domain/enums';
+import { HabitFrequencyType, HabitType } from '../../../domain/enums';
 import { Habit } from '../../../domain/habit.aggregate';
 import { HabitFrequency, HabitId } from '../../../domain/value-objects';
 import { HabitMutationService } from '../../services';
@@ -37,7 +38,7 @@ describe('UpdateHabitHandler', () => {
     );
 
     expect(result.getValue().title).toBe('Evening walk');
-    expect(result.getValue().frequency.days).toEqual([1, 5]);
+    expect(result.getValue().frequency?.days).toEqual([1, 5]);
     expect(result.getValue().revision).toBe(2);
     expect(repository.update).toHaveBeenCalledWith(habit, 1);
   });
@@ -59,6 +60,23 @@ describe('UpdateHabitHandler', () => {
     );
 
     expect(result.getError()).toBeInstanceOf(HabitRevisionConflictException);
+    expect(repository.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects frequencyDays supplied without a frequencyType', async () => {
+    repository.findByIdForOwner.mockResolvedValue(createHabit());
+
+    const result = await handler.execute(
+      new UpdateHabitCommand({
+        habitId: 'habit-id',
+        ownerId: 'owner-id',
+        expectedRevision: 1,
+        title: 'Morning walk',
+        frequencyDays: [1, 3],
+      }),
+    );
+
+    expect(result.getError()).toBeInstanceOf(InvalidHabitTypeException);
     expect(repository.update).not.toHaveBeenCalled();
   });
 });
@@ -89,7 +107,9 @@ function createHabit(revision = 1): Habit {
     ownerId: 'owner-id',
     title: 'Morning walk',
     description: null,
+    type: HabitType.BUILD,
     frequency: HabitFrequency.daily(),
+    quitStartedAt: null,
     isActive: true,
     revision,
     createdAt: new Date('2026-08-20T10:00:00.000Z'),

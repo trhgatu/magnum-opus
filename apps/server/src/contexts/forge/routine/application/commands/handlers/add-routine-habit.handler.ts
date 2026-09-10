@@ -5,6 +5,7 @@ import { DomainException } from '@shared/domain/exceptions/domain.exception';
 import { Result } from '@shared/domain';
 
 import {
+  HabitTypeNotAllowedInRoutineException,
   RoutineHabitInactiveException,
   RoutineHabitReferenceNotFoundException,
 } from '../../../domain/exceptions';
@@ -43,6 +44,12 @@ export class AddRoutineHabitHandler implements ICommandHandler<
 
     if (!habit.isActive) {
       return Result.fail(new RoutineHabitInactiveException(command.habitId));
+    }
+
+    if (habit.type === 'QUIT') {
+      return Result.fail(
+        new HabitTypeNotAllowedInRoutineException(command.habitId),
+      );
     }
 
     return this.mutationService.mutate({

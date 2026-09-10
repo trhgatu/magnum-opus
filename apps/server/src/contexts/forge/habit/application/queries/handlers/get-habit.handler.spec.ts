@@ -1,3 +1,4 @@
+import { HabitType } from '../../../domain/enums';
 import { HabitNotFoundException } from '../../../domain/exceptions';
 import { Habit } from '../../../domain/habit.aggregate';
 import { HabitFrequency, HabitId } from '../../../domain/value-objects';
@@ -44,7 +45,9 @@ function createHabit(): Habit {
     ownerId: 'owner-id',
     title: 'Morning walk',
     description: null,
+    type: HabitType.BUILD,
     frequency: HabitFrequency.daily(),
+    quitStartedAt: null,
     isActive: true,
     revision: 1,
     createdAt: new Date('2026-08-20T10:00:00.000Z'),

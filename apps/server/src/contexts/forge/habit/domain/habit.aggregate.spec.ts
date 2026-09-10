@@ -1,17 +1,21 @@
+import { HabitType } from './enums';
 import {
   InvalidHabitTitleException,
   InvalidHabitTransitionException,
+  InvalidHabitTypeException,
+  InvalidQuitStartedAtException,
 } from './exceptions';
 import { Habit, type HabitProps } from './habit.aggregate';
 import { HabitFrequency, HabitId } from './value-objects';
 
 describe('Habit', () => {
-  describe('create', () => {
+  describe('create (BUILD)', () => {
     it('creates an active Habit at revision 1', () => {
       const habit = Habit.create({
         ownerId: 'owner-id',
         title: '  Morning walk  ',
         description: '  Walk without headphones  ',
+        type: HabitType.BUILD,
         frequency: HabitFrequency.daily(),
       });
 
@@ -19,7 +23,9 @@ describe('Habit', () => {
       expect(habit.ownerId).toBe('owner-id');
       expect(habit.title).toBe('Morning walk');
       expect(habit.description).toBe('Walk without headphones');
-      expect(habit.frequency.equals(HabitFrequency.daily())).toBe(true);
+      expect(habit.type).toBe(HabitType.BUILD);
+      expect(habit.frequency?.equals(HabitFrequency.daily())).toBe(true);
+      expect(habit.quitStartedAt).toBeNull();
       expect(habit.isActive).toBe(true);
       expect(habit.revision).toBe(1);
       expect(habit.createdAt).toEqual(habit.updatedAt);
@@ -42,9 +48,111 @@ describe('Habit', () => {
         InvalidHabitTitleException,
       );
     });
+
+    it('rejects BUILD without a frequency', () => {
+      expect(() =>
+        Habit.create({
+          ownerId: 'owner-id',
+          title: 'Morning walk',
+          type: HabitType.BUILD,
+        }),
+      ).toThrow(InvalidHabitTypeException);
+    });
+
+    it('rejects BUILD with a quitStartedAt', () => {
+      expect(() =>
+        Habit.create({
+          ownerId: 'owner-id',
+          title: 'Morning walk',
+          type: HabitType.BUILD,
+          frequency: HabitFrequency.daily(),
+          quitStartedAt: new Date('2026-01-01'),
+        }),
+      ).toThrow(InvalidHabitTypeException);
+    });
   });
 
-  describe('update', () => {
+  describe('create (QUIT)', () => {
+    it('creates a QUIT Habit with no frequency', () => {
+      const habit = Habit.create({
+        ownerId: 'owner-id',
+        title: 'Quit smoking',
+        type: HabitType.QUIT,
+        quitStartedAt: new Date('2026-08-01'),
+      });
+
+      expect(habit.type).toBe(HabitType.QUIT);
+      expect(habit.frequency).toBeNull();
+      expect(habit.quitStartedAt).toEqual(new Date('2026-08-01'));
+    });
+
+    it('defaults quitStartedAt to today when omitted', () => {
+      const before = new Date();
+
+      const habit = Habit.create({
+        ownerId: 'owner-id',
+        title: 'Quit smoking',
+        type: HabitType.QUIT,
+      });
+
+      const expected = new Date(
+        Date.UTC(
+          before.getUTCFullYear(),
+          before.getUTCMonth(),
+          before.getUTCDate(),
+        ),
+      );
+      expect(habit.quitStartedAt).toEqual(expected);
+    });
+
+    it('rejects QUIT with a frequency', () => {
+      expect(() =>
+        Habit.create({
+          ownerId: 'owner-id',
+          title: 'Quit smoking',
+          type: HabitType.QUIT,
+          frequency: HabitFrequency.daily(),
+        }),
+      ).toThrow(InvalidHabitTypeException);
+    });
+
+    it('rejects a quitStartedAt in the future', () => {
+      const tomorrow = new Date();
+      tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+
+      expect(() =>
+        Habit.create({
+          ownerId: 'owner-id',
+          title: 'Quit smoking',
+          type: HabitType.QUIT,
+          quitStartedAt: tomorrow,
+        }),
+      ).toThrow(InvalidQuitStartedAtException);
+    });
+
+    it('normalizes a quitStartedAt with a time component to a canonical day', () => {
+      const habit = Habit.create({
+        ownerId: 'owner-id',
+        title: 'Quit smoking',
+        type: HabitType.QUIT,
+        quitStartedAt: new Date('2026-08-01T15:30:00.000Z'),
+      });
+
+      expect(habit.quitStartedAt).toEqual(new Date('2026-08-01T00:00:00.000Z'));
+    });
+
+    it('rejects a runtime type that is neither BUILD nor QUIT', () => {
+      expect(() =>
+        Habit.create({
+          ownerId: 'owner-id',
+          title: 'Quit smoking',
+          type: 'SOMETHING_ELSE' as HabitType,
+        }),
+      ).toThrow(InvalidHabitTypeException);
+    });
+  });
+
+  describe('update (BUILD)', () => {
     it('updates editable fields and increments revision', () => {
       const habit = createHabit();
 
@@ -56,7 +164,7 @@ describe('Habit', () => {
 
       expect(habit.title).toBe('Evening walk');
       expect(habit.description).toBe('After work');
-      expect(habit.frequency.days).toEqual([1, 5]);
+      expect(habit.frequency?.days).toEqual([1, 5]);
       expect(habit.revision).toBe(2);
     });
 
@@ -90,6 +198,26 @@ describe('Habit', () => {
       expect(habit.revision).toBe(1);
     });
 
+    it('rejects update missing frequency', () => {
+      const habit = createHabit();
+
+      expect(() => habit.update({ title: 'Morning walk' })).toThrow(
+        InvalidHabitTypeException,
+      );
+    });
+
+    it('rejects update carrying quitStartedAt', () => {
+      const habit = createHabit();
+
+      expect(() =>
+        habit.update({
+          title: 'Morning walk',
+          frequency: HabitFrequency.daily(),
+          quitStartedAt: new Date('2026-01-01'),
+        }),
+      ).toThrow(InvalidHabitTypeException);
+    });
+
     it('does not allow editing an archived Habit', () => {
       const habit = createHabit();
       habit.archive();
@@ -100,6 +228,83 @@ describe('Habit', () => {
           frequency: HabitFrequency.daily(),
         }),
       ).toThrow(InvalidHabitTransitionException);
+    });
+  });
+
+  describe('update (QUIT)', () => {
+    it('updates quitStartedAt while active', () => {
+      const habit = Habit.create({
+        ownerId: 'owner-id',
+        title: 'Quit smoking',
+        type: HabitType.QUIT,
+        quitStartedAt: new Date('2026-08-01'),
+      });
+
+      habit.update({
+        title: 'Quit smoking',
+        quitStartedAt: new Date('2026-08-15'),
+      });
+
+      expect(habit.quitStartedAt).toEqual(new Date('2026-08-15'));
+      expect(habit.revision).toBe(2);
+    });
+
+    it('normalizes a quitStartedAt with a time component to a canonical day', () => {
+      const habit = Habit.create({
+        ownerId: 'owner-id',
+        title: 'Quit smoking',
+        type: HabitType.QUIT,
+        quitStartedAt: new Date('2026-08-01'),
+      });
+
+      habit.update({
+        title: 'Quit smoking',
+        quitStartedAt: new Date('2026-08-15T09:45:00.000Z'),
+      });
+
+      expect(habit.quitStartedAt).toEqual(new Date('2026-08-15T00:00:00.000Z'));
+    });
+
+    it('rejects update missing quitStartedAt', () => {
+      const habit = Habit.create({
+        ownerId: 'owner-id',
+        title: 'Quit smoking',
+        type: HabitType.QUIT,
+      });
+
+      expect(() => habit.update({ title: 'Quit smoking' })).toThrow(
+        InvalidHabitTypeException,
+      );
+    });
+
+    it('rejects update carrying a frequency', () => {
+      const habit = Habit.create({
+        ownerId: 'owner-id',
+        title: 'Quit smoking',
+        type: HabitType.QUIT,
+      });
+
+      expect(() =>
+        habit.update({
+          title: 'Quit smoking',
+          frequency: HabitFrequency.daily(),
+          quitStartedAt: new Date('2026-08-01'),
+        }),
+      ).toThrow(InvalidHabitTypeException);
+    });
+
+    it('rejects a future quitStartedAt', () => {
+      const habit = Habit.create({
+        ownerId: 'owner-id',
+        title: 'Quit smoking',
+        type: HabitType.QUIT,
+      });
+      const tomorrow = new Date();
+      tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+
+      expect(() =>
+        habit.update({ title: 'Quit smoking', quitStartedAt: tomorrow }),
+      ).toThrow(InvalidQuitStartedAtException);
     });
   });
 
@@ -153,6 +358,16 @@ describe('Habit', () => {
 
       expect(habit.isDueOn(1)).toBe(false);
     });
+
+    it('is never due for QUIT-type Habits', () => {
+      const habit = Habit.create({
+        ownerId: 'owner-id',
+        title: 'Quit smoking',
+        type: HabitType.QUIT,
+      });
+
+      expect(habit.isDueOn(1)).toBe(false);
+    });
   });
 
   describe('rehydrate and primitives', () => {
@@ -175,12 +390,31 @@ describe('Habit', () => {
         ownerId: 'owner-id',
         title: 'Morning walk',
         description: 'Walk slowly',
+        type: 'BUILD',
         frequencyType: 'WEEKLY',
         frequencyDays: [1, 5],
+        quitStartedAt: null,
         isActive: true,
         revision: 1,
         createdAt: new Date('2026-08-20T10:00:00Z'),
         updatedAt: new Date('2026-08-20T10:00:00Z'),
+      });
+    });
+
+    it('converts a QUIT aggregate into persistence primitives', () => {
+      const habit = Habit.rehydrate(
+        createProps({
+          type: HabitType.QUIT,
+          frequency: null,
+          quitStartedAt: new Date('2026-08-01T00:00:00Z'),
+        }),
+      );
+
+      expect(habit.toPrimitives()).toMatchObject({
+        type: 'QUIT',
+        frequencyType: null,
+        frequencyDays: [],
+        quitStartedAt: new Date('2026-08-01T00:00:00Z'),
       });
     });
   });
@@ -197,6 +431,7 @@ function createHabit(
     ownerId: 'owner-id',
     title: overrides.title ?? 'Morning walk',
     description: overrides.description,
+    type: HabitType.BUILD,
     frequency: overrides.frequency ?? HabitFrequency.daily(),
   });
 }
@@ -207,7 +442,9 @@ function createProps(overrides: Partial<HabitProps> = {}): HabitProps {
     ownerId: 'owner-id',
     title: 'Morning walk',
     description: 'Walk slowly',
+    type: HabitType.BUILD,
     frequency: HabitFrequency.weekly([1, 5]),
+    quitStartedAt: null,
     isActive: true,
     revision: 1,
     createdAt: new Date('2026-08-20T10:00:00Z'),

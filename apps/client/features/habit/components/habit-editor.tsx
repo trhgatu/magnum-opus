@@ -70,7 +70,7 @@ export function HabitEditor({
     setPersistedHabit(habit);
     setTitle(habit.title);
     setDescription(habit.description ?? "");
-    setFrequencyType(habit.frequencyType);
+    setFrequencyType(habit.frequencyType ?? "DAILY");
     setDays(habit.frequencyDays);
     setMessage(undefined);
     setHasConflict(false);

@@ -17,6 +17,7 @@ describe('PrismaRoutineHabitReader', () => {
     habitModel.findFirst.mockResolvedValue({
       id: 'habit-id',
       isActive: true,
+      type: 'BUILD',
     });
 
     const habit = await reader.findByIdForOwner('habit-id', 'owner-id');
@@ -29,12 +30,14 @@ describe('PrismaRoutineHabitReader', () => {
       select: {
         id: true,
         isActive: true,
+        type: true,
       },
     });
 
     expect(habit).toEqual({
       id: 'habit-id',
       isActive: true,
+      type: 'BUILD',
     });
   });
 

@@ -3,6 +3,7 @@ import {
   HabitRevisionConflictException,
   InvalidHabitTransitionException,
 } from '../../domain/exceptions';
+import { HabitType } from '../../domain/enums';
 import { Habit } from '../../domain/habit.aggregate';
 import { HabitFrequency, HabitId } from '../../domain/value-objects';
 import { HabitMutationService } from './habit-mutation.service';
@@ -126,7 +127,9 @@ function createHabit(revision = 1): Habit {
     ownerId: 'owner-id',
     title: 'Morning walk',
     description: null,
+    type: HabitType.BUILD,
     frequency: HabitFrequency.daily(),
+    quitStartedAt: null,
     isActive: true,
     revision,
     createdAt: new Date('2026-08-20T10:00:00.000Z'),

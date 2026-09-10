@@ -1,8 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 
 import {
-  HabitCheckInNotFoundException,
   HabitCheckInForbiddenException,
+  HabitCheckInNotFoundException,
 } from '../../domain/exceptions';
 import { HabitCheckInDate } from '../../domain/value-objects';
 import { CLOCK, type Clock } from '../ports/clock.port';
@@ -30,12 +30,16 @@ export class HabitCheckInContextService {
     habitId: string,
     ownerId: string,
     requireActive: boolean,
+    requireBuildType = false,
   ): Promise<{ date: HabitCheckInDate; now: Date }> {
     const habit = await this.habitReader.findByIdForOwner(habitId, ownerId);
     if (!habit) {
       throw new HabitCheckInNotFoundException(habitId);
     }
     if (requireActive && !habit.isActive) {
+      throw new HabitCheckInForbiddenException(habitId);
+    }
+    if (requireBuildType && habit.type !== 'BUILD') {
       throw new HabitCheckInForbiddenException(habitId);
     }
 
