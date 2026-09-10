@@ -27,9 +27,14 @@ const routeBudgets = new Map([
   // reload-on-conflict nâng habit-editor lên cùng chuẩn xử lý xung đột với
   // memory/journal-editor: +3 KiB trên /habits/new và /habits/[id]/edit.
   // +0.3 KiB thêm nữa từ useUnsavedChangesWarning (đồng bộ với journal-editor).
-  ["/habits/new", 662 * KIBIBYTE],
+  // +~33 KiB: HabitEditor giờ có thể render HabitQuitStartedAtPicker (Habit
+  // V2, loại QUIT) — cùng chunk Calendar/Popover/date-fns mà memory-editor
+  // đã dùng (xem ghi chú "Memory editors include..." ở trên), chỉ khác là
+  // habit-editor còn giữ nguyên phần chọn tần suất DAILY/WEEKLY cho BUILD-type
+  // nên tổng chunk lớn hơn route memory tương ứng.
+  ["/habits/new", 705 * KIBIBYTE],
   ["/habits/[id]", 572 * KIBIBYTE],
-  ["/habits/[id]/edit", 662 * KIBIBYTE],
+  ["/habits/[id]/edit", 705 * KIBIBYTE],
   ["/routines", 568 * KIBIBYTE],
   // Cùng ConflictAlert/reload-on-conflict trên routine-editor: +2 KiB trên
   // /routines/new và /routines/[id]/edit.
