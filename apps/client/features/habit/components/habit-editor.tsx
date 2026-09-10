@@ -31,7 +31,10 @@ import {
 } from "@/features/habit/actions/habit";
 import { HabitQuitStartedAtPicker } from "@/features/habit/components/habit-quit-started-at-picker";
 import { ISO_WEEKDAYS } from "@/features/habit/lib/habit-frequency";
-import { quitStartedAtFromDate } from "@/features/habit/lib/habit-quit";
+import {
+  quitStartedAtFromDate,
+  todayAsUtcCalendarDate,
+} from "@/features/habit/lib/habit-quit";
 import { useUnsavedChangesWarning } from "@/hooks/use-unsaved-changes-warning";
 import { notifySuccess } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -53,7 +56,8 @@ export function HabitEditor({
   );
   const [days, setDays] = useState(initialHabit?.frequencyDays ?? []);
   const [quitStartedAt, setQuitStartedAt] = useState(
-    initialHabit?.quitStartedAt ?? quitStartedAtFromDate(new Date()),
+    initialHabit?.quitStartedAt ??
+      quitStartedAtFromDate(todayAsUtcCalendarDate()),
   );
   const [message, setMessage] = useState<string>();
   const [hasConflict, setHasConflict] = useState(false);
@@ -64,6 +68,7 @@ export function HabitEditor({
   const [isPending, startTransition] = useTransition();
 
   const isDirty =
+    type !== (persistedHabit?.type ?? "BUILD") ||
     title !== (persistedHabit?.title ?? "") ||
     description !== (persistedHabit?.description ?? "") ||
     (type === "BUILD"
@@ -87,7 +92,9 @@ export function HabitEditor({
     setDescription(habit.description ?? "");
     setFrequencyType(habit.frequencyType ?? "DAILY");
     setDays(habit.frequencyDays);
-    setQuitStartedAt(habit.quitStartedAt ?? quitStartedAtFromDate(new Date()));
+    setQuitStartedAt(
+      habit.quitStartedAt ?? quitStartedAtFromDate(todayAsUtcCalendarDate()),
+    );
     setMessage(undefined);
     setHasConflict(false);
     setRecoveryError(undefined);

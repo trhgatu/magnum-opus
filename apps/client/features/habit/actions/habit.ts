@@ -21,7 +21,7 @@ export type HabitCheckInMutationResult =
   | MutationError;
 
 export type HabitProgressMutationResult =
-  | { status: "success"; progress: HabitProgressResponse }
+  | { status: "success"; progress: HabitProgressResponse | null }
   | MutationError;
 
 export type HabitFormInput =
@@ -220,12 +220,23 @@ export async function logHabitRelapse(
 
   try {
     await apiFetch(`/habits/${id}/relapses`, { method: "POST" });
+  } catch (error) {
+    return toMutationError(error);
+  }
+
+  // Relapse đã ghi thành công và không thể hoàn tác (BR-HAB2-003) — từ
+  // đây trở đi không được coi là lỗi có thể "thử lại", vì thử lại sẽ tạo
+  // thêm một relapse mới. Nếu chỉ bước lấy progress mới nhất thất bại,
+  // vẫn báo thành công (progress: null) và để router.refresh() ở phía
+  // client tự đồng bộ lại số liệu.
+  revalidateHabit(id);
+
+  try {
     const progress = await apiFetch<HabitProgressResponse>(
       `/habits/${id}/progress`,
     );
-    revalidateHabit(id);
     return { status: "success", progress };
-  } catch (error) {
-    return toMutationError(error);
+  } catch {
+    return { status: "success", progress: null };
   }
 }

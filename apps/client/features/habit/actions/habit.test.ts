@@ -443,4 +443,37 @@ describe("Habit Server Actions", () => {
 
     expect(apiFetch).not.toHaveBeenCalled();
   });
+
+  it("still reports success when the relapse is logged but refreshing progress fails", async () => {
+    // POST /relapses đã ghi thành công và không thể hoàn tác — một lỗi ở
+    // bước GET /progress sau đó không được biến thành lỗi có thể "thử
+    // lại", vì thử lại sẽ tạo thêm một relapse mới (BR-HAB2-003).
+    apiFetch
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error("network blip"));
+
+    await expect(logHabitRelapse(habit.id)).resolves.toEqual({
+      status: "success",
+      progress: null,
+    });
+
+    expect(revalidatePath).toHaveBeenCalledWith(`/habits/${habit.id}`);
+  });
+
+  it("does not log a relapse when the POST itself fails", async () => {
+    apiFetch.mockRejectedValueOnce(
+      new ApiError({
+        kind: "unexpected",
+        status: 500,
+        code: "INTERNAL",
+        message: "unsafe backend detail",
+      }),
+    );
+
+    await expect(logHabitRelapse(habit.id)).resolves.toMatchObject({
+      status: "error",
+    });
+
+    expect(apiFetch).toHaveBeenCalledTimes(1);
+  });
 });

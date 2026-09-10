@@ -19,6 +19,9 @@ export function HabitSearch({
       {location.status === "ARCHIVED" ? (
         <input type="hidden" name="status" value="ARCHIVED" />
       ) : null}
+      {location.type !== "ALL" ? (
+        <input type="hidden" name="type" value={location.type} />
+      ) : null}
       <input type="hidden" name="sortBy" value={location.sortBy} />
       <input type="hidden" name="sortOrder" value={location.sortOrder} />
       <div className="relative min-w-0 flex-1">

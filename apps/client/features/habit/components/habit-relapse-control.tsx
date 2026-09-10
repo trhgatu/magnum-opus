@@ -44,19 +44,23 @@ export function HabitRelapseControl({
         setMessage(result.message);
         return;
       }
-      setProgress(result.progress);
+      if (result.progress) {
+        setProgress(result.progress);
+      }
       setOpen(false);
       router.refresh();
     });
   };
 
+  const errorAlert = message ? (
+    <Alert variant="destructive">
+      <AlertDescription>{message}</AlertDescription>
+    </Alert>
+  ) : null;
+
   return (
     <div className="space-y-5" aria-live="polite" aria-busy={isPending}>
-      {message ? (
-        <Alert variant="destructive">
-          <AlertDescription>{message}</AlertDescription>
-        </Alert>
-      ) : null}
+      {!open ? errorAlert : null}
       <div className="flex items-center gap-3">
         <span className="grid size-12 place-items-center rounded-full bg-primary text-primary-foreground">
           <ShieldCheck className="size-5" aria-hidden="true" />
@@ -97,6 +101,7 @@ export function HabitRelapseControl({
               này được ghi lại vĩnh viễn và không thể hoàn tác.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {open ? errorAlert : null}
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isPending}>Hủy</AlertDialogCancel>
             <AlertDialogAction

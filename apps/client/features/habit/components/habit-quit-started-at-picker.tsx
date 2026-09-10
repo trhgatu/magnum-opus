@@ -15,6 +15,7 @@ import {
 import {
   quitStartedAtFromDate,
   quitStartedAtToDate,
+  todayAsUtcCalendarDate,
 } from "@/features/habit/lib/habit-quit";
 
 export function HabitQuitStartedAtPicker({
@@ -28,7 +29,7 @@ export function HabitQuitStartedAtPicker({
 }) {
   const [open, setOpen] = useState(false);
   const selectedDate = quitStartedAtToDate(value);
-  const today = new Date();
+  const today = todayAsUtcCalendarDate();
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

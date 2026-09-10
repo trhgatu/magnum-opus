@@ -84,6 +84,9 @@ describe("HabitEditor", () => {
   });
 
   it("creates a QUIT Habit defaulting quitStartedAt to today", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-14T03:00:00.000Z"));
+
     const quitHabit = {
       ...existingHabit,
       type: "QUIT" as const,
@@ -100,16 +103,17 @@ describe("HabitEditor", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Tạo thói quen" }));
 
-    await waitFor(() => expect(createHabit).toHaveBeenCalledOnce());
+    await vi.waitFor(() => expect(createHabit).toHaveBeenCalledOnce());
 
-    const call = createHabit.mock.calls[0]![0];
-    expect(call).toMatchObject({
+    expect(createHabit).toHaveBeenCalledWith({
       type: "QUIT",
       title: "Bỏ hút thuốc",
       description: "",
+      quitStartedAt: "2026-08-14",
     });
-    expect(call.quitStartedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(push).toHaveBeenCalledWith(`/habits/${quitHabit.id}`);
+
+    vi.useRealTimers();
   });
 
   it("shows the type as a read-only badge when editing", () => {

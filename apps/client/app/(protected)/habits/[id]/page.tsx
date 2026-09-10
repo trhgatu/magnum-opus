@@ -1,4 +1,9 @@
-import type { HabitResponse } from "@repo/contracts";
+import type {
+  HabitCheckInHistoryResponse,
+  HabitCheckInTodayResponse,
+  HabitProgressResponse,
+  HabitResponse,
+} from "@repo/contracts";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
@@ -17,15 +22,44 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+type LoadedHabitDetail =
+  | {
+      habit: HabitResponse;
+      today: HabitCheckInTodayResponse;
+      history: HabitCheckInHistoryResponse;
+      progress?: never;
+    }
+  | {
+      habit: HabitResponse;
+      progress: HabitProgressResponse;
+      today?: never;
+      history?: never;
+    };
+
+async function loadHabitDetail(id: string): Promise<LoadedHabitDetail> {
+  const habit = await getHabit(id);
+
+  if (habit.type === "QUIT") {
+    const progress = await getHabitProgress(id);
+    return { habit, progress };
+  }
+
+  const today = await getHabitCheckInToday(id);
+  const range = habitHistoryRange(today.date);
+  const history = await getHabitCheckInHistory(id, range.from, range.to);
+
+  return { habit, today, history };
+}
+
 export default async function HabitDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  let habit: HabitResponse;
+  let loaded: LoadedHabitDetail;
   try {
-    habit = await getHabit(id);
+    loaded = await loadHabitDetail(id);
   } catch (error) {
     if (
       error instanceof ApiError &&
@@ -35,14 +69,5 @@ export default async function HabitDetailPage({
     throw error;
   }
 
-  if (habit.type === "QUIT") {
-    const progress = await getHabitProgress(id);
-    return <HabitDetail habit={habit} progress={progress} />;
-  }
-
-  const today = await getHabitCheckInToday(id);
-  const range = habitHistoryRange(today.date);
-  const history = await getHabitCheckInHistory(id, range.from, range.to);
-
-  return <HabitDetail habit={habit} today={today} history={history} />;
+  return <HabitDetail {...loaded} />;
 }
