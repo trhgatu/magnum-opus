@@ -21,9 +21,10 @@ export function normalizeFrequencyDays(
 }
 
 export function formatHabitFrequency(
-  type: HabitFrequencyType,
+  type: HabitFrequencyType | null,
   days: readonly number[],
 ): string {
+  if (type === null) return "Không theo lịch";
   if (type === "DAILY") return "Mỗi ngày";
   const normalized = normalizeFrequencyDays(type, days);
   return normalized.length > 0

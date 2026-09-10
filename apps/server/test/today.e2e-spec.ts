@@ -225,6 +225,7 @@ describe('Forge Today (E2E)', () => {
       .send({
         title,
         description,
+        type: 'BUILD',
         frequencyType: 'DAILY',
         frequencyDays: [],
       })

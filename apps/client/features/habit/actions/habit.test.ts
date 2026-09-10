@@ -31,8 +31,10 @@ const habit = {
   id: "72b45d9d-7ac6-4ec8-b3bc-5d67134b9676",
   title: "Thiền 10 phút",
   description: "Một hành động nhỏ để lặp lại có chủ ý.",
+  type: "BUILD" as const,
   frequencyType: "DAILY" as const,
   frequencyDays: [] as number[],
+  quitStartedAt: null,
   isActive: true,
   revision: 1,
   createdAt: "2026-08-28T06:00:00.000Z",
@@ -64,6 +66,7 @@ describe("Habit Server Actions", () => {
         description: "Một hành động nhỏ để lặp lại có chủ ý.",
         frequencyType: "DAILY",
         frequencyDays: [],
+        type: "BUILD",
       }),
     });
 
@@ -92,6 +95,7 @@ describe("Habit Server Actions", () => {
           description: null,
           frequencyType: "WEEKLY",
           frequencyDays: [1, 3, 5],
+          type: "BUILD",
         }),
       }),
     );
