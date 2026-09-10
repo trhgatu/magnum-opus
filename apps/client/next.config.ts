@@ -33,7 +33,10 @@ export const clientSecurityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  // Docker build (apps/client/Dockerfile) cần .next/standalone; Vercel tự
+  // đóng gói output riêng và không tương thích với standalone mode (build
+  // thiếu next-server.js.nft.json), nên chỉ bật khi KHÔNG chạy trên Vercel.
+  output: process.env.VERCEL ? undefined : "standalone",
   // Package dùng chung được build thành JS + type; khai báo ở đây để Next.js
   // biên dịch chúng cùng ứng dụng thay vì coi là dependency ngoài.
   transpilePackages: ["@repo/types", "@repo/contracts"],
