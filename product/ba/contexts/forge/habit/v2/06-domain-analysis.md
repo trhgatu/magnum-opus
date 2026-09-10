@@ -155,7 +155,7 @@ HabitProgressReader (port mới, hoặc mở rộng HabitReader hiện có)
 
 ## 6b. Tác động chéo sang context Routine (đã triển khai — PR #96)
 
-`KD-HAB2-005` (QUIT-type không vào được Routine) không thể hiện thực chỉ trong Habit — enforcement thật của rule "Habit archived không thêm được vào Routine" nằm ở **application handler** của Routine (`AddRoutineHabitHandler`), không phải bên trong aggregate `Routine.addHabit()`:
+`KD-HAB2-005` (QUIT-type không vào được Routine) không thể hiện thực chỉ trong Habit — enforcement nằm ở **application handler** của Routine (`AddRoutineHabitHandler`), không phải bên trong aggregate `Routine.addHabit()`, theo đúng cách rule sẵn có "Habit archived không thêm được vào Routine" đã được enforce:
 
 ```text
 AddRoutineHabitHandler.execute():
