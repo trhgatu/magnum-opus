@@ -1,6 +1,6 @@
 # Habit V2 — Functional Requirements & Business Rules (Quit-Type Habit)
 
-> **Status:** Candidate / Draft
+> **Status:** Implemented (Backend PR #96, Frontend PR #97)
 >
 > **Domain:** Forge / Habit
 
@@ -96,7 +96,7 @@ Chỉ Habit đang `ACTIVE` **và** thuộc loại QUIT mới ghi nhận relapse 
 
 ## BR-HAB2-007 — Check-In Requires BUILD Type
 
-Ngược lại `BR-HAB2-006`: check-in (`HabitCheckIn`) chỉ áp dụng cho Habit thuộc loại BUILD. Gọi check-in trên Habit QUIT-type phải bị từ chối — cơ chế hiện tại (`HabitCheckInContextService`/`OwnedHabitReader`, chỉ kiểm tra `isActive`) cần mở rộng thêm kiểm tra `type`, tương tự cách `RoutineHabitReadModel` cần mở rộng cho `KD-HAB2-005` (xem `06-domain-analysis.md` §6b).
+Ngược lại `BR-HAB2-006`: check-in (`HabitCheckIn`) chỉ áp dụng cho Habit thuộc loại BUILD. Gọi check-in trên Habit QUIT-type bị từ chối — `HabitCheckInContextService`/`OwnedHabitReader` đã được mở rộng thêm kiểm tra `type` (bên cạnh `isActive`), tương tự cách `RoutineHabitReadModel` đã được mở rộng cho `KD-HAB2-005` (xem `06-domain-analysis.md` §6b).
 
 ## BR-HAB2-008 — Type Is Immutable After Creation
 

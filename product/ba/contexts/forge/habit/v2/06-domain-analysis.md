@@ -1,6 +1,6 @@
 # Habit V2 — Domain Analysis (Quit-Type Habit)
 
-> **Status:** Candidate / Draft
+> **Status:** Implemented (Backend PR #96, Frontend PR #97)
 >
 > **Domain:** Forge / Habit
 >
@@ -153,9 +153,9 @@ HabitProgressReader (port mới, hoặc mở rộng HabitReader hiện có)
 
 ---
 
-## 6b. Tác động chéo sang context Routine (bắt buộc phải sửa)
+## 6b. Tác động chéo sang context Routine (đã triển khai — PR #96)
 
-`KD-HAB2-005` (QUIT-type không vào được Routine) không thể hiện thực chỉ trong Habit — enforcement thật của rule "Habit archived không thêm được vào Routine" hiện nằm ở **application handler** của Routine (`AddRoutineHabitHandler`), không phải bên trong aggregate `Routine.addHabit()`:
+`KD-HAB2-005` (QUIT-type không vào được Routine) không thể hiện thực chỉ trong Habit — enforcement nằm ở **application handler** của Routine (`AddRoutineHabitHandler`), không phải bên trong aggregate `Routine.addHabit()`, theo đúng cách rule sẵn có "Habit archived không thêm được vào Routine" đã được enforce:
 
 ```text
 AddRoutineHabitHandler.execute():
@@ -165,13 +165,13 @@ AddRoutineHabitHandler.execute():
                                     không tự biết gì về Habit liên quan
 ```
 
-`RoutineHabitReadModel` (`routine-habit-reader.port.ts`) hiện chỉ có `{ id, isActive }` — cần mở rộng thêm `type: HabitType` để `AddRoutineHabitHandler` kiểm tra được. Cần thêm bước 2b tương tự bước 2:
+`RoutineHabitReadModel` (`routine-habit-reader.port.ts`) đã được mở rộng thêm `type: HabitType` để `AddRoutineHabitHandler` kiểm tra được, với một bước 2b mới tương tự bước 2:
 
 ```text
-2b. if (habit.type === 'QUIT') → HabitTypeNotAllowedInRoutineException (mới)
+2b. if (habit.type === 'QUIT') → HabitTypeNotAllowedInRoutineException
 ```
 
-Đây là thay đổi thuộc **context Routine**, không chỉ context Habit — cần lưu ý khi lên kế hoạch implement, không chỉ đọc riêng tài liệu Habit V2 này.
+Đây là thay đổi thuộc **context Routine**, không chỉ context Habit — đã triển khai cùng đợt với backend Habit V2 (PR #96).
 
 ---
 

@@ -1,6 +1,6 @@
 # Habit V2 — Database Schema (Quit-Type Habit)
 
-> **Status:** Candidate / Draft
+> **Status:** Implemented (Backend PR #96, Frontend PR #97)
 >
 > **Domain:** Forge / Habit
 >
@@ -53,7 +53,7 @@ model Habit {
 - `type` mặc định `BUILD` — Habit cũ migrate vào sẽ tự động nhận giá trị này (`BR-HAB2-012`), không cần backfill script riêng nếu dùng default ở tầng migration.
 - `frequencyType` chuyển từ bắt buộc sang **nullable** — phá vỡ giả định cũ "mọi Habit đều có frequency". Đây là thay đổi schema có rủi ro (xem §5). **Đã verify**: `PrismaTodayReader` (`prisma-today.reader.ts`) build query bằng `OR: [{frequencyType: 'DAILY'}, {frequencyType: 'WEEKLY', frequencyDays: {has: ...}}]` — đây là equality filter SQL thuần túy, `frequencyType = null` không khớp điều kiện nào nên bị loại tự nhiên khỏi kết quả, **không throw lỗi, không cần sửa query** để hỗ trợ `BR-HAB2-011`.
 
-  Tuy nhiên `PrismaHabitMapper` (`prisma-habit.mapper.ts`) **có** cần sửa: `toDomain()` tra `domainFrequencyTypes[raw.frequencyType]` — với `raw.frequencyType = null` (Habit QUIT), lookup này ra `undefined`, rồi gọi `HabitFrequency.rehydrate(undefined, [])`. `HabitFrequency.rehydrate()` (`habit-frequency.value-object.ts:44-57`) kiểm tra `type !== WEEKLY` khi không phải `DAILY` → `undefined` rơi vào nhánh này và **throw `InvalidHabitFrequencyException`** — nghĩa là `toDomain()` sẽ crash khi đọc bất kỳ Habit QUIT nào từ DB, không phải âm thầm tạo ra giá trị sai kiểu. Tương tự `toPersistence()` tra `persistenceFrequencyTypes[props.frequencyType]` sẽ `undefined` nếu `frequencyType` domain là null cho QUIT-type. Đây là thay đổi implementation thực sự cần làm ở mapper (thêm nhánh xử lý `type = QUIT` tách biệt khỏi `frequency`, không gọi `HabitFrequency.rehydrate()` khi type = QUIT), nằm ngoài phạm vi "Aggregate Method Constraints" ở `06-domain-analysis.md` §4 (chỉ cover validation trong `create()`/`update()`, không cover persistence mapping).
+  Tuy nhiên `PrismaHabitMapper` (`prisma-habit.mapper.ts`) **đã cần sửa** (và đã được sửa trong PR #96): `toDomain()` tra `domainFrequencyTypes[raw.frequencyType]` — với `raw.frequencyType = null` (Habit QUIT), lookup này ra `undefined`, rồi gọi `HabitFrequency.rehydrate(undefined, [])`. `HabitFrequency.rehydrate()` (`habit-frequency.value-object.ts:44-57`) kiểm tra `type !== WEEKLY` khi không phải `DAILY` → `undefined` rơi vào nhánh này và **throw `InvalidHabitFrequencyException`** — nghĩa là `toDomain()` sẽ crash khi đọc bất kỳ Habit QUIT nào từ DB, không phải âm thầm tạo ra giá trị sai kiểu. Tương tự `toPersistence()` tra `persistenceFrequencyTypes[props.frequencyType]` sẽ `undefined` nếu `frequencyType` domain là null cho QUIT-type. Mapper đã được sửa: cả `toDomain()` và `toPersistence()` branch trực tiếp trên `frequencyType === null` (không phải trên `type`) — `null` thì bỏ qua `HabitFrequency.rehydrate()`/lookup và gán `frequency: null`, khác `null` thì mới rehydrate/map như cũ. `type` không tham gia điều kiện này; nó chỉ tình cờ luôn `null` cho Habit QUIT (`BR-HAB2-001`). Thay đổi này nằm ngoài phạm vi "Aggregate Method Constraints" ở `06-domain-analysis.md` §4 (chỉ cover validation trong `create()`/`update()`, không cover persistence mapping).
 
 - `quitStartedAt` chỉ có giá trị khi `type = QUIT`. Không enforce được bằng schema thuần túy (Prisma không hỗ trợ CHECK constraint điều kiện theo cột khác) — phải enforce ở tầng domain (`Habit.create()`).
 - Index `[ownerId, type]` phục vụ filter theo loại (`FR-HAB2-004`).
@@ -138,4 +138,4 @@ Nếu không có kết quả (kể cả khi có relapse cũ hơn `quit_started_a
 
 ## 8. Next Step
 
-Bộ tài liệu Habit V2 (quit-type) hoàn tất (01–08, candidate/draft) — không còn câu hỏi mở, toàn bộ đã chốt thành Known Decision (`01-ba-overview.md` §9, `KD-HAB2-001` đến `010`). Bước tiếp theo: review lại toàn bộ với người phụ trách sản phẩm trước khi implement.
+Bộ tài liệu Habit V2 (quit-type) hoàn tất (01–08) và đã được triển khai đầy đủ — backend (PR #96) và frontend (PR #97), cả hai đã merge vào `main`. Toàn bộ Known Decision (`01-ba-overview.md` §9, `KD-HAB2-001` đến `010`) đã hiện thực đúng như phân tích, không phát sinh sai lệch cần cập nhật ngược lại tài liệu. Bước tiếp theo theo yêu cầu: các hạng mục nằm trong Out of Scope (xem `01-ba-overview.md` §8), ví dụ insight/analytics cho quá trình cai, sẽ là phân tích riêng khi có yêu cầu.

@@ -84,23 +84,24 @@ Trong Auth, `auth-token-issuer.port.ts`, `auth-policy.port.ts` và `opaque-token
 
 ## Các backend context hiện có
 
-| Context             | File bắt đầu đọc                                                | Điều nó sở hữu                                                                                        |
-| ------------------- | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| IAM/Auth            | `contexts/iam/auth/auth.module.ts`                              | Login, refresh, logout, sessions, email verification, password reset và JWT policy.                   |
-| IAM/Users           | `contexts/iam/users/domain/user.entity.ts`                      | User identity/profile, active state, roles, token version và lifecycle events.                        |
-| IAM/Roles           | `contexts/iam/roles/domain/role.entity.ts`                      | Role, permission assignment và bảo vệ system roles.                                                   |
-| Reflection/Journal  | `contexts/reflection/journal/domain/journal-entry.aggregate.ts` | Draft editing, seal/reopen, trash/restore/delete và revision.                                         |
-| Reflection/Mood     | `contexts/reflection/mood/domain/mood.aggregate.ts`             | Một mood cho một journal entry, label/intensity/note và revision.                                     |
-| Reflection/Memory   | `contexts/reflection/memory/domain/memory.aggregate.ts`         | Ký ức độc lập, provenance Journal tùy chọn, precision thời gian và lifecycle trash.                   |
-| Reflection/Timeline | `contexts/reflection/timeline/timeline.module.ts`               | Read model owner-scoped từ Journal/Memory events; không có aggregate riêng.                           |
-| Forge/Habit         | `contexts/forge/habit/`, `contexts/forge/forge.module.ts`       | Aggregate và backend API create/list/detail/update/archive/restore.                                   |
-| Forge/Check-in      | `contexts/forge/habit-check-in/`                                | Check-in/undo hôm nay theo owner timezone và lịch sử cho heatmap.                                     |
-| Forge/Routine       | `contexts/forge/routine/`                                       | Backend V1 cho lifecycle và membership Habit nhiều-nhiều có thứ tự, bảo vệ bằng revision.             |
-| Notifications       | `contexts/notifications/domain/notification.entity.ts`          | Notification persistence, read state và created event.                                                |
-| Audit               | `contexts/audit/audit.module.ts`                                | Append/read audit trail và retention. Nó dùng ports/readers vì audit log chủ yếu là immutable record. |
-| Analytics           | `contexts/analytics/dashboard/dashboard.module.ts`              | Read-only dashboard projection. Không có aggregate vì không sở hữu state transition.                  |
-| Menu                | `contexts/menu/menu.module.ts`                                  | Menu projection theo quyền. UI navigation không tự quyết định authorization.                          |
-| Storage             | `contexts/storage/storage.module.ts`                            | Upload boundary và lựa chọn local/S3 adapter.                                                         |
+| Context             | File bắt đầu đọc                                                | Điều nó sở hữu                                                                                                       |
+| ------------------- | --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| IAM/Auth            | `contexts/iam/auth/auth.module.ts`                              | Login, refresh, logout, sessions, email verification, password reset và JWT policy.                                  |
+| IAM/Users           | `contexts/iam/users/domain/user.entity.ts`                      | User identity/profile, active state, roles, token version và lifecycle events.                                       |
+| IAM/Roles           | `contexts/iam/roles/domain/role.entity.ts`                      | Role, permission assignment và bảo vệ system roles.                                                                  |
+| Reflection/Journal  | `contexts/reflection/journal/domain/journal-entry.aggregate.ts` | Draft editing, seal/reopen, trash/restore/delete và revision.                                                        |
+| Reflection/Mood     | `contexts/reflection/mood/domain/mood.aggregate.ts`             | Một mood cho một journal entry, label/intensity/note và revision.                                                    |
+| Reflection/Memory   | `contexts/reflection/memory/domain/memory.aggregate.ts`         | Ký ức độc lập, provenance Journal tùy chọn, precision thời gian và lifecycle trash.                                  |
+| Reflection/Timeline | `contexts/reflection/timeline/timeline.module.ts`               | Read model owner-scoped từ Journal/Memory events; không có aggregate riêng.                                          |
+| Forge/Habit         | `contexts/forge/habit/`, `contexts/forge/forge.module.ts`       | Aggregate (BUILD/QUIT-type) và backend API create/list/detail/update/archive/restore, filter theo type.              |
+| Forge/Check-in      | `contexts/forge/habit-check-in/`                                | Check-in/undo hôm nay theo owner timezone và lịch sử cho heatmap; chỉ áp dụng cho Habit BUILD-type.                  |
+| Forge/Relapse       | `contexts/forge/habit-relapse/`                                 | Ghi nhận relapse (append-only) và progress ("bao lâu không tái phạm") cho Habit QUIT-type.                           |
+| Forge/Routine       | `contexts/forge/routine/`                                       | Backend V1 cho lifecycle và membership Habit nhiều-nhiều có thứ tự, bảo vệ bằng revision; chỉ nhận Habit BUILD-type. |
+| Notifications       | `contexts/notifications/domain/notification.entity.ts`          | Notification persistence, read state và created event.                                                               |
+| Audit               | `contexts/audit/audit.module.ts`                                | Append/read audit trail và retention. Nó dùng ports/readers vì audit log chủ yếu là immutable record.                |
+| Analytics           | `contexts/analytics/dashboard/dashboard.module.ts`              | Read-only dashboard projection. Không có aggregate vì không sở hữu state transition.                                 |
+| Menu                | `contexts/menu/menu.module.ts`                                  | Menu projection theo quyền. UI navigation không tự quyết định authorization.                                         |
+| Storage             | `contexts/storage/storage.module.ts`                            | Upload boundary và lựa chọn local/S3 adapter.                                                                        |
 
 ## Client Next.js
 

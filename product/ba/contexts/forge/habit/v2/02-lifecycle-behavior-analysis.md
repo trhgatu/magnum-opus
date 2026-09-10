@@ -1,6 +1,6 @@
 # Habit V2 — Lifecycle & Behavior Analysis (Quit-Type Habit)
 
-> **Status:** Candidate / Draft
+> **Status:** Implemented (Backend PR #96, Frontend PR #97)
 >
 > **Domain:** Forge / Habit
 >
