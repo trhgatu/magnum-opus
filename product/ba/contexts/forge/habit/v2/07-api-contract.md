@@ -1,6 +1,6 @@
 # Habit V2 — API Contract (Quit-Type Habit)
 
-> **Status:** Candidate / Draft
+> **Status:** Implemented (Backend PR #96, Frontend PR #97)
 >
 > **Domain:** Forge / Habit
 >

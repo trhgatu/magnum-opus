@@ -1,6 +1,6 @@
 # Habit V2 — BA Overview (Quit-Type Habit)
 
-> **Status:** Candidate / Draft
+> **Status:** Implemented (Backend PR #96, Frontend PR #97)
 >
 > **Domain:** Forge / Habit
 >
@@ -10,7 +10,7 @@
 
 ## 0. Ghi chú về nguồn gốc tài liệu
 
-Khác với `01-ba-overview.md` của V1 (viết ngược từ code đã có), tài liệu này là **phân tích xuôi** — thiết kế trước khi implement, giống quy trình đã dùng cho Crucible/Project. Nội dung dưới đây là kết quả của một buổi phân tích trực tiếp với người phụ trách sản phẩm (2026-09-08), đi qua nhiều lần chỉnh sửa sau khi các đề xuất ban đầu bị phát hiện là chưa đúng bản chất vấn đề.
+Khác với `01-ba-overview.md` của V1 (viết ngược từ code đã có), tài liệu này ban đầu là **phân tích xuôi** — thiết kế trước khi implement, giống quy trình đã dùng cho Crucible/Project. Nội dung dưới đây là kết quả của một buổi phân tích trực tiếp với người phụ trách sản phẩm (2026-09-08), đi qua nhiều lần chỉnh sửa sau khi các đề xuất ban đầu bị phát hiện là chưa đúng bản chất vấn đề. Thiết kế này sau đó đã được triển khai đầy đủ và merge vào `main` — backend (PR #96), frontend (PR #97) — nên tài liệu hiện đóng vai trò baseline cho những gì đã chạy trên production, không còn thuần túy là đề xuất.
 
 ---
 
