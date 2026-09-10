@@ -1,3 +1,4 @@
+import { HabitType } from '../../domain/enums';
 import { Habit } from '../../domain/habit.aggregate';
 
 export const HABIT_READER = Symbol('HABIT_READER');
@@ -8,6 +9,7 @@ export interface FindHabitsOptions {
   skip: number;
   take: number;
   isActive?: boolean;
+  type?: HabitType;
   search?: string;
   sortBy?: HabitSortField;
   sortOrder?: 'asc' | 'desc';

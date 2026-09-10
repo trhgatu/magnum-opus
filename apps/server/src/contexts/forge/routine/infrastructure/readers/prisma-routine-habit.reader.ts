@@ -22,6 +22,7 @@ export class PrismaRoutineHabitReader implements RoutineHabitReader {
       select: {
         id: true,
         isActive: true,
+        type: true,
       },
     });
   }

@@ -11,7 +11,7 @@ export class PrismaOwnedHabitReader implements OwnedHabitReader {
   public findByIdForOwner(habitId: string, ownerId: string) {
     return this.prisma.habit.findFirst({
       where: { id: habitId, ownerId },
-      select: { id: true, isActive: true },
+      select: { id: true, isActive: true, type: true },
     });
   }
 }

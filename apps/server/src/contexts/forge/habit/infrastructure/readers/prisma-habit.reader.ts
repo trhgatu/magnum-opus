@@ -22,6 +22,7 @@ export class PrismaHabitReader implements HabitReader {
     const where: Prisma.HabitWhereInput = {
       ownerId,
       ...(options.isActive === undefined ? {} : { isActive: options.isActive }),
+      ...(options.type === undefined ? {} : { type: options.type }),
       ...(search
         ? {
             OR: [

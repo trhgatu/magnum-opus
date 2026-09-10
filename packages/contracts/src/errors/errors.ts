@@ -376,6 +376,11 @@ export const Errors = {
     translationKey: 'exceptions.routine.habit.inactive',
     statusCode: 409,
   },
+  HABIT_TYPE_NOT_ALLOWED_IN_ROUTINE: {
+    code: 'HABIT_TYPE_NOT_ALLOWED_IN_ROUTINE',
+    translationKey: 'exceptions.routine.habit.type.not.allowed',
+    statusCode: 409,
+  },
 
   // Crucible / Project
   INVALID_PROJECT_ID: {

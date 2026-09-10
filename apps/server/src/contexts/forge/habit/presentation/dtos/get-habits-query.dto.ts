@@ -1,9 +1,10 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsIn, IsOptional } from 'class-validator';
+import { IsEnum, IsIn, IsOptional } from 'class-validator';
 
 import { PaginationQueryDto } from '@presentation/common/dto/pagination-query.dto';
 
 import { HabitSortField } from '../../application/ports/habit-reader.port';
+import { HabitType } from '../../domain/enums';
 
 export const HABIT_STATUSES = ['ACTIVE', 'ARCHIVED'] as const;
 export type HabitStatus = (typeof HABIT_STATUSES)[number];
@@ -15,6 +16,14 @@ export class GetHabitsQueryDto extends PaginationQueryDto {
   @IsOptional()
   @IsIn(HABIT_STATUSES)
   readonly status: HabitStatus = 'ACTIVE';
+
+  @ApiPropertyOptional({
+    enum: HabitType,
+    description: 'Filter by type; omit to include both BUILD and QUIT',
+  })
+  @IsOptional()
+  @IsEnum(HabitType)
+  readonly type?: HabitType;
 
   @ApiPropertyOptional({ enum: HABIT_SORT_FIELDS, default: 'updatedAt' })
   @IsOptional()

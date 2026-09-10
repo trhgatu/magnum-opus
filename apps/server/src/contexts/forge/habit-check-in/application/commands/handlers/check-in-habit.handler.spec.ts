@@ -29,6 +29,7 @@ describe('CheckInHabitHandler', () => {
       'habit-id',
       'owner-id',
       true,
+      true,
     );
     expect(result.unwrap().toPrimitives()).toMatchObject({
       habitId: 'habit-id',

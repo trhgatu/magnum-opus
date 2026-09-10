@@ -28,6 +28,7 @@ export class GetHabitsHandler implements IQueryHandler<
       skip: (query.page - 1) * query.limit,
       take: query.limit,
       isActive: query.isActive,
+      type: query.type,
       search: query.search,
       sortBy: query.sortBy,
       sortOrder: query.sortOrder,

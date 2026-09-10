@@ -83,6 +83,7 @@ export class HabitController {
         query.search,
         query.sortBy,
         query.sortOrder,
+        query.type,
       ),
     );
     const { habits, total } = result.unwrap() as {
