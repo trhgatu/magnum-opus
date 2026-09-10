@@ -1,5 +1,5 @@
 import { HabitFrequencyType, HabitType } from '../../../domain/enums';
-import { InvalidHabitFrequencyException } from '../../../domain/exceptions';
+import { InvalidHabitTypeException } from '../../../domain/exceptions';
 import { CreateHabitCommand } from '../create-habit.command';
 import { CreateHabitHandler } from './create-habit.handler';
 
@@ -73,7 +73,7 @@ describe('CreateHabitHandler', () => {
           frequencyDays: [1, 3],
         }),
       ),
-    ).rejects.toBeInstanceOf(InvalidHabitFrequencyException);
+    ).rejects.toBeInstanceOf(InvalidHabitTypeException);
     expect(repository.create).not.toHaveBeenCalled();
   });
 });

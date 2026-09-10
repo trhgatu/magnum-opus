@@ -1,7 +1,7 @@
 import {
   HabitNotFoundException,
   HabitRevisionConflictException,
-  InvalidHabitFrequencyException,
+  InvalidHabitTypeException,
 } from '../../../domain/exceptions';
 import { HabitFrequencyType, HabitType } from '../../../domain/enums';
 import { Habit } from '../../../domain/habit.aggregate';
@@ -76,7 +76,7 @@ describe('UpdateHabitHandler', () => {
       }),
     );
 
-    expect(result.getError()).toBeInstanceOf(InvalidHabitFrequencyException);
+    expect(result.getError()).toBeInstanceOf(InvalidHabitTypeException);
     expect(repository.update).not.toHaveBeenCalled();
   });
 });

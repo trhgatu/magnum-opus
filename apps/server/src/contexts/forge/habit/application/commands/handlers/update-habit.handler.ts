@@ -3,6 +3,7 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { DomainException } from '@shared/domain/exceptions/domain.exception';
 import { Result } from '@shared/domain/result';
 
+import { InvalidHabitTypeException } from '../../../domain/exceptions';
 import { Habit } from '../../../domain/habit.aggregate';
 import { HabitFrequency } from '../../../domain/value-objects';
 import { HabitMutationService } from '../../services';
@@ -22,19 +23,23 @@ export class UpdateHabitHandler implements ICommandHandler<
       habitId: command.habitId,
       ownerId: command.ownerId,
       expectedRevision: command.expectedRevision,
-      mutate: (habit) =>
+      mutate: (habit) => {
+        if (!command.frequencyType && command.frequencyDays.length > 0) {
+          throw new InvalidHabitTypeException();
+        }
+
         habit.update({
           title: command.title,
           description: command.description,
-          frequency:
-            command.frequencyType || command.frequencyDays.length > 0
-              ? HabitFrequency.create(
-                  command.frequencyType,
-                  command.frequencyDays,
-                )
-              : null,
+          frequency: command.frequencyType
+            ? HabitFrequency.create(
+                command.frequencyType,
+                command.frequencyDays,
+              )
+            : null,
           quitStartedAt: command.quitStartedAt,
-        }),
+        });
+      },
     });
   }
 }
