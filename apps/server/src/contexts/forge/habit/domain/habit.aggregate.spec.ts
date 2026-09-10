@@ -87,18 +87,22 @@ describe('Habit', () => {
     });
 
     it('defaults quitStartedAt to today when omitted', () => {
+      const before = new Date();
+
       const habit = Habit.create({
         ownerId: 'owner-id',
         title: 'Quit smoking',
         type: HabitType.QUIT,
       });
 
-      const today = new Date();
-      expect(habit.quitStartedAt?.getUTCFullYear()).toBe(
-        today.getUTCFullYear(),
+      const expected = new Date(
+        Date.UTC(
+          before.getUTCFullYear(),
+          before.getUTCMonth(),
+          before.getUTCDate(),
+        ),
       );
-      expect(habit.quitStartedAt?.getUTCMonth()).toBe(today.getUTCMonth());
-      expect(habit.quitStartedAt?.getUTCDate()).toBe(today.getUTCDate());
+      expect(habit.quitStartedAt).toEqual(expected);
     });
 
     it('rejects QUIT with a frequency', () => {
@@ -124,6 +128,27 @@ describe('Habit', () => {
           quitStartedAt: tomorrow,
         }),
       ).toThrow(InvalidQuitStartedAtException);
+    });
+
+    it('normalizes a quitStartedAt with a time component to a canonical day', () => {
+      const habit = Habit.create({
+        ownerId: 'owner-id',
+        title: 'Quit smoking',
+        type: HabitType.QUIT,
+        quitStartedAt: new Date('2026-08-01T15:30:00.000Z'),
+      });
+
+      expect(habit.quitStartedAt).toEqual(new Date('2026-08-01T00:00:00.000Z'));
+    });
+
+    it('rejects a runtime type that is neither BUILD nor QUIT', () => {
+      expect(() =>
+        Habit.create({
+          ownerId: 'owner-id',
+          title: 'Quit smoking',
+          type: 'SOMETHING_ELSE' as HabitType,
+        }),
+      ).toThrow(InvalidHabitTypeException);
     });
   });
 
@@ -222,6 +247,22 @@ describe('Habit', () => {
 
       expect(habit.quitStartedAt).toEqual(new Date('2026-08-15'));
       expect(habit.revision).toBe(2);
+    });
+
+    it('normalizes a quitStartedAt with a time component to a canonical day', () => {
+      const habit = Habit.create({
+        ownerId: 'owner-id',
+        title: 'Quit smoking',
+        type: HabitType.QUIT,
+        quitStartedAt: new Date('2026-08-01'),
+      });
+
+      habit.update({
+        title: 'Quit smoking',
+        quitStartedAt: new Date('2026-08-15T09:45:00.000Z'),
+      });
+
+      expect(habit.quitStartedAt).toEqual(new Date('2026-08-15T00:00:00.000Z'));
     });
 
     it('rejects update missing quitStartedAt', () => {

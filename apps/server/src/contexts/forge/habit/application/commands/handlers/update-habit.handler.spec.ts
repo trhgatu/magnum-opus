@@ -1,6 +1,7 @@
 import {
   HabitNotFoundException,
   HabitRevisionConflictException,
+  InvalidHabitFrequencyException,
 } from '../../../domain/exceptions';
 import { HabitFrequencyType, HabitType } from '../../../domain/enums';
 import { Habit } from '../../../domain/habit.aggregate';
@@ -59,6 +60,23 @@ describe('UpdateHabitHandler', () => {
     );
 
     expect(result.getError()).toBeInstanceOf(HabitRevisionConflictException);
+    expect(repository.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects frequencyDays supplied without a frequencyType', async () => {
+    repository.findByIdForOwner.mockResolvedValue(createHabit());
+
+    const result = await handler.execute(
+      new UpdateHabitCommand({
+        habitId: 'habit-id',
+        ownerId: 'owner-id',
+        expectedRevision: 1,
+        title: 'Morning walk',
+        frequencyDays: [1, 3],
+      }),
+    );
+
+    expect(result.getError()).toBeInstanceOf(InvalidHabitFrequencyException);
     expect(repository.update).not.toHaveBeenCalled();
   });
 });

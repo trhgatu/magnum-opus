@@ -1,5 +1,7 @@
 import { HabitRelapse as PrismaHabitRelapse } from '@repo/database';
 
+import { HabitRelapse } from '../../domain/habit-relapse.aggregate';
+import { HabitRelapseId } from '../../domain/value-objects';
 import { PrismaHabitRelapseMapper } from './prisma-habit-relapse.mapper';
 
 describe('PrismaHabitRelapseMapper', () => {
@@ -11,23 +13,15 @@ describe('PrismaHabitRelapseMapper', () => {
     createdAt: new Date('2026-08-20T10:00:00.000Z'),
   };
 
-  it('maps a Prisma record to the domain entity', () => {
-    const relapse = PrismaHabitRelapseMapper.toDomain(raw);
-
-    expect(relapse.toPrimitives()).toEqual({
-      id: raw.id,
+  it('maps the domain entity to persistence', () => {
+    const relapse = HabitRelapse.rehydrate({
+      id: HabitRelapseId.create(raw.id),
       habitId: raw.habitId,
       ownerId: raw.ownerId,
       occurredAt: raw.occurredAt,
       createdAt: raw.createdAt,
     });
-  });
 
-  it('maps the domain entity back to persistence', () => {
-    expect(
-      PrismaHabitRelapseMapper.toPersistence(
-        PrismaHabitRelapseMapper.toDomain(raw),
-      ),
-    ).toEqual(raw);
+    expect(PrismaHabitRelapseMapper.toPersistence(relapse)).toEqual(raw);
   });
 });

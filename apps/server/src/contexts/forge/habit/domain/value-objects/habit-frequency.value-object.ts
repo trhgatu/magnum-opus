@@ -13,7 +13,7 @@ export class HabitFrequency {
   ) {}
 
   public static create(
-    type: HabitFrequencyType,
+    type: HabitFrequencyType | null | undefined,
     days: readonly number[] = [],
   ): HabitFrequency {
     if (type === HabitFrequencyType.DAILY) {

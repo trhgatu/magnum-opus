@@ -1,4 +1,5 @@
 import { HabitFrequencyType, HabitType } from '../../../domain/enums';
+import { InvalidHabitFrequencyException } from '../../../domain/exceptions';
 import { CreateHabitCommand } from '../create-habit.command';
 import { CreateHabitHandler } from './create-habit.handler';
 
@@ -60,5 +61,19 @@ describe('CreateHabitHandler', () => {
     const habit = result.getValue();
     expect(habit.frequency).toBeNull();
     expect(habit.quitStartedAt).not.toBeNull();
+  });
+
+  it('rejects frequencyDays supplied without a frequencyType', async () => {
+    await expect(
+      handler.execute(
+        new CreateHabitCommand({
+          ownerId: 'owner-id',
+          title: 'Quit smoking',
+          type: HabitType.QUIT,
+          frequencyDays: [1, 3],
+        }),
+      ),
+    ).rejects.toBeInstanceOf(InvalidHabitFrequencyException);
+    expect(repository.create).not.toHaveBeenCalled();
   });
 });

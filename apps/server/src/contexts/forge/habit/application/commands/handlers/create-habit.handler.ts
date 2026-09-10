@@ -30,9 +30,10 @@ export class CreateHabitHandler implements ICommandHandler<
       title: command.title,
       description: command.description,
       type: command.type,
-      frequency: command.frequencyType
-        ? HabitFrequency.create(command.frequencyType, command.frequencyDays)
-        : null,
+      frequency:
+        command.frequencyType || command.frequencyDays.length > 0
+          ? HabitFrequency.create(command.frequencyType, command.frequencyDays)
+          : null,
       quitStartedAt: command.quitStartedAt,
     });
 

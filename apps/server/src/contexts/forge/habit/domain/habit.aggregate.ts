@@ -232,9 +232,10 @@ export class Habit extends AggregateRoot {
       throw new InvalidHabitTypeException();
     }
 
-    Habit.ensureNotFutureDate(quitStartedAt);
+    const normalizedQuitStartedAt = Habit.startOfUtcDay(quitStartedAt);
+    Habit.ensureNotFutureDate(normalizedQuitStartedAt);
 
-    return { frequency: null, quitStartedAt };
+    return { frequency: null, quitStartedAt: normalizedQuitStartedAt };
   }
 
   private static resolveFieldsForCreate(
@@ -251,11 +252,15 @@ export class Habit extends AggregateRoot {
       return { frequency, quitStartedAt: null };
     }
 
+    if (type !== HabitType.QUIT) {
+      throw new InvalidHabitTypeException();
+    }
+
     if (frequency) {
       throw new InvalidHabitTypeException();
     }
 
-    const resolvedQuitStartedAt = quitStartedAt ?? Habit.startOfUtcDay(now);
+    const resolvedQuitStartedAt = Habit.startOfUtcDay(quitStartedAt ?? now);
     Habit.ensureNotFutureDate(resolvedQuitStartedAt);
 
     return { frequency: null, quitStartedAt: resolvedQuitStartedAt };

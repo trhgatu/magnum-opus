@@ -16,6 +16,12 @@ describe('HabitFrequency', () => {
         HabitFrequency.create(HabitFrequencyType.DAILY, [1]),
       ).toThrow(InvalidHabitFrequencyException);
     });
+
+    it('rejects a null type even when days are supplied', () => {
+      expect(() => HabitFrequency.create(null, [1, 3])).toThrow(
+        InvalidHabitFrequencyException,
+      );
+    });
   });
 
   describe('daily', () => {

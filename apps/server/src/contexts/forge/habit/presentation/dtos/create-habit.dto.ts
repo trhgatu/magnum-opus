@@ -55,7 +55,7 @@ export class CreateHabitDto {
   })
   @ValidateIf(
     (dto: CreateHabitDto) =>
-      dto.type === HabitType.QUIT && dto.quitStartedAt !== undefined,
+      dto.quitStartedAt !== undefined && dto.quitStartedAt !== '',
   )
   @IsDateString()
   readonly quitStartedAt?: string;
