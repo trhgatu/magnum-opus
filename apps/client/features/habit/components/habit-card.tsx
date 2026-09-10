@@ -57,9 +57,9 @@ export function HabitCard({
                 <Archive aria-hidden="true" /> Đã lưu trữ
               </Badge>
             )}
-            {habit.type === "QUIT" ? (
-              <Badge variant="secondary">Từ bỏ</Badge>
-            ) : null}
+            <Badge variant="secondary">
+              {habit.type === "QUIT" ? "Từ bỏ" : "Xây dựng"}
+            </Badge>
           </div>
         </CardHeader>
         <CardContent className="flex flex-1 flex-col px-5 pb-5 pt-8">
