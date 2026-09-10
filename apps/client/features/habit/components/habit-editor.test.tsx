@@ -68,6 +68,7 @@ describe("HabitEditor", () => {
 
     await waitFor(() =>
       expect(createHabit).toHaveBeenCalledWith({
+        type: "BUILD",
         title: "Thiền 10 phút",
         description: "",
         frequencyType: "DAILY",
@@ -80,6 +81,47 @@ describe("HabitEditor", () => {
     expect(notifySuccess).toHaveBeenCalledWith(
       `Đã tạo "${existingHabit.title}"`,
     );
+  });
+
+  it("creates a QUIT Habit defaulting quitStartedAt to today", async () => {
+    const quitHabit = {
+      ...existingHabit,
+      type: "QUIT" as const,
+      frequencyType: null,
+      quitStartedAt: "2026-08-14",
+    };
+    createHabit.mockResolvedValue({ status: "success", habit: quitHabit });
+
+    render(<HabitEditor />);
+
+    fireEvent.click(screen.getByRole("radio", { name: "Từ bỏ điều xấu" }));
+    fireEvent.change(screen.getByLabelText("Tên thói quen"), {
+      target: { value: "Bỏ hút thuốc" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Tạo thói quen" }));
+
+    await waitFor(() => expect(createHabit).toHaveBeenCalledOnce());
+
+    const call = createHabit.mock.calls[0]![0];
+    expect(call).toMatchObject({
+      type: "QUIT",
+      title: "Bỏ hút thuốc",
+      description: "",
+    });
+    expect(call.quitStartedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(push).toHaveBeenCalledWith(`/habits/${quitHabit.id}`);
+  });
+
+  it("shows the type as a read-only badge when editing", () => {
+    render(<HabitEditor initialHabit={existingHabit} />);
+
+    expect(
+      screen.queryByRole("radio", { name: "Xây dựng điều tốt" }),
+    ).toBeNull();
+    expect(screen.getByText("Xây dựng điều tốt")).toBeTruthy();
+    expect(
+      screen.getByText("Loại thói quen không thể đổi sau khi tạo."),
+    ).toBeTruthy();
   });
 
   it("updates the current revision in edit mode", async () => {
@@ -98,6 +140,7 @@ describe("HabitEditor", () => {
 
     await waitFor(() =>
       expect(updateHabit).toHaveBeenCalledWith({
+        type: "BUILD",
         title: "Thiền 15 phút",
         description: existingHabit.description,
         frequencyType: "DAILY",
@@ -201,6 +244,7 @@ describe("HabitEditor", () => {
     await waitFor(() => expect(updateHabit).toHaveBeenCalledTimes(2));
 
     expect(updateHabit).toHaveBeenLastCalledWith({
+      type: "BUILD",
       title: "Bản local được giữ lại",
       description: existingHabit.description,
       frequencyType: "DAILY",

@@ -10,6 +10,7 @@ describe("Habit URL state", () => {
       page: 1,
       search: "",
       status: "ACTIVE",
+      type: "ALL",
       sortBy: "updatedAt",
       sortOrder: "desc",
     });
@@ -21,6 +22,7 @@ describe("Habit URL state", () => {
         page: "3",
         search: "  thiền ",
         status: "ARCHIVED",
+        type: "QUIT",
         sortBy: "title",
         sortOrder: "asc",
       }),
@@ -28,9 +30,14 @@ describe("Habit URL state", () => {
       page: 3,
       search: "thiền",
       status: "ARCHIVED",
+      type: "QUIT",
       sortBy: "title",
       sortOrder: "asc",
     });
+  });
+
+  it("ignores an unrecognized type filter", () => {
+    expect(parseHabitLocation({ type: "NOPE" }).type).toBe("ALL");
   });
 
   it("omits default values from canonical links", () => {
@@ -56,5 +63,13 @@ describe("Habit URL state", () => {
     ).toBe(
       "/habits?page=2&search=thi%E1%BB%81n&status=ARCHIVED&sortBy=title&sortOrder=asc",
     );
+  });
+
+  it("includes a non-default type filter", () => {
+    expect(buildHabitHref({ type: "QUIT" })).toBe("/habits?type=QUIT");
+  });
+
+  it("omits the default ALL type filter", () => {
+    expect(buildHabitHref({ type: "ALL" })).toBe("/habits");
   });
 });

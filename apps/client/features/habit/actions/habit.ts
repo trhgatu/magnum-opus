@@ -3,6 +3,7 @@
 import type {
   HabitCheckInTodayResponse,
   HabitFrequencyType,
+  HabitProgressResponse,
   HabitResponse,
 } from "@repo/contracts";
 import { revalidatePath } from "next/cache";
@@ -19,45 +20,84 @@ export type HabitCheckInMutationResult =
   | { status: "success"; today: HabitCheckInTodayResponse }
   | MutationError;
 
-export interface HabitFormInput {
-  title: string;
-  description: string | null;
-  frequencyType: HabitFrequencyType;
-  frequencyDays: number[];
-}
+export type HabitProgressMutationResult =
+  | { status: "success"; progress: HabitProgressResponse }
+  | MutationError;
 
-export interface UpdateHabitInput extends HabitFormInput {
+export type HabitFormInput =
+  | {
+      type: "BUILD";
+      title: string;
+      description: string | null;
+      frequencyType: HabitFrequencyType;
+      frequencyDays: number[];
+    }
+  | {
+      type: "QUIT";
+      title: string;
+      description: string | null;
+      quitStartedAt: string;
+    };
+
+export type UpdateHabitInput = HabitFormInput & {
   id: string;
   expectedRevision: number;
-}
+};
 
 export interface HabitRevisionInput {
   id: string;
   expectedRevision: number;
 }
 
-const normalizeForm = (input: HabitFormInput) => {
+function normalizeTitleAndDescription(input: {
+  title: string;
+  description: string | null;
+}) {
   const title = typeof input.title === "string" ? input.title.trim() : "";
   const description =
     typeof input.description === "string"
       ? input.description.trim() || null
       : null;
-  const frequencyType = input.frequencyType;
-  const frequencyDays = normalizeFrequencyDays(
-    frequencyType,
-    Array.isArray(input.frequencyDays) ? input.frequencyDays : [],
-  );
 
-  if (
-    !title ||
-    [...title].length > 200 ||
-    (frequencyType !== "DAILY" && frequencyType !== "WEEKLY") ||
-    (frequencyType === "WEEKLY" && frequencyDays.length === 0)
-  ) {
+  if (!title || [...title].length > 200) {
     return null;
   }
 
-  return { title, description, frequencyType, frequencyDays };
+  return { title, description };
+}
+
+const normalizeForm = (input: HabitFormInput) => {
+  const base = normalizeTitleAndDescription(input);
+  if (!base) return null;
+
+  if (input.type === "BUILD") {
+    const frequencyDays = normalizeFrequencyDays(
+      input.frequencyType,
+      Array.isArray(input.frequencyDays) ? input.frequencyDays : [],
+    );
+
+    if (
+      (input.frequencyType !== "DAILY" && input.frequencyType !== "WEEKLY") ||
+      (input.frequencyType === "WEEKLY" && frequencyDays.length === 0)
+    ) {
+      return null;
+    }
+
+    return {
+      ...base,
+      frequencyType: input.frequencyType,
+      frequencyDays,
+      type: "BUILD" as const,
+    };
+  }
+
+  const quitStartedAt =
+    typeof input.quitStartedAt === "string" ? input.quitStartedAt.trim() : "";
+  if (!quitStartedAt) {
+    return null;
+  }
+
+  return { ...base, quitStartedAt, type: "QUIT" as const };
 };
 
 const revalidateHabit = (id: string) => {
@@ -76,7 +116,7 @@ export async function createHabit(
   try {
     const habit = await apiFetch<HabitResponse>("/habits", {
       method: "POST",
-      body: JSON.stringify({ ...body, type: "BUILD" }),
+      body: JSON.stringify(body),
     });
     revalidatePath("/habits");
     return { status: "success", habit };
@@ -106,11 +146,17 @@ export async function updateHabit(
     return { status: "error", message: "Dữ liệu thói quen không hợp lệ." };
   }
 
+  // UpdateHabitDto không khai báo field `type` (bất biến sau khi tạo,
+  // KD-HAB2-008) — global ValidationPipe dùng forbidNonWhitelisted, gửi
+  // kèm `type` sẽ bị 400.
+  const { type: _type, ...rest } = body;
+  void _type;
+
   try {
     const habit = await apiFetch<HabitResponse>(`/habits/${input.id}`, {
       method: "PUT",
       body: JSON.stringify({
-        ...body,
+        ...rest,
         expectedRevision: input.expectedRevision,
       }),
     });
@@ -160,6 +206,25 @@ export async function changeHabitCheckIn(input: {
     );
     revalidateHabit(input.id);
     return { status: "success", today };
+  } catch (error) {
+    return toMutationError(error);
+  }
+}
+
+export async function logHabitRelapse(
+  id: string,
+): Promise<HabitProgressMutationResult> {
+  if (!validId(id)) {
+    return { status: "error", message: "Dữ liệu thói quen không hợp lệ." };
+  }
+
+  try {
+    await apiFetch(`/habits/${id}/relapses`, { method: "POST" });
+    const progress = await apiFetch<HabitProgressResponse>(
+      `/habits/${id}/progress`,
+    );
+    revalidateHabit(id);
+    return { status: "success", progress };
   } catch (error) {
     return toMutationError(error);
   }

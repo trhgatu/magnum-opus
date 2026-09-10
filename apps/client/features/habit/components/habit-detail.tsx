@@ -1,6 +1,7 @@
 import type {
   HabitCheckInHistoryResponse,
   HabitCheckInTodayResponse,
+  HabitProgressResponse,
   HabitResponse,
 } from "@repo/contracts";
 import { ArrowLeft, CalendarCheck2, Pencil, Repeat2 } from "lucide-react";
@@ -13,17 +14,28 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { HabitCheckInControl } from "@/features/habit/components/habit-check-in-control";
 import { HabitHeatmap } from "@/features/habit/components/habit-heatmap";
 import { HabitLifecycleControls } from "@/features/habit/components/habit-lifecycle-controls";
+import { HabitRelapseControl } from "@/features/habit/components/habit-relapse-control";
 import { formatHabitFrequency } from "@/features/habit/lib/habit-frequency";
+import { formatQuitStartedAt } from "@/features/habit/lib/habit-quit";
 
-export function HabitDetail({
-  habit,
-  today,
-  history,
-}: {
-  habit: HabitResponse;
-  today: HabitCheckInTodayResponse;
-  history: HabitCheckInHistoryResponse;
-}) {
+type HabitDetailProps =
+  | {
+      habit: HabitResponse;
+      today: HabitCheckInTodayResponse;
+      history: HabitCheckInHistoryResponse;
+      progress?: never;
+    }
+  | {
+      habit: HabitResponse;
+      progress: HabitProgressResponse;
+      today?: never;
+      history?: never;
+    };
+
+export function HabitDetail(props: HabitDetailProps) {
+  const { habit } = props;
+  const isQuit = props.progress !== undefined;
+
   return (
     <article
       className="mx-auto flex w-full max-w-5xl flex-col gap-6"
@@ -46,12 +58,19 @@ export function HabitDetail({
         title={habit.title}
         description={
           habit.description ??
-          "Một hành động nhỏ đang được rèn thành nhịp sống có chủ ý."
+          (isQuit
+            ? "Một nỗ lực từ bỏ đang được theo dõi từng ngày."
+            : "Một hành động nhỏ đang được rèn thành nhịp sống có chủ ý.")
         }
         meta={
           <>
             <Badge>
-              {formatHabitFrequency(habit.frequencyType, habit.frequencyDays)}
+              {isQuit && habit.quitStartedAt
+                ? `Bắt đầu ${formatQuitStartedAt(habit.quitStartedAt)}`
+                : formatHabitFrequency(
+                    habit.frequencyType,
+                    habit.frequencyDays,
+                  )}
             </Badge>
             <Badge variant={habit.isActive ? "outline" : "secondary"}>
               {habit.isActive ? "Đang rèn luyện" : "Đã lưu trữ"}
@@ -78,7 +97,7 @@ export function HabitDetail({
         }
       />
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+      {isQuit ? (
         <Card className="gap-0 rounded-3xl bg-card/70 py-0 shadow-sm">
           <CardHeader className="border-b px-5 py-5 sm:px-6">
             <div className="flex items-center gap-3">
@@ -87,29 +106,56 @@ export function HabitDetail({
               </span>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-                  Hằng ngày
+                  Từ bỏ
                 </p>
                 <h2 className="font-display text-xl font-semibold">
-                  Nhịp của hôm nay
+                  Tiến độ từ bỏ
                 </h2>
               </div>
             </div>
           </CardHeader>
           <CardContent className="px-5 py-6 sm:px-6">
-            <HabitCheckInControl
+            <HabitRelapseControl
               habitId={habit.id}
-              initialToday={today}
+              initialProgress={props.progress}
               disabled={!habit.isActive}
             />
           </CardContent>
         </Card>
+      ) : (
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+          <Card className="gap-0 rounded-3xl bg-card/70 py-0 shadow-sm">
+            <CardHeader className="border-b px-5 py-5 sm:px-6">
+              <div className="flex items-center gap-3">
+                <span className="grid size-9 place-items-center rounded-full bg-primary/10 text-primary">
+                  <CalendarCheck2 className="size-4" aria-hidden="true" />
+                </span>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+                    Hằng ngày
+                  </p>
+                  <h2 className="font-display text-xl font-semibold">
+                    Nhịp của hôm nay
+                  </h2>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="px-5 py-6 sm:px-6">
+              <HabitCheckInControl
+                habitId={habit.id}
+                initialToday={props.today}
+                disabled={!habit.isActive}
+              />
+            </CardContent>
+          </Card>
 
-        <Card className="gap-0 rounded-3xl bg-card/60 py-0 shadow-sm">
-          <CardContent className="px-5 py-6 sm:px-6">
-            <HabitHeatmap history={history} />
-          </CardContent>
-        </Card>
-      </div>
+          <Card className="gap-0 rounded-3xl bg-card/60 py-0 shadow-sm">
+            <CardContent className="px-5 py-6 sm:px-6">
+              <HabitHeatmap history={props.history} />
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <footer className="flex flex-wrap justify-end gap-2 border-t pt-4 font-mono text-xs text-muted-foreground">
         <time dateTime={habit.updatedAt}>
