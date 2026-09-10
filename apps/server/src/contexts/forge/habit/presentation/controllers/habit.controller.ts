@@ -58,8 +58,10 @@ export class HabitController {
         ownerId,
         title: body.title,
         description: body.description,
+        type: body.type,
         frequencyType: body.frequencyType,
         frequencyDays: body.frequencyDays,
+        quitStartedAt: body.quitStartedAt ? new Date(body.quitStartedAt) : null,
       }),
     );
 
@@ -125,6 +127,7 @@ export class HabitController {
         description: body.description,
         frequencyType: body.frequencyType,
         frequencyDays: body.frequencyDays,
+        quitStartedAt: body.quitStartedAt ? new Date(body.quitStartedAt) : null,
       }),
     );
 

@@ -260,6 +260,16 @@ export const Errors = {
     translationKey: 'exceptions.habit.frequency.invalid',
     statusCode: 400,
   },
+  INVALID_HABIT_TYPE: {
+    code: 'INVALID_HABIT_TYPE',
+    translationKey: 'exceptions.habit.type.invalid',
+    statusCode: 400,
+  },
+  INVALID_QUIT_STARTED_AT: {
+    code: 'INVALID_QUIT_STARTED_AT',
+    translationKey: 'exceptions.habit.quit.started.at.invalid',
+    statusCode: 400,
+  },
   HABIT_NOT_FOUND: {
     code: 'HABIT_NOT_FOUND',
     translationKey: 'exceptions.habit.not.found',

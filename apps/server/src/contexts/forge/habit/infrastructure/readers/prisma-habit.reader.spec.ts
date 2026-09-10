@@ -1,6 +1,7 @@
 import {
   Habit as PrismaHabit,
   HabitFrequencyType as PrismaHabitFrequencyType,
+  HabitType as PrismaHabitType,
 } from '@repo/database';
 
 import { PrismaHabitReader } from './prisma-habit.reader';
@@ -79,8 +80,10 @@ function rawHabit(): PrismaHabit {
     ownerId: 'owner-id',
     title: 'Morning walk',
     description: null,
+    type: PrismaHabitType.BUILD,
     frequencyType: PrismaHabitFrequencyType.DAILY,
     frequencyDays: [],
+    quitStartedAt: null,
     isActive: true,
     revision: 1,
     createdAt: new Date('2026-08-20T10:00:00.000Z'),

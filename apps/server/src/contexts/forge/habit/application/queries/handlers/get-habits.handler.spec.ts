@@ -6,7 +6,7 @@ describe('GetHabitsHandler', () => {
     findAllForOwner: jest.fn(),
   };
 
-  const handler = new GetHabitsHandler(reader as never);
+  const handler = new GetHabitsHandler(reader);
 
   beforeEach(() => {
     jest.clearAllMocks();

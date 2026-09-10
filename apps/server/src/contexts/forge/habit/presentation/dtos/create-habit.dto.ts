@@ -3,6 +3,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   ArrayUnique,
   IsArray,
+  IsDateString,
   IsEnum,
   IsInt,
   IsOptional,
@@ -10,9 +11,10 @@ import {
   Max,
   MaxLength,
   Min,
+  ValidateIf,
 } from 'class-validator';
 
-import { HabitFrequencyType } from '../../domain/enums';
+import { HabitFrequencyType, HabitType } from '../../domain/enums';
 
 export class CreateHabitDto {
   @ApiProperty({ maxLength: 200 })
@@ -25,9 +27,17 @@ export class CreateHabitDto {
   @IsString()
   readonly description?: string | null;
 
-  @ApiProperty({ enum: HabitFrequencyType })
+  @ApiProperty({ enum: HabitType })
+  @IsEnum(HabitType)
+  readonly type!: HabitType;
+
+  @ApiPropertyOptional({
+    enum: HabitFrequencyType,
+    description: 'Required when type is BUILD, forbidden for QUIT',
+  })
+  @ValidateIf((dto: CreateHabitDto) => dto.type === HabitType.BUILD)
   @IsEnum(HabitFrequencyType)
-  readonly frequencyType!: HabitFrequencyType;
+  readonly frequencyType?: HabitFrequencyType;
 
   @ApiPropertyOptional({ type: [Number], example: [1, 3, 5] })
   @IsOptional()
@@ -38,4 +48,15 @@ export class CreateHabitDto {
   @Min(1, { each: true })
   @Max(7, { each: true })
   readonly frequencyDays?: number[];
+
+  @ApiPropertyOptional({
+    description:
+      'Only meaningful for QUIT; defaults to today when omitted, must not be in the future',
+  })
+  @ValidateIf(
+    (dto: CreateHabitDto) =>
+      dto.type === HabitType.QUIT && dto.quitStartedAt !== undefined,
+  )
+  @IsDateString()
+  readonly quitStartedAt?: string;
 }

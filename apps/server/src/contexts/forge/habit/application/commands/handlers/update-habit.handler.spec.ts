@@ -2,7 +2,7 @@ import {
   HabitNotFoundException,
   HabitRevisionConflictException,
 } from '../../../domain/exceptions';
-import { HabitFrequencyType } from '../../../domain/enums';
+import { HabitFrequencyType, HabitType } from '../../../domain/enums';
 import { Habit } from '../../../domain/habit.aggregate';
 import { HabitFrequency, HabitId } from '../../../domain/value-objects';
 import { HabitMutationService } from '../../services';
@@ -37,7 +37,7 @@ describe('UpdateHabitHandler', () => {
     );
 
     expect(result.getValue().title).toBe('Evening walk');
-    expect(result.getValue().frequency.days).toEqual([1, 5]);
+    expect(result.getValue().frequency?.days).toEqual([1, 5]);
     expect(result.getValue().revision).toBe(2);
     expect(repository.update).toHaveBeenCalledWith(habit, 1);
   });
@@ -89,7 +89,9 @@ function createHabit(revision = 1): Habit {
     ownerId: 'owner-id',
     title: 'Morning walk',
     description: null,
+    type: HabitType.BUILD,
     frequency: HabitFrequency.daily(),
+    quitStartedAt: null,
     isActive: true,
     revision,
     createdAt: new Date('2026-08-20T10:00:00.000Z'),

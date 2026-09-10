@@ -1,3 +1,4 @@
+import { HabitType } from '../../../domain/enums';
 import { Habit } from '../../../domain/habit.aggregate';
 import { HabitFrequency, HabitId } from '../../../domain/value-objects';
 import { HabitMutationService } from '../../services';
@@ -50,7 +51,9 @@ function createHabit(isActive: boolean, revision: number): Habit {
     ownerId: 'owner-id',
     title: 'Morning walk',
     description: null,
+    type: HabitType.BUILD,
     frequency: HabitFrequency.daily(),
+    quitStartedAt: null,
     isActive,
     revision,
     createdAt: new Date('2026-08-20T10:00:00.000Z'),

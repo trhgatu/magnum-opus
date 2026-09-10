@@ -33,6 +33,7 @@ export class PrismaHabitRepository implements HabitRepository {
         description: raw.description,
         frequencyType: raw.frequencyType,
         frequencyDays: raw.frequencyDays,
+        quitStartedAt: raw.quitStartedAt,
         isActive: raw.isActive,
         revision: raw.revision,
         updatedAt: raw.updatedAt,

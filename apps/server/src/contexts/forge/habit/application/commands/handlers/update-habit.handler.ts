@@ -26,10 +26,13 @@ export class UpdateHabitHandler implements ICommandHandler<
         habit.update({
           title: command.title,
           description: command.description,
-          frequency: HabitFrequency.create(
-            command.frequencyType,
-            command.frequencyDays,
-          ),
+          frequency: command.frequencyType
+            ? HabitFrequency.create(
+                command.frequencyType,
+                command.frequencyDays,
+              )
+            : null,
+          quitStartedAt: command.quitStartedAt,
         }),
     });
   }

@@ -1,8 +1,10 @@
 import {
   Habit as PrismaHabit,
   HabitFrequencyType as PrismaHabitFrequencyType,
+  HabitType as PrismaHabitType,
 } from '@repo/database';
 
+import { HabitType } from '../../domain/enums';
 import { Habit } from '../../domain/habit.aggregate';
 import { HabitFrequency, HabitId } from '../../domain/value-objects';
 import { PrismaHabitRepository } from './prisma-habit.repository';
@@ -56,6 +58,7 @@ describe('PrismaHabitRepository', () => {
           description: null,
           frequencyType: PrismaHabitFrequencyType.DAILY,
           frequencyDays: [],
+          quitStartedAt: null,
           isActive: true,
           revision: 5,
           updatedAt: habit.updatedAt,
@@ -101,7 +104,9 @@ function createDomainHabit(): Habit {
     ownerId: 'owner-id',
     title: 'Morning walk',
     description: 'Walk without headphones',
+    type: HabitType.BUILD,
     frequency: HabitFrequency.weekly([1, 3, 5]),
+    quitStartedAt: null,
     isActive: true,
     revision: 4,
     createdAt: new Date('2026-08-20T10:00:00.000Z'),
@@ -115,8 +120,10 @@ function rawHabit(): PrismaHabit {
     ownerId: 'owner-id',
     title: 'Morning walk',
     description: 'Walk without headphones',
+    type: PrismaHabitType.BUILD,
     frequencyType: PrismaHabitFrequencyType.WEEKLY,
     frequencyDays: [1, 3, 5],
+    quitStartedAt: null,
     isActive: true,
     revision: 4,
     createdAt: new Date('2026-08-20T10:00:00.000Z'),

@@ -1,11 +1,13 @@
 import { Type } from 'class-transformer';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   ArrayUnique,
   IsArray,
+  IsDateString,
   IsDefined,
   IsEnum,
   IsInt,
+  IsOptional,
   IsString,
   Max,
   MaxLength,
@@ -27,18 +29,30 @@ export class UpdateHabitDto {
   @IsString()
   readonly description!: string | null;
 
-  @ApiProperty({ enum: HabitFrequencyType })
+  @ApiPropertyOptional({
+    enum: HabitFrequencyType,
+    description: 'Required when the Habit is BUILD, forbidden for QUIT',
+  })
+  @IsOptional()
   @IsEnum(HabitFrequencyType)
-  readonly frequencyType!: HabitFrequencyType;
+  readonly frequencyType?: HabitFrequencyType;
 
-  @ApiProperty({ type: [Number], example: [1, 3, 5] })
+  @ApiPropertyOptional({ type: [Number], example: [1, 3, 5] })
+  @IsOptional()
   @IsArray()
   @ArrayUnique()
   @Type(() => Number)
   @IsInt({ each: true })
   @Min(1, { each: true })
   @Max(7, { each: true })
-  readonly frequencyDays!: number[];
+  readonly frequencyDays?: number[];
+
+  @ApiPropertyOptional({
+    description: 'Required when the Habit is QUIT, forbidden for BUILD',
+  })
+  @IsOptional()
+  @IsDateString()
+  readonly quitStartedAt?: string;
 
   @ApiProperty({ minimum: 1 })
   @Type(() => Number)

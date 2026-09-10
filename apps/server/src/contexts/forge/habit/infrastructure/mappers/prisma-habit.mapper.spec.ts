@@ -1,9 +1,10 @@
 import {
   Habit as PrismaHabit,
   HabitFrequencyType as PrismaHabitFrequencyType,
+  HabitType as PrismaHabitType,
 } from '@repo/database';
 
-import { HabitFrequencyType } from '../../domain/enums';
+import { HabitFrequencyType, HabitType } from '../../domain/enums';
 import { PrismaHabitMapper } from './prisma-habit.mapper';
 
 describe('PrismaHabitMapper', () => {
@@ -15,8 +16,10 @@ describe('PrismaHabitMapper', () => {
     ownerId: 'owner-id',
     title: 'Morning walk',
     description: 'Walk without headphones',
+    type: PrismaHabitType.BUILD,
     frequencyType: PrismaHabitFrequencyType.WEEKLY,
     frequencyDays: [1, 3, 5],
+    quitStartedAt: null,
     isActive: true,
     revision: 4,
     createdAt,
@@ -31,8 +34,10 @@ describe('PrismaHabitMapper', () => {
       ownerId: 'owner-id',
       title: 'Morning walk',
       description: 'Walk without headphones',
+      type: HabitType.BUILD,
       frequencyType: HabitFrequencyType.WEEKLY,
       frequencyDays: [1, 3, 5],
+      quitStartedAt: null,
       isActive: true,
       revision: 4,
       createdAt,
@@ -59,8 +64,31 @@ describe('PrismaHabitMapper', () => {
         frequencyDays,
       });
 
-      expect(habit.frequency.type).toBe(domainType);
-      expect(habit.frequency.days).toEqual(frequencyDays);
+      expect(habit.frequency?.type).toBe(domainType);
+      expect(habit.frequency?.days).toEqual(frequencyDays);
     },
   );
+
+  it('maps a QUIT Prisma record with no frequency', () => {
+    const quitStartedAt = new Date('2026-08-01');
+    const habit = PrismaHabitMapper.toDomain({
+      ...raw,
+      type: PrismaHabitType.QUIT,
+      frequencyType: null,
+      frequencyDays: [],
+      quitStartedAt,
+    });
+
+    expect(habit.type).toBe(HabitType.QUIT);
+    expect(habit.frequency).toBeNull();
+    expect(habit.quitStartedAt).toEqual(quitStartedAt);
+
+    expect(PrismaHabitMapper.toPersistence(habit)).toEqual({
+      ...raw,
+      type: PrismaHabitType.QUIT,
+      frequencyType: null,
+      frequencyDays: [],
+      quitStartedAt,
+    });
+  });
 });
