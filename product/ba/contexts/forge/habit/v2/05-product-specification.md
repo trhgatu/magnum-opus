@@ -33,7 +33,8 @@ Habit (mở rộng V2)
 ## 2. Capability Baseline (phần mới của V2)
 
 ```text
-Create QUIT   → title + description? + quitStartedAt        → ACTIVE
+Create QUIT   → title + description? + quitStartedAt? (mặc định ngày tạo
+                nếu bỏ trống, BR-HAB2-002)                → ACTIVE
 Log Relapse   → ghi 1 bản ghi mới, không giới hạn số lần/ngày → chỉ khi ACTIVE
 View Progress → hôm nay − (relapse gần nhất có occurredAt >= quitStartedAt
                 hiện tại, hoặc quitStartedAt nếu không có relapse nào
