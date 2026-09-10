@@ -1,5 +1,11 @@
 import type { HabitResponse } from "@repo/contracts";
-import { Archive, ArrowUpRight, CheckCircle2, Repeat2 } from "lucide-react";
+import {
+  Archive,
+  ArrowUpRight,
+  CheckCircle2,
+  Repeat2,
+  ShieldOff,
+} from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +16,7 @@ import {
   CardHeader,
 } from "@/components/ui/card";
 import { formatHabitFrequency } from "@/features/habit/lib/habit-frequency";
+import { formatQuitStartedAt } from "@/features/habit/lib/habit-quit";
 
 export function HabitCard({
   habit,
@@ -32,19 +39,28 @@ export function HabitCard({
         <CardHeader className="flex flex-row items-start justify-between gap-3 px-5 pb-0 pt-5">
           <div className="flex items-center gap-3">
             <span className="grid size-9 place-items-center rounded-full border border-primary/20 bg-primary/10 text-primary">
-              <Repeat2 className="size-4" aria-hidden="true" />
+              {habit.type === "QUIT" ? (
+                <ShieldOff className="size-4" aria-hidden="true" />
+              ) : (
+                <Repeat2 className="size-4" aria-hidden="true" />
+              )}
             </span>
             <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
               Thói quen {String(index + 1).padStart(2, "0")}
             </span>
           </div>
-          {habit.isActive ? (
-            <Badge variant="outline">Đang rèn</Badge>
-          ) : (
+          <div className="flex flex-col items-end gap-1.5">
+            {habit.isActive ? (
+              <Badge variant="outline">Đang rèn</Badge>
+            ) : (
+              <Badge variant="secondary">
+                <Archive aria-hidden="true" /> Đã lưu trữ
+              </Badge>
+            )}
             <Badge variant="secondary">
-              <Archive aria-hidden="true" /> Đã lưu trữ
+              {habit.type === "QUIT" ? "Từ bỏ" : "Xây dựng"}
             </Badge>
-          )}
+          </div>
         </CardHeader>
         <CardContent className="flex flex-1 flex-col px-5 pb-5 pt-8">
           <h2 className="font-display text-2xl font-semibold tracking-tight text-balance transition-colors group-hover:text-primary">
@@ -55,7 +71,9 @@ export function HabitCard({
           </p>
           <div className="mt-auto flex items-center gap-2 pt-7 text-xs font-medium text-foreground/70">
             <CheckCircle2 className="size-4 text-primary" aria-hidden="true" />
-            {formatHabitFrequency(habit.frequencyType, habit.frequencyDays)}
+            {habit.type === "QUIT" && habit.quitStartedAt
+              ? `Bắt đầu ${formatQuitStartedAt(habit.quitStartedAt)}`
+              : formatHabitFrequency(habit.frequencyType, habit.frequencyDays)}
           </div>
         </CardContent>
         <CardFooter className="justify-end bg-muted/35 px-5 py-3 font-mono text-[11px] text-muted-foreground">

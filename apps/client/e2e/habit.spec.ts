@@ -70,3 +70,41 @@ test("completes the private Habit lifecycle through the BFF", async ({
     browserRequests.some((url) => url.startsWith("http://127.0.0.1:3101")),
   ).toBe(false);
 });
+
+test("completes the private QUIT-type Habit lifecycle through the BFF", async ({
+  page,
+}) => {
+  const timestamp = Date.now();
+  const title = `Quit browser flow ${timestamp}`;
+
+  await login(page);
+  await page.goto("/habits/new");
+
+  await page.getByRole("radio", { name: "Từ bỏ điều xấu" }).click();
+  await page.getByLabel("Tên thói quen").fill(title);
+  await page.getByRole("button", { name: "Tạo thói quen" }).click();
+
+  await expect(page).toHaveURL(/\/habits\/[0-9a-f-]+$/);
+  await expect(page.getByRole("heading", { name: title })).toBeVisible();
+  await expect(page.getByText("Tiến độ từ bỏ")).toBeVisible();
+  await expect(page.getByText(`Đã tạo "${title}"`)).toBeVisible();
+
+  // Không có nhịp check-in hằng ngày cho QUIT-type.
+  await expect(
+    page.getByRole("button", { name: "Hoàn thành hôm nay" }),
+  ).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Tôi đã tái phạm" }).click();
+  await page.getByRole("button", { name: "Xác nhận tái phạm" }).click();
+
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(
+    page.getByText("ngày không tái phạm", { exact: true }),
+  ).toBeVisible();
+
+  // Danh sách lọc theo loại phải tìm thấy đúng thói quen QUIT vừa tạo.
+  await page.goto("/habits?type=QUIT");
+  await expect(
+    page.getByRole("link", { name: `Mở thói quen: ${title}` }),
+  ).toBeVisible();
+});

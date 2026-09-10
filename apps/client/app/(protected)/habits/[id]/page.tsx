@@ -1,6 +1,7 @@
 import type {
   HabitCheckInHistoryResponse,
   HabitCheckInTodayResponse,
+  HabitProgressResponse,
   HabitResponse,
 } from "@repo/contracts";
 import type { Metadata } from "next";
@@ -10,6 +11,7 @@ import {
   getHabit,
   getHabitCheckInHistory,
   getHabitCheckInToday,
+  getHabitProgress,
 } from "@/features/habit/api/habit";
 import { HabitDetail } from "@/features/habit/components/habit-detail";
 import { habitHistoryRange } from "@/features/habit/lib/habit-frequency";
@@ -20,21 +22,44 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+type LoadedHabitDetail =
+  | {
+      habit: HabitResponse;
+      today: HabitCheckInTodayResponse;
+      history: HabitCheckInHistoryResponse;
+      progress?: never;
+    }
+  | {
+      habit: HabitResponse;
+      progress: HabitProgressResponse;
+      today?: never;
+      history?: never;
+    };
+
+async function loadHabitDetail(id: string): Promise<LoadedHabitDetail> {
+  const habit = await getHabit(id);
+
+  if (habit.type === "QUIT") {
+    const progress = await getHabitProgress(id);
+    return { habit, progress };
+  }
+
+  const today = await getHabitCheckInToday(id);
+  const range = habitHistoryRange(today.date);
+  const history = await getHabitCheckInHistory(id, range.from, range.to);
+
+  return { habit, today, history };
+}
+
 export default async function HabitDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  let habit: HabitResponse;
-  let today: HabitCheckInTodayResponse;
-  let history: HabitCheckInHistoryResponse;
+  let loaded: LoadedHabitDetail;
   try {
-    const loaded = await Promise.all([getHabit(id), getHabitCheckInToday(id)]);
-    habit = loaded[0];
-    today = loaded[1];
-    const range = habitHistoryRange(today.date);
-    history = await getHabitCheckInHistory(id, range.from, range.to);
+    loaded = await loadHabitDetail(id);
   } catch (error) {
     if (
       error instanceof ApiError &&
@@ -44,5 +69,5 @@ export default async function HabitDetailPage({
     throw error;
   }
 
-  return <HabitDetail habit={habit} today={today} history={history} />;
+  return <HabitDetail {...loaded} />;
 }

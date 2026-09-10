@@ -23,6 +23,7 @@ import {
   changeHabitCheckIn,
   changeHabitState,
   createHabit,
+  logHabitRelapse,
   reloadHabit,
   updateHabit,
 } from "./habit";
@@ -51,6 +52,7 @@ describe("Habit Server Actions", () => {
 
     await expect(
       createHabit({
+        type: "BUILD",
         title: "  Thiền 10 phút  ",
         description: "  Một hành động nhỏ để lặp lại có chủ ý.  ",
         frequencyType: "DAILY",
@@ -81,6 +83,7 @@ describe("Habit Server Actions", () => {
     });
 
     await createHabit({
+      type: "BUILD",
       title: "Thiền",
       description: null,
       frequencyType: "WEEKLY",
@@ -104,6 +107,7 @@ describe("Habit Server Actions", () => {
   it("rejects an empty title before contacting the API", async () => {
     await expect(
       createHabit({
+        type: "BUILD",
         title: "   ",
         description: null,
         frequencyType: "DAILY",
@@ -120,6 +124,7 @@ describe("Habit Server Actions", () => {
   it("rejects a WEEKLY Habit with no days selected", async () => {
     await expect(
       createHabit({
+        type: "BUILD",
         title: "Thiền",
         description: null,
         frequencyType: "WEEKLY",
@@ -139,6 +144,7 @@ describe("Habit Server Actions", () => {
 
     await expect(
       updateHabit({
+        type: "BUILD",
         id: habit.id,
         title: "  Thiền 15 phút  ",
         description: habit.description,
@@ -166,6 +172,7 @@ describe("Habit Server Actions", () => {
   it("rejects an invalid id before contacting the API", async () => {
     await expect(
       updateHabit({
+        type: "BUILD",
         id: "not-a-uuid",
         title: "Thiền 15 phút",
         description: null,
@@ -193,6 +200,7 @@ describe("Habit Server Actions", () => {
 
     await expect(
       updateHabit({
+        type: "BUILD",
         id: habit.id,
         title: "Thiền 15 phút",
         description: null,
@@ -326,5 +334,146 @@ describe("Habit Server Actions", () => {
     });
 
     expect(apiFetch).not.toHaveBeenCalled();
+  });
+
+  it("creates a QUIT Habit with a quitStartedAt", async () => {
+    const quitHabit = {
+      ...habit,
+      type: "QUIT" as const,
+      frequencyType: null,
+      quitStartedAt: "2026-08-01",
+    };
+    apiFetch.mockResolvedValue(quitHabit);
+
+    await expect(
+      createHabit({
+        type: "QUIT",
+        title: "Bỏ hút thuốc",
+        description: null,
+        quitStartedAt: "2026-08-01",
+      }),
+    ).resolves.toEqual({ status: "success", habit: quitHabit });
+
+    expect(apiFetch).toHaveBeenCalledWith("/habits", {
+      method: "POST",
+      body: JSON.stringify({
+        title: "Bỏ hút thuốc",
+        description: null,
+        quitStartedAt: "2026-08-01",
+        type: "QUIT",
+      }),
+    });
+  });
+
+  it("rejects a QUIT Habit with no quitStartedAt", async () => {
+    await expect(
+      createHabit({
+        type: "QUIT",
+        title: "Bỏ hút thuốc",
+        description: null,
+        quitStartedAt: "",
+      }),
+    ).resolves.toEqual({
+      status: "error",
+      message: "Dữ liệu thói quen không hợp lệ.",
+    });
+
+    expect(apiFetch).not.toHaveBeenCalled();
+  });
+
+  it("updates a QUIT Habit without sending the immutable type field", async () => {
+    const quitHabit = {
+      ...habit,
+      type: "QUIT" as const,
+      frequencyType: null,
+      quitStartedAt: "2026-08-15",
+    };
+    apiFetch.mockResolvedValue(quitHabit);
+
+    await expect(
+      updateHabit({
+        type: "QUIT",
+        id: habit.id,
+        title: habit.title,
+        description: null,
+        quitStartedAt: "2026-08-15",
+        expectedRevision: 1,
+      }),
+    ).resolves.toEqual({ status: "success", habit: quitHabit });
+
+    expect(apiFetch).toHaveBeenCalledWith(`/habits/${habit.id}`, {
+      method: "PUT",
+      body: JSON.stringify({
+        title: habit.title,
+        description: null,
+        quitStartedAt: "2026-08-15",
+        expectedRevision: 1,
+      }),
+    });
+  });
+
+  it("logs a relapse and returns the fresh progress", async () => {
+    const progress = {
+      habitId: habit.id,
+      since: "2026-08-28",
+      sinceReason: "RELAPSE" as const,
+      daysSince: 0,
+    };
+    apiFetch.mockResolvedValueOnce(undefined).mockResolvedValueOnce(progress);
+
+    await expect(logHabitRelapse(habit.id)).resolves.toEqual({
+      status: "success",
+      progress,
+    });
+
+    expect(apiFetch).toHaveBeenNthCalledWith(
+      1,
+      `/habits/${habit.id}/relapses`,
+      { method: "POST" },
+    );
+    expect(apiFetch).toHaveBeenNthCalledWith(2, `/habits/${habit.id}/progress`);
+    expect(revalidatePath).toHaveBeenCalledWith(`/habits/${habit.id}`);
+  });
+
+  it("rejects an invalid id when logging a relapse", async () => {
+    await expect(logHabitRelapse("not-a-uuid")).resolves.toEqual({
+      status: "error",
+      message: "Dữ liệu thói quen không hợp lệ.",
+    });
+
+    expect(apiFetch).not.toHaveBeenCalled();
+  });
+
+  it("still reports success when the relapse is logged but refreshing progress fails", async () => {
+    // POST /relapses đã ghi thành công và không thể hoàn tác — một lỗi ở
+    // bước GET /progress sau đó không được biến thành lỗi có thể "thử
+    // lại", vì thử lại sẽ tạo thêm một relapse mới (BR-HAB2-003).
+    apiFetch
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error("network blip"));
+
+    await expect(logHabitRelapse(habit.id)).resolves.toEqual({
+      status: "success",
+      progress: null,
+    });
+
+    expect(revalidatePath).toHaveBeenCalledWith(`/habits/${habit.id}`);
+  });
+
+  it("does not log a relapse when the POST itself fails", async () => {
+    apiFetch.mockRejectedValueOnce(
+      new ApiError({
+        kind: "unexpected",
+        status: 500,
+        code: "INTERNAL",
+        message: "unsafe backend detail",
+      }),
+    );
+
+    await expect(logHabitRelapse(habit.id)).resolves.toMatchObject({
+      status: "error",
+    });
+
+    expect(apiFetch).toHaveBeenCalledTimes(1);
   });
 });

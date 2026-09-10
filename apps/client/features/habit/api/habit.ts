@@ -3,6 +3,7 @@ import "server-only";
 import type {
   HabitCheckInHistoryResponse,
   HabitCheckInTodayResponse,
+  HabitProgressResponse,
   HabitResponse,
 } from "@repo/contracts";
 import type { PaginatedResult } from "@repo/types";
@@ -11,6 +12,7 @@ import type {
   HabitSortField,
   HabitSortOrder,
   HabitStatus,
+  HabitTypeFilter,
 } from "@/features/habit/lib/habit-url";
 import { apiFetch } from "@/lib/api";
 
@@ -19,6 +21,7 @@ export interface HabitListInput {
   limit?: number;
   search?: string;
   status?: HabitStatus;
+  type?: HabitTypeFilter;
   sortBy?: HabitSortField;
   sortOrder?: HabitSortOrder;
 }
@@ -34,6 +37,7 @@ export async function getHabits(
 
   if (search) params.set("search", search);
   if (input.status) params.set("status", input.status);
+  if (input.type && input.type !== "ALL") params.set("type", input.type);
   if (input.sortBy) params.set("sortBy", input.sortBy);
   if (input.sortOrder) params.set("sortOrder", input.sortOrder);
 
@@ -61,4 +65,8 @@ export function getHabitCheckInHistory(
   return apiFetch<HabitCheckInHistoryResponse>(
     `/habits/${id}/check-ins?${params.toString()}`,
   );
+}
+
+export function getHabitProgress(id: string): Promise<HabitProgressResponse> {
+  return apiFetch<HabitProgressResponse>(`/habits/${id}/progress`);
 }

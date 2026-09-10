@@ -1,6 +1,10 @@
 "use client";
 
-import type { HabitFrequencyType, HabitResponse } from "@repo/contracts";
+import type {
+  HabitFrequencyType,
+  HabitResponse,
+  HabitType,
+} from "@repo/contracts";
 import { Save } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -8,6 +12,7 @@ import { type FormEvent, useState, useTransition } from "react";
 
 import { ConflictAlert } from "@/components/system/conflict-alert";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,9 +29,15 @@ import {
   reloadHabit,
   updateHabit,
 } from "@/features/habit/actions/habit";
+import { HabitQuitStartedAtPicker } from "@/features/habit/components/habit-quit-started-at-picker";
 import { ISO_WEEKDAYS } from "@/features/habit/lib/habit-frequency";
+import {
+  quitStartedAtFromDate,
+  todayAsUtcCalendarDate,
+} from "@/features/habit/lib/habit-quit";
 import { useUnsavedChangesWarning } from "@/hooks/use-unsaved-changes-warning";
 import { notifySuccess } from "@/lib/toast";
+import { cn } from "@/lib/utils";
 
 export function HabitEditor({
   initialHabit,
@@ -35,6 +46,7 @@ export function HabitEditor({
 }) {
   const router = useRouter();
   const [persistedHabit, setPersistedHabit] = useState(initialHabit);
+  const [type, setType] = useState<HabitType>(initialHabit?.type ?? "BUILD");
   const [title, setTitle] = useState(initialHabit?.title ?? "");
   const [description, setDescription] = useState(
     initialHabit?.description ?? "",
@@ -43,6 +55,10 @@ export function HabitEditor({
     initialHabit?.frequencyType ?? "DAILY",
   );
   const [days, setDays] = useState(initialHabit?.frequencyDays ?? []);
+  const [quitStartedAt, setQuitStartedAt] = useState(
+    initialHabit?.quitStartedAt ??
+      quitStartedAtFromDate(todayAsUtcCalendarDate()),
+  );
   const [message, setMessage] = useState<string>();
   const [hasConflict, setHasConflict] = useState(false);
   const [recoveryError, setRecoveryError] = useState<string>();
@@ -52,11 +68,14 @@ export function HabitEditor({
   const [isPending, startTransition] = useTransition();
 
   const isDirty =
+    type !== (persistedHabit?.type ?? "BUILD") ||
     title !== (persistedHabit?.title ?? "") ||
     description !== (persistedHabit?.description ?? "") ||
-    frequencyType !== (persistedHabit?.frequencyType ?? "DAILY") ||
-    JSON.stringify([...days].sort()) !==
-      JSON.stringify([...(persistedHabit?.frequencyDays ?? [])].sort());
+    (type === "BUILD"
+      ? frequencyType !== (persistedHabit?.frequencyType ?? "DAILY") ||
+        JSON.stringify([...days].sort()) !==
+          JSON.stringify([...(persistedHabit?.frequencyDays ?? [])].sort())
+      : quitStartedAt !== (persistedHabit?.quitStartedAt ?? quitStartedAt));
   useUnsavedChangesWarning(isDirty);
 
   const toggleDay = (day: number) =>
@@ -68,15 +87,30 @@ export function HabitEditor({
 
   const applyPersistedHabit = (habit: HabitResponse) => {
     setPersistedHabit(habit);
+    setType(habit.type);
     setTitle(habit.title);
     setDescription(habit.description ?? "");
     setFrequencyType(habit.frequencyType ?? "DAILY");
     setDays(habit.frequencyDays);
+    setQuitStartedAt(
+      habit.quitStartedAt ?? quitStartedAtFromDate(todayAsUtcCalendarDate()),
+    );
     setMessage(undefined);
     setHasConflict(false);
     setRecoveryError(undefined);
     setIsEditable(habit.isActive);
   };
+
+  const buildFormInput = () =>
+    type === "BUILD"
+      ? ({
+          type: "BUILD",
+          title,
+          description,
+          frequencyType,
+          frequencyDays: days,
+        } as const)
+      : ({ type: "QUIT", title, description, quitStartedAt } as const);
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -84,7 +118,7 @@ export function HabitEditor({
     setMessage(undefined);
     setRecoveryError(undefined);
     startTransition(async () => {
-      const input = { title, description, frequencyType, frequencyDays: days };
+      const input = buildFormInput();
       const result = persistedHabit
         ? await updateHabit({
             ...input,
@@ -143,10 +177,7 @@ export function HabitEditor({
       }
 
       const result = await updateHabit({
-        title,
-        description,
-        frequencyType,
-        frequencyDays: days,
+        ...buildFormInput(),
         id: latest.habit.id,
         expectedRevision: latest.habit.revision,
       });
@@ -208,6 +239,61 @@ export function HabitEditor({
         </header>
         <div className="space-y-6 px-5 py-6 sm:px-7 sm:py-7">
           <div className="space-y-3">
+            <Label>Loại thói quen</Label>
+            {persistedHabit ? (
+              <div>
+                <Badge variant="outline">
+                  {type === "BUILD" ? "Xây dựng điều tốt" : "Từ bỏ điều xấu"}
+                </Badge>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Loại thói quen không thể đổi sau khi tạo.
+                </p>
+              </div>
+            ) : (
+              <div
+                role="radiogroup"
+                aria-label="Loại thói quen"
+                className="grid gap-2 sm:grid-cols-2"
+              >
+                {(
+                  [
+                    {
+                      value: "BUILD",
+                      title: "Xây dựng điều tốt",
+                      description: "Lặp lại một hành động theo lịch.",
+                    },
+                    {
+                      value: "QUIT",
+                      title: "Từ bỏ điều xấu",
+                      description: "Đếm số ngày không tái phạm.",
+                    },
+                  ] as const
+                ).map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={type === option.value}
+                    aria-label={option.title}
+                    disabled={isPending}
+                    onClick={() => setType(option.value)}
+                    className={cn(
+                      "rounded-2xl border p-4 text-left transition-colors",
+                      type === option.value
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:bg-muted",
+                    )}
+                  >
+                    <p className="font-medium">{option.title}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {option.description}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="space-y-3">
             <div className="flex items-center justify-between gap-3">
               <Label htmlFor="habit-title">Tên thói quen</Label>
               <span className="font-mono text-[11px] text-muted-foreground">
@@ -221,7 +307,11 @@ export function HabitEditor({
               maxLength={200}
               required
               disabled={isPending}
-              placeholder="Ví dụ: Thiền 10 phút"
+              placeholder={
+                type === "BUILD"
+                  ? "Ví dụ: Thiền 10 phút"
+                  : "Ví dụ: Bỏ hút thuốc"
+              }
               className="h-12 text-base"
             />
           </div>
@@ -250,56 +340,73 @@ export function HabitEditor({
             </span>
             <div>
               <p className="font-display text-lg font-semibold">
-                Nhịp thực hiện
+                {type === "BUILD" ? "Nhịp thực hiện" : "Mốc bắt đầu"}
               </p>
               <p className="text-sm text-muted-foreground">
-                Chọn lịch có thể duy trì trong đời sống thực.
+                {type === "BUILD"
+                  ? "Chọn lịch có thể duy trì trong đời sống thực."
+                  : "Ngày bắt đầu từ bỏ — có thể sửa lại sau này."}
               </p>
             </div>
           </div>
 
-          <div className="space-y-3">
-            <Label>Lịch thực hiện</Label>
-            <Select
-              value={frequencyType}
-              onValueChange={(value) => {
-                setFrequencyType(value as HabitFrequencyType);
-                if (value === "DAILY") setDays([]);
-              }}
-              disabled={isPending}
-            >
-              <SelectTrigger className="data-[size=default]:h-10 w-full bg-background sm:w-72">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="DAILY">Mỗi ngày</SelectItem>
-                <SelectItem value="WEEKLY">Theo ngày trong tuần</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          {frequencyType === "WEEKLY" ? (
-            <fieldset className="mt-5 space-y-3">
-              <legend className="text-sm font-medium">
-                Chọn ít nhất một ngày
-              </legend>
-              <div className="flex flex-wrap gap-2">
-                {ISO_WEEKDAYS.map((day) => (
-                  <Button
-                    key={day.value}
-                    type="button"
-                    size="icon-lg"
-                    variant={days.includes(day.value) ? "default" : "outline"}
-                    aria-pressed={days.includes(day.value)}
-                    disabled={isPending}
-                    onClick={() => toggleDay(day.value)}
-                    className="rounded-full"
-                  >
-                    {day.shortLabel}
-                  </Button>
-                ))}
+          {type === "BUILD" ? (
+            <>
+              <div className="space-y-3">
+                <Label>Lịch thực hiện</Label>
+                <Select
+                  value={frequencyType}
+                  onValueChange={(value) => {
+                    setFrequencyType(value as HabitFrequencyType);
+                    if (value === "DAILY") setDays([]);
+                  }}
+                  disabled={isPending}
+                >
+                  <SelectTrigger className="data-[size=default]:h-10 w-full bg-background sm:w-72">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="DAILY">Mỗi ngày</SelectItem>
+                    <SelectItem value="WEEKLY">Theo ngày trong tuần</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            </fieldset>
-          ) : null}
+              {frequencyType === "WEEKLY" ? (
+                <fieldset className="mt-5 space-y-3">
+                  <legend className="text-sm font-medium">
+                    Chọn ít nhất một ngày
+                  </legend>
+                  <div className="flex flex-wrap gap-2">
+                    {ISO_WEEKDAYS.map((day) => (
+                      <Button
+                        key={day.value}
+                        type="button"
+                        size="icon-lg"
+                        variant={
+                          days.includes(day.value) ? "default" : "outline"
+                        }
+                        aria-pressed={days.includes(day.value)}
+                        disabled={isPending}
+                        onClick={() => toggleDay(day.value)}
+                        className="rounded-full"
+                      >
+                        {day.shortLabel}
+                      </Button>
+                    ))}
+                  </div>
+                </fieldset>
+              ) : null}
+            </>
+          ) : (
+            <div className="space-y-3">
+              <Label htmlFor="habit-quit-started-at">Bắt đầu từ ngày</Label>
+              <HabitQuitStartedAtPicker
+                value={quitStartedAt}
+                disabled={isPending}
+                onChange={setQuitStartedAt}
+              />
+            </div>
+          )}
         </div>
 
         <footer className="flex flex-col-reverse gap-3 bg-muted/30 px-5 py-4 sm:flex-row sm:justify-end sm:px-7">

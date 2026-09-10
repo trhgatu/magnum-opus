@@ -1,4 +1,4 @@
-import { Archive, Clock3, Flame, ListFilter } from "lucide-react";
+import { Archive, Clock3, Flame, ListFilter, ShieldOff } from "lucide-react";
 import Link from "next/link";
 
 import {
@@ -37,6 +37,36 @@ export function HabitCollectionControls({
             ) : (
               <>
                 <Archive className="size-3.5" aria-hidden="true" /> Lưu trữ
+              </>
+            )}
+          </Link>
+        ))}
+      </nav>
+      <nav
+        aria-label="Lọc loại Thói quen"
+        className="flex rounded-xl border bg-background/70 p-1"
+      >
+        {(["ALL", "BUILD", "QUIT"] as const).map((type) => (
+          <Link
+            key={type}
+            href={buildHabitHref({ ...location, page: 1, type })}
+            aria-current={location.type === type ? "page" : undefined}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm",
+              location.type === type
+                ? "bg-muted font-medium"
+                : "text-muted-foreground hover:bg-muted",
+            )}
+          >
+            {type === "ALL" ? (
+              "Tất cả"
+            ) : type === "BUILD" ? (
+              <>
+                <Flame className="size-3.5" aria-hidden="true" /> Xây dựng
+              </>
+            ) : (
+              <>
+                <ShieldOff className="size-3.5" aria-hidden="true" /> Từ bỏ
               </>
             )}
           </Link>
