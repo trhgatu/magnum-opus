@@ -162,13 +162,15 @@ Conflict không tự retry PUT vì retry cùng revision chắc chắn tiếp t�
 
 ## Habit feature
 
-Habit là vertical slice đầu tiên của không gian Forge trên client. Bốn route được giữ mỏng:
+Habit là vertical slice đầu tiên của không gian Forge trên client, hỗ trợ cả hai loại Habit: BUILD (xây dựng, check-in theo tần suất) và QUIT (từ bỏ, ghi nhận relapse). Bốn route được giữ mỏng, mỗi route tự branching theo `type`:
 
 ```text
-/habits              collection, search, status, sort, pagination
-/habits/new          tạo Habit
-/habits/:id          detail, check-in hôm nay, heatmap, archive/restore
-/habits/:id/edit     chỉnh sửa Habit đang active
+/habits              collection, search, status, sort, pagination, filter theo type
+/habits/new          tạo Habit — chọn type (BUILD/QUIT) qua HabitEditor
+/habits/:id          detail: BUILD hiện check-in hôm nay + heatmap;
+                     QUIT hiện HabitRelapseControl + progress ("bao lâu
+                     không tái phạm"); cả hai đều có archive/restore
+/habits/:id/edit     chỉnh sửa Habit đang active (field theo type hiện tại)
 ```
 
 Code nghiệp vụ giao diện nằm tại `features/habit`, không nằm rải trong route:
@@ -177,18 +179,20 @@ Code nghiệp vụ giao diện nằm tại `features/habit`, không nằm rải 
 features/habit/api          server-only HTTP reads
 features/habit/actions      validated Server Actions cho mutation
 features/habit/lib          URL state, frequency và date-range helpers
-features/habit/components   collection, editor, lifecycle, check-in, heatmap
+features/habit/components   collection, editor (type toggle), lifecycle,
+                             check-in, heatmap, quit-started-at picker,
+                             relapse control
 ```
 
 `page.tsx` là Server Component. Collection đọc `searchParams` rồi canonicalize qua `parseHabitLocation`; bởi vậy page, search, trạng thái và sort có thể bookmark, reload và back/forward. Browser không giữ một bản cache thứ hai bằng Zustand hoặc TanStack Query.
 
 Detail khởi động `getHabit` và `getHabitCheckInToday` song song. Endpoint `today` trả ngày lịch theo `User.timeZone`; chỉ sau khi nhận ngày này page mới tính khoảng 90 ngày và gọi history. Không được thay bằng `new Date()` ở browser hoặc Next.js server vì hai process có thể ở timezone khác owner.
 
-`HabitEditor`, `HabitLifecycleControls` và `HabitCheckInControl` là các Client Component nhỏ vì chúng sở hữu interaction state và `useTransition`. Mutation đi qua Server Action, input được validate lại tại BFF boundary, lỗi được chuyển thành discriminated result có thể serialize. Update/archive/restore gửi `expectedRevision`; lỗi `HABIT_REVISION_CONFLICT` yêu cầu tải bản mới thay vì ghi đè âm thầm.
+`HabitEditor`, `HabitLifecycleControls`, `HabitCheckInControl` và `HabitRelapseControl` là các Client Component nhỏ vì chúng sở hữu interaction state và `useTransition`. `HabitEditor` có type toggle (BUILD/QUIT) khi tạo mới — khóa lại (không đổi type) khi sửa Habit đã tồn tại — và hiện `HabitQuitStartedAtPicker` thay vì frequency picker khi type là QUIT. `HabitRelapseControl` ghi nhận relapse qua AlertDialog xác nhận trước khi gọi Server Action, vì hành động này không thể hoàn tác (append-only, giống lý do Crucible Start dùng confirmation). Mutation đi qua Server Action, input được validate lại tại BFF boundary, lỗi được chuyển thành discriminated result có thể serialize. Update/archive/restore gửi `expectedRevision`; lỗi `HABIT_REVISION_CONFLICT` yêu cầu tải bản mới thay vì ghi đè âm thầm.
 
-Heatmap không phải aggregate và không tự suy diễn streak. `HabitHeatmap` chỉ biểu diễn danh sách calendar date backend đã trả. Một ngày trống có nghĩa là không có check-in, không phải “thất bại”. Routine chưa xuất hiện trong route, action hay component Habit; quan hệ nhiều-nhiều sẽ được thêm như một feature slice riêng.
+Heatmap không phải aggregate và không tự suy diễn streak. `HabitHeatmap` chỉ biểu diễn danh sách calendar date backend đã trả, và chỉ render cho Habit BUILD-type. Một ngày trống có nghĩa là không có check-in, không phải "thất bại". QUIT-type dùng progress card ("bao lâu không tái phạm") thay cho heatmap — hai loại Habit không chia sẻ cùng một hiển thị tiến độ vì bản chất tích cực/tiêu cực khác nhau. `HabitCard` và bộ lọc collection hiển thị badge type cho cả hai loại. Routine chưa xuất hiện trong route, action hay component Habit; quan hệ nhiều-nhiều sẽ được thêm như một feature slice riêng.
 
-Production build tại thời điểm chốt lát cắt đo `/habits` khoảng 560.7 KiB, detail 562 KiB và hai editor 649.2 KiB first-load JavaScript. CI đặt budget lần lượt 565, 570 và 655 KiB. Đây là ngưỡng riêng theo route, có dư địa nhỏ để phát hiện dependency hoặc Client Component bị kéo vào ngoài ý muốn; nó không nâng trần của Journal/Memory.
+Production build tại thời điểm chốt lát cắt Habit V2 đo `/habits` khoảng 568 KiB, detail (`/habits/[id]`) 572 KiB và hai editor (`/habits/new`, `/habits/[id]/edit`) 705 KiB first-load JavaScript — ngưỡng editor được nâng đáng kể so với baseline V1 (649.2 KiB) để chứa `HabitQuitStartedAtPicker` (date picker cho QUIT-type). CI đặt budget đúng bằng các mốc này. Đây là ngưỡng riêng theo route, có dư địa nhỏ để phát hiện dependency hoặc Client Component bị kéo vào ngoài ý muốn; nó không nâng trần của Journal/Memory.
 
 ## Memory feature
 
@@ -284,4 +288,4 @@ Client hiện không cần Zustand global store hoặc TanStack Query. Chỉ th�
 
 ## Tests
 
-Unit tests kiểm tra URL helpers, environment/session crypto, API error normalization, Server Actions và hooks. Component tests dùng jsdom cho interaction/recovery. Habit có test riêng cho canonical URL, weekly frequency, khoảng heatmap, accessible summary và check-in dùng ngày backend trả. Playwright E2E chứng minh auth, Journal, Mood, Memory và toàn bộ Habit lifecycle qua BFF thật; browser không gọi trực tiếp NestJS origin. Backend E2E kiểm tra ownership, stale revision, idempotency và timezone boundary.
+Unit tests kiểm tra URL helpers, environment/session crypto, API error normalization, Server Actions và hooks. Component tests dùng jsdom cho interaction/recovery. Habit có test riêng cho canonical URL, weekly frequency, khoảng heatmap, accessible summary, check-in dùng ngày backend trả và relapse confirmation flow (`HabitRelapseControl`). Playwright E2E chứng minh auth, Journal, Mood, Memory và toàn bộ Habit lifecycle (cả BUILD và QUIT-type) qua BFF thật; browser không gọi trực tiếp NestJS origin. Backend E2E kiểm tra ownership, stale revision, idempotency và timezone boundary.
