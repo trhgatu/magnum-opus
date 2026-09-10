@@ -177,13 +177,13 @@ AddRoutineHabitHandler.execute():
 
 ## 7. Domain Invariant Summary (mới)
 
-| Invariant                                    | Enforced By                                               |
-| -------------------------------------------- | --------------------------------------------------------- |
-| QUIT-type không có frequency                 | `Habit.create()` validation theo `type`                   |
-| QUIT-type bắt buộc quitStartedAt             | `Habit.create()` validation theo `type`                   |
-| Relapse chỉ ghi khi Habit ACTIVE + type QUIT | Application layer (tương tự `HabitCheckInContextService`) |
-| Relapse append-only                          | `HabitRelapseRepository` không có update/delete           |
-| Type bất biến                                | Không có method `changeType()` trên aggregate             |
+| Invariant                                                            | Enforced By                                                |
+| -------------------------------------------------------------------- | ---------------------------------------------------------- |
+| QUIT-type không có frequency                                         | `Habit.create()` validation theo `type`                    |
+| QUIT-type luôn có quitStartedAt (default nếu bỏ trống, không reject) | `Habit.create()` áp default trước khi validate theo `type` |
+| Relapse chỉ ghi khi Habit ACTIVE + type QUIT                         | Application layer (tương tự `HabitCheckInContextService`)  |
+| Relapse append-only                                                  | `HabitRelapseRepository` không có update/delete            |
+| Type bất biến                                                        | Không có method `changeType()` trên aggregate              |
 
 ---
 
