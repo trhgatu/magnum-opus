@@ -302,24 +302,33 @@ enum HabitFrequencyType {
   WEEKLY
 }
 
+enum HabitType {
+  BUILD
+  QUIT
+}
+
 model Habit {
-  id            String             @id @default(uuid())
-  ownerId       String             @map("owner_id")
-  title         String             @db.VarChar(200)
-  description   String?            @db.Text
-  frequencyType HabitFrequencyType @map("frequency_type")
-  frequencyDays Int[]              @default([]) @map("frequency_days")
-  isActive      Boolean            @default(true) @map("is_active")
-  revision      Int                @default(1)
-  createdAt     DateTime           @default(now()) @map("created_at")
-  updatedAt     DateTime           @updatedAt @map("updated_at")
+  id            String              @id @default(uuid())
+  ownerId       String              @map("owner_id")
+  title         String              @db.VarChar(200)
+  description   String?             @db.Text
+  type          HabitType           @default(BUILD) @map("type")
+  frequencyType HabitFrequencyType? @map("frequency_type")
+  frequencyDays Int[]               @default([]) @map("frequency_days")
+  quitStartedAt DateTime?           @map("quit_started_at") @db.Date
+  isActive      Boolean             @default(true) @map("is_active")
+  revision      Int                 @default(1)
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
 
   owner        User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   checkIns     HabitCheckIn[]
+  relapses     HabitRelapse[]
   routineLinks RoutineHabit[]
 
   @@unique([id, ownerId])
   @@index([ownerId, isActive])
+  @@index([ownerId, type])
   @@map("habits")
 }
 
@@ -335,6 +344,19 @@ model HabitCheckIn {
   @@unique([habitId, date])
   @@index([ownerId, date])
   @@map("habit_check_ins")
+}
+
+model HabitRelapse {
+  id         String   @id @default(uuid())
+  habitId    String   @map("habit_id")
+  ownerId    String   @map("owner_id")
+  occurredAt DateTime @map("occurred_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  habit Habit @relation(fields: [habitId, ownerId], references: [id, ownerId], onDelete: Cascade)
+
+  @@index([habitId, occurredAt(sort: Desc)])
+  @@map("habit_relapses")
 }
 
 model Routine {
@@ -383,10 +405,10 @@ enum ProjectCycleEndReason {
 
 enum ProjectLifecycleAction {
   START
-  PAUSE 
-  RESUME 
-  STOP 
-  COMPLETE 
+  PAUSE
+  RESUME
+  STOP
+  COMPLETE
   REOPEN
 }
 
@@ -445,4 +467,3 @@ model ProjectLifecycleTransition {
   @@index([cycleId])
   @@map("project_lifecycle_transitions")
 }
-
