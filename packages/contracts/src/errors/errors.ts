@@ -305,6 +305,21 @@ export const Errors = {
     translationKey: 'exceptions.habit.check.in.forbidden',
     statusCode: 409,
   },
+  INVALID_HABIT_RELAPSE_ID: {
+    code: 'INVALID_HABIT_RELAPSE_ID',
+    translationKey: 'exceptions.habit.relapse.id.invalid',
+    statusCode: 400,
+  },
+  HABIT_RELAPSE_FORBIDDEN: {
+    code: 'HABIT_RELAPSE_FORBIDDEN',
+    translationKey: 'exceptions.habit.relapse.forbidden',
+    statusCode: 409,
+  },
+  HABIT_PROGRESS_NOT_APPLICABLE: {
+    code: 'HABIT_PROGRESS_NOT_APPLICABLE',
+    translationKey: 'exceptions.habit.progress.not.applicable',
+    statusCode: 409,
+  },
 
   //Routine
   INVALID_ROUTINE_ID: {

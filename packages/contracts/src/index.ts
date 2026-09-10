@@ -13,6 +13,7 @@ export * from './memory/memory.js';
 export * from './timeline/timeline.js';
 export * from './habit/habit.js';
 export * from './habit-check-in/habit-check-in.js';
+export * from './habit-relapse/habit-relapse.js';
 export * from './routine/routine.js';
 export * from './today/today.js';
 export * from './project/project.js';
