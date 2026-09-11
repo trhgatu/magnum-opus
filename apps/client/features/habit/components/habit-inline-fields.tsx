@@ -3,9 +3,17 @@
 import type { HabitResponse } from "@repo/contracts";
 import { Pencil } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { type KeyboardEvent, useRef, useState, useTransition } from "react";
+import {
+  createContext,
+  type KeyboardEvent,
+  type ReactNode,
+  useContext,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 
-import { LifecycleErrorAlert } from "@/components/system/lifecycle-error-alert";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { updateHabit } from "@/features/habit/actions/habit";
@@ -31,8 +39,81 @@ function typeFieldsFor(habit: HabitResponse) {
   };
 }
 
-function useInlineHabitField(habit: HabitResponse) {
+/** title/description dùng chung `expectedRevision`, nên hai field inline
+ * phải chia sẻ một bản `habit` — nếu mỗi field tự giữ prop `habit` riêng,
+ * sửa title rồi sửa description ngay sau đó sẽ gửi cùng revision cũ và bị
+ * 409 dù hai lần sửa là tuần tự, không thật sự xung đột. */
+const HabitFieldsContext = createContext<{
+  habit: HabitResponse;
+  setHabit: (habit: HabitResponse) => void;
+} | null>(null);
+
+function useHabitFields() {
+  const context = useContext(HabitFieldsContext);
+  if (!context) {
+    throw new Error(
+      "HabitInlineTitle/HabitInlineDescription phải nằm trong HabitFieldsProvider",
+    );
+  }
+  return context;
+}
+
+export function HabitFieldsProvider({
+  initialHabit,
+  children,
+}: {
+  initialHabit: HabitResponse;
+  children: ReactNode;
+}) {
+  const [habit, setHabit] = useState(initialHabit);
+  return (
+    <HabitFieldsContext.Provider value={{ habit, setHabit }}>
+      {children}
+    </HabitFieldsContext.Provider>
+  );
+}
+
+/** Lỗi hiển thị ngay trong lúc sửa — dựng bằng phrasing content thuần
+ * (span/button, không div) vì nội dung này nằm bên trong <h1>/<p> của
+ * ContextHero; một khối `<div>` ở đây là HTML không hợp lệ và trình
+ * duyệt sẽ tự đóng thẻ cha, làm vỡ layout. */
+function InlineFieldError({
+  message,
+  hasConflict,
+  onReload,
+}: {
+  message: string;
+  hasConflict: boolean;
+  onReload: () => void;
+}) {
+  return (
+    <span
+      role="alert"
+      className="mt-1 block text-sm font-medium text-destructive"
+    >
+      {message}
+      {hasConflict ? (
+        <Button
+          type="button"
+          variant="link"
+          size="sm"
+          className="ml-1 h-auto p-0 align-baseline text-destructive"
+          // Ngăn nút này lấy focus khi mousedown — nếu không, input/textarea
+          // đang sửa sẽ blur trước, tự kích hoạt lưu lại với cùng revision
+          // đã xung đột, trước khi onClick reload kịp chạy.
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={onReload}
+        >
+          Tải bản mới nhất
+        </Button>
+      ) : null}
+    </span>
+  );
+}
+
+function useInlineHabitField() {
   const router = useRouter();
+  const { habit, setHabit } = useHabitFields();
   const [message, setMessage] = useState<string>();
   const [hasConflict, setHasConflict] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -72,18 +153,37 @@ function useInlineHabitField(habit: HabitResponse) {
         return;
       }
 
+      // Cập nhật ngay bản `habit` dùng chung để field còn lại (title hoặc
+      // description) thấy revision mới nhất mà không phải chờ
+      // router.refresh() round-trip qua server.
+      setHabit(result.habit);
       onSettled(true);
       router.refresh();
     });
   };
 
-  return { message, hasConflict, isPending, commit, reloadLatestRevision };
+  return {
+    habit,
+    message,
+    hasConflict,
+    isPending,
+    commit,
+    clearError,
+    reloadLatestRevision,
+  };
 }
 
-export function HabitInlineTitle({ habit }: { habit: HabitResponse }) {
+export function HabitInlineTitle() {
+  const {
+    habit,
+    message,
+    hasConflict,
+    isPending,
+    commit,
+    clearError,
+    reloadLatestRevision,
+  } = useInlineHabitField();
   const canEdit = habit.isActive;
-  const { message, hasConflict, isPending, commit, reloadLatestRevision } =
-    useInlineHabitField(habit);
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState(habit.title);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -92,11 +192,13 @@ export function HabitInlineTitle({ habit }: { habit: HabitResponse }) {
     "font-display text-4xl font-semibold leading-none tracking-[-0.035em] text-balance sm:text-5xl lg:text-6xl";
 
   const startEditing = () => {
+    clearError();
     setValue(habit.title);
     setIsEditing(true);
   };
 
   const cancel = () => {
+    clearError();
     setValue(habit.title);
     setIsEditing(false);
   };
@@ -126,7 +228,7 @@ export function HabitInlineTitle({ habit }: { habit: HabitResponse }) {
 
   if (isEditing) {
     return (
-      <div className="flex flex-col gap-2">
+      <span className="block">
         <Input
           ref={inputRef}
           autoFocus
@@ -143,13 +245,13 @@ export function HabitInlineTitle({ habit }: { habit: HabitResponse }) {
           )}
         />
         {message ? (
-          <LifecycleErrorAlert
+          <InlineFieldError
             message={message}
             hasConflict={hasConflict}
             onReload={reloadLatestRevision}
           />
         ) : null}
-      </div>
+      </span>
     );
   }
 
@@ -176,15 +278,20 @@ export function HabitInlineTitle({ habit }: { habit: HabitResponse }) {
 }
 
 export function HabitInlineDescription({
-  habit,
   placeholder,
 }: {
-  habit: HabitResponse;
   placeholder: string;
 }) {
+  const {
+    habit,
+    message,
+    hasConflict,
+    isPending,
+    commit,
+    clearError,
+    reloadLatestRevision,
+  } = useInlineHabitField();
   const canEdit = habit.isActive;
-  const { message, hasConflict, isPending, commit, reloadLatestRevision } =
-    useInlineHabitField(habit);
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState(habit.description ?? "");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -193,11 +300,13 @@ export function HabitInlineDescription({
     "max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base sm:leading-7";
 
   const startEditing = () => {
+    clearError();
     setValue(habit.description ?? "");
     setIsEditing(true);
   };
 
   const cancel = () => {
+    clearError();
     setValue(habit.description ?? "");
     setIsEditing(false);
   };
@@ -216,7 +325,7 @@ export function HabitInlineDescription({
 
   if (isEditing) {
     return (
-      <div className="mt-4 flex max-w-2xl flex-col gap-2">
+      <span className="mt-4 block max-w-2xl">
         <Textarea
           ref={textareaRef}
           autoFocus
@@ -237,21 +346,27 @@ export function HabitInlineDescription({
           )}
         />
         {message ? (
-          <LifecycleErrorAlert
+          <InlineFieldError
             message={message}
             hasConflict={hasConflict}
             onReload={reloadLatestRevision}
           />
         ) : null}
-      </div>
+      </span>
     );
   }
 
   if (!canEdit) {
     return (
-      <p className={cn(bodyClassName, "mt-4", !habit.description && "italic")}>
+      <span
+        className={cn(
+          bodyClassName,
+          "mt-4 block",
+          !habit.description && "italic",
+        )}
+      >
         {habit.description ?? placeholder}
-      </p>
+      </span>
     );
   }
 

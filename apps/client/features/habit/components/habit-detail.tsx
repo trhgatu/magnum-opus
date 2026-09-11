@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { HabitCheckInControl } from "@/features/habit/components/habit-check-in-control";
 import { HabitHeatmap } from "@/features/habit/components/habit-heatmap";
 import {
+  HabitFieldsProvider,
   HabitInlineDescription,
   HabitInlineTitle,
 } from "@/features/habit/components/habit-inline-fields";
@@ -55,55 +56,56 @@ export function HabitDetail(props: HabitDetailProps) {
         <ArrowLeft aria-hidden="true" /> Tất cả thói quen
       </Link>
 
-      <ContextHero
-        id="habit-title"
-        icon={Repeat2}
-        eyebrow="Forge · Thói quen"
-        title={<HabitInlineTitle habit={habit} />}
-        description={
-          <HabitInlineDescription
-            habit={habit}
-            placeholder={
-              isQuit
-                ? "Một nỗ lực từ bỏ đang được theo dõi từng ngày."
-                : "Một hành động nhỏ đang được rèn thành nhịp sống có chủ ý."
-            }
-          />
-        }
-        meta={
-          <>
-            <Badge>
-              {isQuit && habit.quitStartedAt
-                ? `Bắt đầu ${formatQuitStartedAt(habit.quitStartedAt)}`
-                : formatHabitFrequency(
-                    habit.frequencyType,
-                    habit.frequencyDays,
-                  )}
-            </Badge>
-            <Badge variant={habit.isActive ? "outline" : "secondary"}>
-              {habit.isActive ? "Đang rèn luyện" : "Đã lưu trữ"}
-            </Badge>
-          </>
-        }
-        actions={
-          <>
-            {habit.isActive ? (
-              <Link
-                href={`/habits/${habit.id}/edit`}
-                className={buttonVariants({ variant: "outline" })}
-              >
-                <Pencil aria-hidden="true" /> Chỉnh sửa
-              </Link>
-            ) : null}
-            <HabitLifecycleControls
-              id={habit.id}
-              title={habit.title}
-              isActive={habit.isActive}
-              revision={habit.revision}
+      <HabitFieldsProvider key={habit.revision} initialHabit={habit}>
+        <ContextHero
+          id="habit-title"
+          icon={Repeat2}
+          eyebrow="Forge · Thói quen"
+          title={<HabitInlineTitle />}
+          description={
+            <HabitInlineDescription
+              placeholder={
+                isQuit
+                  ? "Một nỗ lực từ bỏ đang được theo dõi từng ngày."
+                  : "Một hành động nhỏ đang được rèn thành nhịp sống có chủ ý."
+              }
             />
-          </>
-        }
-      />
+          }
+          meta={
+            <>
+              <Badge>
+                {isQuit && habit.quitStartedAt
+                  ? `Bắt đầu ${formatQuitStartedAt(habit.quitStartedAt)}`
+                  : formatHabitFrequency(
+                      habit.frequencyType,
+                      habit.frequencyDays,
+                    )}
+              </Badge>
+              <Badge variant={habit.isActive ? "outline" : "secondary"}>
+                {habit.isActive ? "Đang rèn luyện" : "Đã lưu trữ"}
+              </Badge>
+            </>
+          }
+          actions={
+            <>
+              {habit.isActive ? (
+                <Link
+                  href={`/habits/${habit.id}/edit`}
+                  className={buttonVariants({ variant: "outline" })}
+                >
+                  <Pencil aria-hidden="true" /> Chỉnh sửa
+                </Link>
+              ) : null}
+              <HabitLifecycleControls
+                id={habit.id}
+                title={habit.title}
+                isActive={habit.isActive}
+                revision={habit.revision}
+              />
+            </>
+          }
+        />
+      </HabitFieldsProvider>
 
       {isQuit ? (
         <Card className="gap-0 rounded-3xl bg-card/70 py-0 shadow-sm">
