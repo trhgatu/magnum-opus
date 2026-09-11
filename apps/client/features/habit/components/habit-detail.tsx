@@ -13,6 +13,10 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { HabitCheckInControl } from "@/features/habit/components/habit-check-in-control";
 import { HabitHeatmap } from "@/features/habit/components/habit-heatmap";
+import {
+  HabitInlineDescription,
+  HabitInlineTitle,
+} from "@/features/habit/components/habit-inline-fields";
 import { HabitLifecycleControls } from "@/features/habit/components/habit-lifecycle-controls";
 import { HabitRelapseControl } from "@/features/habit/components/habit-relapse-control";
 import { formatHabitFrequency } from "@/features/habit/lib/habit-frequency";
@@ -55,12 +59,16 @@ export function HabitDetail(props: HabitDetailProps) {
         id="habit-title"
         icon={Repeat2}
         eyebrow="Forge · Thói quen"
-        title={habit.title}
+        title={<HabitInlineTitle habit={habit} />}
         description={
-          habit.description ??
-          (isQuit
-            ? "Một nỗ lực từ bỏ đang được theo dõi từng ngày."
-            : "Một hành động nhỏ đang được rèn thành nhịp sống có chủ ý.")
+          <HabitInlineDescription
+            habit={habit}
+            placeholder={
+              isQuit
+                ? "Một nỗ lực từ bỏ đang được theo dõi từng ngày."
+                : "Một hành động nhỏ đang được rèn thành nhịp sống có chủ ý."
+            }
+          />
         }
         meta={
           <>
