@@ -13,7 +13,12 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { HabitCheckInControl } from "@/features/habit/components/habit-check-in-control";
 import { HabitHeatmap } from "@/features/habit/components/habit-heatmap";
-import { HabitLifecycleControls } from "@/features/habit/components/habit-lifecycle-controls";
+import {
+  HabitFieldsProvider,
+  HabitInlineDescription,
+  HabitInlineTitle,
+  HabitLifecycleControlsInline,
+} from "@/features/habit/components/habit-inline-fields";
 import { HabitRelapseControl } from "@/features/habit/components/habit-relapse-control";
 import { formatHabitFrequency } from "@/features/habit/lib/habit-frequency";
 import { formatQuitStartedAt } from "@/features/habit/lib/habit-quit";
@@ -51,51 +56,54 @@ export function HabitDetail(props: HabitDetailProps) {
         <ArrowLeft aria-hidden="true" /> Tất cả thói quen
       </Link>
 
-      <ContextHero
-        id="habit-title"
-        icon={Repeat2}
-        eyebrow="Forge · Thói quen"
-        title={habit.title}
-        description={
-          habit.description ??
-          (isQuit
-            ? "Một nỗ lực từ bỏ đang được theo dõi từng ngày."
-            : "Một hành động nhỏ đang được rèn thành nhịp sống có chủ ý.")
-        }
-        meta={
-          <>
-            <Badge>
-              {isQuit && habit.quitStartedAt
-                ? `Bắt đầu ${formatQuitStartedAt(habit.quitStartedAt)}`
-                : formatHabitFrequency(
-                    habit.frequencyType,
-                    habit.frequencyDays,
-                  )}
-            </Badge>
-            <Badge variant={habit.isActive ? "outline" : "secondary"}>
-              {habit.isActive ? "Đang rèn luyện" : "Đã lưu trữ"}
-            </Badge>
-          </>
-        }
-        actions={
-          <>
-            {habit.isActive ? (
-              <Link
-                href={`/habits/${habit.id}/edit`}
-                className={buttonVariants({ variant: "outline" })}
-              >
-                <Pencil aria-hidden="true" /> Chỉnh sửa
-              </Link>
-            ) : null}
-            <HabitLifecycleControls
-              id={habit.id}
-              title={habit.title}
-              isActive={habit.isActive}
-              revision={habit.revision}
+      <HabitFieldsProvider
+        key={`${habit.id}-${habit.revision}`}
+        initialHabit={habit}
+      >
+        <ContextHero
+          id="habit-title"
+          icon={Repeat2}
+          eyebrow="Forge · Thói quen"
+          title={<HabitInlineTitle />}
+          description={
+            <HabitInlineDescription
+              placeholder={
+                isQuit
+                  ? "Một nỗ lực từ bỏ đang được theo dõi từng ngày."
+                  : "Một hành động nhỏ đang được rèn thành nhịp sống có chủ ý."
+              }
             />
-          </>
-        }
-      />
+          }
+          meta={
+            <>
+              <Badge>
+                {isQuit && habit.quitStartedAt
+                  ? `Bắt đầu ${formatQuitStartedAt(habit.quitStartedAt)}`
+                  : formatHabitFrequency(
+                      habit.frequencyType,
+                      habit.frequencyDays,
+                    )}
+              </Badge>
+              <Badge variant={habit.isActive ? "outline" : "secondary"}>
+                {habit.isActive ? "Đang rèn luyện" : "Đã lưu trữ"}
+              </Badge>
+            </>
+          }
+          actions={
+            <>
+              {habit.isActive ? (
+                <Link
+                  href={`/habits/${habit.id}/edit`}
+                  className={buttonVariants({ variant: "outline" })}
+                >
+                  <Pencil aria-hidden="true" /> Chỉnh sửa
+                </Link>
+              ) : null}
+              <HabitLifecycleControlsInline />
+            </>
+          }
+        />
+      </HabitFieldsProvider>
 
       {isQuit ? (
         <Card className="gap-0 rounded-3xl bg-card/70 py-0 shadow-sm">

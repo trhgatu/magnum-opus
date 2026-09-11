@@ -5,8 +5,8 @@ import { cn } from "@/lib/utils";
 interface ContextHeroProps {
   icon: LucideIcon;
   eyebrow: string;
-  title: string;
-  description: string;
+  title: React.ReactNode;
+  description: React.ReactNode;
   id?: string;
   meta?: React.ReactNode;
   actions?: React.ReactNode;
