@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { updateHabit } from "@/features/habit/actions/habit";
+import { HabitLifecycleControls } from "@/features/habit/components/habit-lifecycle-controls";
 import { cn } from "@/lib/utils";
 
 const isRevisionConflict = (code?: string) =>
@@ -42,10 +43,19 @@ function typeFieldsFor(habit: HabitResponse) {
 /** title/description dùng chung `expectedRevision`, nên hai field inline
  * phải chia sẻ một bản `habit` — nếu mỗi field tự giữ prop `habit` riêng,
  * sửa title rồi sửa description ngay sau đó sẽ gửi cùng revision cũ và bị
- * 409 dù hai lần sửa là tuần tự, không thật sự xung đột. */
+ * 409 dù hai lần sửa là tuần tự, không thật sự xung đột.
+ *
+ * `habitRef`/`runExclusive` xử lý trường hợp còn lại: sửa xong field này
+ * blur sang field kia *trước khi* request đầu hoàn tất. `runExclusive` xếp
+ * hàng request thứ hai sau request thứ nhất; đọc `habitRef.current` (chứ
+ * không phải `habit` đóng gói lúc render) đảm bảo nó luôn thấy revision mới
+ * nhất tại thời điểm thật sự gửi đi, bất kể state React đã re-render kịp
+ * hay chưa. */
 const HabitFieldsContext = createContext<{
   habit: HabitResponse;
+  habitRef: React.RefObject<HabitResponse>;
   setHabit: (habit: HabitResponse) => void;
+  runExclusive: <T>(task: () => Promise<T>) => Promise<T>;
 } | null>(null);
 
 function useHabitFields() {
@@ -65,9 +75,28 @@ export function HabitFieldsProvider({
   initialHabit: HabitResponse;
   children: ReactNode;
 }) {
-  const [habit, setHabit] = useState(initialHabit);
+  const [habit, setHabitState] = useState(initialHabit);
+  const habitRef = useRef(habit);
+  const queueRef = useRef<Promise<unknown>>(Promise.resolve());
+
+  const setHabit = (next: HabitResponse) => {
+    habitRef.current = next;
+    setHabitState(next);
+  };
+
+  function runExclusive<T>(task: () => Promise<T>): Promise<T> {
+    const run = queueRef.current.then(task, task);
+    queueRef.current = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    return run;
+  }
+
   return (
-    <HabitFieldsContext.Provider value={{ habit, setHabit }}>
+    <HabitFieldsContext.Provider
+      value={{ habit, habitRef, setHabit, runExclusive }}
+    >
       {children}
     </HabitFieldsContext.Provider>
   );
@@ -113,7 +142,7 @@ function InlineFieldError({
 
 function useInlineHabitField() {
   const router = useRouter();
-  const { habit, setHabit } = useHabitFields();
+  const { habit, habitRef, setHabit, runExclusive } = useHabitFields();
   const [message, setMessage] = useState<string>();
   const [hasConflict, setHasConflict] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -129,17 +158,27 @@ function useInlineHabitField() {
   };
 
   const commit = (
-    next: { title: string; description: string | null },
+    patch: { title: string } | { description: string | null },
     onSettled: (didSave: boolean) => void,
   ) => {
     clearError();
     startTransition(async () => {
-      const result = await updateHabit({
-        id: habit.id,
-        expectedRevision: habit.revision,
-        title: next.title,
-        description: next.description,
-        ...typeFieldsFor(habit),
+      // `runExclusive` xếp request này sau bất kỳ commit nào (của field
+      // title hoặc description) đang chạy dở. Field không đổi được lấy từ
+      // `habitRef.current` *ngay trước khi gửi* — không phải từ closure của
+      // component đang sửa — nên nếu field kia vừa lưu xong trong lúc field
+      // này chờ tới lượt, request này vẫn mang theo giá trị mới nhất của
+      // field kia (và cả revision mới nhất) thay vì ghi đè bằng bản cũ.
+      const result = await runExclusive(() => {
+        const current = habitRef.current;
+        return updateHabit({
+          id: current.id,
+          expectedRevision: current.revision,
+          title: "title" in patch ? patch.title : current.title,
+          description:
+            "description" in patch ? patch.description : current.description,
+          ...typeFieldsFor(current),
+        });
       });
 
       if (result.status === "error") {
@@ -211,7 +250,7 @@ export function HabitInlineTitle() {
       return;
     }
 
-    commit({ title: trimmed, description: habit.description }, (didSave) => {
+    commit({ title: trimmed }, (didSave) => {
       if (didSave) setIsEditing(false);
     });
   };
@@ -318,7 +357,7 @@ export function HabitInlineDescription({
       return;
     }
 
-    commit({ title: habit.title, description: trimmed || null }, (didSave) => {
+    commit({ description: trimmed || null }, (didSave) => {
       if (didSave) setIsEditing(false);
     });
   };
@@ -386,5 +425,22 @@ export function HabitInlineDescription({
         aria-hidden="true"
       />
     </button>
+  );
+}
+
+/** `HabitLifecycleControls` phải đọc `habit` từ context chia sẻ này, không
+ * phải prop truyền từ Server Component cha — nếu không, archive/restore
+ * ngay sau một lần lưu inline (trước khi router.refresh() kịp round-trip)
+ * sẽ gửi `expectedRevision` cũ và bị 409 dù lần lưu title/description
+ * trước đó đã thành công. */
+export function HabitLifecycleControlsInline() {
+  const { habit } = useHabitFields();
+  return (
+    <HabitLifecycleControls
+      id={habit.id}
+      title={habit.title}
+      isActive={habit.isActive}
+      revision={habit.revision}
+    />
   );
 }

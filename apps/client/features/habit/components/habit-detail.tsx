@@ -17,8 +17,8 @@ import {
   HabitFieldsProvider,
   HabitInlineDescription,
   HabitInlineTitle,
+  HabitLifecycleControlsInline,
 } from "@/features/habit/components/habit-inline-fields";
-import { HabitLifecycleControls } from "@/features/habit/components/habit-lifecycle-controls";
 import { HabitRelapseControl } from "@/features/habit/components/habit-relapse-control";
 import { formatHabitFrequency } from "@/features/habit/lib/habit-frequency";
 import { formatQuitStartedAt } from "@/features/habit/lib/habit-quit";
@@ -56,7 +56,10 @@ export function HabitDetail(props: HabitDetailProps) {
         <ArrowLeft aria-hidden="true" /> Tất cả thói quen
       </Link>
 
-      <HabitFieldsProvider key={habit.revision} initialHabit={habit}>
+      <HabitFieldsProvider
+        key={`${habit.id}-${habit.revision}`}
+        initialHabit={habit}
+      >
         <ContextHero
           id="habit-title"
           icon={Repeat2}
@@ -96,12 +99,7 @@ export function HabitDetail(props: HabitDetailProps) {
                   <Pencil aria-hidden="true" /> Chỉnh sửa
                 </Link>
               ) : null}
-              <HabitLifecycleControls
-                id={habit.id}
-                title={habit.title}
-                isActive={habit.isActive}
-                revision={habit.revision}
-              />
+              <HabitLifecycleControlsInline />
             </>
           }
         />
