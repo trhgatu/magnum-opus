@@ -17,9 +17,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { updateProject } from "@/features/project/actions/project";
+import {
+  type ProjectMutationResult,
+  setProjectIntendedOutcome,
+  updateProject,
+} from "@/features/project/actions/project";
 import { ProjectLifecycleControls } from "@/features/project/components/project-lifecycle-controls";
-import { ProjectOutcomeEditor } from "@/features/project/components/project-outcome-editor";
+import {
+  ProjectOutcomeEditor,
+  type ProjectOutcomeSubmitResult,
+} from "@/features/project/components/project-outcome-editor";
 import { cn } from "@/lib/utils";
 
 const isRevisionConflict = (code?: string) =>
@@ -47,6 +54,13 @@ const ProjectFieldsContext = createContext<{
    * giá trị này để tự đóng editor + bỏ draft cũ, tránh gửi lại draft
    * xung đột đè lên dữ liệu mới vừa tải về. */
   externalUpdateToken: number;
+  /** Bản ref của `externalUpdateToken`, luôn đồng bộ ngay lập tức (không
+   * đợi re-render). Một commit/submit đã bắt đầu (đặc biệt khi đang xếp
+   * hàng chờ trong `runExclusive`) cần so sánh với giá trị này *ngay
+   * trước khi thật sự gửi request* — nếu đã đổi so với lúc bắt đầu, nghĩa
+   * là có cập nhật từ bên ngoài xen vào giữa chừng, phải bỏ request đó
+   * thay vì gửi đè draft đã bị hủy lên dữ liệu vừa tải về. */
+  externalUpdateTokenRef: React.RefObject<number>;
 } | null>(null);
 
 function useProjectFields() {
@@ -69,11 +83,18 @@ export function ProjectFieldsProvider({
   const [project, setProjectState] = useState(initialProject);
   const projectRef = useRef(project);
   const queueRef = useRef<Promise<unknown>>(Promise.resolve());
-  const [externalUpdateToken, setExternalUpdateToken] = useState(0);
+  const [externalUpdateToken, setExternalUpdateTokenState] = useState(0);
+  const externalUpdateTokenRef = useRef(externalUpdateToken);
 
   const setProject = (next: ProjectResponse) => {
     projectRef.current = next;
     setProjectState(next);
+  };
+
+  const bumpExternalUpdateToken = () => {
+    const next = externalUpdateTokenRef.current + 1;
+    externalUpdateTokenRef.current = next;
+    setExternalUpdateTokenState(next);
   };
 
   // Không dùng `key` để remount Provider mỗi khi `project.revision` đổi —
@@ -91,7 +112,7 @@ export function ProjectFieldsProvider({
   useEffect(() => {
     if (initialProject.revision > projectRef.current.revision) {
       setProject(initialProject);
-      setExternalUpdateToken((token) => token + 1);
+      bumpExternalUpdateToken();
     }
   }, [initialProject]);
 
@@ -112,6 +133,7 @@ export function ProjectFieldsProvider({
         setProject,
         runExclusive,
         externalUpdateToken,
+        externalUpdateTokenRef,
       }}
     >
       {children}
@@ -159,8 +181,14 @@ function InlineFieldError({
 
 function useInlineProjectField() {
   const router = useRouter();
-  const { project, projectRef, setProject, runExclusive, externalUpdateToken } =
-    useProjectFields();
+  const {
+    project,
+    projectRef,
+    setProject,
+    runExclusive,
+    externalUpdateToken,
+    externalUpdateTokenRef,
+  } = useProjectFields();
   const [message, setMessage] = useState<string>();
   const [hasConflict, setHasConflict] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -180,6 +208,9 @@ function useInlineProjectField() {
     onSettled: (didSave: boolean) => void,
   ) => {
     clearError();
+    // Chụp lại token TẠI THỜI ĐIỂM bấm lưu — không phải lúc dispatch thật
+    // sự (có thể muộn hơn do đang xếp hàng sau field kia).
+    const tokenAtCommit = externalUpdateTokenRef.current;
     startTransition(async () => {
       // `runExclusive` xếp request này sau bất kỳ commit nào (của field
       // title hoặc description) đang chạy dở. Field không đổi được lấy từ
@@ -187,7 +218,17 @@ function useInlineProjectField() {
       // của component đang sửa — nên nếu field kia vừa lưu xong trong lúc
       // field này chờ tới lượt, request này vẫn mang theo giá trị mới nhất
       // của field kia (và cả revision mới nhất) thay vì ghi đè bằng bản cũ.
-      const result = await runExclusive(() => {
+      const result = await runExclusive<
+        ProjectMutationResult | { status: "stale" }
+      >(() => {
+        // Ngay trước khi thật sự gửi — nếu có cập nhật từ bên ngoài xen
+        // vào giữa lúc xếp hàng (vd field khác conflict-reload), field này
+        // đã tự đóng qua effect (xem ProjectInlineTitle/Description) —
+        // patch đang cầm là draft đã bị bỏ, không được gửi đè lên dữ liệu
+        // vừa tải về.
+        if (externalUpdateTokenRef.current !== tokenAtCommit) {
+          return Promise.resolve({ status: "stale" as const });
+        }
         const current = projectRef.current;
         return updateProject({
           id: current.id,
@@ -198,6 +239,11 @@ function useInlineProjectField() {
         });
       });
 
+      if (result.status === "stale") {
+        onSettled(false);
+        return;
+      }
+
       if (result.status === "error") {
         setMessage(
           isRevisionConflict(result.code)
@@ -206,6 +252,19 @@ function useInlineProjectField() {
         );
         setHasConflict(isRevisionConflict(result.code));
         onSettled(false);
+        return;
+      }
+
+      // Request đã thật sự gửi đi trước khi có token check ở trên — nếu
+      // một cập nhật từ bên ngoài đến TRONG LÚC request này đang bay
+      // (không phải lúc còn xếp hàng, mà là sau khi đã dispatch), kết quả
+      // trả về vẫn hợp lệ (server đã ghi thành công) nhưng KHÔNG được áp
+      // vào state dùng chung — nó phản ánh revision tại thời điểm gửi,
+      // cũ hơn dữ liệu mới nhất đã biết, áp vào sẽ làm state thụt lùi.
+      // router.refresh() sẽ tự đồng bộ lại đúng sự thật mới nhất từ server.
+      if (externalUpdateTokenRef.current !== tokenAtCommit) {
+        onSettled(true);
+        router.refresh();
         return;
       }
 
@@ -465,20 +524,79 @@ export function ProjectLifecycleControlsInline() {
   );
 }
 
-/** Cùng lý do với `ProjectLifecycleControlsInline`: `ProjectOutcomeEditor`
- * phải đọc `revision`/`intendedOutcome` từ context chia sẻ, không phải
- * prop truyền từ Server Component cha — nếu không, lưu intended outcome
- * ngay sau một lần lưu title/description inline sẽ gửi `expectedRevision`
- * cũ và bị 409 giả. */
+/** Cùng lý do với `ProjectLifecycleControlsInline`: việc lưu intended
+ * outcome phải đọc `id`/`revision` từ context chia sẻ tại đúng thời điểm
+ * gửi đi, không phải prop chụp lúc render — và phải đi qua cùng
+ * `runExclusive` với title/description để 2 lần lưu gần nhau (dù không
+ * thật sự xung đột) không cùng gửi 1 revision cũ. `ProjectOutcomeEditor`
+ * tự nó không biết gì về context; toàn bộ phần này nằm ở `onSubmit`. */
 export function ProjectOutcomeEditorInline() {
-  const { project, setProject } = useProjectFields();
+  const router = useRouter();
+  const {
+    project,
+    projectRef,
+    setProject,
+    runExclusive,
+    externalUpdateToken,
+    externalUpdateTokenRef,
+  } = useProjectFields();
+
   if (!project.currentCycle) return null;
+
+  const handleSubmit = async (
+    intendedOutcome: string,
+  ): Promise<ProjectOutcomeSubmitResult> => {
+    // Xem giải thích ở useInlineProjectField.commit — chụp token TẠI THỜI
+    // ĐIỂM bấm Lưu, không phải lúc dispatch thật sự (có thể muộn hơn do
+    // đang xếp hàng sau title/description).
+    const tokenAtSubmit = externalUpdateTokenRef.current;
+    const result = await runExclusive<
+      ProjectMutationResult | { status: "stale" }
+    >(() => {
+      if (externalUpdateTokenRef.current !== tokenAtSubmit) {
+        return Promise.resolve({ status: "stale" as const });
+      }
+      const current = projectRef.current;
+      return setProjectIntendedOutcome({
+        id: current.id,
+        intendedOutcome,
+        expectedRevision: current.revision,
+      });
+    });
+
+    if (result.status === "stale") {
+      return { status: "stale" };
+    }
+
+    if (result.status === "error") {
+      return {
+        status: "error",
+        message: isRevisionConflict(result.code)
+          ? "Project đã thay đổi ở một phiên làm việc khác."
+          : result.message,
+        hasConflict: isRevisionConflict(result.code),
+      };
+    }
+
+    // Xem giải thích ở useInlineProjectField.commit — request đã dispatch
+    // trước token check, nhưng có cập nhật từ bên ngoài đến trong lúc nó
+    // đang bay thì không được áp result (cũ hơn) đè lên state dùng chung.
+    if (externalUpdateTokenRef.current !== tokenAtSubmit) {
+      router.refresh();
+      return { status: "success" };
+    }
+
+    setProject(result.project);
+    router.refresh();
+    return { status: "success" };
+  };
+
   return (
     <ProjectOutcomeEditor
-      id={project.id}
-      revision={project.revision}
       intendedOutcome={project.currentCycle.intendedOutcome}
-      onSaved={setProject}
+      externalUpdateToken={externalUpdateToken}
+      onSubmit={handleSubmit}
+      onReload={() => router.refresh()}
     />
   );
 }

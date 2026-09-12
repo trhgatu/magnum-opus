@@ -1,61 +1,103 @@
 "use client";
 
-import type { ProjectResponse } from "@repo/contracts";
 import { Check, Pencil } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { LifecycleErrorAlert } from "@/components/system/lifecycle-error-alert";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { setProjectIntendedOutcome } from "@/features/project/actions/project";
 import { notifySuccess } from "@/lib/toast";
 
+export type ProjectOutcomeSubmitResult =
+  | { status: "success" }
+  | { status: "error"; message: string; hasConflict?: boolean }
+  /** Bị hủy vì có cập nhật project từ bên ngoài xen vào giữa lúc request
+   * đang xếp hàng — editor đã tự đóng qua `externalUpdateToken`, request
+   * thật sự chưa từng được gửi đi. Không phải lỗi, không cần thông báo. */
+  | { status: "stale" };
+
+/** Component thuần UI — không tự biết `id`/`revision`/cách gọi API. Toàn
+ * bộ việc đó (đọc revision mới nhất, xếp hàng qua `runExclusive` để không
+ * đụng độ với title/description đang lưu cùng lúc, cập nhật lại context
+ * dùng chung sau khi thành công) do `ProjectOutcomeEditorInline` cung cấp
+ * qua `onSubmit` — tách biệt để không lặp lại logic revision-handling đã
+ * có ở `useInlineProjectField`. */
 export function ProjectOutcomeEditor({
-  id,
-  revision,
   intendedOutcome,
-  onSaved,
+  externalUpdateToken,
+  onSubmit,
+  onReload,
 }: {
-  id: string;
-  revision: number;
   intendedOutcome: string | null;
-  /** Gọi với project mới nhất ngay khi lưu thành công — để chỗ nào giữ
-   * revision dùng chung (vd `ProjectFieldsProvider`) cập nhật ngay, không
-   * phải chờ `router.refresh()` round-trip mới thấy revision mới. */
-  onSaved?: (project: ProjectResponse) => void;
+  /** Tăng lên khi có cập nhật project từ bên ngoài (không phải do chính
+   * editor này lưu) — dùng để tự đóng + bỏ draft cũ, cùng cơ chế với
+   * ProjectInlineTitle/ProjectInlineDescription. */
+  externalUpdateToken: number;
+  onSubmit: (intendedOutcome: string) => Promise<ProjectOutcomeSubmitResult>;
+  onReload: () => void;
 }) {
-  const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState(intendedOutcome ?? "");
   const [message, setMessage] = useState<string>();
+  const [hasConflict, setHasConflict] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  const cancel = () => {
-    setValue(intendedOutcome ?? "");
-    setIsEditing(false);
+  const clearError = () => {
     setMessage(undefined);
+    setHasConflict(false);
   };
 
+  const startEditing = () => {
+    clearError();
+    // Luôn nạp lại giá trị mới nhất ngay lúc mở sửa — không dựa vào
+    // `value` cũ có thể đã lỗi thời nếu editor từng đóng trong lúc
+    // `intendedOutcome` đổi (vd cập nhật từ bên ngoài lúc editor đang
+    // đóng, effect bên dưới không chạm vào `value` vì `isEditing` false
+    // lúc đó).
+    setValue(intendedOutcome ?? "");
+    setIsEditing(true);
+  };
+
+  const cancel = () => {
+    clearError();
+    setValue(intendedOutcome ?? "");
+    setIsEditing(false);
+  };
+
+  const reloadLatestRevision = () => {
+    cancel();
+    onReload();
+  };
+
+  // Xem giải thích ở ProjectInlineTitle — đóng editor + bỏ draft khi
+  // context vừa nhận project mới từ bên ngoài (không phải tự lưu), tránh
+  // gửi đè draft cũ lên dữ liệu vừa tải về. Chỉ cần xử lý khi đang mở —
+  // lúc đóng, `startEditing` đã tự nạp lại giá trị mới nhất mỗi lần mở.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (isEditing) cancel();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [externalUpdateToken]);
+
   const submit = () => {
-    setMessage(undefined);
+    clearError();
 
     startTransition(async () => {
-      const result = await setProjectIntendedOutcome({
-        id,
-        intendedOutcome: value,
-        expectedRevision: revision,
-      });
+      const result = await onSubmit(value);
+
+      if (result.status === "stale") {
+        // Đã tự đóng qua effect ở trên — không có gì để làm thêm.
+        return;
+      }
 
       if (result.status === "error") {
         setMessage(result.message);
+        setHasConflict(!!result.hasConflict);
         return;
       }
 
       void notifySuccess("Đã cập nhật intended outcome");
       setIsEditing(false);
-      onSaved?.(result.project);
-      router.refresh();
     });
   };
 
@@ -65,12 +107,7 @@ export function ProjectOutcomeEditor({
         <p className="text-sm leading-6 text-muted-foreground">
           {intendedOutcome ?? "Chưa xác định outcome cho chu kỳ này."}
         </p>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => setIsEditing(true)}
-        >
+        <Button type="button" variant="ghost" size="sm" onClick={startEditing}>
           <Pencil aria-hidden="true" />
           {intendedOutcome ? "Sửa" : "Xác định"}
         </Button>
@@ -81,9 +118,11 @@ export function ProjectOutcomeEditor({
   return (
     <div className="space-y-2">
       {message ? (
-        <Alert variant="destructive">
-          <AlertDescription>{message}</AlertDescription>
-        </Alert>
+        <LifecycleErrorAlert
+          message={message}
+          hasConflict={hasConflict}
+          onReload={reloadLatestRevision}
+        />
       ) : null}
       <Textarea
         value={value}

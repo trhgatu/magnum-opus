@@ -525,6 +525,153 @@ describe("ProjectFieldsProvider re-render behavior (no key-based remount)", () =
     ).toBeTruthy();
   });
 
+  it("never dispatches a commit that went stale while queued behind an in-flight sibling save", async () => {
+    let resolveDescriptionSave!: (
+      value: Awaited<ReturnType<typeof updateProject>>,
+    ) => void;
+    const descriptionSave = new Promise<
+      Awaited<ReturnType<typeof updateProject>>
+    >((resolve) => {
+      resolveDescriptionSave = resolve;
+    });
+    mutation.mockImplementationOnce(() => descriptionSave);
+
+    const { rerender } = render(
+      <ProjectFieldsProvider initialProject={baseProject}>
+        <ProjectInlineTitle />
+        <ProjectInlineDescription placeholder="Chưa có mô tả cho effort này." />
+      </ProjectFieldsProvider>,
+    );
+
+    // Description bắt đầu lưu trước — cố tình chưa resolve, giữ chỗ đầu
+    // hàng đợi runExclusive.
+    fireEvent.click(screen.getByRole("button", { name: /Chưa có mô tả/ }));
+    fireEvent.change(screen.getByLabelText("Mô tả Project"), {
+      target: { value: "Mô tả đang lưu" },
+    });
+    blurElement(screen.getByLabelText("Mô tả Project"));
+    await waitFor(() => expect(mutation).toHaveBeenCalledTimes(1));
+
+    // Title sửa xong, blur — commit của nó bị xếp hàng SAU description,
+    // chưa thật sự gửi đi lúc này.
+    fireEvent.click(screen.getByRole("button", { name: /Ra mắt sản phẩm/ }));
+    fireEvent.change(screen.getByLabelText("Tên Project"), {
+      target: { value: "Ra mắt sản phẩm mới" },
+    });
+    blurElement(screen.getByLabelText("Tên Project"));
+
+    // Trong lúc cả hai vẫn chờ, có cập nhật từ bên ngoài (vd tab khác) —
+    // parent re-render với revision cao hơn hẳn, không liên quan tới commit
+    // nào đang xếp hàng.
+    rerender(
+      <ProjectFieldsProvider
+        initialProject={{
+          ...baseProject,
+          title: "Đổi từ tab khác",
+          revision: 9,
+        }}
+      >
+        <ProjectInlineTitle />
+        <ProjectInlineDescription placeholder="Chưa có mô tả cho effort này." />
+      </ProjectFieldsProvider>,
+    );
+
+    // Description's request (đã thật sự gửi trước khi có update từ bên
+    // ngoài) giờ mới resolve — cho phép title's queued task tới lượt chạy.
+    // Bọc trong `act` vì việc resolve này kéo theo state update (của cả
+    // description's onSettled lẫn title's stale-check) xảy ra ngoài một
+    // sự kiện fireEvent thông thường.
+    await act(async () => {
+      resolveDescriptionSave({
+        status: "success",
+        project: {
+          ...baseProject,
+          description: "Mô tả đang lưu",
+          revision: 4,
+        },
+      });
+      // Để promise chain của runExclusive (description → title) chạy hết
+      // trong cùng lượt act này, không phụ thuộc số lượt microtask cụ thể.
+      await descriptionSave;
+    });
+
+    // router.refresh() là hành động cuối cùng, đồng bộ, của NHÁNH thành
+    // công (dù không áp state — xem "state không thụt lùi..." bên dưới) —
+    // dùng nó làm tín hiệu xác định description's continuation đã chạy
+    // xong, thay vì đoán số lượt sleep(0).
+    await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
+
+    // Title's commit phải tự phát hiện đã lỗi thời ngay trước khi gửi —
+    // updateProject chỉ được gọi đúng 1 lần (của description), không có
+    // lần gọi thứ hai cho title dùng draft đã bị bỏ.
+    expect(mutation).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not let an in-flight commit's result regress shared state once an external update has landed", async () => {
+    let resolveTitleSave!: (
+      value: Awaited<ReturnType<typeof updateProject>>,
+    ) => void;
+    const titleSave = new Promise<Awaited<ReturnType<typeof updateProject>>>(
+      (resolve) => {
+        resolveTitleSave = resolve;
+      },
+    );
+    mutation.mockImplementationOnce(() => titleSave);
+
+    const { rerender } = render(
+      <ProjectFieldsProvider initialProject={baseProject}>
+        <ProjectInlineTitle />
+      </ProjectFieldsProvider>,
+    );
+
+    // Title bắt đầu lưu — cố tình chưa resolve, request đã thật sự dispatch
+    // (không còn nằm trong hàng đợi nữa).
+    fireEvent.click(screen.getByRole("button", { name: /Ra mắt sản phẩm/ }));
+    fireEvent.change(screen.getByLabelText("Tên Project"), {
+      target: { value: "Ra mắt sản phẩm mới" },
+    });
+    blurElement(screen.getByLabelText("Tên Project"));
+    await waitFor(() => expect(mutation).toHaveBeenCalledOnce());
+
+    // Có cập nhật từ bên ngoài đến TRONG LÚC request trên đang bay —
+    // revision nhảy hẳn lên 9, cao hơn bất kỳ điều title's response sắp
+    // trả về.
+    rerender(
+      <ProjectFieldsProvider
+        initialProject={{
+          ...baseProject,
+          title: "Đổi từ tab khác",
+          revision: 9,
+        }}
+      >
+        <ProjectInlineTitle />
+      </ProjectFieldsProvider>,
+    );
+    expect(
+      screen.getByRole("button", { name: "Đổi từ tab khác" }),
+    ).toBeTruthy();
+
+    // Request của title giờ mới resolve — phản ánh revision 4, CŨ hơn
+    // revision 9 vừa được adopt từ bên ngoài.
+    await act(async () => {
+      resolveTitleSave({
+        status: "success",
+        project: { ...baseProject, title: "Ra mắt sản phẩm mới", revision: 4 },
+      });
+      await titleSave;
+    });
+    await waitFor(() => expect(refresh).toHaveBeenCalled());
+
+    // State dùng chung không được thụt lùi về revision 4 — vẫn phải giữ
+    // "Đổi từ tab khác" (revision 9) đã biết là mới hơn.
+    expect(
+      screen.getByRole("button", { name: "Đổi từ tab khác" }),
+    ).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: "Ra mắt sản phẩm mới" }),
+    ).toBeNull();
+  });
+
   it("adopts a newer project from the parent when the revision has advanced without a local save", () => {
     const { rerender } = render(
       <ProjectFieldsProvider initialProject={baseProject}>
@@ -665,6 +812,63 @@ describe("ProjectOutcomeEditorInline", () => {
 
     await waitFor(() => expect(mutation).toHaveBeenCalledOnce());
     expect(mutation).toHaveBeenCalledWith(
+      expect.objectContaining({ expectedRevision: 4 }),
+    );
+  });
+
+  it("queues a concurrent outcome save behind an in-flight title save through the same runExclusive queue", async () => {
+    let resolveTitleSave!: (
+      value: Awaited<ReturnType<typeof updateProject>>,
+    ) => void;
+    const titleSave = new Promise<Awaited<ReturnType<typeof updateProject>>>(
+      (resolve) => {
+        resolveTitleSave = resolve;
+      },
+    );
+    mutation.mockImplementationOnce(() => titleSave);
+    outcomeMutation.mockResolvedValue({
+      status: "success",
+      project: {
+        ...projectWithCycle,
+        title: "Ra mắt sản phẩm mới",
+        revision: 5,
+      },
+    });
+
+    render(
+      <ProjectFieldsProvider initialProject={projectWithCycle}>
+        <ProjectInlineTitle />
+        <ProjectOutcomeEditorInline />
+      </ProjectFieldsProvider>,
+    );
+
+    // Title bắt đầu lưu — cố tình chưa resolve.
+    fireEvent.click(screen.getByRole("button", { name: /Ra mắt sản phẩm/ }));
+    fireEvent.change(screen.getByLabelText("Tên Project"), {
+      target: { value: "Ra mắt sản phẩm mới" },
+    });
+    blurElement(screen.getByLabelText("Tên Project"));
+    await waitFor(() => expect(mutation).toHaveBeenCalledOnce());
+
+    // Lưu outcome ngay khi title vẫn đang chờ — phải xếp hàng sau title
+    // qua cùng `runExclusive`, không được gửi song song với revision cũ.
+    fireEvent.click(screen.getByRole("button", { name: "Xác định" }));
+    fireEvent.change(screen.getByPlaceholderText(/Bạn muốn đạt được/), {
+      target: { value: "Ra mắt bản beta cho 100 người dùng đầu tiên" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Lưu" }));
+
+    resolveTitleSave({
+      status: "success",
+      project: {
+        ...projectWithCycle,
+        title: "Ra mắt sản phẩm mới",
+        revision: 4,
+      },
+    });
+
+    await waitFor(() => expect(outcomeMutation).toHaveBeenCalledOnce());
+    expect(outcomeMutation).toHaveBeenCalledWith(
       expect.objectContaining({ expectedRevision: 4 }),
     );
   });
