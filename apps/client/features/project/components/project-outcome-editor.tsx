@@ -1,31 +1,35 @@
 "use client";
 
-import type { ProjectResponse } from "@repo/contracts";
 import { Check, Pencil } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { setProjectIntendedOutcome } from "@/features/project/actions/project";
 import { notifySuccess } from "@/lib/toast";
 
+export type ProjectOutcomeSubmitResult =
+  | { status: "success" }
+  | { status: "error"; message: string };
+
+/** Component thuần UI — không tự biết `id`/`revision`/cách gọi API. Toàn
+ * bộ việc đó (đọc revision mới nhất, xếp hàng qua `runExclusive` để không
+ * đụng độ với title/description đang lưu cùng lúc, cập nhật lại context
+ * dùng chung sau khi thành công) do `ProjectOutcomeEditorInline` cung cấp
+ * qua `onSubmit` — tách biệt để không lặp lại logic revision-handling đã
+ * có ở `useInlineProjectField`. */
 export function ProjectOutcomeEditor({
-  id,
-  revision,
   intendedOutcome,
-  onSaved,
+  externalUpdateToken,
+  onSubmit,
 }: {
-  id: string;
-  revision: number;
   intendedOutcome: string | null;
-  /** Gọi với project mới nhất ngay khi lưu thành công — để chỗ nào giữ
-   * revision dùng chung (vd `ProjectFieldsProvider`) cập nhật ngay, không
-   * phải chờ `router.refresh()` round-trip mới thấy revision mới. */
-  onSaved?: (project: ProjectResponse) => void;
+  /** Tăng lên khi có cập nhật project từ bên ngoài (không phải do chính
+   * editor này lưu) — dùng để tự đóng + bỏ draft cũ, cùng cơ chế với
+   * ProjectInlineTitle/ProjectInlineDescription. */
+  externalUpdateToken: number;
+  onSubmit: (intendedOutcome: string) => Promise<ProjectOutcomeSubmitResult>;
 }) {
-  const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState(intendedOutcome ?? "");
   const [message, setMessage] = useState<string>();
@@ -37,15 +41,20 @@ export function ProjectOutcomeEditor({
     setMessage(undefined);
   };
 
+  // Xem giải thích ở ProjectInlineTitle — đóng editor + bỏ draft khi
+  // context vừa nhận project mới từ bên ngoài (không phải tự lưu), tránh
+  // gửi đè draft cũ lên dữ liệu vừa tải về.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (isEditing) cancel();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [externalUpdateToken]);
+
   const submit = () => {
     setMessage(undefined);
 
     startTransition(async () => {
-      const result = await setProjectIntendedOutcome({
-        id,
-        intendedOutcome: value,
-        expectedRevision: revision,
-      });
+      const result = await onSubmit(value);
 
       if (result.status === "error") {
         setMessage(result.message);
@@ -54,8 +63,6 @@ export function ProjectOutcomeEditor({
 
       void notifySuccess("Đã cập nhật intended outcome");
       setIsEditing(false);
-      onSaved?.(result.project);
-      router.refresh();
     });
   };
 

@@ -11,28 +11,13 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { setProjectIntendedOutcome, refresh, notifySuccess } = vi.hoisted(
-  () => ({
-    setProjectIntendedOutcome: vi.fn(),
-    refresh: vi.fn(),
-    notifySuccess: vi.fn(),
-  }),
-);
-
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({ refresh }),
-}));
-
-vi.mock("@/features/project/actions/project", () => ({
-  setProjectIntendedOutcome,
+const { notifySuccess } = vi.hoisted(() => ({
+  notifySuccess: vi.fn(),
 }));
 
 vi.mock("@/lib/toast", () => ({ notifySuccess }));
 
 import { ProjectOutcomeEditor } from "./project-outcome-editor";
-
-const projectId = "72b45d9d-7ac6-4ec8-b3bc-5d67134b9676";
-const revision = 2;
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -44,9 +29,9 @@ describe("ProjectOutcomeEditor", () => {
   it("invites the user to define an outcome when none exists yet", () => {
     render(
       <ProjectOutcomeEditor
-        id={projectId}
-        revision={revision}
         intendedOutcome={null}
+        externalUpdateToken={0}
+        onSubmit={vi.fn()}
       />,
     );
 
@@ -61,9 +46,9 @@ describe("ProjectOutcomeEditor", () => {
   it("shows the existing outcome with an edit affordance", () => {
     render(
       <ProjectOutcomeEditor
-        id={projectId}
-        revision={revision}
         intendedOutcome="Ship Projects V1"
+        externalUpdateToken={0}
+        onSubmit={vi.fn()}
       />,
     );
 
@@ -71,17 +56,14 @@ describe("ProjectOutcomeEditor", () => {
     expect(screen.getByRole("button", { name: "Sửa" })).toBeInTheDocument();
   });
 
-  it("saves a new intended outcome", async () => {
-    setProjectIntendedOutcome.mockResolvedValue({
-      status: "success",
-      project: {},
-    });
+  it("saves a new intended outcome through onSubmit", async () => {
+    const onSubmit = vi.fn().mockResolvedValue({ status: "success" });
 
     render(
       <ProjectOutcomeEditor
-        id={projectId}
-        revision={revision}
         intendedOutcome={null}
+        externalUpdateToken={0}
+        onSubmit={onSubmit}
       />,
     );
 
@@ -95,23 +77,17 @@ describe("ProjectOutcomeEditor", () => {
     fireEvent.click(screen.getByRole("button", { name: "Lưu" }));
 
     await waitFor(() =>
-      expect(setProjectIntendedOutcome).toHaveBeenCalledWith({
-        id: projectId,
-        intendedOutcome: "  Ship Projects V1  ",
-        expectedRevision: revision,
-      }),
+      expect(onSubmit).toHaveBeenCalledWith("  Ship Projects V1  "),
     );
-
     expect(notifySuccess).toHaveBeenCalledWith("Đã cập nhật intended outcome");
-    expect(refresh).toHaveBeenCalledOnce();
   });
 
   it("disables Save while the draft is blank", () => {
     render(
       <ProjectOutcomeEditor
-        id={projectId}
-        revision={revision}
         intendedOutcome="Ship Projects V1"
+        externalUpdateToken={0}
+        onSubmit={vi.fn()}
       />,
     );
 
@@ -127,11 +103,13 @@ describe("ProjectOutcomeEditor", () => {
   });
 
   it("discards the draft and restores the read view on cancel", () => {
+    const onSubmit = vi.fn();
+
     render(
       <ProjectOutcomeEditor
-        id={projectId}
-        revision={revision}
         intendedOutcome="Ship Projects V1"
+        externalUpdateToken={0}
+        onSubmit={onSubmit}
       />,
     );
 
@@ -142,21 +120,20 @@ describe("ProjectOutcomeEditor", () => {
     fireEvent.click(screen.getByRole("button", { name: "Hủy" }));
 
     expect(screen.getByText("Ship Projects V1")).toBeInTheDocument();
-    expect(setProjectIntendedOutcome).not.toHaveBeenCalled();
+    expect(onSubmit).not.toHaveBeenCalled();
   });
 
-  it("shows the server error and keeps editing open on failure", async () => {
-    setProjectIntendedOutcome.mockResolvedValue({
+  it("shows the error from onSubmit and keeps editing open on failure", async () => {
+    const onSubmit = vi.fn().mockResolvedValue({
       status: "error",
       message: "Project đã thay đổi ở một phiên làm việc khác.",
-      code: "PROJECT_REVISION_CONFLICT",
     });
 
     render(
       <ProjectOutcomeEditor
-        id={projectId}
-        revision={revision}
         intendedOutcome="Ship Projects V1"
+        externalUpdateToken={0}
+        onSubmit={onSubmit}
       />,
     );
 
@@ -166,8 +143,34 @@ describe("ProjectOutcomeEditor", () => {
     expect(
       await screen.findByText("Project đã thay đổi ở một phiên làm việc khác."),
     ).toBeInTheDocument();
-
-    expect(refresh).not.toHaveBeenCalled();
     expect(screen.getByDisplayValue("Ship Projects V1")).toBeInTheDocument();
+  });
+
+  it("closes the editor and discards the draft when externalUpdateToken changes", () => {
+    const { rerender } = render(
+      <ProjectOutcomeEditor
+        intendedOutcome="Ship Projects V1"
+        externalUpdateToken={0}
+        onSubmit={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Sửa" }));
+    fireEvent.change(screen.getByDisplayValue("Ship Projects V1"), {
+      target: { value: "Nội dung nháp chưa lưu" },
+    });
+
+    // Mô phỏng conflict-reload ở field khác khiến provider adopt project
+    // mới — outcome mới từ server khác với draft đang gõ dở.
+    rerender(
+      <ProjectOutcomeEditor
+        intendedOutcome="Outcome mới từ server"
+        externalUpdateToken={1}
+        onSubmit={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByDisplayValue("Nội dung nháp chưa lưu")).toBeNull();
+    expect(screen.getByText("Outcome mới từ server")).toBeInTheDocument();
   });
 });

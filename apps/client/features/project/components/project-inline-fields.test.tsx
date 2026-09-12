@@ -668,4 +668,61 @@ describe("ProjectOutcomeEditorInline", () => {
       expect.objectContaining({ expectedRevision: 4 }),
     );
   });
+
+  it("queues a concurrent outcome save behind an in-flight title save through the same runExclusive queue", async () => {
+    let resolveTitleSave!: (
+      value: Awaited<ReturnType<typeof updateProject>>,
+    ) => void;
+    const titleSave = new Promise<Awaited<ReturnType<typeof updateProject>>>(
+      (resolve) => {
+        resolveTitleSave = resolve;
+      },
+    );
+    mutation.mockImplementationOnce(() => titleSave);
+    outcomeMutation.mockResolvedValue({
+      status: "success",
+      project: {
+        ...projectWithCycle,
+        title: "Ra mắt sản phẩm mới",
+        revision: 5,
+      },
+    });
+
+    render(
+      <ProjectFieldsProvider initialProject={projectWithCycle}>
+        <ProjectInlineTitle />
+        <ProjectOutcomeEditorInline />
+      </ProjectFieldsProvider>,
+    );
+
+    // Title bắt đầu lưu — cố tình chưa resolve.
+    fireEvent.click(screen.getByRole("button", { name: /Ra mắt sản phẩm/ }));
+    fireEvent.change(screen.getByLabelText("Tên Project"), {
+      target: { value: "Ra mắt sản phẩm mới" },
+    });
+    blurElement(screen.getByLabelText("Tên Project"));
+    await waitFor(() => expect(mutation).toHaveBeenCalledOnce());
+
+    // Lưu outcome ngay khi title vẫn đang chờ — phải xếp hàng sau title
+    // qua cùng `runExclusive`, không được gửi song song với revision cũ.
+    fireEvent.click(screen.getByRole("button", { name: "Xác định" }));
+    fireEvent.change(screen.getByPlaceholderText(/Bạn muốn đạt được/), {
+      target: { value: "Ra mắt bản beta cho 100 người dùng đầu tiên" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Lưu" }));
+
+    resolveTitleSave({
+      status: "success",
+      project: {
+        ...projectWithCycle,
+        title: "Ra mắt sản phẩm mới",
+        revision: 4,
+      },
+    });
+
+    await waitFor(() => expect(outcomeMutation).toHaveBeenCalledOnce());
+    expect(outcomeMutation).toHaveBeenCalledWith(
+      expect.objectContaining({ expectedRevision: 4 }),
+    );
+  });
 });
