@@ -41,6 +41,12 @@ const ProjectFieldsContext = createContext<{
   projectRef: React.RefObject<ProjectResponse>;
   setProject: (project: ProjectResponse) => void;
   runExclusive: <T>(task: () => Promise<T>) => Promise<T>;
+  /** Tăng lên mỗi khi Provider chấp nhận một `project` mới **từ bên
+   * ngoài** (revision nhảy lên mà không phải do chính field đó vừa lưu
+   * — vd bấm "Tải bản mới nhất" sau conflict). Field đang mở dở dùng
+   * giá trị này để tự đóng editor + bỏ draft cũ, tránh gửi lại draft
+   * xung đột đè lên dữ liệu mới vừa tải về. */
+  externalUpdateToken: number;
 } | null>(null);
 
 function useProjectFields() {
@@ -63,6 +69,7 @@ export function ProjectFieldsProvider({
   const [project, setProjectState] = useState(initialProject);
   const projectRef = useRef(project);
   const queueRef = useRef<Promise<unknown>>(Promise.resolve());
+  const [externalUpdateToken, setExternalUpdateToken] = useState(0);
 
   const setProject = (next: ProjectResponse) => {
     projectRef.current = next;
@@ -78,9 +85,13 @@ export function ProjectFieldsProvider({
   // này chỉ xảy ra khi có nguồn khác cập nhật project (vd bấm "Tải bản mới
   // nhất" sau conflict), không xảy ra ở nhánh tự lưu thành công (lúc đó
   // state cục bộ đã ở đúng revision mới rồi, so sánh không thấy "mới hơn").
+  // `externalUpdateToken` tăng lên đúng ở nhánh này — field nào đang mở dở
+  // sẽ tự đóng lại + bỏ draft cũ, không âm thầm giữ draft rồi lỡ gửi đè lên
+  // dữ liệu vừa tải về.
   useEffect(() => {
     if (initialProject.revision > projectRef.current.revision) {
       setProject(initialProject);
+      setExternalUpdateToken((token) => token + 1);
     }
   }, [initialProject]);
 
@@ -95,7 +106,13 @@ export function ProjectFieldsProvider({
 
   return (
     <ProjectFieldsContext.Provider
-      value={{ project, projectRef, setProject, runExclusive }}
+      value={{
+        project,
+        projectRef,
+        setProject,
+        runExclusive,
+        externalUpdateToken,
+      }}
     >
       {children}
     </ProjectFieldsContext.Provider>
@@ -142,7 +159,8 @@ function InlineFieldError({
 
 function useInlineProjectField() {
   const router = useRouter();
-  const { project, projectRef, setProject, runExclusive } = useProjectFields();
+  const { project, projectRef, setProject, runExclusive, externalUpdateToken } =
+    useProjectFields();
   const [message, setMessage] = useState<string>();
   const [hasConflict, setHasConflict] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -208,6 +226,7 @@ function useInlineProjectField() {
     commit,
     clearError,
     reloadLatestRevision,
+    externalUpdateToken,
   };
 }
 
@@ -220,6 +239,7 @@ export function ProjectInlineTitle() {
     commit,
     clearError,
     reloadLatestRevision,
+    externalUpdateToken,
   } = useInlineProjectField();
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState(project.title);
@@ -239,6 +259,18 @@ export function ProjectInlineTitle() {
     setValue(project.title);
     setIsEditing(false);
   };
+
+  // Nếu context vừa nhận `project` mới TỪ BÊN NGOÀI (vd "Tải bản mới
+  // nhất" sau conflict, không phải do chính field này tự lưu), đóng
+  // editor và bỏ draft cũ ngay — nếu không, blur sau đó sẽ so sánh draft
+  // cũ với `project.title` MỚI rồi lỡ gửi đè lên dữ liệu vừa tải về.
+  useEffect(() => {
+    // Cố ý: đóng editor đang mở khi có tín hiệu cập nhật từ bên ngoài,
+    // không phải suy ra UI state từ prop.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (isEditing) cancel();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [externalUpdateToken]);
 
   const save = () => {
     const trimmed = value.trim();
@@ -323,6 +355,7 @@ export function ProjectInlineDescription({
     commit,
     clearError,
     reloadLatestRevision,
+    externalUpdateToken,
   } = useInlineProjectField();
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState(project.description ?? "");
@@ -342,6 +375,14 @@ export function ProjectInlineDescription({
     setValue(project.description ?? "");
     setIsEditing(false);
   };
+
+  // Xem giải thích ở ProjectInlineTitle — đóng editor + bỏ draft khi
+  // context vừa nhận project mới từ bên ngoài (không phải tự lưu).
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (isEditing) cancel();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [externalUpdateToken]);
 
   const save = () => {
     const trimmed = value.trim();
@@ -430,13 +471,14 @@ export function ProjectLifecycleControlsInline() {
  * ngay sau một lần lưu title/description inline sẽ gửi `expectedRevision`
  * cũ và bị 409 giả. */
 export function ProjectOutcomeEditorInline() {
-  const { project } = useProjectFields();
+  const { project, setProject } = useProjectFields();
   if (!project.currentCycle) return null;
   return (
     <ProjectOutcomeEditor
       id={project.id}
       revision={project.revision}
       intendedOutcome={project.currentCycle.intendedOutcome}
+      onSaved={setProject}
     />
   );
 }

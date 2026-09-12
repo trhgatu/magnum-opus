@@ -1,5 +1,6 @@
 "use client";
 
+import type { ProjectResponse } from "@repo/contracts";
 import { Check, Pencil } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -14,10 +15,15 @@ export function ProjectOutcomeEditor({
   id,
   revision,
   intendedOutcome,
+  onSaved,
 }: {
   id: string;
   revision: number;
   intendedOutcome: string | null;
+  /** Gọi với project mới nhất ngay khi lưu thành công — để chỗ nào giữ
+   * revision dùng chung (vd `ProjectFieldsProvider`) cập nhật ngay, không
+   * phải chờ `router.refresh()` round-trip mới thấy revision mới. */
+  onSaved?: (project: ProjectResponse) => void;
 }) {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
@@ -48,6 +54,7 @@ export function ProjectOutcomeEditor({
 
       void notifySuccess("Đã cập nhật intended outcome");
       setIsEditing(false);
+      onSaved?.(result.project);
       router.refresh();
     });
   };
