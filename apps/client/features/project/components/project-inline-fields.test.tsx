@@ -578,19 +578,98 @@ describe("ProjectFieldsProvider re-render behavior (no key-based remount)", () =
 
     // Description's request (đã thật sự gửi trước khi có update từ bên
     // ngoài) giờ mới resolve — cho phép title's queued task tới lượt chạy.
-    resolveDescriptionSave({
-      status: "success",
-      project: { ...baseProject, description: "Mô tả đang lưu", revision: 4 },
+    // Bọc trong `act` vì việc resolve này kéo theo state update (của cả
+    // description's onSettled lẫn title's stale-check) xảy ra ngoài một
+    // sự kiện fireEvent thông thường.
+    await act(async () => {
+      resolveDescriptionSave({
+        status: "success",
+        project: {
+          ...baseProject,
+          description: "Mô tả đang lưu",
+          revision: 4,
+        },
+      });
+      // Để promise chain của runExclusive (description → title) chạy hết
+      // trong cùng lượt act này, không phụ thuộc số lượt microtask cụ thể.
+      await descriptionSave;
     });
 
-    // Đợi đủ lâu để queued task (nếu có dispatch) chắc chắn đã chạy.
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    // router.refresh() là hành động cuối cùng, đồng bộ, của NHÁNH thành
+    // công (dù không áp state — xem "state không thụt lùi..." bên dưới) —
+    // dùng nó làm tín hiệu xác định description's continuation đã chạy
+    // xong, thay vì đoán số lượt sleep(0).
+    await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
 
     // Title's commit phải tự phát hiện đã lỗi thời ngay trước khi gửi —
     // updateProject chỉ được gọi đúng 1 lần (của description), không có
     // lần gọi thứ hai cho title dùng draft đã bị bỏ.
     expect(mutation).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not let an in-flight commit's result regress shared state once an external update has landed", async () => {
+    let resolveTitleSave!: (
+      value: Awaited<ReturnType<typeof updateProject>>,
+    ) => void;
+    const titleSave = new Promise<Awaited<ReturnType<typeof updateProject>>>(
+      (resolve) => {
+        resolveTitleSave = resolve;
+      },
+    );
+    mutation.mockImplementationOnce(() => titleSave);
+
+    const { rerender } = render(
+      <ProjectFieldsProvider initialProject={baseProject}>
+        <ProjectInlineTitle />
+      </ProjectFieldsProvider>,
+    );
+
+    // Title bắt đầu lưu — cố tình chưa resolve, request đã thật sự dispatch
+    // (không còn nằm trong hàng đợi nữa).
+    fireEvent.click(screen.getByRole("button", { name: /Ra mắt sản phẩm/ }));
+    fireEvent.change(screen.getByLabelText("Tên Project"), {
+      target: { value: "Ra mắt sản phẩm mới" },
+    });
+    blurElement(screen.getByLabelText("Tên Project"));
+    await waitFor(() => expect(mutation).toHaveBeenCalledOnce());
+
+    // Có cập nhật từ bên ngoài đến TRONG LÚC request trên đang bay —
+    // revision nhảy hẳn lên 9, cao hơn bất kỳ điều title's response sắp
+    // trả về.
+    rerender(
+      <ProjectFieldsProvider
+        initialProject={{
+          ...baseProject,
+          title: "Đổi từ tab khác",
+          revision: 9,
+        }}
+      >
+        <ProjectInlineTitle />
+      </ProjectFieldsProvider>,
+    );
+    expect(
+      screen.getByRole("button", { name: "Đổi từ tab khác" }),
+    ).toBeTruthy();
+
+    // Request của title giờ mới resolve — phản ánh revision 4, CŨ hơn
+    // revision 9 vừa được adopt từ bên ngoài.
+    await act(async () => {
+      resolveTitleSave({
+        status: "success",
+        project: { ...baseProject, title: "Ra mắt sản phẩm mới", revision: 4 },
+      });
+      await titleSave;
+    });
+    await waitFor(() => expect(refresh).toHaveBeenCalled());
+
+    // State dùng chung không được thụt lùi về revision 4 — vẫn phải giữ
+    // "Đổi từ tab khác" (revision 9) đã biết là mới hơn.
+    expect(
+      screen.getByRole("button", { name: "Đổi từ tab khác" }),
+    ).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: "Ra mắt sản phẩm mới" }),
+    ).toBeNull();
   });
 
   it("adopts a newer project from the parent when the revision has advanced without a local save", () => {

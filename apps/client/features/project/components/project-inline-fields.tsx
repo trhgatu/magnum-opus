@@ -255,6 +255,19 @@ function useInlineProjectField() {
         return;
       }
 
+      // Request đã thật sự gửi đi trước khi có token check ở trên — nếu
+      // một cập nhật từ bên ngoài đến TRONG LÚC request này đang bay
+      // (không phải lúc còn xếp hàng, mà là sau khi đã dispatch), kết quả
+      // trả về vẫn hợp lệ (server đã ghi thành công) nhưng KHÔNG được áp
+      // vào state dùng chung — nó phản ánh revision tại thời điểm gửi,
+      // cũ hơn dữ liệu mới nhất đã biết, áp vào sẽ làm state thụt lùi.
+      // router.refresh() sẽ tự đồng bộ lại đúng sự thật mới nhất từ server.
+      if (externalUpdateTokenRef.current !== tokenAtCommit) {
+        onSettled(true);
+        router.refresh();
+        return;
+      }
+
       // Cập nhật ngay bản `project` dùng chung để field còn lại (title hoặc
       // description) thấy revision mới nhất mà không phải chờ
       // router.refresh() round-trip qua server.
@@ -563,6 +576,14 @@ export function ProjectOutcomeEditorInline() {
           : result.message,
         hasConflict: isRevisionConflict(result.code),
       };
+    }
+
+    // Xem giải thích ở useInlineProjectField.commit — request đã dispatch
+    // trước token check, nhưng có cập nhật từ bên ngoài đến trong lúc nó
+    // đang bay thì không được áp result (cũ hơn) đè lên state dùng chung.
+    if (externalUpdateTokenRef.current !== tokenAtSubmit) {
+      router.refresh();
+      return { status: "success" };
     }
 
     setProject(result.project);
