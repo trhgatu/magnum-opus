@@ -32,6 +32,7 @@ describe("ProjectOutcomeEditor", () => {
         intendedOutcome={null}
         externalUpdateToken={0}
         onSubmit={vi.fn()}
+        onReload={vi.fn()}
       />,
     );
 
@@ -49,6 +50,7 @@ describe("ProjectOutcomeEditor", () => {
         intendedOutcome="Ship Projects V1"
         externalUpdateToken={0}
         onSubmit={vi.fn()}
+        onReload={vi.fn()}
       />,
     );
 
@@ -64,6 +66,7 @@ describe("ProjectOutcomeEditor", () => {
         intendedOutcome={null}
         externalUpdateToken={0}
         onSubmit={onSubmit}
+        onReload={vi.fn()}
       />,
     );
 
@@ -88,6 +91,7 @@ describe("ProjectOutcomeEditor", () => {
         intendedOutcome="Ship Projects V1"
         externalUpdateToken={0}
         onSubmit={vi.fn()}
+        onReload={vi.fn()}
       />,
     );
 
@@ -110,6 +114,7 @@ describe("ProjectOutcomeEditor", () => {
         intendedOutcome="Ship Projects V1"
         externalUpdateToken={0}
         onSubmit={onSubmit}
+        onReload={vi.fn()}
       />,
     );
 
@@ -123,10 +128,10 @@ describe("ProjectOutcomeEditor", () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
-  it("shows the error from onSubmit and keeps editing open on failure", async () => {
+  it("shows the error from onSubmit and keeps editing open on failure, without a reload affordance for a non-conflict error", async () => {
     const onSubmit = vi.fn().mockResolvedValue({
       status: "error",
-      message: "Project đã thay đổi ở một phiên làm việc khác.",
+      message: "Không thể lưu, vui lòng thử lại.",
     });
 
     render(
@@ -134,6 +139,7 @@ describe("ProjectOutcomeEditor", () => {
         intendedOutcome="Ship Projects V1"
         externalUpdateToken={0}
         onSubmit={onSubmit}
+        onReload={vi.fn()}
       />,
     );
 
@@ -141,17 +147,72 @@ describe("ProjectOutcomeEditor", () => {
     fireEvent.click(screen.getByRole("button", { name: "Lưu" }));
 
     expect(
-      await screen.findByText("Project đã thay đổi ở một phiên làm việc khác."),
+      await screen.findByText("Không thể lưu, vui lòng thử lại."),
     ).toBeInTheDocument();
     expect(screen.getByDisplayValue("Ship Projects V1")).toBeInTheDocument();
+    expect(notifySuccess).not.toHaveBeenCalled();
+    expect(
+      screen.queryByRole("button", { name: "Tải bản mới nhất" }),
+    ).toBeNull();
   });
 
-  it("closes the editor and discards the draft when externalUpdateToken changes", () => {
+  it("shows a reload affordance on a revision conflict, and reloading resets the draft", async () => {
+    const onSubmit = vi.fn().mockResolvedValue({
+      status: "error",
+      message: "Project đã thay đổi ở một phiên làm việc khác.",
+      hasConflict: true,
+    });
+    const onReload = vi.fn();
+
+    render(
+      <ProjectOutcomeEditor
+        intendedOutcome="Ship Projects V1"
+        externalUpdateToken={0}
+        onSubmit={onSubmit}
+        onReload={onReload}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Sửa" }));
+    fireEvent.change(screen.getByDisplayValue("Ship Projects V1"), {
+      target: { value: "Bản nháp xung đột" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Lưu" }));
+
+    await screen.findByText("Project đã thay đổi ở một phiên làm việc khác.");
+
+    fireEvent.click(screen.getByRole("button", { name: "Tải bản mới nhất" }));
+    expect(onReload).toHaveBeenCalledOnce();
+    // Bấm reload phải bỏ luôn draft xung đột, không chỉ gọi onReload.
+    expect(screen.getByText("Ship Projects V1")).toBeInTheDocument();
+  });
+
+  it("does nothing when onSubmit reports the save as stale (discarded mid-flight)", async () => {
+    const onSubmit = vi.fn().mockResolvedValue({ status: "stale" });
+
+    render(
+      <ProjectOutcomeEditor
+        intendedOutcome="Ship Projects V1"
+        externalUpdateToken={0}
+        onSubmit={onSubmit}
+        onReload={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Sửa" }));
+    fireEvent.click(screen.getByRole("button", { name: "Lưu" }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
+    expect(notifySuccess).not.toHaveBeenCalled();
+  });
+
+  it("closes the editor and re-seeds the draft when externalUpdateToken changes", () => {
     const { rerender } = render(
       <ProjectOutcomeEditor
         intendedOutcome="Ship Projects V1"
         externalUpdateToken={0}
         onSubmit={vi.fn()}
+        onReload={vi.fn()}
       />,
     );
 
@@ -167,10 +228,39 @@ describe("ProjectOutcomeEditor", () => {
         intendedOutcome="Outcome mới từ server"
         externalUpdateToken={1}
         onSubmit={vi.fn()}
+        onReload={vi.fn()}
       />,
     );
 
     expect(screen.queryByDisplayValue("Nội dung nháp chưa lưu")).toBeNull();
     expect(screen.getByText("Outcome mới từ server")).toBeInTheDocument();
+  });
+
+  it("re-seeds a stale draft from a closed state the next time editing starts", () => {
+    // Nếu update từ bên ngoài tới lúc editor đang ĐÓNG, effect không chạm
+    // vào `value` (chỉ xử lý khi isEditing) — startEditing phải tự nạp lại
+    // giá trị mới nhất, không phải dùng `value` cũ còn sót lại từ trước.
+    const { rerender } = render(
+      <ProjectOutcomeEditor
+        intendedOutcome="Ship Projects V1"
+        externalUpdateToken={0}
+        onSubmit={vi.fn()}
+        onReload={vi.fn()}
+      />,
+    );
+
+    rerender(
+      <ProjectOutcomeEditor
+        intendedOutcome="Outcome mới từ server"
+        externalUpdateToken={1}
+        onSubmit={vi.fn()}
+        onReload={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Sửa" }));
+    expect(
+      screen.getByDisplayValue("Outcome mới từ server"),
+    ).toBeInTheDocument();
   });
 });
