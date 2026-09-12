@@ -17,9 +17,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { updateProject } from "@/features/project/actions/project";
+import {
+  setProjectIntendedOutcome,
+  updateProject,
+} from "@/features/project/actions/project";
 import { ProjectLifecycleControls } from "@/features/project/components/project-lifecycle-controls";
-import { ProjectOutcomeEditor } from "@/features/project/components/project-outcome-editor";
+import {
+  ProjectOutcomeEditor,
+  type ProjectOutcomeSubmitResult,
+} from "@/features/project/components/project-outcome-editor";
 import { cn } from "@/lib/utils";
 
 const isRevisionConflict = (code?: string) =>
@@ -465,20 +471,45 @@ export function ProjectLifecycleControlsInline() {
   );
 }
 
-/** Cùng lý do với `ProjectLifecycleControlsInline`: `ProjectOutcomeEditor`
- * phải đọc `revision`/`intendedOutcome` từ context chia sẻ, không phải
- * prop truyền từ Server Component cha — nếu không, lưu intended outcome
- * ngay sau một lần lưu title/description inline sẽ gửi `expectedRevision`
- * cũ và bị 409 giả. */
+/** Cùng lý do với `ProjectLifecycleControlsInline`: việc lưu intended
+ * outcome phải đọc `id`/`revision` từ context chia sẻ tại đúng thời điểm
+ * gửi đi, không phải prop chụp lúc render — và phải đi qua cùng
+ * `runExclusive` với title/description để 2 lần lưu gần nhau (dù không
+ * thật sự xung đột) không cùng gửi 1 revision cũ. `ProjectOutcomeEditor`
+ * tự nó không biết gì về context; toàn bộ phần này nằm ở `onSubmit`. */
 export function ProjectOutcomeEditorInline() {
-  const { project, setProject } = useProjectFields();
+  const router = useRouter();
+  const { project, projectRef, setProject, runExclusive, externalUpdateToken } =
+    useProjectFields();
+
   if (!project.currentCycle) return null;
+
+  const handleSubmit = async (
+    intendedOutcome: string,
+  ): Promise<ProjectOutcomeSubmitResult> => {
+    const result = await runExclusive(() => {
+      const current = projectRef.current;
+      return setProjectIntendedOutcome({
+        id: current.id,
+        intendedOutcome,
+        expectedRevision: current.revision,
+      });
+    });
+
+    if (result.status === "error") {
+      return { status: "error", message: result.message };
+    }
+
+    setProject(result.project);
+    router.refresh();
+    return { status: "success" };
+  };
+
   return (
     <ProjectOutcomeEditor
-      id={project.id}
-      revision={project.revision}
       intendedOutcome={project.currentCycle.intendedOutcome}
-      onSaved={setProject}
+      externalUpdateToken={externalUpdateToken}
+      onSubmit={handleSubmit}
     />
   );
 }
