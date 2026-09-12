@@ -209,9 +209,16 @@ Habit (BUILD) — completion rate:
 Habit (BUILD) — mostConsistentHabit (SC-CHR-005):
   Tính completion rate riêng cho từng Habit BUILD active (cùng công
     thức/mẫu số như buildCompletionRate ở trên, nhưng theo từng Habit
-    thay vì trung bình cả owner), lấy Habit có tỷ lệ cao nhất. Hòa thì
-    lấy Habit được tạo sớm nhất (tie-break xác định được). `null` nếu
-    owner không có Habit BUILD nào.
+    thay vì trung bình cả owner). Chỉ xét Habit có **ít nhất 7 ngày
+    due đã qua** trong tháng đó — loại trừ Habit vừa tạo cuối tháng
+    (vd tạo ngày 28/30, mới có 2-3 ngày due, 1 check-in đã thành 100%
+    và thắng giả tạo trước Habit đã bền bỉ cả tháng), và loại trừ hẳn
+    trường hợp 0 ngày due (0/0, không xác định — vd Habit WEEKLY chưa
+    tới ngày due nào trong tháng). Trong số Habit đủ điều kiện, lấy
+    Habit có tỷ lệ cao nhất; hòa thì lấy Habit được tạo sớm nhất
+    (tie-break xác định được). `null` nếu owner không có Habit BUILD
+    nào đủ điều kiện (kể cả khi có Habit BUILD nhưng tất cả đều dưới
+    ngưỡng 7 ngày due).
 
 Habit (QUIT) — hiển thị:
   Chỉ "daysSinceLastRelapse" tại cuối tháng (hoặc tại thời điểm tạo

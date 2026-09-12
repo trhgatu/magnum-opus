@@ -40,9 +40,11 @@ interface ChronicleHabitSection {
   // streak liên tục dài nhất trong tháng; null nếu không có streak
   // nào > 0
   mostConsistentHabit: { habitTitle: string; completionRate: number } | null;
-  // Habit BUILD có completion rate riêng cao nhất trong tháng — khác
-  // bestStreak (đo streak liên tục, không phải tỉ lệ tổng thể); null
-  // nếu không có Habit BUILD nào (SC-CHR-005)
+  // Habit BUILD có completion rate riêng cao nhất trong tháng, trong
+  // số Habit có ít nhất 7 ngày due đã qua (tránh Habit mới tạo cuối
+  // tháng thắng giả tạo) — khác bestStreak (đo streak liên tục, không
+  // phải tỉ lệ tổng thể); null nếu không có Habit BUILD nào đủ điều
+  // kiện (xem 02-domain-analysis.md §5, SC-CHR-005)
   quitHabits: Array<{
     habitTitle: string;
     daysSinceLastRelapse: number;
