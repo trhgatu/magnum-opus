@@ -97,10 +97,12 @@ sửa nó qua API.
 ```text
 ChronicleHabitSnapshot
 ├── snapshotId
-├── buildCompletionRate     (0.0–1.0, chỉ tính Habit BUILD active
-│                            tại thời điểm tạo snapshot)
+├── buildCompletionRate         (0.0–1.0, chỉ tính Habit BUILD active
+│                                tại thời điểm tạo snapshot)
 ├── bestStreakHabitTitle
 ├── bestStreakDays
+├── mostConsistentHabitTitle
+├── mostConsistentCompletionRate
 └── quitHabits: ChronicleQuitHabitSnapshot[]  (1 dòng / Habit QUIT)
 
 ChronicleQuitHabitSnapshot
@@ -204,6 +206,13 @@ Habit (BUILD) — completion rate:
   Chỉ tính Habit có isActive=true tại thời điểm tạo snapshot
     (DAP-CHR-004).
 
+Habit (BUILD) — mostConsistentHabit (SC-CHR-005):
+  Tính completion rate riêng cho từng Habit BUILD active (cùng công
+    thức/mẫu số như buildCompletionRate ở trên, nhưng theo từng Habit
+    thay vì trung bình cả owner), lấy Habit có tỷ lệ cao nhất. Hòa thì
+    lấy Habit được tạo sớm nhất (tie-break xác định được). `null` nếu
+    owner không có Habit BUILD nào.
+
 Habit (QUIT) — hiển thị:
   Chỉ "daysSinceLastRelapse" tại cuối tháng (hoặc tại thời điểm tạo
     snapshot cho tháng vừa đóng) — dùng chung công thức với
@@ -234,8 +243,12 @@ Journal — entryCount:
 
 Mood — dominantMood/distribution:
   Đếm Mood theo `label`, gắn với JournalEntry có `createdAt` trong
-    tháng và `state = SEALED` (Mood không có ngày riêng, luôn đi kèm
-    1 Journal entry — cùng field lọc với Journal ở trên).
+    tháng và `state = SEALED` (Mood có `createdAt` riêng, nhưng không
+    có ý nghĩa "ngày cảm thấy thế nào" độc lập với Journal entry nó
+    gắn vào — 1 Mood luôn thuộc về đúng 1 JournalEntry qua
+    `journalEntryId` unique — nên tháng của Mood đi theo tháng của
+    JournalEntry, cùng field lọc với Journal ở trên, không dùng
+    `Mood.createdAt` riêng).
   dominantMood = label có count cao nhất; hòa thì lấy label xuất
     hiện sớm nhất trong tháng (tie-break xác định được, không random).
 
