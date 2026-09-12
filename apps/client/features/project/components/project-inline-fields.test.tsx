@@ -13,6 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   changeProjectLifecycle,
+  setProjectIntendedOutcome,
   updateProject,
 } from "@/features/project/actions/project";
 import {
@@ -20,6 +21,7 @@ import {
   ProjectInlineDescription,
   ProjectInlineTitle,
   ProjectLifecycleControlsInline,
+  ProjectOutcomeEditorInline,
 } from "./project-inline-fields";
 
 // `fireEvent.blur` chỉ dispatch sự kiện, không thật sự đổi
@@ -36,6 +38,7 @@ function blurElement(element: HTMLElement) {
 vi.mock("@/features/project/actions/project", () => ({
   updateProject: vi.fn(),
   changeProjectLifecycle: vi.fn(),
+  setProjectIntendedOutcome: vi.fn(),
 }));
 
 vi.mock("@/lib/toast", () => ({
@@ -50,6 +53,7 @@ vi.mock("next/navigation", () => ({
 
 const mutation = vi.mocked(updateProject);
 const lifecycleMutation = vi.mocked(changeProjectLifecycle);
+const outcomeMutation = vi.mocked(setProjectIntendedOutcome);
 
 const baseProject: ProjectResponse = {
   id: "550e8400-e29b-41d4-a716-446655440000",
@@ -414,6 +418,253 @@ describe("ProjectLifecycleControlsInline", () => {
 
     await waitFor(() => expect(lifecycleMutation).toHaveBeenCalledOnce());
     expect(lifecycleMutation).toHaveBeenCalledWith(
+      expect.objectContaining({ expectedRevision: 4 }),
+    );
+  });
+});
+
+describe("ProjectFieldsProvider re-render behavior (no key-based remount)", () => {
+  beforeEach(() => {
+    mutation.mockReset();
+    refresh.mockReset();
+  });
+
+  afterEach(cleanup);
+
+  it("keeps an in-progress edit in one field after the sibling field's own save lands and the parent re-renders with the matching revision", async () => {
+    // Phải đi qua đúng đường lưu thật (không tự bịa prop revision mới) —
+    // nếu không, test không phân biệt được "field kia vừa tự lưu xong"
+    // với "có cập nhật từ bên ngoài", hai case có hành vi khác nhau sau
+    // khi thêm externalUpdateToken (case sau phải tự đóng editor).
+    mutation.mockResolvedValue({
+      status: "success",
+      project: { ...baseProject, title: "Ra mắt sản phẩm mới", revision: 4 },
+    });
+
+    const { rerender } = render(
+      <ProjectFieldsProvider initialProject={baseProject}>
+        <ProjectInlineTitle />
+        <ProjectInlineDescription placeholder="Chưa có mô tả cho effort này." />
+      </ProjectFieldsProvider>,
+    );
+
+    // Title tự lưu thành công trước — context đã có revision 4 ngay lập
+    // tức (qua setProject bên trong commit, không qua externalUpdateToken).
+    fireEvent.click(screen.getByRole("button", { name: /Ra mắt sản phẩm/ }));
+    fireEvent.change(screen.getByLabelText("Tên Project"), {
+      target: { value: "Ra mắt sản phẩm mới" },
+    });
+    blurElement(screen.getByLabelText("Tên Project"));
+    await waitFor(() => expect(mutation).toHaveBeenCalledOnce());
+
+    // Bắt đầu sửa description SAU khi title đã lưu xong, và không đụng gì
+    // tới nó nữa — nó vẫn là phần tử đang thật sự giữ focus của jsdom khi
+    // router.refresh() (mô phỏng ở rerender bên dưới) đến, đúng kịch bản
+    // "router.refresh() của title về muộn trong lúc user đã chuyển sang
+    // gõ description".
+    fireEvent.click(screen.getByRole("button", { name: /Chưa có mô tả/ }));
+    fireEvent.change(screen.getByLabelText("Mô tả Project"), {
+      target: { value: "Bản nháp chưa lưu" },
+    });
+
+    // router.refresh() sau đó khiến Server Component cha re-render với
+    // đúng revision 4 (không mới hơn state cục bộ đã có) — không được
+    // coi là cập nhật từ bên ngoài, description vẫn giữ nguyên draft.
+    rerender(
+      <ProjectFieldsProvider
+        initialProject={{
+          ...baseProject,
+          title: "Ra mắt sản phẩm mới",
+          revision: 4,
+        }}
+      >
+        <ProjectInlineTitle />
+        <ProjectInlineDescription placeholder="Chưa có mô tả cho effort này." />
+      </ProjectFieldsProvider>,
+    );
+
+    expect(
+      (screen.getByLabelText("Mô tả Project") as HTMLTextAreaElement).value,
+    ).toBe("Bản nháp chưa lưu");
+  });
+
+  it("closes an in-progress edit in the sibling field when the parent delivers a project from an external update", () => {
+    const { rerender } = render(
+      <ProjectFieldsProvider initialProject={baseProject}>
+        <ProjectInlineTitle />
+        <ProjectInlineDescription placeholder="Chưa có mô tả cho effort này." />
+      </ProjectFieldsProvider>,
+    );
+
+    // Bắt đầu sửa description, chưa blur/lưu.
+    fireEvent.click(screen.getByRole("button", { name: /Chưa có mô tả/ }));
+    fireEvent.change(screen.getByLabelText("Mô tả Project"), {
+      target: { value: "Bản nháp chưa lưu" },
+    });
+
+    // Cập nhật đến từ bên ngoài (vd "Tải bản mới nhất" sau conflict ở
+    // field khác) — revision nhảy lên mà KHÔNG qua commit cục bộ nào.
+    rerender(
+      <ProjectFieldsProvider
+        initialProject={{
+          ...baseProject,
+          description: "Mô tả mới từ server",
+          revision: 6,
+        }}
+      >
+        <ProjectInlineTitle />
+        <ProjectInlineDescription placeholder="Chưa có mô tả cho effort này." />
+      </ProjectFieldsProvider>,
+    );
+
+    // Editor phải tự đóng lại, không còn hiện draft cũ — nếu không, blur
+    // sau đó sẽ gửi draft cũ đè lên "Mô tả mới từ server" vừa tải về.
+    expect(screen.queryByLabelText("Mô tả Project")).toBeNull();
+    expect(
+      screen.getByRole("button", { name: /Mô tả mới từ server/ }),
+    ).toBeTruthy();
+  });
+
+  it("adopts a newer project from the parent when the revision has advanced without a local save", () => {
+    const { rerender } = render(
+      <ProjectFieldsProvider initialProject={baseProject}>
+        <ProjectInlineTitle />
+      </ProjectFieldsProvider>,
+    );
+
+    expect(
+      screen.getByRole("button", { name: /Ra mắt sản phẩm$/ }),
+    ).toBeTruthy();
+
+    // Mô phỏng "Tải bản mới nhất" sau conflict: router.refresh() lấy về
+    // project mới nhất từ server, revision nhảy hẳn lên (không phải do
+    // chính field này tự lưu).
+    rerender(
+      <ProjectFieldsProvider
+        initialProject={{
+          ...baseProject,
+          title: "Đổi từ nơi khác",
+          revision: 5,
+        }}
+      >
+        <ProjectInlineTitle />
+      </ProjectFieldsProvider>,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Đổi từ nơi khác" }),
+    ).toBeTruthy();
+  });
+});
+
+describe("ProjectOutcomeEditorInline", () => {
+  beforeEach(() => {
+    mutation.mockReset();
+    outcomeMutation.mockReset();
+    refresh.mockReset();
+  });
+
+  afterEach(cleanup);
+
+  const projectWithCycle: ProjectResponse = {
+    ...baseProject,
+    lifecycleState: "ACTIVE",
+    currentCycle: {
+      id: "cycle-1",
+      cycleNumber: 1,
+      intendedOutcome: null,
+      startedAt: "2026-08-01T00:00:00.000Z",
+      endedAt: null,
+      endReason: null,
+    },
+  };
+
+  it("submits using the revision from a just-completed inline save, not the initial prop", async () => {
+    mutation.mockResolvedValue({
+      status: "success",
+      project: {
+        ...projectWithCycle,
+        title: "Ra mắt sản phẩm mới",
+        revision: 4,
+      },
+    });
+    outcomeMutation.mockResolvedValue({
+      status: "success",
+      project: projectWithCycle,
+    });
+
+    render(
+      <ProjectFieldsProvider initialProject={projectWithCycle}>
+        <ProjectInlineTitle />
+        <ProjectOutcomeEditorInline />
+      </ProjectFieldsProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Ra mắt sản phẩm/ }));
+    fireEvent.change(screen.getByLabelText("Tên Project"), {
+      target: { value: "Ra mắt sản phẩm mới" },
+    });
+    blurElement(screen.getByLabelText("Tên Project"));
+    await waitFor(() => expect(mutation).toHaveBeenCalledOnce());
+
+    fireEvent.click(screen.getByRole("button", { name: "Xác định" }));
+    fireEvent.change(screen.getByPlaceholderText(/Bạn muốn đạt được/), {
+      target: { value: "Ra mắt bản beta cho 100 người dùng đầu tiên" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Lưu" }));
+
+    await waitFor(() => expect(outcomeMutation).toHaveBeenCalledOnce());
+    expect(outcomeMutation).toHaveBeenCalledWith(
+      expect.objectContaining({ expectedRevision: 4 }),
+    );
+  });
+
+  it("renders nothing when the project has no current cycle", () => {
+    const { container } = render(
+      <ProjectFieldsProvider initialProject={baseProject}>
+        <ProjectOutcomeEditorInline />
+      </ProjectFieldsProvider>,
+    );
+
+    expect(container.textContent).toBe("");
+  });
+
+  it("bumps the shared revision after its own save, so a title save right after doesn't send a stale revision", async () => {
+    outcomeMutation.mockResolvedValue({
+      status: "success",
+      project: { ...projectWithCycle, revision: 4 },
+    });
+    mutation.mockResolvedValue({
+      status: "success",
+      project: {
+        ...projectWithCycle,
+        title: "Ra mắt sản phẩm mới",
+        revision: 5,
+      },
+    });
+
+    render(
+      <ProjectFieldsProvider initialProject={projectWithCycle}>
+        <ProjectInlineTitle />
+        <ProjectOutcomeEditorInline />
+      </ProjectFieldsProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Xác định" }));
+    fireEvent.change(screen.getByPlaceholderText(/Bạn muốn đạt được/), {
+      target: { value: "Ra mắt bản beta cho 100 người dùng đầu tiên" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Lưu" }));
+    await waitFor(() => expect(outcomeMutation).toHaveBeenCalledOnce());
+
+    fireEvent.click(screen.getByRole("button", { name: /Ra mắt sản phẩm/ }));
+    fireEvent.change(screen.getByLabelText("Tên Project"), {
+      target: { value: "Ra mắt sản phẩm mới" },
+    });
+    blurElement(screen.getByLabelText("Tên Project"));
+
+    await waitFor(() => expect(mutation).toHaveBeenCalledOnce());
+    expect(mutation).toHaveBeenCalledWith(
       expect.objectContaining({ expectedRevision: 4 }),
     );
   });
