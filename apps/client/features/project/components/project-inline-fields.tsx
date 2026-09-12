@@ -8,6 +8,7 @@ import {
   type KeyboardEvent,
   type ReactNode,
   useContext,
+  useEffect,
   useRef,
   useState,
   useTransition,
@@ -18,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { updateProject } from "@/features/project/actions/project";
 import { ProjectLifecycleControls } from "@/features/project/components/project-lifecycle-controls";
+import { ProjectOutcomeEditor } from "@/features/project/components/project-outcome-editor";
 import { cn } from "@/lib/utils";
 
 const isRevisionConflict = (code?: string) =>
@@ -66,6 +68,21 @@ export function ProjectFieldsProvider({
     projectRef.current = next;
     setProjectState(next);
   };
+
+  // Không dùng `key` để remount Provider mỗi khi `project.revision` đổi —
+  // sau một lần lưu inline thành công, `setProject` đã đồng bộ state cục
+  // bộ ngay lập tức; nếu router.refresh() sau đó khiến Server Component
+  // re-render với cùng revision rồi remount cả cây, field còn lại (title
+  // hoặc description) đang gõ dở sẽ mất trắng draft chưa lưu. Thay vào đó,
+  // chỉ đồng bộ khi prop mới thật sự MỚI HƠN state cục bộ hiện tại — case
+  // này chỉ xảy ra khi có nguồn khác cập nhật project (vd bấm "Tải bản mới
+  // nhất" sau conflict), không xảy ra ở nhánh tự lưu thành công (lúc đó
+  // state cục bộ đã ở đúng revision mới rồi, so sánh không thấy "mới hơn").
+  useEffect(() => {
+    if (initialProject.revision > projectRef.current.revision) {
+      setProject(initialProject);
+    }
+  }, [initialProject]);
 
   function runExclusive<T>(task: () => Promise<T>): Promise<T> {
     const run = queueRef.current.then(task, task);
@@ -403,6 +420,23 @@ export function ProjectLifecycleControlsInline() {
       title={project.title}
       lifecycleState={project.lifecycleState}
       revision={project.revision}
+    />
+  );
+}
+
+/** Cùng lý do với `ProjectLifecycleControlsInline`: `ProjectOutcomeEditor`
+ * phải đọc `revision`/`intendedOutcome` từ context chia sẻ, không phải
+ * prop truyền từ Server Component cha — nếu không, lưu intended outcome
+ * ngay sau một lần lưu title/description inline sẽ gửi `expectedRevision`
+ * cũ và bị 409 giả. */
+export function ProjectOutcomeEditorInline() {
+  const { project } = useProjectFields();
+  if (!project.currentCycle) return null;
+  return (
+    <ProjectOutcomeEditor
+      id={project.id}
+      revision={project.revision}
+      intendedOutcome={project.currentCycle.intendedOutcome}
     />
   );
 }

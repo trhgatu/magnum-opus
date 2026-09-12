@@ -11,8 +11,8 @@ import {
   ProjectInlineDescription,
   ProjectInlineTitle,
   ProjectLifecycleControlsInline,
+  ProjectOutcomeEditorInline,
 } from "@/features/project/components/project-inline-fields";
-import { ProjectOutcomeEditor } from "@/features/project/components/project-outcome-editor";
 
 const STATE_LABEL: Record<ProjectResponse["lifecycleState"], string> = {
   NOT_STARTED: "Chưa bắt đầu",
@@ -41,10 +41,7 @@ export function ProjectDetail({ project }: { project: ProjectResponse }) {
         <ArrowLeft aria-hidden="true" /> Tất cả Project
       </Link>
 
-      <ProjectFieldsProvider
-        key={`${project.id}-${project.revision}`}
-        initialProject={project}
-      >
+      <ProjectFieldsProvider key={project.id} initialProject={project}>
         <ContextHero
           id="project-title"
           icon={FolderKanban}
@@ -83,24 +80,20 @@ export function ProjectDetail({ project }: { project: ProjectResponse }) {
             </>
           }
         />
-      </ProjectFieldsProvider>
 
-      {hasOpenCycle && project.currentCycle ? (
-        <Card className="gap-0 rounded-3xl bg-card/65 py-0 shadow-sm">
-          <CardHeader className="border-b px-5 py-5 sm:px-7">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-              Intended Outcome — Cycle {project.currentCycle.cycleNumber}
-            </p>
-          </CardHeader>
-          <CardContent className="px-5 py-6 sm:px-7 sm:py-7">
-            <ProjectOutcomeEditor
-              id={project.id}
-              revision={project.revision}
-              intendedOutcome={project.currentCycle.intendedOutcome}
-            />
-          </CardContent>
-        </Card>
-      ) : null}
+        {hasOpenCycle && project.currentCycle ? (
+          <Card className="gap-0 rounded-3xl bg-card/65 py-0 shadow-sm">
+            <CardHeader className="border-b px-5 py-5 sm:px-7">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+                Intended Outcome — Cycle {project.currentCycle.cycleNumber}
+              </p>
+            </CardHeader>
+            <CardContent className="px-5 py-6 sm:px-7 sm:py-7">
+              <ProjectOutcomeEditorInline />
+            </CardContent>
+          </Card>
+        ) : null}
+      </ProjectFieldsProvider>
 
       <footer className="flex flex-wrap justify-end gap-2 border-t pt-4 font-mono text-xs text-muted-foreground">
         <time dateTime={project.updatedAt}>
