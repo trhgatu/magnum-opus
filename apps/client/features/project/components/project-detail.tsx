@@ -6,7 +6,12 @@ import { ContextHero } from "@/components/system/context-hero";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { ProjectLifecycleControls } from "@/features/project/components/project-lifecycle-controls";
+import {
+  ProjectFieldsProvider,
+  ProjectInlineDescription,
+  ProjectInlineTitle,
+  ProjectLifecycleControlsInline,
+} from "@/features/project/components/project-inline-fields";
 import { ProjectOutcomeEditor } from "@/features/project/components/project-outcome-editor";
 
 const STATE_LABEL: Record<ProjectResponse["lifecycleState"], string> = {
@@ -36,47 +41,49 @@ export function ProjectDetail({ project }: { project: ProjectResponse }) {
         <ArrowLeft aria-hidden="true" /> Tất cả Project
       </Link>
 
-      <ContextHero
-        id="project-title"
-        icon={FolderKanban}
-        eyebrow="Crucible · Project"
-        title={project.title}
-        description={project.description ?? "Chưa có mô tả cho effort này."}
-        meta={
-          <>
-            {project.currentCycle ? (
-              <Badge variant="outline">
-                Cycle {project.currentCycle.cycleNumber}
+      <ProjectFieldsProvider
+        key={`${project.id}-${project.revision}`}
+        initialProject={project}
+      >
+        <ContextHero
+          id="project-title"
+          icon={FolderKanban}
+          eyebrow="Crucible · Project"
+          title={<ProjectInlineTitle />}
+          description={
+            <ProjectInlineDescription placeholder="Chưa có mô tả cho effort này." />
+          }
+          meta={
+            <>
+              {project.currentCycle ? (
+                <Badge variant="outline">
+                  Cycle {project.currentCycle.cycleNumber}
+                </Badge>
+              ) : null}
+              <Badge
+                variant={
+                  project.lifecycleState === "STOPPED"
+                    ? "destructive"
+                    : "secondary"
+                }
+              >
+                {STATE_LABEL[project.lifecycleState]}
               </Badge>
-            ) : null}
-            <Badge
-              variant={
-                project.lifecycleState === "STOPPED"
-                  ? "destructive"
-                  : "secondary"
-              }
-            >
-              {STATE_LABEL[project.lifecycleState]}
-            </Badge>
-          </>
-        }
-        actions={
-          <>
-            <Link
-              href={`/projects/${project.id}/edit`}
-              className={buttonVariants({ variant: "outline" })}
-            >
-              <Pencil aria-hidden="true" /> Chỉnh sửa
-            </Link>
-            <ProjectLifecycleControls
-              id={project.id}
-              title={project.title}
-              lifecycleState={project.lifecycleState}
-              revision={project.revision}
-            />
-          </>
-        }
-      />
+            </>
+          }
+          actions={
+            <>
+              <Link
+                href={`/projects/${project.id}/edit`}
+                className={buttonVariants({ variant: "outline" })}
+              >
+                <Pencil aria-hidden="true" /> Chỉnh sửa
+              </Link>
+              <ProjectLifecycleControlsInline />
+            </>
+          }
+        />
+      </ProjectFieldsProvider>
 
       {hasOpenCycle && project.currentCycle ? (
         <Card className="gap-0 rounded-3xl bg-card/65 py-0 shadow-sm">
