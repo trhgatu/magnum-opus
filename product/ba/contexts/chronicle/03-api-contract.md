@@ -33,10 +33,16 @@ interface ChronicleResponse {
 }
 
 interface ChronicleHabitSection {
-  buildCompletionRate: number; // 0.0–1.0, 0 nếu owner không có Habit
-  // BUILD-type nào active tại thời điểm tính
-  bestStreak: { habitTitle: string; days: number } | null; // null nếu
-  // không có streak nào > 0
+  buildCompletionRate: number; // 0.0–1.0 — trung bình completion rate
+  // của mọi Habit BUILD active tại thời điểm tính, 0 nếu không có
+  // Habit BUILD nào
+  bestStreak: { habitTitle: string; days: number } | null; // Habit có
+  // streak liên tục dài nhất trong tháng; null nếu không có streak
+  // nào > 0
+  mostConsistentHabit: { habitTitle: string; completionRate: number } | null;
+  // Habit BUILD có completion rate riêng cao nhất trong tháng — khác
+  // bestStreak (đo streak liên tục, không phải tỉ lệ tổng thể); null
+  // nếu không có Habit BUILD nào (SC-CHR-005)
   quitHabits: Array<{
     habitTitle: string;
     daysSinceLastRelapse: number;
@@ -83,17 +89,20 @@ không rò rỉ khái niệm "snapshot".
 200 OK → ChronicleResponse
 ```
 
-| Status | Reason                                                                                                                      |
-| ------ | --------------------------------------------------------------------------------------------------------------------------- |
-| 400    | `year`/`month` không đúng định dạng số nguyên, hoặc `month` ngoài khoảng 1–12 (`CHRONICLE_INVALID_MONTH`)                   |
-| 400    | Tháng nằm trong tương lai so với hôm nay theo `owner.timeZone` (`CHRONICLE_MONTH_IN_FUTURE`, KD-CHR-007)                    |
-| 400    | Tháng trước tháng tạo account của owner (`CHRONICLE_MONTH_BEFORE_ACCOUNT_CREATION`, lower bound đã chốt §5 domain analysis) |
-| 401    | Unauthorized                                                                                                                |
+| Status | Reason                                                                                                    |
+| ------ | --------------------------------------------------------------------------------------------------------- |
+| 400    | `year`/`month` không đúng định dạng số nguyên, hoặc `month` ngoài khoảng 1–12 (`CHRONICLE_INVALID_MONTH`) |
+| 400    | Tháng nằm trong tương lai so với hôm nay theo `owner.timeZone` (`CHRONICLE_MONTH_IN_FUTURE`, KD-CHR-007)  |
+| 401    | Unauthorized                                                                                              |
 
-**Không có 404** — mọi tháng hợp lệ (trong khoảng account creation ↔
-hiện tại) luôn trả `200`, kể cả khi không có data nào (KD-CHR-004: các
-field số về 0, `bestStreak`/`dominantMood` về `null`, mảng rỗng —
-không throw, không empty-state riêng ở tầng API).
+**Không có 404, và không có lỗi cho tháng trước khi tạo account** —
+đúng UN-CHR-004/KD-CHR-004: mọi tháng từ trong quá khứ (không giới
+hạn) tới tháng hiện tại đều trả `200`, kể cả tháng trước khi owner tạo
+account — vì tự nhiên không có data ở module nào tại thời điểm đó,
+response về zeros/null/mảng rỗng như mọi tháng trống khác, không cần
+enforce riêng (xem `02-domain-analysis.md` §5 "Lower bound
+navigation"). Chỉ tháng **tương lai** mới bị chặn, vì nó không thể
+tính được (không phải "trống", mà là "chưa tồn tại").
 
 **Behavior:** owner-scoped (KD-CHR-010) — `ownerId` lấy từ access
 token, không nhận trong path/query. Tháng hiện tại luôn compute
@@ -134,7 +143,7 @@ Nhất quán `DomainExceptionFilter` đã dùng toàn hệ thống (xem
 
 ```text
 - Không có endpoint list nhiều tháng cùng lúc (mỗi request đúng 1
-  tháng — KD-CHR-006, Out of Scope §7: không cross-month comparison).
+  tháng — DO-CHR-002, Out of Scope §7: không cross-month comparison).
 - Không có endpoint invalidate/tính lại snapshot
   (02-domain-analysis.md §7).
 - Không có endpoint export (PDF/file) — Out of Scope §7 của

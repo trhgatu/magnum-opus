@@ -253,21 +253,22 @@ tháng, aggregated view, có computation — giống báo cáo định kỳ).
 Cùng nguồn dữ liệu ở phía Reflection (Journal/Memory), nhưng hai
 read model độc lập, không cái nào thay thế cái kia.
 
-KD-CHR-009 — Only the Current Month Can Drift
-Nhờ KD-CHR-002 (snapshot khi tháng đã đóng), vấn đề "field mutable
-sau khi tạo làm số liệu tháng cũ trôi theo thời gian" (isActive,
-trashed state, title/description, nội dung Mood...) **chỉ còn xảy ra
-với tháng hiện tại** — vì nó chưa có snapshot, vẫn compute real-time
-mỗi lần xem. Ngay khi tháng đó kết thúc và snapshot đầu tiên được tạo,
-số liệu đóng băng vĩnh viễn tại đúng state của các module lúc đó —
-không cần cơ chế "point-in-time reconstruction" (lifecycle transition
-log) cho field mutable nữa, vì không ai xem lại một tháng *đã đóng*
-trước khi nó có snapshot. Rủi ro drift duy nhất còn lại: nếu người
-dùng archive một Habit *trong chính tháng đó, trước khi tháng kết
-thúc*, thì việc "Habit này có tính vào completion rate không" phụ
-thuộc vào state tại đúng lúc snapshot được tạo (cuối tháng, theo
-owner's time zone) — không phải một vấn đề xuyên nhiều tháng, xem
-Open Analysis §10.
+KD-CHR-009 — A Closed Month Freezes at First-View Time, Not Month-End
+Nhờ KD-CHR-002 (snapshot khi tháng đã đóng), một tháng đã đóng chỉ
+còn "trôi" cho tới lần đầu tiên nó được xem — sau đó đóng băng vĩnh
+viễn. Nhưng **thời điểm đóng băng là lúc xem lần đầu, không phải lúc
+tháng kết thúc**: nếu tháng 3 đóng nhưng mãi tới tháng 9 mới có ai mở
+Chronicle tháng 3 lần đầu, snapshot phản ánh state của các module tại
+tháng 9, không phải tại tháng 3. Một Habit active suốt tháng 3 nhưng
+bị archive vào tháng 6 sẽ bị loại khỏi completion rate của tháng 3
+nếu tháng 3 chưa từng được xem trước tháng 6. Đây vẫn là đánh đổi có
+chủ đích (giữ KD-CHR-002 đơn giản, không cần lifecycle-transition-log)
+— nhưng khác với khẳng định trước đó, rủi ro drift không chỉ giới hạn
+ở tháng hiện tại: nó áp dụng cho **bất kỳ tháng đã đóng nào chưa từng
+được xem lần đầu**, và biến mất ngay khi tháng đó có snapshot. Trong
+thực tế, hầu hết tháng được xem sớm sau khi đóng (ngay đầu tháng kế
+tiếp) nên cửa sổ rủi ro thường ngắn, nhưng không có gì đảm bảo điều
+đó ở tầng domain.
 
 KD-CHR-010 — Chronicle Is Owner-Scoped
 Mọi read model của Chronicle lọc theo `ownerId` của người dùng hiện
@@ -278,7 +279,8 @@ KD-CHR-011 — Month Boundary Uses the Owner's Time Zone
 "Tháng hiện tại" và ranh giới đầu/cuối của một tháng được xác định
 theo `User.timeZone` của owner, không phải UTC hay giờ server —
 nhất quán với cách Today/Habit Check-in đã xác định "ngày nghiệp vụ"
-(`resolveTodayCalendarDate`, xem `docs/modules/backend.md`).
+(`resolveTodayCalendarDate`, xem
+`apps/server/src/contexts/forge/today/infrastructure/time/today-calendar.ts`).
 ```
 
 ---
@@ -319,17 +321,11 @@ reader) và §7 (out of scope), không còn mở nữa:
   02-domain-analysis.md §7
 ✓ Buffer quanh ranh giới tháng — chấp nhận rủi ro, không thiết kế
   cơ chế trì hoãn, 02-domain-analysis.md §7
+✓ Chronicle Snapshot có expose "computedAt" qua API không — có, xem
+  `ChronicleResponse.computedAt` ở 03-api-contract.md §2
 ```
 
-Còn lại, chưa chốt:
-
-```text
-- Chronicle Snapshot có cần expose qua API một field "computedAt"
-  (khác createdAt của snapshot) để UI có thể hiện "số liệu này được
-  tính lúc nào" không, hay chỉ cần ẩn đi vì người dùng không cần biết
-  đây là snapshot hay live — quyết định ở tầng API Contract
-  (03-api-contract.md), không phải domain.
-```
+Không còn câu hỏi mở nào tính đến cuối API Contract (03-api-contract.md).
 
 ---
 
@@ -340,7 +336,7 @@ Còn lại, chưa chốt:
         ↓
 02. Domain Analysis       ✓ done (xem 02-domain-analysis.md)
         ↓
-03. API Contract
+03. API Contract          ✓ done (xem 03-api-contract.md)
         ↓
 04. Implementation
 ```

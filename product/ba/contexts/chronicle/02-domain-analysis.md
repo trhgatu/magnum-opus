@@ -125,14 +125,14 @@ ChronicleJournalSnapshot
 
 ChronicleMoodSnapshot
 ├── snapshotId
-├── dominantMood
-└── distribution: { [mood: string]: number }   (đếm theo label,
-                                                 nhỏ và cố định —
-                                                 JSON ở đây chấp
-                                                 nhận được vì không
-                                                 cần type theo module
-                                                 khác, chỉ là 1 map
-                                                 đếm nội bộ)
+├── dominantMood: MoodLabel?
+└── distribution: ChronicleMoodDistributionEntry[]  (1 dòng / label
+                                                      có count > 0)
+
+ChronicleMoodDistributionEntry
+├── snapshotId
+├── label: MoodLabel     (tái dùng enum MoodLabel đã có ở Mood domain)
+└── count
 
 ChronicleMemorySnapshot
 ├── snapshotId
@@ -146,14 +146,16 @@ biểu diễn bằng field cố định. Đây là bảng 1-N thật sự, khôn
 JSON, vì mỗi dòng có type rõ ràng (`habitTitle`, `daysSinceLastRelapse`)
 và số lượng dòng nhỏ (bằng số Habit QUIT của owner tại thời điểm đó).
 
-**Vì sao `ChronicleMoodSnapshot.distribution` dùng JSON:** đây là
-ngoại lệ có chủ đích, khác với DAP-CHR-001 — nhãn mood (`label`) là
-free-form do domain Mood định nghĩa, Chronicle không nên hard-code
-danh sách nhãn mood vào schema của chính nó (coupling ngược). Khác
-với việc "6 module có 6 shape khác nhau" (lý do dùng bảng con riêng),
-đây là "1 module có N nhãn không cố định" — đúng loại vấn đề JSON
-column giải quyết tốt, và phạm vi cực nhỏ (chỉ 1 field, không phải
-toàn bộ snapshot).
+**Vì sao `distribution` là bảng con (`ChronicleMoodDistributionEntry`),
+không phải JSON:** `MoodLabel` là enum Prisma cố định 10 giá trị
+(`JOYFUL`, `CALM`, `HOPEFUL`, `ENERGETIC`, `NEUTRAL`, `TIRED`,
+`ANXIOUS`, `SAD`, `ANGRY`, `OVERWHELMED`) — không free-form như suy
+đoán ban đầu. Vì đã có enum sẵn để tái dùng, một bảng con 1-N (1 dòng
+mỗi label có count > 0) vẫn giữ được type-safety đầy đủ qua Prisma,
+nhất quán với DAP-CHR-001, không cần ngoại lệ JSON nào cả — đúng cùng
+pattern với `ChronicleQuitHabitSnapshot` (1-N, số dòng biến thiên theo
+dữ liệu thực tế của owner trong tháng đó, tối đa 10 dòng vì chỉ có 10
+label).
 
 ---
 
@@ -222,16 +224,18 @@ Project — "active trong tháng" (SC-CHR-006):
     với toState tương ứng và occurredAt nằm trong tháng.
 
 Journal — entryCount:
-  Đếm JournalEntry có sealedAt nằm trong tháng VÀ state hiện tại
-    khác TRASHED (nhất quán với cách list Journal bình thường loại
-    trừ trashed — KD-CHR-009 chấp nhận số có thể trôi nếu user trash
-    entry cũ sau khi tháng đã có snapshot... nhưng vì tháng đã đóng
-    thì snapshot đã đông cứng ngay lúc tạo, nên trong thực tế chỉ
-    "trôi" nếu trash xảy ra TRƯỚC lần xem đầu tiên của tháng đó).
+  JournalEntry không có field `sealedAt` — chỉ có `createdAt`,
+    `updatedAt`, `state` (DRAFT/SEALED/TRASHED), `trashedAt`. Đếm
+    JournalEntry có `createdAt` nằm trong tháng, `state = SEALED`
+    (không tính DRAFT — chưa phải một entry đã hoàn thành) VÀ khác
+    TRASHED (nhất quán với cách list Journal bình thường loại trừ
+    trashed — KD-CHR-009 chấp nhận số có thể trôi nếu user trash entry
+    cũ trước lần xem đầu tiên của tháng đó).
 
 Mood — dominantMood/distribution:
-  Đếm Mood theo `label`, gắn với JournalEntry có sealedAt trong
-    tháng (Mood không có ngày riêng, luôn đi kèm 1 Journal entry).
+  Đếm Mood theo `label`, gắn với JournalEntry có `createdAt` trong
+    tháng và `state = SEALED` (Mood không có ngày riêng, luôn đi kèm
+    1 Journal entry — cùng field lọc với Journal ở trên).
   dominantMood = label có count cao nhất; hòa thì lấy label xuất
     hiện sớm nhất trong tháng (tie-break xác định được, không random).
 
@@ -240,10 +244,14 @@ Memory — memoryCount:
     (cùng lý do với Journal).
 
 Lower bound navigation:
-  User.createdAt — tháng trước đó bị chặn, không cho navigate tới
-    (khác với "tháng có data nhưng chưa navigate" — tháng nằm trong
-    khoảng [tạo account, hiện tại] luôn cho xem, dù trống thì hiện
-    zeros theo KD-CHR-004).
+  Không có chặn cứng ở tầng backend cho tháng trước khi tạo account —
+    đúng tinh thần UN-CHR-004/KD-CHR-004 ("không block navigation,
+    không throw error"). Một tháng trước `User.createdAt` tự nhiên
+    không có data ở bất kỳ module nào, nên 6 reader tự trả về zeros
+    như mọi tháng trống khác, không cần logic đặc biệt để "chặn" nó.
+    `User.createdAt` chỉ hữu ích như metadata để client tự quyết định
+    có disable nút "tháng trước" hay không — không phải một invariant
+    domain, và không nằm trong V1 API contract (03-api-contract.md).
 ```
 
 ---
