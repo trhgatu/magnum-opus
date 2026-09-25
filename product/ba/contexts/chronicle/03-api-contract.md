@@ -112,6 +112,13 @@ real-time; tháng đã đóng đọc/ghi snapshot lazy theo đúng luồng ở
 `02-domain-analysis.md` §4 — client không cần biết phân biệt này,
 response shape giống hệt nhau.
 
+**Ghi chú nội bộ (không ảnh hưởng contract):** ở tầng domain,
+`year`/`month` được map sang `periodType = MONTH` +
+`periodKey`/`periodStart`/`periodEnd` tổng quát (DAP-CHR-005,
+`02-domain-analysis.md` §2) — đây là chi tiết triển khai để dễ mở
+rộng thêm kỳ khác (tuần/quý/năm) sau này mà không đổi schema; endpoint
+và response của V1 không đổi.
+
 ---
 
 ## 4. Error Format

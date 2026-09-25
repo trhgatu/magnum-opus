@@ -20,17 +20,37 @@ theo owner's time zone).
 
 ## 2. Domain Analysis Principles
 
-### DAP-CHR-001 — One Snapshot Table Per Source Module, Not One Wide Table
+### DAP-CHR-001 — One Generic Section Table, Not One Table Per Module
 
-Mỗi module nguồn (Habit, Routine, Project, Journal, Mood, Memory) có
-bảng snapshot con riêng, nối vào 1 bảng cha `ChronicleSnapshot` qua
-`snapshotId`. Không dùng 1 bảng rộng chứa mọi field của mọi module,
-và không dùng JSON blob. Lý do: nhất quán với cách toàn bộ hệ thống
-đã tổ chức dữ liệu — mỗi context sở hữu bảng của riêng mình
-(`HabitRelapse`, `HabitCheckIn`, `ProjectCycle` không nằm chung 1
-bảng), giữ type-safety qua Prisma, và cho phép thêm module mới (Task,
-Goal — KD-CHR-005) bằng cách tạo bảng mới, không sửa bảng đang tồn
-tại.
+**(Đã đổi từ thiết kế ban đầu — xem lý do bên dưới)** Chronicle dùng
+1 bảng con generic duy nhất, `ChronicleSnapshotSection`
+(`snapshotId`, `module`, `data: Json`), thay vì 1 bảng Prisma riêng
+cho mỗi module nguồn. Mỗi module (Habit, Routine, Project, Journal,
+Mood, Memory) là 1 row trong bảng này, phân biệt bằng cột `module`
+(string), với `data` chứa toàn bộ số liệu của module đó dưới dạng
+JSON — bao gồm cả các mảng con trước đây định làm bảng riêng
+(`quitHabits`, `mood.distribution`) nay nằm ngay trong `data`.
+
+**Lý do đổi từ "mỗi module 1 bảng"**: Chronicle được xác định sẽ có
+rất nhiều module nguồn tham gia theo thời gian (không dừng ở 6 module
+V1 — KD-CHR-005 đã dự trù Task, Goal, v.v.). Với thiết kế "mỗi module
+1 bảng", thêm 1 module mới luôn cần 1 migration (bảng mới, quan hệ
+mới), và đọc/ghi 1 snapshot đầy đủ có độ phức tạp tăng tuyến tính
+theo số module (N bảng cần join khi đọc, N câu insert khi ghi). Với
+thiết kế generic-section, thêm module mới chỉ là thêm 1 giá trị
+`module` mới + 1 TypeScript type tương ứng ở tầng application —
+**không migration, không đổi shape query** (luôn luôn 1 bảng cha + 1
+`include: { sections: true }`), dù có 6 hay 60 module. Type-safety
+cho `data` chuyển sang tầng application (1 discriminated union
+`ChronicleSectionData`, mỗi module 1 interface, validate bằng Zod
+trước khi ghi) thay vì được Postgres enforce trực tiếp — chấp nhận
+được vì `data` chỉ được ghi từ đúng 1 chỗ trong code (query handler
+tạo snapshot), không phải input trực tiếp từ người dùng.
+
+Pattern này tương tự cách các hệ thống có nhiều loại "card"/"widget"
+khác nhau trong 1 danh sách vẫn tổ chức (Notion blocks, Stripe
+line-item snapshots) — một bảng chứa nhiều "loại nội dung" phân biệt
+bằng discriminator, thay vì một bảng riêng cho mỗi loại.
 
 ### DAP-CHR-002 — Snapshot Is Created Lazily, Not by a Scheduled Job
 
@@ -68,6 +88,24 @@ KD-CHR-009) vì snapshot chỉ cần đúng trạng thái **tại thời điểm
 snapshot**, không cần tái tạo trạng thái tại một ngày bất kỳ trong
 quá khứ.
 
+### DAP-CHR-005 — Snapshot Period Is Generic, Not Hardcoded to Month
+
+`ChronicleSnapshot` định danh kỳ bằng 3 field tổng quát thay vì
+`year`/`month` cố định: `periodType` (enum `DAY | MONTH | QUARTER |
+YEAR`), `periodKey` (string canonical, vd `"2026-09"` cho MONTH,
+`"2026-Q3"` cho QUARTER — dùng trong unique constraint), và
+`periodStart`/`periodEnd` (`DateTime` thật, dùng để range-query và so
+sánh biên thay vì parse `periodKey`). V1 chỉ dùng `periodType =
+MONTH` — API contract (`03-api-contract.md`) vẫn chỉ expose
+`/chronicle/:year/:month`, `periodKey` được tính từ `year`/`month`
+ở tầng application (`computePeriodKey`), không lộ ra ngoài response.
+
+**Lý do tổng quát hóa ngay từ V1**: cùng lý do với DAP-CHR-001 (tránh
+migration khi mở rộng) — nếu sau này cần Chronicle theo tuần/quý/năm,
+`ChronicleSnapshot` không cần đổi cấu trúc, chỉ thêm giá trị
+`periodType` mới + endpoint mới map sang cùng bảng. `@@unique` đổi
+từ `(ownerId, year, month)` thành `(ownerId, periodType, periodKey)`.
+
 ---
 
 ## 3. Domain Concepts
@@ -78,86 +116,87 @@ quá khứ.
 ChronicleSnapshot
 ├── ChronicleSnapshotId
 ├── ownerId
-├── year
-├── month
-├── createdAt          (thời điểm snapshot được tạo, không phải
-│                        thời điểm tháng kết thúc)
-└── (quan hệ 1-1 tùy chọn tới 6 bảng con — §3.2)
+├── periodType: DAY | MONTH | QUARTER | YEAR   (V1 chỉ dùng MONTH)
+├── periodKey            (string canonical, vd "2026-09" — unique key)
+├── periodStart          (DateTime, đầu kỳ)
+├── periodEnd            (DateTime, cuối kỳ)
+├── computedAt           (thời điểm snapshot được tạo, không phải
+│                         thời điểm kỳ kết thúc)
+└── sections: ChronicleSnapshotSection[]   (1 dòng / module — §3.2)
 ```
 
-Unique theo `(ownerId, year, month)` — mỗi owner chỉ có tối đa 1
-snapshot cho mỗi tháng.
+Unique theo `(ownerId, periodType, periodKey)` — mỗi owner chỉ có tối
+đa 1 snapshot cho mỗi kỳ (DAP-CHR-005).
 
 **Không có `updatedAt`** — snapshot bất biến sau khi tạo (KD-CHR-009).
 Không có `expectedRevision`/optimistic concurrency vì không ai được
 sửa nó qua API.
 
-### 3.2. Bảng con theo module (Entity mới, mỗi module một bảng)
+### 3.2. ChronicleSnapshotSection (Entity mới, generic — DAP-CHR-001)
 
 ```text
-ChronicleHabitSnapshot
+ChronicleSnapshotSection
 ├── snapshotId
-├── buildCompletionRate         (0.0–1.0, chỉ tính Habit BUILD active
-│                                tại thời điểm tạo snapshot)
-├── bestStreakHabitTitle
-├── bestStreakDays
-├── mostConsistentHabitTitle
-├── mostConsistentCompletionRate
-└── quitHabits: ChronicleQuitHabitSnapshot[]  (1 dòng / Habit QUIT)
-
-ChronicleQuitHabitSnapshot
-├── snapshotId
-├── habitTitle
-└── daysSinceLastRelapse    (tại cuối tháng, hoặc tại thời điểm tạo
-                             snapshot nếu tháng đó là tháng vừa đóng)
-
-ChronicleRoutineSnapshot
-├── snapshotId
-└── completionRate          (0.0–1.0)
-
-ChronicleProjectSnapshot
-├── snapshotId
-├── activeCount
-├── completedCount
-└── stoppedCount
-
-ChronicleJournalSnapshot
-├── snapshotId
-└── entryCount
-
-ChronicleMoodSnapshot
-├── snapshotId
-├── dominantMood: MoodLabel?
-└── distribution: ChronicleMoodDistributionEntry[]  (1 dòng / label
-                                                      có count > 0)
-
-ChronicleMoodDistributionEntry
-├── snapshotId
-├── label: MoodLabel     (tái dùng enum MoodLabel đã có ở Mood domain)
-└── count
-
-ChronicleMemorySnapshot
-├── snapshotId
-└── memoryCount
+├── module: string        ("habit" | "routine" | "project" | "journal"
+│                          | "mood" | "memory", mở rộng được)
+└── data: Json            (shape theo `module`, xem dưới)
 ```
 
-**Vì sao QUIT Habit là bảng con riêng (`ChronicleQuitHabitSnapshot`),
-không phải field trên `ChronicleHabitSnapshot`:** số lượng Habit
-QUIT-type của một owner không cố định (0, 1, hay nhiều) — không thể
-biểu diễn bằng field cố định. Đây là bảng 1-N thật sự, không phải
-JSON, vì mỗi dòng có type rõ ràng (`habitTitle`, `daysSinceLastRelapse`)
-và số lượng dòng nhỏ (bằng số Habit QUIT của owner tại thời điểm đó).
+Unique theo `(snapshotId, module)` — mỗi module chỉ có 1 section /
+snapshot.
 
-**Vì sao `distribution` là bảng con (`ChronicleMoodDistributionEntry`),
-không phải JSON:** `MoodLabel` là enum Prisma cố định 10 giá trị
-(`JOYFUL`, `CALM`, `HOPEFUL`, `ENERGETIC`, `NEUTRAL`, `TIRED`,
-`ANXIOUS`, `SAD`, `ANGRY`, `OVERWHELMED`) — không free-form như suy
-đoán ban đầu. Vì đã có enum sẵn để tái dùng, một bảng con 1-N (1 dòng
-mỗi label có count > 0) vẫn giữ được type-safety đầy đủ qua Prisma,
-nhất quán với DAP-CHR-001, không cần ngoại lệ JSON nào cả — đúng cùng
-pattern với `ChronicleQuitHabitSnapshot` (1-N, số dòng biến thiên theo
-dữ liệu thực tế của owner trong tháng đó, tối đa 10 dòng vì chỉ có 10
-label).
+`data` của mỗi `module` theo shape TypeScript sau (định nghĩa và
+validate ở tầng application, không phải Prisma model):
+
+```typescript
+interface HabitSectionData {
+  buildCompletionRate: number; // 0.0–1.0, chỉ tính Habit BUILD active
+  bestStreak: { habitTitle: string; days: number } | null;
+  mostConsistentHabit: {
+    habitTitle: string;
+    completionRate: number;
+  } | null;
+  quitHabits: Array<{ habitTitle: string; daysSinceLastRelapse: number }>;
+}
+
+interface RoutineSectionData {
+  completionRate: number; // 0.0–1.0
+}
+
+interface ProjectSectionData {
+  activeCount: number;
+  completedCount: number;
+  stoppedCount: number;
+}
+
+interface JournalSectionData {
+  entryCount: number;
+}
+
+interface MoodSectionData {
+  dominantMood: MoodLabel | null;
+  distribution: Partial<Record<MoodLabel, number>>; // label → count,
+  // chỉ chứa label có count > 0
+}
+
+interface MemorySectionData {
+  memoryCount: number;
+}
+```
+
+**Vì sao `quitHabits` và `distribution` nằm trong `data` (JSON) thay
+vì bảng con riêng:** trong thiết kế "mỗi module 1 bảng" trước đây,
+2 mảng này cần bảng 1-N riêng vì Prisma model không biểu diễn được
+mảng lồng trong 1 row. Sau khi chuyển `data` sang JSON (DAP-CHR-001),
+mảng lồng không còn là vấn đề — `quitHabits`/`distribution` là 1
+phần bình thường của `data`, không cần bảng riêng, không mất
+type-safety vì được validate bằng Zod schema tương ứng với từng
+interface ở trên trước khi ghi.
+
+`MoodLabel` vẫn là enum Prisma có sẵn (10 giá trị: `JOYFUL`, `CALM`,
+`HOPEFUL`, `ENERGETIC`, `NEUTRAL`, `TIRED`, `ANXIOUS`, `SAD`, `ANGRY`,
+`OVERWHELMED`) — `MoodSectionData` tái dùng type này ở tầng
+TypeScript dù lưu trong JSON, không phải string tự do.
 
 ---
 
@@ -165,21 +204,23 @@ label).
 
 ```text
 GetMonthlyChronicleQuery(ownerId, year, month):
-  1. isCurrentMonth = (year, month) == hôm nay theo owner.timeZone
-     (KD-CHR-011)
-  2. if isCurrentMonth:
+  1. periodKey = computePeriodKey(MONTH, year, month)
+     (periodStart/periodEnd tính theo owner.timeZone — KD-CHR-011)
+  2. isCurrentMonth = (year, month) == hôm nay theo owner.timeZone
+  3. if isCurrentMonth:
        → compute trực tiếp từ 6 reader, KHÔNG đọc/ghi snapshot
        → trả kết quả, không persist
-  3. if !isCurrentMonth:
-       → tìm ChronicleSnapshot theo (ownerId, year, month)
-       → nếu có → đọc snapshot, trả về (không compute lại)
+  4. if !isCurrentMonth:
+       → tìm ChronicleSnapshot theo (ownerId, MONTH, periodKey)
+       → nếu có → đọc snapshot + sections, trả về (không compute lại)
        → nếu chưa có →
            a. compute từ 6 reader (như tháng hiện tại)
-           b. persist thành ChronicleSnapshot + 6 bảng con (transaction)
+           b. persist thành ChronicleSnapshot + 6 ChronicleSnapshotSection
+              (1 transaction)
            c. trả kết quả vừa compute
 ```
 
-Bước 3.b là **write duy nhất** trong toàn bộ Chronicle — xảy ra ở
+Bước 4.b là **write duy nhất** trong toàn bộ Chronicle — xảy ra ở
 query handler (đọc), không phải command handler, vì về bản chất nó
 là "cache warm-up", không phải mutation do người dùng khởi xướng
 (KD-CHR-001 vẫn đúng: không có create/update/delete từ phía người
@@ -187,8 +228,8 @@ dùng).
 
 **Race condition khi 2 request đồng thời cùng tạo snapshot lần đầu**
 (vd 2 tab cùng mở Chronicle tháng vừa đóng): dùng
-`@@unique([ownerId, year, month])` — request thứ 2 insert trùng sẽ
-nhận `P2002`, xử lý như "đã tồn tại, đọc lại" (cùng pattern
+`@@unique([ownerId, periodType, periodKey])` — request thứ 2 insert
+trùng sẽ nhận `P2002`, xử lý như "đã tồn tại, đọc lại" (cùng pattern
 `HabitCheckIn`/`P2002` đã dùng — idempotent-by-verification, không
 throw).
 
@@ -278,14 +319,15 @@ Lower bound navigation:
 
 ## 6. Domain Invariant Summary
 
-| Invariant                                             | Enforced By                                             |
-| ----------------------------------------------------- | ------------------------------------------------------- |
-| Mỗi owner tối đa 1 snapshot / tháng                   | `@@unique([ownerId, year, month])`                      |
-| Tháng hiện tại không có snapshot row                  | Query handler kiểm tra trước khi đọc/ghi (DAP-CHR-003)  |
-| Snapshot bất biến sau khi tạo                         | Không có update/delete path nào trong application layer |
-| Không navigate quá tháng hiện tại                     | KD-CHR-007 (upper bound)                                |
-| Không navigate trước tháng tạo account                | User.createdAt (lower bound, §5)                        |
-| Race tạo snapshot đồng thời không tạo 2 bản ghi trùng | `P2002` + đọc lại (idempotent, giống `HabitCheckIn`)    |
+| Invariant                                             | Enforced By                                                |
+| ----------------------------------------------------- | ---------------------------------------------------------- |
+| Mỗi owner tối đa 1 snapshot / kỳ                      | `@@unique([ownerId, periodType, periodKey])` (DAP-CHR-005) |
+| Mỗi module tối đa 1 section / snapshot                | `@@unique([snapshotId, module])` (DAP-CHR-001)             |
+| Tháng hiện tại không có snapshot row                  | Query handler kiểm tra trước khi đọc/ghi (DAP-CHR-003)     |
+| Snapshot bất biến sau khi tạo                         | Không có update/delete path nào trong application layer    |
+| Không navigate quá tháng hiện tại                     | KD-CHR-007 (upper bound)                                   |
+| Không navigate trước tháng tạo account                | User.createdAt (lower bound, §5)                           |
+| Race tạo snapshot đồng thời không tạo 2 bản ghi trùng | `P2002` + đọc lại (idempotent, giống `HabitCheckIn`)       |
 
 ---
 
