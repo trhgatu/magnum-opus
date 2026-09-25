@@ -6,3 +6,4 @@ export * from './add-routine-habit.command';
 export * from './remove-routine-habit.command';
 export * from './move-routine-habit-up.command';
 export * from './move-routine-habit-down.command';
+export * from './reorder-routine-habits.command';
