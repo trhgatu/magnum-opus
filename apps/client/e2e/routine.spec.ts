@@ -163,6 +163,15 @@ test("reorders Routine Habits by dragging the grip handle", async ({
   await expect(orderedHabits.nth(0)).toContainText(secondHabit);
   await expect(orderedHabits.nth(1)).toContainText(firstHabit);
 
+  // Request reorder đi qua Server Action (BFF) — không có request trực
+  // tiếp nào tới backend hiện ra ở phía browser để `waitForResponse` bám
+  // vào (xem test phía trên: mọi request browser-visible đều dừng ở
+  // Next.js, không bao giờ chạm thẳng 127.0.0.1:3101). Vì vậy đợi đúng
+  // tín hiệu client-visible là toast thành công — nó chỉ hiện ra sau khi
+  // `mutation()` trong `run()` đã resolve — trước khi reload, để reload
+  // không chạy trước khi server ghi xong.
+  await expect(page.getByText("Đã sắp xếp lại Nếp sinh hoạt")).toBeVisible();
+
   // Tải lại để xác nhận thứ tự đã thật sự được ghi ở backend, không chỉ
   // là state lạc quan ở client.
   await page.reload();

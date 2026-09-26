@@ -75,26 +75,30 @@ export function RoutineHabitManager({
     mutation: () => Promise<RoutineMutationResult>,
     successMessage: string,
     onSuccess?: () => void,
+    onError?: () => void,
   ) => {
     setMessage(undefined);
     startTransition(async () => {
-      const result = await mutation();
+      try {
+        const result = await mutation();
 
-      if (result.status === "error") {
-        setMessage(
-          result.code === "ROUTINE_REVISION_CONFLICT"
-            ? "Nếp sinh hoạt đã thay đổi. Tải lại bản mới nhất trước khi tiếp tục."
-            : result.message,
-        );
-        // Rollback state kéo thả lạc quan về đúng thứ tự server đang có,
-        // vì request reorder đã thất bại.
-        setHabits(routine.habits);
-        return;
+        if (result.status === "error") {
+          setMessage(
+            result.code === "ROUTINE_REVISION_CONFLICT"
+              ? "Nếp sinh hoạt đã thay đổi. Tải lại bản mới nhất trước khi tiếp tục."
+              : result.message,
+          );
+          onError?.();
+          return;
+        }
+
+        void notifySuccess(successMessage);
+        onSuccess?.();
+        router.refresh();
+      } catch {
+        setMessage("Không thể lưu, vui lòng thử lại.");
+        onError?.();
       }
-
-      void notifySuccess(successMessage);
-      onSuccess?.();
-      router.refresh();
     });
   };
 
@@ -140,6 +144,12 @@ export function RoutineHabitManager({
           expectedRevision: routine.revision,
         }),
       "Đã sắp xếp lại Nếp sinh hoạt",
+      undefined,
+      // Không rollback bằng `routine.habits` (prop) — nó có thể đã cũ hơn
+      // cả trạng thái thật trên server (vd request khác vừa thành công
+      // trước đó nhưng props chưa kịp refresh). Luôn refresh để lấy lại
+      // đúng nguồn sự thật từ server thay vì đoán.
+      () => router.refresh(),
     );
   };
 

@@ -5,7 +5,7 @@ import { DomainException } from '@shared/domain/exceptions/domain.exception';
 export class InvalidRoutineHabitReorderException extends DomainException {
   constructor() {
     super(
-      'Reordered Habit IDs must be exactly the Routine current Habits, each listed once',
+      'The reordered list must include every current Routine Habit ID exactly once',
       Errors.INVALID_ROUTINE_HABIT_REORDER,
     );
   }

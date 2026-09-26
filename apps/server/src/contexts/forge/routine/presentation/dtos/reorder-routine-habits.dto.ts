@@ -1,11 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { ArrayMinSize, IsInt, IsUUID, Min } from 'class-validator';
+import { IsArray, IsInt, IsUUID, Min } from 'class-validator';
 
 export class ReorderRoutineHabitsDto {
   @ApiProperty({ type: [String], format: 'uuid' })
+  @IsArray()
   @IsUUID('4', { each: true })
-  @ArrayMinSize(1)
   readonly habitIds!: string[];
 
   @ApiProperty({
