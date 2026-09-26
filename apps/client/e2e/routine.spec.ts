@@ -93,3 +93,88 @@ test("completes the private Routine lifecycle through the BFF", async ({
     browserRequests.some((url) => url.startsWith("http://127.0.0.1:3101")),
   ).toBe(false);
 });
+
+test("reorders Routine Habits by dragging the grip handle", async ({
+  page,
+}) => {
+  const timestamp = Date.now();
+  const firstHabit = `Stretch ${timestamp}`;
+  const secondHabit = `Hydrate ${timestamp}`;
+  const title = `Evening sequence ${timestamp}`;
+
+  await login(page);
+  await createDailyHabit(page, firstHabit);
+  await createDailyHabit(page, secondHabit);
+
+  await page.goto("/routines");
+  await page.getByRole("link", { name: "Tạo Nếp sinh hoạt" }).click();
+  await page.getByLabel("Tên Nếp sinh hoạt").fill(title);
+  await page.getByRole("button", { name: "Tạo Nếp sinh hoạt" }).click();
+  await expect(page).toHaveURL(/\/routines\/[0-9a-f-]+$/);
+
+  await page.getByRole("combobox").click();
+  await page
+    .getByRole("textbox", { name: "Tìm Thói quen theo tên" })
+    .fill(firstHabit);
+  await page.getByRole("option", { name: firstHabit }).click();
+  await page.getByRole("button", { name: "Thêm vào Nếp sinh hoạt" }).click();
+  await expect(page.getByText(firstHabit, { exact: true })).toBeVisible();
+
+  await page.getByRole("combobox").click();
+  await page
+    .getByRole("textbox", { name: "Tìm Thói quen theo tên" })
+    .fill(secondHabit);
+  await page.getByRole("option", { name: secondHabit }).click();
+  await page.getByRole("button", { name: "Thêm vào Nếp sinh hoạt" }).click();
+  await expect(page.getByText(secondHabit, { exact: true })).toBeVisible();
+
+  const orderedHabits = page.locator("ol > li");
+  await expect(orderedHabits.nth(0)).toContainText(firstHabit);
+  await expect(orderedHabits.nth(1)).toContainText(secondHabit);
+
+  const secondGrip = page.getByRole("button", {
+    name: `Kéo để sắp xếp lại "${secondHabit}"`,
+  });
+  const firstGrip = page.getByRole("button", {
+    name: `Kéo để sắp xếp lại "${firstHabit}"`,
+  });
+
+  const secondBox = await secondGrip.boundingBox();
+  const firstBox = await firstGrip.boundingBox();
+  if (!secondBox || !firstBox) {
+    throw new Error("Drag handles did not report a bounding box");
+  }
+
+  // dnd-kit's PointerSensor cần vượt qua activationConstraint (4px) rồi mới
+  // bắt đầu kéo — di chuyển qua nhiều bước nhỏ để nó nhận đủ các sự kiện
+  // pointermove cần thiết cho collision detection, thay vì nhảy thẳng.
+  await page.mouse.move(
+    secondBox.x + secondBox.width / 2,
+    secondBox.y + secondBox.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    firstBox.x + firstBox.width / 2,
+    firstBox.y + firstBox.height / 2 - 4,
+    { steps: 10 },
+  );
+  await page.mouse.up();
+
+  await expect(orderedHabits.nth(0)).toContainText(secondHabit);
+  await expect(orderedHabits.nth(1)).toContainText(firstHabit);
+
+  // Request reorder đi qua Server Action (BFF) — không có request trực
+  // tiếp nào tới backend hiện ra ở phía browser để `waitForResponse` bám
+  // vào (xem test phía trên: mọi request browser-visible đều dừng ở
+  // Next.js, không bao giờ chạm thẳng 127.0.0.1:3101). Vì vậy đợi đúng
+  // tín hiệu client-visible là toast thành công — nó chỉ hiện ra sau khi
+  // `mutation()` trong `run()` đã resolve — trước khi reload, để reload
+  // không chạy trước khi server ghi xong.
+  await expect(page.getByText("Đã sắp xếp lại Nếp sinh hoạt")).toBeVisible();
+
+  // Tải lại để xác nhận thứ tự đã thật sự được ghi ở backend, không chỉ
+  // là state lạc quan ở client.
+  await page.reload();
+  await expect(orderedHabits.nth(0)).toContainText(secondHabit);
+  await expect(orderedHabits.nth(1)).toContainText(firstHabit);
+});

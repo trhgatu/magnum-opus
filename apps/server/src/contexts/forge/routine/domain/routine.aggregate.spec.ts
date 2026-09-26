@@ -1,5 +1,6 @@
 import {
   InvalidRoutineHabitIdException,
+  InvalidRoutineHabitReorderException,
   InvalidRoutineTitleException,
   InvalidRoutineTransitionException,
   RoutineHabitAlreadyExistsException,
@@ -300,6 +301,60 @@ describe('Routine', () => {
 
       expect(() => routine.moveHabitUp('habit-2')).toThrow(
         RoutineHabitNotFoundException,
+      );
+    });
+
+    it('reorders every Habit at once', () => {
+      const routine = rehydrateActiveRoutine(['habit-1', 'habit-2', 'habit-3']);
+
+      routine.reorderHabits(['habit-3', 'habit-1', 'habit-2']);
+
+      expect(routine.habitIds).toEqual(['habit-3', 'habit-1', 'habit-2']);
+      expect(routine.revision).toBe(2);
+    });
+
+    it('does not change revision when the reordered list is identical', () => {
+      const routine = rehydrateActiveRoutine(['habit-1', 'habit-2', 'habit-3']);
+
+      routine.reorderHabits(['habit-1', 'habit-2', 'habit-3']);
+
+      expect(routine.habitIds).toEqual(['habit-1', 'habit-2', 'habit-3']);
+      expect(routine.revision).toBe(1);
+    });
+
+    it('rejects a reorder that drops a Habit', () => {
+      const routine = rehydrateActiveRoutine(['habit-1', 'habit-2', 'habit-3']);
+
+      expect(() => routine.reorderHabits(['habit-1', 'habit-2'])).toThrow(
+        InvalidRoutineHabitReorderException,
+      );
+      expect(routine.habitIds).toEqual(['habit-1', 'habit-2', 'habit-3']);
+      expect(routine.revision).toBe(1);
+    });
+
+    it('rejects a reorder that duplicates a Habit', () => {
+      const routine = rehydrateActiveRoutine(['habit-1', 'habit-2', 'habit-3']);
+
+      expect(() =>
+        routine.reorderHabits(['habit-1', 'habit-1', 'habit-3']),
+      ).toThrow(InvalidRoutineHabitReorderException);
+    });
+
+    it('rejects a reorder that introduces a foreign Habit', () => {
+      const routine = rehydrateActiveRoutine(['habit-1', 'habit-2']);
+
+      expect(() => routine.reorderHabits(['habit-1', 'habit-99'])).toThrow(
+        InvalidRoutineHabitReorderException,
+      );
+    });
+
+    it('does not reorder an archived Routine', () => {
+      const routine = rehydrateActiveRoutine(['habit-1', 'habit-2']);
+
+      routine.archive();
+
+      expect(() => routine.reorderHabits(['habit-2', 'habit-1'])).toThrow(
+        InvalidRoutineTransitionException,
       );
     });
 

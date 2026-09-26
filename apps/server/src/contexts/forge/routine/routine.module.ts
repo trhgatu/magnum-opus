@@ -7,6 +7,7 @@ import { CreateRoutineHandler } from './application/commands/handlers/create-rou
 import { MoveRoutineHabitDownHandler } from './application/commands/handlers/move-routine-habit-down.handler';
 import { MoveRoutineHabitUpHandler } from './application/commands/handlers/move-routine-habit-up.handler';
 import { RemoveRoutineHabitHandler } from './application/commands/handlers/remove-routine-habit.handler';
+import { ReorderRoutineHabitsHandler } from './application/commands/handlers/reorder-routine-habits.handler';
 import { RestoreRoutineHandler } from './application/commands/handlers/restore-routine.handler';
 import { UpdateRoutineTitleHandler } from './application/commands/handlers/update-routine-title.handler';
 import { GetAvailableRoutineHabitsHandler } from './application/queries/handlers/get-available-routine-habits.handler';
@@ -28,6 +29,7 @@ const commandHandlers = [
   MoveRoutineHabitDownHandler,
   MoveRoutineHabitUpHandler,
   RemoveRoutineHabitHandler,
+  ReorderRoutineHabitsHandler,
   RestoreRoutineHandler,
   UpdateRoutineTitleHandler,
 ];

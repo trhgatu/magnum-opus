@@ -26,6 +26,7 @@ import {
   moveRoutineHabit,
   reloadRoutine,
   removeRoutineHabit,
+  reorderRoutineHabits,
   updateRoutineTitle,
 } from "./routine";
 
@@ -346,6 +347,98 @@ describe("Routine Server Actions", () => {
       expect(revalidatePath).toHaveBeenCalledWith(`/routines/${routine.id}`);
     },
   );
+
+  it("reorders every Habit at once", async () => {
+    const reorderedRoutine = {
+      ...routine,
+      habitIds: [...routine.habitIds].reverse(),
+      revision: 2,
+    };
+    const reorderedHabitIds = [...routine.habitIds].reverse();
+
+    apiFetch.mockResolvedValue(reorderedRoutine);
+
+    await expect(
+      reorderRoutineHabits({
+        routineId: routine.id,
+        habitIds: reorderedHabitIds,
+        expectedRevision: 1,
+      }),
+    ).resolves.toEqual({
+      status: "success",
+      routine: reorderedRoutine,
+    });
+
+    expect(apiFetch).toHaveBeenCalledWith(
+      `/routines/${routine.id}/habits/reorder`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({
+          habitIds: reorderedHabitIds,
+          expectedRevision: 1,
+        }),
+      },
+    );
+
+    expect(revalidatePath).toHaveBeenCalledWith("/routines");
+    expect(revalidatePath).toHaveBeenCalledWith(`/routines/${routine.id}`);
+  });
+
+  it("rejects an empty reorder list before contacting the API", async () => {
+    await expect(
+      reorderRoutineHabits({
+        routineId: routine.id,
+        habitIds: [],
+        expectedRevision: 1,
+      }),
+    ).resolves.toEqual({
+      status: "error",
+      message: "Dữ liệu Thói quen của Nếp sinh hoạt không hợp lệ.",
+    });
+
+    expect(apiFetch).not.toHaveBeenCalled();
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("rejects a reorder list containing an invalid Habit ID", async () => {
+    await expect(
+      reorderRoutineHabits({
+        routineId: routine.id,
+        habitIds: [habitId, "not-a-habit-id"],
+        expectedRevision: 1,
+      }),
+    ).resolves.toEqual({
+      status: "error",
+      message: "Dữ liệu Thói quen của Nếp sinh hoạt không hợp lệ.",
+    });
+
+    expect(apiFetch).not.toHaveBeenCalled();
+  });
+
+  it("preserves a revision conflict returned by the backend when reordering", async () => {
+    apiFetch.mockRejectedValue(
+      new ApiError({
+        kind: "conflict",
+        status: 409,
+        code: "ROUTINE_REVISION_CONFLICT",
+        message: "Routine đã thay đổi ở một phiên làm việc khác.",
+      }),
+    );
+
+    await expect(
+      reorderRoutineHabits({
+        routineId: routine.id,
+        habitIds: routine.habitIds,
+        expectedRevision: routine.revision,
+      }),
+    ).resolves.toMatchObject({
+      status: "error",
+      kind: "conflict",
+      code: "ROUTINE_REVISION_CONFLICT",
+    });
+
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
 
   it("rejects invalid membership identifiers", async () => {
     await expect(

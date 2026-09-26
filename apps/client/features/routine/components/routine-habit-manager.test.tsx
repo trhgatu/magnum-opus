@@ -15,12 +15,14 @@ const {
   addRoutineHabit,
   moveRoutineHabit,
   removeRoutineHabit,
+  reorderRoutineHabits,
   refresh,
   notifySuccess,
 } = vi.hoisted(() => ({
   addRoutineHabit: vi.fn(),
   moveRoutineHabit: vi.fn(),
   removeRoutineHabit: vi.fn(),
+  reorderRoutineHabits: vi.fn(),
   refresh: vi.fn(),
   notifySuccess: vi.fn(),
 }));
@@ -33,6 +35,7 @@ vi.mock("@/features/routine/actions/routine", () => ({
   addRoutineHabit,
   moveRoutineHabit,
   removeRoutineHabit,
+  reorderRoutineHabits,
 }));
 
 vi.mock("@/lib/toast", () => ({
@@ -164,6 +167,22 @@ describe("RoutineHabitManager", () => {
     expect(
       screen.queryByRole("button", { name: /Gỡ .* khỏi Nếp sinh hoạt/ }),
     ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: /Kéo để sắp xếp lại/ }),
+    ).toBeNull();
+  });
+
+  it("shows a drag handle for each Habit in an active Routine", () => {
+    render(<RoutineHabitManager routine={routine} />);
+
+    expect(
+      screen.getByRole("button", {
+        name: 'Kéo để sắp xếp lại "Drink water"',
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: 'Kéo để sắp xếp lại "Stretch"' }),
+    ).toBeInTheDocument();
   });
 
   it("shows an explicit message for a stale revision", async () => {
