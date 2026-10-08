@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   SidebarProvider,
@@ -65,6 +65,39 @@ describe("SidebarProvider", () => {
     expect(window.localStorage.getItem("sidebar-collapsed")).toBe("0");
   });
 
+  it("applies every toggle when several are batched before a rerender", () => {
+    function DoubleToggle() {
+      const { collapsed, toggleCollapsed } = useSidebar();
+
+      return (
+        <div>
+          <p>collapsed:{String(collapsed)}</p>
+          <button
+            type="button"
+            onClick={() => {
+              toggleCollapsed();
+              toggleCollapsed();
+            }}
+          >
+            toggle twice
+          </button>
+        </div>
+      );
+    }
+
+    render(
+      <SidebarProvider>
+        <DoubleToggle />
+      </SidebarProvider>,
+    );
+
+    fireEvent.click(screen.getByText("toggle twice"));
+
+    // Hai lần lật liên tiếp phải quay về trạng thái ban đầu.
+    expect(screen.getByText("collapsed:false")).not.toBeNull();
+    expect(window.localStorage.getItem("sidebar-collapsed")).toBe("0");
+  });
+
   it("reads a previously persisted collapsed preference on mount", () => {
     window.localStorage.setItem("sidebar-collapsed", "1");
 
@@ -92,18 +125,21 @@ describe("SidebarProvider", () => {
   });
 
   it("throws when useSidebar is used outside the provider", () => {
-    const consoleError = console.error;
-    console.error = () => {};
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
 
     function Broken() {
       useSidebar();
       return null;
     }
 
-    expect(() => render(<Broken />)).toThrow(
-      "useSidebar must be used within a SidebarProvider",
-    );
-
-    console.error = consoleError;
+    try {
+      expect(() => render(<Broken />)).toThrow(
+        "useSidebar must be used within a SidebarProvider",
+      );
+    } finally {
+      consoleError.mockRestore();
+    }
   });
 });

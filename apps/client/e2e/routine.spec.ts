@@ -67,7 +67,7 @@ test("completes the private Routine lifecycle through the BFF", async ({
   await page
     .getByRole("button", { name: `Di chuyển ${secondHabit} lên` })
     .click();
-  const orderedHabits = page.locator("ol > li");
+  const orderedHabits = page.getByRole("main").locator("ol > li");
   await expect(orderedHabits.nth(0)).toContainText(secondHabit);
   await expect(orderedHabits.nth(1)).toContainText(firstHabit);
 
@@ -128,7 +128,7 @@ test("reorders Routine Habits by dragging the grip handle", async ({
   await page.getByRole("button", { name: "Thêm vào Nếp sinh hoạt" }).click();
   await expect(page.getByText(secondHabit, { exact: true })).toBeVisible();
 
-  const orderedHabits = page.locator("ol > li");
+  const orderedHabits = page.getByRole("main").locator("ol > li");
   await expect(orderedHabits.nth(0)).toContainText(firstHabit);
   await expect(orderedHabits.nth(1)).toContainText(secondHabit);
 

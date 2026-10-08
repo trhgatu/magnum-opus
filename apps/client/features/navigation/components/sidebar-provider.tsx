@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 
 const STORAGE_KEY = "sidebar-collapsed";
 
@@ -16,6 +16,7 @@ const SidebarContext = createContext<SidebarContextValue | null>(null);
 
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
+  const collapsedRef = useRef(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // Đọc lựa chọn đã lưu sau khi hydrate — tránh mismatch giữa HTML server
@@ -23,23 +24,27 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
   // chớp nhẹ cho người dùng quay lại đã từng thu gọn sidebar.
   useEffect(() => {
     try {
+      const stored = window.localStorage.getItem(STORAGE_KEY) === "1";
+      collapsedRef.current = stored;
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setCollapsed(window.localStorage.getItem(STORAGE_KEY) === "1");
+      setCollapsed(stored);
     } catch {
       // localStorage có thể bị chặn (chế độ riêng tư) — giữ mặc định mở rộng.
     }
   }, []);
 
   const toggleCollapsed = () => {
-    setCollapsed((previous) => {
-      const next = !previous;
-      try {
-        window.localStorage.setItem(STORAGE_KEY, next ? "1" : "0");
-      } catch {
-        // ignore — persistence is a nice-to-have, not a requirement.
-      }
-      return next;
-    });
+    // Đọc từ ref thay vì `collapsed` của lần render hiện tại — nhiều lần
+    // toggle bị gộp trước khi render lại vẫn lật đúng số lần, và giá trị
+    // ghi vào localStorage luôn khớp với state cuối cùng.
+    const next = !collapsedRef.current;
+    collapsedRef.current = next;
+    setCollapsed(next);
+    try {
+      window.localStorage.setItem(STORAGE_KEY, next ? "1" : "0");
+    } catch {
+      // ignore — persistence is a nice-to-have, not a requirement.
+    }
   };
 
   return (
