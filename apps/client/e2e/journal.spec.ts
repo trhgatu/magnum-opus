@@ -23,6 +23,25 @@ const waitForAutosave = async (target: import("@playwright/test").Page) => {
   });
 };
 
+// Nút "Thêm tâm trạng" / "Thay đổi" chỉ đổi state phía client (onClick, không
+// phải link hay form). Ngay sau page.reload(), HTML từ server đã có nút nhưng
+// React có thể chưa hydrate xong — click lúc đó bị nuốt, editor không mở và
+// bước chọn mood treo tới hết timeout. Bấm lại cho tới khi editor thật sự mở.
+const openMoodEditor = async (
+  target: import("@playwright/test").Page,
+  trigger: "Thêm tâm trạng" | "Thay đổi",
+) => {
+  const save = target.getByRole("button", { name: "Lưu tâm trạng" });
+  await expect(async () => {
+    if (!(await save.isVisible())) {
+      await target.getByRole("button", { name: trigger }).click({
+        timeout: 2_000,
+      });
+    }
+    await expect(save).toBeVisible({ timeout: 2_000 });
+  }).toPass({ timeout: 20_000 });
+};
+
 test("completes the private Journal lifecycle through the BFF", async ({
   page,
 }) => {
@@ -53,7 +72,7 @@ test("completes the private Journal lifecycle through the BFF", async ({
     content,
   );
 
-  await page.getByRole("button", { name: "Thêm tâm trạng" }).click();
+  await openMoodEditor(page, "Thêm tâm trạng");
   await page.getByRole("button", { name: "Bình yên" }).click();
   await page.getByRole("button", { name: "Cường độ 3" }).click();
   await page
@@ -71,7 +90,7 @@ test("completes the private Journal lifecycle through the BFF", async ({
   await expect(
     page.getByText("Bình yên sau khi cơn mưa đi qua."),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Thay đổi" }).click();
+  await openMoodEditor(page, "Thay đổi");
   await page.getByRole("button", { name: "Hy vọng" }).click();
   await page.getByRole("button", { name: "Cường độ 4" }).click();
   await page.getByRole("button", { name: "Lưu tâm trạng" }).click();

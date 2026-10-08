@@ -147,8 +147,11 @@ Project Cycle đại diện cho một continuous pursuit period của Project.
 
 - giữ Cycle identity;
 - giữ Cycle boundary (startedAt, endedAt);
-- giữ intended outcome của Cycle;
-- biết Cycle đang open hay closed.
+- giữ ~~intended outcome~~ **lịch sử intended outcome (V1.1, append-only)** của Cycle;
+- **(V1.1)** giữ `closingNote` (chỉ có khi Cycle đã đóng);
+- **(V1.1)** giữ `targetEndAt` (tùy chọn);
+- biết Cycle đang open hay closed;
+- **(V1.1)** từ chối mọi thay đổi (thêm outcome entry, đổi targetEndAt) khi Cycle đã đóng.
 
 **Project Cycle không chịu trách nhiệm:**
 
@@ -164,7 +167,7 @@ Project Cycle đại diện cho một continuous pursuit period của Project.
 **Characteristics:**
 
 - optional — Cycle có thể tồn tại mà không có Intended Outcome;
-- mutable trong open Cycle;
+- ~~mutable trong open Cycle;~~ **(V1.1)** không bị ghi đè — xem §3.3A;
 - immutable sau khi Cycle đóng;
 - không có identity riêng;
 - equality dựa trên value.
@@ -174,6 +177,54 @@ Ví dụ:
 ```text
 IntendedOutcome("Projects V1 đủ dùng hằng ngày")
 ```
+
+---
+
+### 3.3A. Intended Outcome Entry (V1.1)
+
+**(Mới — V1.1, xem BR-PRJ-032/033)** Project Cycle không còn giữ một `IntendedOutcome` duy nhất, mà giữ một collection có thứ tự `IntendedOutcomeEntry[]`.
+
+```text
+IntendedOutcomeEntry   (Value Object)
+├── sequence : integer           (1, 2, 3… trong phạm vi một Cycle — khóa thứ tự)
+├── outcome  : IntendedOutcome   (VO §3.3 — validation giữ nguyên)
+└── setAt    : timestamp         (business timestamp, chỉ để hiển thị)
+```
+
+**Characteristics:**
+
+- append-only: Project Cycle chỉ expose thao tác thêm entry, không có sửa/xóa entry;
+- thứ tự lịch sử được xác định bởi `sequence`, **không** bởi `setAt` — hai lần cập nhật có thể trùng `setAt` (cùng millisecond, hoặc entry backfill có `setAt` xấp xỉ), nên `setAt` không đủ làm khóa sắp xếp;
+- entry mới nhận `sequence = sequence lớn nhất hiện có + 1` (entry đầu tiên là 1);
+- current intended outcome = entry có `sequence` lớn nhất;
+- thêm entry có `outcome` bằng đúng current outcome là no-op (không tạo entry, không tăng revision);
+- toàn bộ collection immutable sau khi Cycle đóng;
+- entry không có identity riêng ở tầng domain (VO) — persistence có thể gán id kỹ thuật.
+
+Tại sao VO thay vì Entity: một entry không bao giờ thay đổi sau khi tạo và không được tham chiếu từ đâu khác, nên không cần identity domain — nhất quán với quyết định giữ `IntendedOutcome` là VO.
+
+---
+
+### 3.3B. Closing Note (V1.1)
+
+`ClosingNote` là Value Object thuộc Project Cycle.
+
+- optional;
+- được gán đúng một lần, trong cùng thao tác đóng Cycle (`stop` / `complete`);
+- Cycle đang mở không bao giờ có ClosingNote;
+- validation: trim; chuỗi rỗng sau trim được coi là không có note (null); tối đa 2000 ký tự → vượt quá thì `InvalidClosingNoteException`.
+
+---
+
+### 3.3C. Target End Date (V1.1)
+
+`targetEndAt` là ngày (date-only, không có giờ) thuộc Project Cycle — cùng quy ước date-only với `Habit.quitStartedAt`.
+
+- optional;
+- set / replace / clear khi Cycle đang mở;
+- không lưu lịch sử;
+- immutable sau khi Cycle đóng;
+- không tham gia vào bất kỳ lifecycle rule nào (BR-PRJ-037) — "quá hạn" là phép so sánh ở tầng presentation với ngày hôm nay theo `User.timeZone`, không phải trạng thái domain.
 
 ---
 
@@ -245,12 +296,15 @@ Project (Aggregate Root)
 │
 └── ProjectCycles[]   (Entity collection)
       └── ProjectCycle
-            ├── ProjectCycleId    (Value Object)
-            ├── CycleNumber       (Value Object)
-            ├── StartedAt         (timestamp)
-            ├── EndedAt           (timestamp, nullable)
-            ├── EndReason         (enum: STOPPED | COMPLETED, nullable)
-            └── IntendedOutcome   (Value Object, optional)
+            ├── ProjectCycleId          (Value Object)
+            ├── CycleNumber             (Value Object)
+            ├── StartedAt               (timestamp)
+            ├── EndedAt                 (timestamp, nullable)
+            ├── EndReason               (enum: STOPPED | COMPLETED, nullable)
+            ├── OutcomeEntries[]        (V1.1 — thay cho IntendedOutcome đơn của V1;
+            │                            IntendedOutcomeEntry VO, append-only, có thể rỗng)
+            ├── ClosingNote             (V1.1 — Value Object, nullable, chỉ khi đã đóng)
+            └── TargetEndAt             (V1.1 — date, nullable)
 ```
 
 ---
@@ -296,6 +350,8 @@ Mỗi method trên:
 5. throw exception nếu không hợp lệ.
 
 `project.setIntendedOutcome(outcome)` cũng do Aggregate Root enforce (yêu cầu current Cycle đang mở), nhưng không phải lifecycle transition — không tạo/đóng Cycle, không raise event nào (xem §5.7).
+
+**(V1.1)** Tương tự cho `project.setTargetEndAt(date | null)` (§5.7A). `stop()` và `complete()` nhận thêm tham số tùy chọn `closingNote` (§5.4, §5.5).
 
 ---
 
@@ -349,11 +405,13 @@ ProjectLifecycleTransitionedEvent (action = RESUME)
 
 ---
 
-### 5.4. stop()
+### 5.4. stop(closingNote?)
 
 ```text
 Precondition:
 state ∈ {NOT_STARTED, ACTIVE, PAUSED}
+(V1.1) state == NOT_STARTED  ⟹  closingNote phải rỗng
+       (nếu có → InvalidClosingNoteException, vì không có Cycle để gắn)
 
 Effect (if state == NOT_STARTED):
 state → STOPPED
@@ -361,7 +419,8 @@ No Cycle created
 
 Effect (if state ∈ {ACTIVE, PAUSED}):
 state → STOPPED
-Current Cycle closed (endedAt = now, endReason = STOPPED)
+Current Cycle closed (endedAt = now, endReason = STOPPED,
+                      closingNote = closingNote ?? null)   ← V1.1
 
 Event raised:
 ProjectLifecycleTransitionedEvent (action = STOP)
@@ -369,7 +428,7 @@ ProjectLifecycleTransitionedEvent (action = STOP)
 
 ---
 
-### 5.5. complete()
+### 5.5. complete(closingNote?)
 
 ```text
 Precondition:
@@ -377,7 +436,8 @@ state ∈ {ACTIVE, PAUSED}
 
 Effect:
 state → COMPLETED
-Current Cycle closed (endedAt = now, endReason = COMPLETED)
+Current Cycle closed (endedAt = now, endReason = COMPLETED,
+                      closingNote = closingNote ?? null)   ← V1.1
 
 Event raised:
 ProjectLifecycleTransitionedEvent (action = COMPLETE)
@@ -394,7 +454,8 @@ state ∈ {STOPPED, COMPLETED}
 Effect:
 state → ACTIVE
 New Cycle created (startedAt = now)
-New Cycle has no IntendedOutcome
+New Cycle has no IntendedOutcome (V1.1: OutcomeEntries rỗng,
+                                   targetEndAt = null, closingNote = null)
 
 Event raised:
 ProjectLifecycleTransitionedEvent (action = REOPEN)
@@ -409,13 +470,40 @@ Precondition:
 state ∈ {ACTIVE, PAUSED}
 Current Cycle exists and is open
 
-Effect:
-Current Cycle.intendedOutcome = outcome
+Effect (V1):
+Current Cycle.intendedOutcome = outcome        ← superseded
+
+Effect (V1.1):
+if outcome == current outcome → no-op (không đổi revision)
+else → Current Cycle.OutcomeEntries.append({
+          sequence: last sequence + 1,   (1 nếu chưa có entry)
+          outcome,
+          setAt: now
+        })
 
 Event raised:
 none — not a lifecycle transition (no fromState/toState), so nothing
 for ProjectLifecycleTransitionedEvent to record (see §3.6)
 ```
+
+---
+
+### 5.7A. setTargetEndAt(date | null) (V1.1)
+
+```text
+Precondition:
+state ∈ {ACTIVE, PAUSED}
+Current Cycle exists and is open
+
+Effect:
+if date == current targetEndAt → no-op
+else → Current Cycle.targetEndAt = date   (null = clear)
+
+Event raised:
+none — not a lifecycle transition
+```
+
+Không có validation "date phải ở tương lai" (BR-PRJ-036).
 
 ---
 
@@ -611,9 +699,14 @@ InvalidProjectTitleException
 ProjectCycleNotFoundException
 InvalidIntendedOutcomeException
 ProjectDeletionNotAllowedException
+InvalidClosingNoteException          (V1.1)
 ```
 
 `ProjectDeletionNotAllowedException` được throw khi delete được yêu cầu trong khi Project đã từng có ít nhất một Project Cycle (`cycles.length > 0`).
+
+**(V1.1)** `InvalidClosingNoteException` được throw khi `closingNote` vượt 2000 ký tự, hoặc khi Stop từ `NOT_STARTED` kèm một `closingNote` không rỗng (không có Cycle để gắn).
+
+`setTargetEndAt` dùng đúng chuỗi guard mà `setIntendedOutcome` đang dùng trong implementation hiện tại (`project.aggregate.ts`): state ngoài `ACTIVE`/`PAUSED` → `InvalidProjectTransitionException` (qua `ensureState`); `ProjectCycleNotFoundException` chỉ là nhánh phòng thủ khi không tìm thấy Cycle mở. Không cần exception mới.
 
 `InvalidProjectTransitionException` được throw khi lifecycle action không hợp lệ với current state.
 
@@ -679,10 +772,30 @@ ProjectDetail
       ├── cycleId
       ├── cycleNumber
       ├── startedAt
-      └── intendedOutcome (optional)
+      ├── intendedOutcome (optional — entry có sequence lớn nhất)
+      ├── outcomeHistory[]   (V1.1 — { outcome, setAt }, sắp theo sequence tăng dần)
+      └── targetEndAt        (V1.1, optional)
 ```
 
-Lifecycle history presentation chưa thuộc V1 query model.
+~~Lifecycle history presentation chưa thuộc V1 query model.~~
+
+**(V1.1)** Thêm read model cho lịch sử Cycle (UC-PRJ-014):
+
+```text
+ClosedCycleHistoryItem
+├── cycleId
+├── cycleNumber
+├── startedAt
+├── endedAt
+├── endReason        (STOPPED | COMPLETED)
+├── outcomeHistory[] ({ outcome, setAt }, sắp theo sequence tăng dần)
+├── closingNote      (nullable)
+└── targetEndAt      (nullable)
+```
+
+`ClosedCycleHistoryItem` là read model ở mức khái niệm. Trên wire, endpoint tương ứng (`GET /projects/:id/cycles/closed`, `07-api-contract.md` §4.14) dùng lại `ProjectCycleResponse` để client chỉ có một kiểu cycle: `cycleId` được serialize thành `id`, và response có thêm `intendedOutcome` (suy ra từ entry cuối của `outcomeHistory`). Hai shape mang cùng một thông tin, không phải hai hợp đồng khác nhau.
+
+Trả về dạng danh sách các Cycle đã đóng của một Project, mới nhất trước. Đây là read model riêng (không nhồi vào `ProjectDetail`) để trang detail không phải tải toàn bộ lịch sử khi người dùng chưa mở phần lịch sử.
 
 Xem Product Specification mục 23.
 
@@ -726,10 +839,19 @@ project_cycles
 ├── id
 ├── project_id
 ├── cycle_number
-├── intended_outcome (nullable)
+├── [DROPPED V1.1] intended_outcome    ← chỉ tồn tại ở V1; V1.1 chuyển sang bảng entry bên dưới rồi drop cột
 ├── started_at
 ├── ended_at (nullable)
-└── end_reason (nullable: STOPPED | COMPLETED)
+├── end_reason (nullable: STOPPED | COMPLETED)
+├── closing_note (nullable)            ← V1.1
+└── target_end_at (nullable, date)     ← V1.1
+
+project_cycle_outcome_entries          ← V1.1
+├── id
+├── cycle_id
+├── sequence
+├── outcome
+└── set_at
 
 project_lifecycle_transitions
 ├── id
@@ -747,18 +869,24 @@ Schema trên là candidate, không phải final decision.
 
 ## 15. Domain Invariant Summary
 
-| Invariant                                            | Enforced By                                                                        |
-| ---------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| Lifecycle transition eligibility                     | Project.method()                                                                   |
-| Single current Cycle                                 | Project Aggregate                                                                  |
-| Cycle starts only on ACTIVE                          | Project.start() / Project.reopen()                                                 |
-| Cycle ends only on STOP / COMPLETE                   | Project.stop() / Project.complete()                                                |
-| Closed Cycle outcome is immutable                    | ProjectCycle.setOutcome()                                                          |
-| Outcome only settable on open Cycle                  | Project.setIntendedOutcome()                                                       |
-| Revision conflict detection                          | ProjectMutationService (preflight) + ProjectRepository.update() (compare-and-swap) |
-| NOT_STARTED → STOPPED creates no Cycle               | Project.stop()                                                                     |
-| Delete only allowed when cycles.length == 0          | Project.canBeDeleted()                                                             |
-| Delete race-safe against concurrent lifecycle action | ProjectRepository.deletePermanently() (compare-and-swap)                           |
+| Invariant                                            | Enforced By                                                                                       |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Lifecycle transition eligibility                     | Project.method()                                                                                  |
+| Single current Cycle                                 | Project Aggregate                                                                                 |
+| Cycle starts only on ACTIVE                          | Project.start() / Project.reopen()                                                                |
+| Cycle ends only on STOP / COMPLETE                   | Project.stop() / Project.complete()                                                               |
+| Closed Cycle outcome is immutable                    | Project.setIntendedOutcome() (từ chối khi Cycle đã đóng) + ProjectCycle (V1.1: chỉ expose append) |
+| Outcome only settable on open Cycle                  | Project.setIntendedOutcome()                                                                      |
+| Revision conflict detection                          | ProjectMutationService (preflight) + ProjectRepository.update() (compare-and-swap)                |
+| NOT_STARTED → STOPPED creates no Cycle               | Project.stop()                                                                                    |
+| Delete only allowed when cycles.length == 0          | Project.canBeDeleted()                                                                            |
+| Delete race-safe against concurrent lifecycle action | ProjectRepository.deletePermanently() (compare-and-swap)                                          |
+| Outcome entries append-only (V1.1)                   | ProjectCycle (không expose sửa/xóa entry)                                                         |
+| Closed Cycle rejects new outcome entry (V1.1)        | ProjectCycle / Project.setIntendedOutcome()                                                       |
+| closingNote only set when closing (V1.1)             | Project.stop() / Project.complete()                                                               |
+| No closingNote on NOT_STARTED → STOPPED (V1.1)       | Project.stop()                                                                                    |
+| targetEndAt only settable on open Cycle (V1.1)       | Project.setTargetEndAt()                                                                          |
+| targetEndAt never drives lifecycle (V1.1)            | Không có code path nào đọc targetEndAt trong lifecycle method                                     |
 
 ---
 
@@ -769,7 +897,7 @@ Các quyết định sau chưa được chốt và thuộc Infrastructure / Tech
 - Schema chi tiết của từng table.
 - Index strategy cho lifecycle transition queries.
 - Archive behavior (delete đã được baseline: hard delete, chỉ khi `cycles.length == 0` — xem mục 5.8, 8.2, 10, 11).
-- Timeline / history read model nếu cần trong tương lai.
+- ~~Timeline / history read model nếu cần trong tương lai.~~ **(V1.1)** History ở mức Cycle đã có read model (`ClosedCycleHistoryItem`, §12); timeline mức transition vẫn mở.
 - Cross-context reference pattern khi Crucible link với Reflection.
 - Authorization — ai có thể thực hiện lifecycle action.
 - Concurrency behavior khi hai request đồng thời thực hiện transition.

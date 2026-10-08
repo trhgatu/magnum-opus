@@ -274,6 +274,7 @@ export async function reorderRoutineHabits(
   if (
     !validId(input.routineId) ||
     !validRevision(input.expectedRevision) ||
+    !Array.isArray(input.habitIds) ||
     input.habitIds.length === 0 ||
     !input.habitIds.every(validId)
   ) {

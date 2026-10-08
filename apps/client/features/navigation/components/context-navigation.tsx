@@ -13,9 +13,15 @@ import { cn } from "@/lib/utils";
 
 interface ContextNavigationProps {
   onNavigate?: () => void;
+  /** Chỉ hiển thị icon, ẩn nhãn/mô tả — dùng khi sidebar desktop đang thu
+   * gọn. Không áp dụng cho mobile drawer (luôn hiển thị đầy đủ). */
+  collapsed?: boolean;
 }
 
-export function ContextNavigation({ onNavigate }: ContextNavigationProps) {
+export function ContextNavigation({
+  onNavigate,
+  collapsed = false,
+}: ContextNavigationProps) {
   const pathname = usePathname();
 
   return (
@@ -28,11 +34,18 @@ export function ContextNavigation({ onNavigate }: ContextNavigationProps) {
           <details
             key={space.id}
             open={isSpaceActive || undefined}
-            className="group rounded-2xl border border-sidebar-border/70 bg-sidebar/55 open:bg-sidebar-accent/25 group-has-[input:checked]/sidebar:border-transparent group-has-[input:checked]/sidebar:bg-transparent group-has-[input:checked]/sidebar:open:bg-transparent"
+            className={cn(
+              "group rounded-2xl border border-sidebar-border/70 bg-sidebar/55 open:bg-sidebar-accent/25",
+              collapsed &&
+                "border-transparent bg-transparent open:bg-transparent",
+            )}
           >
             <summary
               title={space.label}
-              className="flex cursor-pointer list-none items-center gap-3 rounded-2xl px-3 py-3 outline-none transition-colors hover:bg-sidebar-accent/45 focus-visible:ring-2 focus-visible:ring-sidebar-ring group-has-[input:checked]/sidebar:justify-center group-has-[input:checked]/sidebar:px-0 [&::-webkit-details-marker]:hidden"
+              className={cn(
+                "flex cursor-pointer list-none items-center gap-3 rounded-2xl px-3 py-3 outline-none transition-colors hover:bg-sidebar-accent/45 focus-visible:ring-2 focus-visible:ring-sidebar-ring [&::-webkit-details-marker]:hidden",
+                collapsed && "justify-center px-0",
+              )}
             >
               <span
                 className={cn(
@@ -43,21 +56,25 @@ export function ContextNavigation({ onNavigate }: ContextNavigationProps) {
               >
                 <SpaceIcon className="size-4" aria-hidden="true" />
               </span>
-              <span className="min-w-0 flex-1 group-has-[input:checked]/sidebar:hidden">
-                <span className="block text-sm font-semibold">
-                  {space.label}
-                </span>
-                <span className="mt-0.5 block text-xs leading-4 text-muted-foreground">
-                  {space.description}
-                </span>
-              </span>
-              <ChevronDown
-                className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180 group-has-[input:checked]/sidebar:hidden"
-                aria-hidden="true"
-              />
+              {!collapsed ? (
+                <>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold">
+                      {space.label}
+                    </span>
+                    <span className="mt-0.5 block text-xs leading-4 text-muted-foreground">
+                      {space.description}
+                    </span>
+                  </span>
+                  <ChevronDown
+                    className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
+                    aria-hidden="true"
+                  />
+                </>
+              ) : null}
             </summary>
 
-            <div className="space-y-1 px-2 pb-2 group-has-[input:checked]/sidebar:px-0">
+            <div className={cn("space-y-1 px-2 pb-2", collapsed && "px-0")}>
               {space.items.map((item) => {
                 const isActive = isNavigationItemActive(pathname, item);
                 const ItemIcon = item.icon;
@@ -71,15 +88,14 @@ export function ContextNavigation({ onNavigate }: ContextNavigationProps) {
                     aria-current={isActive ? "page" : undefined}
                     onClick={onNavigate}
                     className={cn(
-                      "flex min-h-10 items-center gap-3 rounded-xl px-3 text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring group-has-[input:checked]/sidebar:justify-center group-has-[input:checked]/sidebar:px-0",
+                      "flex min-h-10 items-center gap-3 rounded-xl px-3 text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+                      collapsed && "justify-center px-0",
                       isActive &&
                         "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary hover:text-sidebar-primary-foreground",
                     )}
                   >
                     <ItemIcon className="size-4" aria-hidden="true" />
-                    <span className="group-has-[input:checked]/sidebar:hidden">
-                      {item.label}
-                    </span>
+                    {!collapsed ? <span>{item.label}</span> : null}
                   </Link>
                 );
               })}
