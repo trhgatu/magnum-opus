@@ -5,25 +5,63 @@ import { ChroniclePeriod } from './chronicle-period.value-object';
 
 describe('ChroniclePeriod', () => {
   describe('forMonth', () => {
-    it('builds the canonical key and UTC month boundaries', () => {
-      const period = ChroniclePeriod.forMonth(2026, 9);
+    it('builds the canonical key and keeps the owner time zone', () => {
+      const period = ChroniclePeriod.forMonth(2026, 9, 'Asia/Ho_Chi_Minh');
 
       expect(period.type).toBe(ChroniclePeriodType.MONTH);
       expect(period.key).toBe('2026-09');
+      expect(period.timeZone).toBe('Asia/Ho_Chi_Minh');
+    });
+
+    it('pads single-digit months in the key', () => {
+      expect(ChroniclePeriod.forMonth(2026, 1, 'UTC').key).toBe('2026-01');
+    });
+
+    it('exposes date-only calendar boundaries independent of the time zone', () => {
+      // Cột date-only (vd HabitCheckIn.date) đã lưu ngày lịch của owner
+      // dưới dạng UTC-midnight, nên ranh giới ngày không đổi theo múi giờ.
+      const period = ChroniclePeriod.forMonth(2026, 9, 'Asia/Ho_Chi_Minh');
+
+      expect(period.firstDate.toISOString()).toBe('2026-09-01T00:00:00.000Z');
+      expect(period.endDate.toISOString()).toBe('2026-10-01T00:00:00.000Z');
+    });
+
+    it('resolves instant boundaries at local midnight for a positive offset', () => {
+      // 00:00 ngày 1/9 ở Việt Nam (UTC+7) là 17:00 ngày 31/8 theo UTC.
+      const period = ChroniclePeriod.forMonth(2026, 9, 'Asia/Ho_Chi_Minh');
+
+      expect(period.start.toISOString()).toBe('2026-08-31T17:00:00.000Z');
+      expect(period.end.toISOString()).toBe('2026-09-30T17:00:00.000Z');
+    });
+
+    it('resolves instant boundaries at local midnight for a negative offset', () => {
+      const period = ChroniclePeriod.forMonth(2026, 1, 'America/New_York');
+
+      expect(period.start.toISOString()).toBe('2026-01-01T05:00:00.000Z');
+      expect(period.end.toISOString()).toBe('2026-02-01T05:00:00.000Z');
+    });
+
+    it('uses the correct offset on each side of a DST change', () => {
+      // New York: tháng 3 bắt đầu ở EST (UTC-5), tháng 4 bắt đầu ở EDT (UTC-4).
+      const period = ChroniclePeriod.forMonth(2026, 3, 'America/New_York');
+
+      expect(period.start.toISOString()).toBe('2026-03-01T05:00:00.000Z');
+      expect(period.end.toISOString()).toBe('2026-04-01T04:00:00.000Z');
+    });
+
+    it('keeps UTC boundaries identical for the UTC time zone', () => {
+      const period = ChroniclePeriod.forMonth(2026, 9, 'UTC');
+
       expect(period.start.toISOString()).toBe('2026-09-01T00:00:00.000Z');
       expect(period.end.toISOString()).toBe('2026-10-01T00:00:00.000Z');
     });
 
-    it('pads single-digit months in the key', () => {
-      expect(ChroniclePeriod.forMonth(2026, 1).key).toBe('2026-01');
-    });
-
     it('rolls over into the next year when the month is December', () => {
-      const period = ChroniclePeriod.forMonth(2026, 12);
+      const period = ChroniclePeriod.forMonth(2026, 12, 'Asia/Ho_Chi_Minh');
 
       expect(period.key).toBe('2026-12');
-      expect(period.start.toISOString()).toBe('2026-12-01T00:00:00.000Z');
-      expect(period.end.toISOString()).toBe('2027-01-01T00:00:00.000Z');
+      expect(period.endDate.toISOString()).toBe('2027-01-01T00:00:00.000Z');
+      expect(period.end.toISOString()).toBe('2026-12-31T17:00:00.000Z');
     });
 
     it.each([
@@ -32,8 +70,11 @@ describe('ChroniclePeriod', () => {
       [2026, 1.5],
       [2026.5, 9],
       [Number.NaN, 9],
+      [1969, 12],
+      [999, 1],
+      [10000, 1],
     ])('rejects an invalid year/month combination (%p, %p)', (year, month) => {
-      expect(() => ChroniclePeriod.forMonth(year, month)).toThrow(
+      expect(() => ChroniclePeriod.forMonth(year, month, 'UTC')).toThrow(
         InvalidChronicleMonthException,
       );
     });
@@ -53,42 +94,54 @@ describe('ChroniclePeriod', () => {
   });
 
   describe('isCurrent', () => {
-    it('is true when the period key matches the current month in the time zone', () => {
-      const period = ChroniclePeriod.forMonth(2025, 12);
+    it('uses the period time zone to decide the current month', () => {
       const now = new Date('2026-01-01T00:30:00.000Z');
 
-      expect(period.isCurrent(now, 'America/New_York')).toBe(true);
-      expect(period.isCurrent(now, 'UTC')).toBe(false);
+      expect(
+        ChroniclePeriod.forMonth(2025, 12, 'America/New_York').isCurrent(now),
+      ).toBe(true);
+      expect(ChroniclePeriod.forMonth(2025, 12, 'UTC').isCurrent(now)).toBe(
+        false,
+      );
     });
 
     it('is false for a past month', () => {
-      const period = ChroniclePeriod.forMonth(2026, 8);
+      const period = ChroniclePeriod.forMonth(2026, 8, 'UTC');
       const now = new Date('2026-09-15T12:00:00.000Z');
 
-      expect(period.isCurrent(now, 'UTC')).toBe(false);
+      expect(period.isCurrent(now)).toBe(false);
     });
   });
 
   describe('isInFuture', () => {
-    it('is true when the period key is after the current month in the time zone', () => {
-      const period = ChroniclePeriod.forMonth(2026, 3);
+    it('is true when the period key is after the current month', () => {
+      const period = ChroniclePeriod.forMonth(2026, 3, 'UTC');
       const now = new Date('2026-02-15T12:00:00.000Z');
 
-      expect(period.isInFuture(now, 'UTC')).toBe(true);
+      expect(period.isInFuture(now)).toBe(true);
+    });
+
+    it('treats the next local month as current, not future, right after local midnight', () => {
+      // 2026-08-31T17:30Z đã là 00:30 ngày 1/9 ở Việt Nam.
+      const period = ChroniclePeriod.forMonth(2026, 9, 'Asia/Ho_Chi_Minh');
+      const now = new Date('2026-08-31T17:30:00.000Z');
+
+      expect(period.isInFuture(now)).toBe(false);
+      expect(period.isCurrent(now)).toBe(true);
     });
 
     it('is false for the current month', () => {
-      const period = ChroniclePeriod.forMonth(2026, 9);
+      const period = ChroniclePeriod.forMonth(2026, 9, 'UTC');
       const now = new Date('2026-09-01T00:00:00.000Z');
 
-      expect(period.isInFuture(now, 'UTC')).toBe(false);
+      expect(period.isInFuture(now)).toBe(false);
     });
 
     it('is false for a past month', () => {
-      const period = ChroniclePeriod.forMonth(2026, 1);
+      const period = ChroniclePeriod.forMonth(2026, 1, 'UTC');
       const now = new Date('2026-09-15T12:00:00.000Z');
 
-      expect(period.isInFuture(now, 'UTC')).toBe(false);
+      expect(period.isInFuture(now)).toBe(false);
     });
   });
 });

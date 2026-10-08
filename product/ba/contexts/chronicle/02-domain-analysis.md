@@ -100,6 +100,27 @@ MONTH` — API contract (`03-api-contract.md`) vẫn chỉ expose
 `/chronicle/:year/:month`, `periodKey` được tính từ `year`/`month`
 ở tầng application (`computePeriodKey`), không lộ ra ngoài response.
 
+**Hai loại ranh giới (KD-CHR-011)**: value object `ChroniclePeriod`
+mang 2 cặp ranh giới nửa mở `[from, to)`, vì dữ liệu nguồn có 2 kiểu
+cột khác nhau:
+
+```text
+firstDate/endDate — ngày lịch date-only (YYYY-MM-DDT00:00Z)
+  → cho cột date-only đã lưu ngày lịch của owner (vd HabitCheckIn.date)
+  → so trực tiếp, KHÔNG quy đổi múi giờ (tránh lệch thêm 1 lần nữa)
+
+start/end — instant thật của 00:00 đầu tháng / đầu tháng sau
+            tại owner.timeZone (vd tháng 9/2026 ở UTC+7:
+            2026-08-31T17:00Z → 2026-09-30T17:00Z)
+  → cho cột timestamp (JournalEntry.createdAt, Memory.createdAt,
+    ProjectLifecycleTransition.occurredAt)
+  → đây cũng là giá trị lưu vào periodStart/periodEnd của snapshot
+```
+
+Dùng nhầm cặp ranh giới là lỗi bị "đóng băng" vĩnh viễn trong
+snapshot của tháng đã đóng, nên mỗi reader phải ghi rõ nó dùng cặp
+nào cho từng cột.
+
 **Lý do tổng quát hóa ngay từ V1**: cùng lý do với DAP-CHR-001 (tránh
 migration khi mở rộng) — nếu sau này cần Chronicle theo tuần/quý/năm,
 `ChronicleSnapshot` không cần đổi cấu trúc, chỉ thêm giá trị
