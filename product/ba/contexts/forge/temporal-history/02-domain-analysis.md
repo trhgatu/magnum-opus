@@ -22,6 +22,23 @@ Mọi mốc hiệu lực (`effectiveOn`, `effectiveFrom`/`effectiveTo`, `addedOn
 
 Ngày lịch "hôm nay" của owner được tính bằng đúng cách check-in đang dùng (`Clock` + `UserTimeZoneReader` → ngày lịch), ở **tầng application**, rồi truyền vào aggregate. Aggregate không tự biết múi giờ.
 
+**Mốc hiệu lực luôn không giảm (monotonic).** Nếu owner đổi múi giờ về phía tây (vd từ UTC+7 sang UTC-5), "hôm nay" theo múi giờ mới có thể **sớm hơn** một mốc đã ghi. Để thứ tự lịch sử không bao giờ đảo ngược, mốc dùng khi ghi là:
+
+```text
+D = max(hôm nay theo owner.timeZone hiện tại,
+        mốc hiệu lực mới nhất đã ghi của CÙNG chuỗi lịch sử đó)
+
+  Lifecycle  — chuỗi = transition của Habit/Routine đó
+               (mốc mới nhất = effectiveOn của transition cuối cùng)
+  Schedule   — chuỗi = phiên bản của Habit đó
+               (mốc mới nhất = effectiveFrom của phiên bản đang mở)
+  Membership — chuỗi = các dòng của cặp (routine, habit) đó
+               (mốc mới nhất = removedOn của dòng đã đóng gần nhất,
+                hoặc addedOn của dòng đang mở)
+```
+
+Nhờ vậy §3.3 không bao giờ đóng phiên bản trước `effectiveFrom` của nó, §3.4 không bao giờ tạo `removedOn < addedOn`, và §4.1 sắp transition theo `(effectiveOn, occurredAt)` luôn khớp thứ tự thật. Trường hợp kẹp mốc chỉ xảy ra trong tối đa 1 ngày sau khi đổi múi giờ, và chỉ làm thay đổi đó có hiệu lực muộn hơn 1 ngày — chấp nhận được.
+
 ### DAP-FTH-002 — Half-Open Intervals Everywhere
 
 Mọi khoảng hiệu lực là nửa mở `[from, to)`: bao gồm ngày `from`, không bao gồm ngày `to`. `to = null` nghĩa là "đang hiệu lực". Khoảng rỗng `[D, D)` hợp lệ và không khớp ngày nào (KD-FTH-006).
@@ -189,10 +206,14 @@ Check-in chỉ tạo được cho hôm nay và chỉ khi Habit đang sống. Ng�
 
 ## 6. Backfill (dữ liệu có trước migration)
 
-Migration chạy 1 lần, điền lịch sử gần đúng cho dữ liệu hiện có (ASM-FTH-002). "Ngày lịch" dưới đây = `(timestamp AT TIME ZONE users.time_zone)::date` của owner.
+Migration chạy 1 lần, điền lịch sử gần đúng cho dữ liệu hiện có (ASM-FTH-002). "Ngày lịch" dưới đây = `(timestamp AT TIME ZONE 'UTC' AT TIME ZONE users.time_zone)::date` — timestamp của Prisma lưu giờ UTC không kèm múi giờ, nên phải gắn UTC trước rồi mới đổi sang múi giờ owner (03-database-schema.md §2.2). Múi giờ dùng là `users.time_zone` **tại lúc migration**, vì hệ thống không lưu lịch sử múi giờ.
 
 ```text
-Habit.createdOn / Routine.createdOn  = ngày lịch của createdAt          (chính xác)
+Habit.createdOn / Routine.createdOn  = ngày lịch của createdAt          (gần đúng:
+                                                                         lệch 1 ngày
+                                                                         nếu owner đã
+                                                                         đổi múi giờ
+                                                                         từ lúc tạo)
 
 HabitScheduleVersion (mỗi Habit BUILD)
   1 phiên bản [createdOn, null) với tần suất HIỆN TẠI                  (gần đúng:
@@ -215,6 +236,8 @@ RoutineHabitMembership (mỗi dòng RoutineHabit hiện có)
                                                                          thật; mất các
                                                                          lần gỡ trước đó)
 ```
+
+**Trường hợp backfill không nhìn thấy:** Habit/Routine đã archive rồi khôi phục **trước** migration hiện đang `isActive = true`, nên không được ghi transition nào. Theo §4.1, toàn bộ quá khứ của nó — kể cả giai đoạn thực sự bị archive — được đọc là "sống": các ngày đó vẫn bị tính là ngày đến hạn, và nếu không có check-in thì bị tính là bỏ lỡ. Không có dữ liệu nào cho biết giai đoạn đó, nên chấp nhận.
 
 Sai số chỉ ảnh hưởng tới quá khứ **trước** migration. Từ thời điểm migration trở đi, lịch sử chính xác.
 

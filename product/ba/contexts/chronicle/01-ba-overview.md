@@ -262,7 +262,8 @@ một tháng đã đóng cho ra cùng kết quả dù được mở lần đầu
 tháng sau hay nhiều tháng sau đó:
 
   - Habit/Routine: sống hay không, tần suất, thành viên Routine tại
-    từng ngày — từ lịch sử Forge (temporal-history 02 §4).
+    từng ngày — từ lịch sử Forge
+    (`../forge/temporal-history/02-domain-analysis.md` §4).
   - Check-in, relapse, Project transition, createdAt của Journal/
     Memory — vốn đã là lịch sử bất biến.
 
@@ -274,12 +275,19 @@ của người dùng lên chính dữ liệu đó, và được chấp nhận:
   - Đổi tên Habit → snapshot hiển thị tên mới.
   - Sửa `quitStartedAt` của Habit QUIT → là sửa lại một sự thật, giá
     trị mới đúng cho cả quá khứ.
+  - Xóa vĩnh viễn một Project (chỉ được phép khi Project chưa từng có
+    Cycle, tức chưa từng ACTIVE — `Project.canBeDeleted`) → transition
+    của nó bị xóa theo (cascade). Project đó chỉ có thể đã từng Stop
+    trước khi Start, nên chỉ `stoppedCount` của tháng chưa xem bị giảm.
+    Chấp nhận: người dùng chủ động xóa, và Project chưa từng chạy không
+    mang lịch sử làm việc nào đáng giữ.
 
 Snapshot (KD-CHR-002) vẫn giữ: nó khóa số liệu sau lần xem đầu tiên
 để những thay đổi cố ý ở trên không viết lại một tháng đã xem.
 
 Sai số còn lại duy nhất nằm ở quá khứ **trước** khi lịch sử Forge
-được bật (backfill gần đúng — temporal-history 02 §6).
+được bật (backfill gần đúng —
+`../forge/temporal-history/02-domain-analysis.md` §6).
 
 KD-CHR-010 — Chronicle Is Owner-Scoped
 Mọi read model của Chronicle lọc theo `ownerId` của người dùng hiện
@@ -328,8 +336,10 @@ reader) và §7 (out of scope), không còn mở nữa:
 ✓ QUIT-type Habit hiển thị gì — 02-domain-analysis.md §5
 ✓ Routine completion rate — 02-domain-analysis.md §5
 ✓ Lower bound của navigation — 02-domain-analysis.md §5
-✓ Cơ chế invalidate snapshot khi có bug — chấp nhận không có,
-  02-domain-analysis.md §7
+✓ Cơ chế invalidate snapshot khi có bug — không có công cụ sửa tay;
+  ngoại lệ duy nhất là tính lại có chủ đích khi nâng schemaVersion
+  loại (b) cho reader thuần lịch sử, 02-domain-analysis.md DAP-CHR-008
+  và §7
 ✓ Buffer quanh ranh giới tháng — chấp nhận rủi ro, không thiết kế
   cơ chế trì hoãn, 02-domain-analysis.md §7
 ✓ Chronicle Snapshot có expose "computedAt" qua API không — có, xem
