@@ -13,8 +13,11 @@
 
 `01-ba-overview.md` (Chronicle) — authoritative baseline, đặc biệt
 KD-CHR-002 (live compute tháng hiện tại / snapshot tháng đã đóng),
-KD-CHR-009 (chỉ tháng hiện tại còn drift), KD-CHR-011 (ranh giới tháng
-theo owner's time zone).
+KD-CHR-009 (tháng đã đóng dựng lại từ lịch sử rồi đóng băng), KD-CHR-011
+(ranh giới tháng theo owner's time zone).
+
+`../forge/temporal-history/02-domain-analysis.md` — lịch sử Habit/Routine
+và quy tắc "trạng thái tại ngày D" (§4) mà reader Habit/Routine dùng.
 
 ---
 
@@ -69,24 +72,28 @@ Tháng hiện tại luôn compute real-time, không tạo/đọc snapshot. Việ
 — không dựa vào việc có snapshot row hay không (tránh nhầm giữa
 "tháng hiện tại" và "tháng đã qua nhưng chưa ai xem lần nào").
 
-### DAP-CHR-004 — Chronicle Reader Composes Two Kinds of Source Data
+### DAP-CHR-004 — Chronicle Readers Read History, Not Current State
 
-Mỗi module-reader của Chronicle (vd `HabitChronicleReader`) chỉ đọc
-2 loại nguồn có sẵn, không tạo thêm bảng trung gian nào ở phía module
-gốc:
+**(Đã điều chỉnh 2026-10-08 — thiết kế trước đọc `Habit.isActive`/
+`Routine.isActive` hiện tại và cho rằng không cần lifecycle log; điều
+đó làm habit đã archive biến mất khỏi các tháng nó từng hoạt động.
+Xem `01-ba-overview.md` KD-CHR-009.)**
+
+Mỗi module-reader của Chronicle chỉ đọc dữ liệu **có ngày hiệu lực**,
+để dựng lại đúng trạng thái tại từng ngày trong kỳ:
 
 ```text
-1. Append-only, đã ổn định vĩnh viễn:
-   HabitCheckIn, HabitRelapse, ProjectCycle (đã đóng)
-2. Trạng thái hiện tại của aggregate, đọc đúng lúc tạo snapshot:
-   Habit.isActive, Routine.isActive, Project.lifecycleState
+Habit/Routine  — lịch sử Forge (../forge/temporal-history/):
+                 lifecycle transition, schedule version, membership,
+                 createdOn; cộng HabitCheckIn, HabitRelapse
+Project        — ProjectLifecycleTransition
+Journal/Mood   — JournalEntry.createdAt (+ state hiện tại, KD-CHR-009)
+Memory         — Memory.createdAt (+ state hiện tại, KD-CHR-009)
 ```
 
-Không cần lifecycle-transition-log dùng chung cho Habit/Routine
-(hướng tiếp cận đã cân nhắc và loại bỏ — xem `01-ba-overview.md`
-KD-CHR-009) vì snapshot chỉ cần đúng trạng thái **tại thời điểm tạo
-snapshot**, không cần tái tạo trạng thái tại một ngày bất kỳ trong
-quá khứ.
+Reader **không** đọc `Habit.isActive`, `Habit.frequencyType/
+frequencyDays`, `Routine.isActive`, `RoutineHabit` — đó là trạng thái
+hiện tại, chỉ đúng cho hôm nay.
 
 ### DAP-CHR-005 — Snapshot Period Is Generic, Not Hardcoded to Month
 
@@ -127,6 +134,81 @@ migration khi mở rộng) — nếu sau này cần Chronicle theo tuần/quý/n
 `periodType` mới + endpoint mới map sang cùng bảng. `@@unique` đổi
 từ `(ownerId, year, month)` thành `(ownerId, periodType, periodKey)`.
 
+### DAP-CHR-006 — One Reader Contract, Registered, Not Wired by Hand
+
+Mọi module-reader implement **cùng 1 interface** và tự khai báo nó
+thuộc module nào, thay vì mỗi module 1 port/token riêng mà query
+handler phải inject từng cái:
+
+```typescript
+interface ChronicleSectionReader<M extends ChronicleModule> {
+  readonly module: M; // 'habit' | 'journal' | ...
+  readonly schemaVersion: number; // DAP-CHR-008
+  getSummary(
+    ownerId: string,
+    period: ChroniclePeriod,
+  ): Promise<ChronicleSectionDataByModule[M]>;
+}
+```
+
+Mọi reader được gom vào 1 token duy nhất (`CHRONICLE_SECTION_READERS`,
+mảng). Query handler chỉ duyệt mảng đó — không biết có bao nhiêu
+module, không biết tên module nào.
+
+**Thêm module mới** = thêm 1 giá trị vào `CHRONICLE_MODULES` + 1 type
+section-data + 1 reader + 1 dòng đăng ký. Query handler, repository
+snapshot và bảng database **không đổi**. (Response API và giao diện vẫn
+cần thêm field/khối hiển thị cho module mới — đó là phần trình bày,
+không phải phần tính toán.)
+
+**Kiểm tra khi khởi động**: mỗi giá trị trong `CHRONICLE_MODULES` phải
+có đúng 1 reader trong registry — thiếu hoặc trùng thì app không khởi
+động được (fail fast), thay vì lỗi âm thầm lúc người dùng mở Chronicle.
+
+### DAP-CHR-007 — A Snapshot Can Gain Sections, Never Lose or Change Them
+
+Snapshot được tạo với đúng các module tồn tại **lúc đó**. Khi có module
+mới (vd Task), snapshot cũ không có section `task`. Quy tắc:
+
+```text
+Đọc snapshot của kỳ đã đóng:
+  với mỗi reader trong registry:
+    section của module đó đã có → dùng (DAP-CHR-008)
+    chưa có → tính section đó cho đúng kỳ của snapshot, LƯU THÊM vào
+              snapshot, rồi dùng
+```
+
+Section đã có không bao giờ bị sửa hay xóa vì lý do này — snapshot chỉ
+được **thêm** section còn thiếu. Vì reader đọc dữ liệu có ngày hiệu lực
+(DAP-CHR-004), section tính bù cho tháng cũ vẫn đúng với tháng đó.
+
+Section của module không còn trong registry (module bị gỡ khỏi
+Chronicle) được bỏ qua khi đọc, không bị xóa.
+
+### DAP-CHR-008 — Every Section Carries Its Schema Version
+
+Shape của `data` sẽ thay đổi theo thời gian (vd thêm chỉ số mới cho
+Habit). Mỗi section lưu kèm `schemaVersion` — phiên bản shape mà reader
+đã dùng lúc ghi. Mỗi reader khai báo phiên bản hiện tại của nó
+(DAP-CHR-006). Khi đọc section:
+
+```text
+section.schemaVersion = reader.schemaVersion  → dùng nguyên
+section.schemaVersion < reader.schemaVersion  →
+  a. Thay đổi bổ sung có giá trị mặc định suy ra được (vd thêm field
+     mảng → mặc định rỗng): reader cung cấp hàm nâng cấp, chạy trong
+     bộ nhớ khi đọc, KHÔNG ghi lại.
+  b. Thay đổi không suy ra được từ data cũ: tính lại section từ lịch sử
+     và THAY THẾ section đó với schemaVersion mới.
+section.schemaVersion > reader.schemaVersion  → lỗi hệ thống (code
+  cũ hơn dữ liệu — không được xảy ra khi deploy đúng thứ tự)
+```
+
+Trường hợp (b) là **ngoại lệ có chủ đích duy nhất** của tính bất biến
+snapshot. Nó an toàn vì section được tính lại từ cùng dữ liệu lịch sử
+(DAP-CHR-004), không phải từ trạng thái hiện tại. Mỗi lần nâng phiên
+bản, người viết reader phải ghi rõ thay đổi đó thuộc (a) hay (b).
+
 ---
 
 ## 3. Domain Concepts
@@ -160,6 +242,10 @@ ChronicleSnapshotSection
 ├── snapshotId
 ├── module: string        ("habit" | "routine" | "project" | "journal"
 │                          | "mood" | "memory", mở rộng được)
+├── schemaVersion: int    (phiên bản shape của `data` — DAP-CHR-008)
+├── computedAt            (lúc section này được tính — có thể muộn hơn
+│                          snapshot.computedAt nếu là section tính bù,
+│                          DAP-CHR-007)
 └── data: Json            (shape theo `module`, xem dưới)
 ```
 
@@ -171,7 +257,7 @@ validate ở tầng application, không phải Prisma model):
 
 ```typescript
 interface HabitSectionData {
-  buildCompletionRate: number; // 0.0–1.0, chỉ tính Habit BUILD active
+  buildCompletionRate: number; // 0.0–1.0, gộp mọi Habit BUILD có ngày due (§5)
   bestStreak: { habitTitle: string; days: number } | null;
   mostConsistentHabit: {
     habitTitle: string;
@@ -229,23 +315,34 @@ GetMonthlyChronicleQuery(ownerId, year, month):
      (periodStart/periodEnd tính theo owner.timeZone — KD-CHR-011)
   2. isCurrentMonth = (year, month) == hôm nay theo owner.timeZone
   3. if isCurrentMonth:
-       → compute trực tiếp từ 6 reader, KHÔNG đọc/ghi snapshot
+       → compute trực tiếp từ mọi reader trong registry (DAP-CHR-006),
+         KHÔNG đọc/ghi snapshot
        → trả kết quả, không persist
   4. if !isCurrentMonth:
        → tìm ChronicleSnapshot theo (ownerId, MONTH, periodKey)
-       → nếu có → đọc snapshot + sections, trả về (không compute lại)
+       → nếu có →
+           a. đọc snapshot + sections
+           b. section thiếu → tính bù + lưu thêm (DAP-CHR-007)
+           c. section phiên bản cũ → nâng cấp trong bộ nhớ, hoặc tính
+              lại + thay thế (DAP-CHR-008)
+           d. trả về
        → nếu chưa có →
-           a. compute từ 6 reader (như tháng hiện tại)
-           b. persist thành ChronicleSnapshot + 6 ChronicleSnapshotSection
-              (1 transaction)
+           a. compute từ mọi reader trong registry (như tháng hiện tại)
+           b. persist thành ChronicleSnapshot + 1 ChronicleSnapshotSection
+              / module, kèm schemaVersion (1 transaction)
            c. trả kết quả vừa compute
 ```
 
-Bước 4.b là **write duy nhất** trong toàn bộ Chronicle — xảy ra ở
+Các bước ghi ở 4 (tạo snapshot, tính bù section, thay thế section
+phiên bản cũ) là **write duy nhất** trong toàn bộ Chronicle — xảy ra ở
 query handler (đọc), không phải command handler, vì về bản chất nó
 là "cache warm-up", không phải mutation do người dùng khởi xướng
 (KD-CHR-001 vẫn đúng: không có create/update/delete từ phía người
 dùng).
+
+**Race khi 2 request cùng tính bù 1 section**: `@@unique([snapshotId,
+module])` — request thứ 2 nhận `P2002`, đọc lại section vừa được ghi
+(cùng pattern với tạo snapshot bên dưới).
 
 **Race condition khi 2 request đồng thời cùng tạo snapshot lần đầu**
 (vd 2 tab cùng mở Chronicle tháng vừa đóng): dùng
@@ -259,19 +356,39 @@ throw).
 ## 5. Reader Contracts (ngữ nghĩa đã chốt)
 
 ```text
-Habit (BUILD) — completion rate:
-  Tháng hiện tại: (số ngày đã check-in) / (số ngày due tính đến hôm
-    nay trong tháng, theo owner.timeZone) — KHÔNG lấy mẫu số cả
-    tháng, tránh completion rate luôn thấp giả tạo ở đầu tháng.
-  Tháng đã đóng: mẫu số = số ngày due của cả tháng (tự nhiên đúng vì
-    tháng đã trôi qua hết).
-  Chỉ tính Habit có isActive=true tại thời điểm tạo snapshot
-    (DAP-CHR-004).
+Thuật ngữ chung cho Habit/Routine (định nghĩa đầy đủ ở
+../forge/temporal-history/02-domain-analysis.md §4):
+  Ngày trong kỳ — mọi ngày lịch D với period.firstDate ≤ D <
+    period.endDate; với kỳ hiện tại chỉ tính tới HÔM NAY (bao gồm)
+    theo owner.timeZone.
+  dueOn(habit, D) — Habit BUILD sống vào D VÀ tần suất có hiệu lực
+    vào D đến hạn ở thứ của D.
+  "Ngày due" của 1 Habit — ngày trong kỳ có dueOn = true.
+  "Ngày hoàn thành" — ngày due có HabitCheckIn với date = D.
+    Check-in trên ngày không due không được đếm.
+  Mọi so sánh dùng period.firstDate/endDate (date-only), vì
+    HabitCheckIn.date và mọi mốc lịch sử Forge đều là ngày lịch.
+
+Habit (BUILD) — buildCompletionRate:
+  (tổng số ngày hoàn thành của mọi Habit BUILD) / (tổng số ngày due
+    của mọi Habit BUILD) — gộp chung, không phải trung bình tỷ lệ
+    từng Habit (Habit đến hạn nhiều ngày hơn có trọng số lớn hơn).
+  Kỳ hiện tại: chỉ tính tới hôm nay — tránh tỷ lệ thấp giả tạo ở
+    đầu tháng.
+  Habit tham gia = mọi Habit BUILD có ≥ 1 ngày due trong kỳ, kể cả
+    Habit nay đã archive (DAP-CHR-004).
+  0 nếu không có ngày due nào.
+
+Habit (BUILD) — bestStreak:
+  Với từng Habit: chuỗi dài nhất các ngày due LIÊN TIẾP (bỏ qua ngày
+    không due, không bỏ qua ngày due bị lỡ) đều là ngày hoàn thành,
+    chỉ xét trong kỳ. Lấy Habit có chuỗi dài nhất; hòa thì Habit có
+    createdOn sớm hơn, rồi id. `null` nếu không Habit nào có chuỗi > 0.
 
 Habit (BUILD) — mostConsistentHabit (SC-CHR-005):
-  Tính completion rate riêng cho từng Habit BUILD active (cùng công
+  Tính completion rate riêng cho từng Habit BUILD tham gia (cùng công
     thức/mẫu số như buildCompletionRate ở trên, nhưng theo từng Habit
-    thay vì trung bình cả owner). Chỉ xét Habit có **ít nhất 7 ngày
+    thay vì gộp cả owner). Chỉ xét Habit có **ít nhất 7 ngày
     due đã qua** trong tháng đó — loại trừ Habit vừa tạo cuối tháng
     (vd tạo ngày 28/30, mới có 2-3 ngày due, 1 check-in đã thành 100%
     và thắng giả tạo trước Habit đã bền bỉ cả tháng), và loại trừ hẳn
@@ -283,15 +400,27 @@ Habit (BUILD) — mostConsistentHabit (SC-CHR-005):
     ngưỡng 7 ngày due).
 
 Habit (QUIT) — hiển thị:
-  Chỉ "daysSinceLastRelapse" tại cuối tháng (hoặc tại thời điểm tạo
-    snapshot cho tháng vừa đóng) — dùng chung công thức với
-    HabitProgressReader đã có (BR-HAB2-004), không cần logic tính mới.
+  Habit tham gia = Habit QUIT sống ≥ 1 ngày trong kỳ VÀ quitStartedAt
+    ≤ ngày mốc của nó.
+  Ngày mốc = ngày sống cuối cùng của Habit trong kỳ (kỳ đã đóng: tối
+    đa ngày cuối tháng; kỳ hiện tại: tối đa hôm nay).
+  "daysSinceLastRelapse" tính TẠI NGÀY MỐC theo đúng công thức
+    BR-HAB2-004 (relapse gần nhất có occurredAt ≥ quitStartedAt và
+    ngày lịch ≤ ngày mốc; không có thì tính từ quitStartedAt) — không
+    tính tại thời điểm tạo snapshot, để kết quả không phụ thuộc lúc
+    xem.
   Không đếm số lần relapse trong tháng ở V1.
 
-Routine — completion rate:
-  (số buổi đã hoàn thành) / (số buổi có thể hoàn thành trong tháng,
-    tính đến hôm nay nếu là tháng hiện tại) — cùng nguyên tắc mẫu số
-    "đến hôm nay" như Habit.
+Routine — completionRate:
+  Routine không có bản ghi "buổi" riêng — buổi được suy ra từ check-in
+    của các Habit thành viên:
+  Buổi của Routine R vào ngày D tồn tại khi:
+    R sống vào D VÀ có ≥ 1 Habit H với memberOn(R, H, D) và dueOn(H, D).
+  Buổi đó HOÀN THÀNH khi mọi Habit H như trên đều có check-in ngày D
+    (tất cả hoặc không — 1 buổi là 1 đơn vị, không tính điểm từng phần).
+  completionRate = (tổng buổi hoàn thành của mọi Routine) / (tổng số
+    buổi của mọi Routine) trong kỳ; kỳ hiện tại chỉ tính tới hôm nay.
+  0 nếu không có buổi nào.
 
 Project — "active trong tháng" (SC-CHR-006):
   Có ở trạng thái ACTIVE vào bất kỳ ngày nào trong tháng — dùng
@@ -340,25 +469,31 @@ Lower bound navigation:
 
 ## 6. Domain Invariant Summary
 
-| Invariant                                             | Enforced By                                                |
-| ----------------------------------------------------- | ---------------------------------------------------------- |
-| Mỗi owner tối đa 1 snapshot / kỳ                      | `@@unique([ownerId, periodType, periodKey])` (DAP-CHR-005) |
-| Mỗi module tối đa 1 section / snapshot                | `@@unique([snapshotId, module])` (DAP-CHR-001)             |
-| Tháng hiện tại không có snapshot row                  | Query handler kiểm tra trước khi đọc/ghi (DAP-CHR-003)     |
-| Snapshot bất biến sau khi tạo                         | Không có update/delete path nào trong application layer    |
-| Không navigate quá tháng hiện tại                     | KD-CHR-007 (upper bound)                                   |
-| Không navigate trước tháng tạo account                | User.createdAt (lower bound, §5)                           |
-| Race tạo snapshot đồng thời không tạo 2 bản ghi trùng | `P2002` + đọc lại (idempotent, giống `HabitCheckIn`)       |
+| Invariant                                                                  | Enforced By                                                          |
+| -------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Mỗi owner tối đa 1 snapshot / kỳ                                           | `@@unique([ownerId, periodType, periodKey])` (DAP-CHR-005)           |
+| Mỗi module tối đa 1 section / snapshot                                     | `@@unique([snapshotId, module])` (DAP-CHR-001)                       |
+| Tháng hiện tại không có snapshot row                                       | Query handler kiểm tra trước khi đọc/ghi (DAP-CHR-003)               |
+| Section đã ghi không bị sửa/xóa — trừ thay thế khi nâng phiên bản loại (b) | Chỉ có insert section thiếu + replace theo DAP-CHR-008 (DAP-CHR-007) |
+| Mỗi module trong `CHRONICLE_MODULES` có đúng 1 reader                      | Kiểm tra lúc khởi động (DAP-CHR-006)                                 |
+| Section mang `schemaVersion` ≤ phiên bản reader hiện tại                   | Kiểm tra khi đọc (DAP-CHR-008)                                       |
+| Không navigate quá tháng hiện tại                                          | KD-CHR-007 (upper bound)                                             |
+| Tháng trước khi tạo account trả về zeros, không lỗi                        | Mọi reader tự trả zeros — backend không chặn (§5)                    |
+| Số liệu Habit/Routine không phụ thuộc lúc xem lần đầu                      | Reader đọc lịch sử Forge, không đọc state hiện tại (DAP-CHR-004)     |
+| Race tạo snapshot đồng thời không tạo 2 bản ghi trùng                      | `P2002` + đọc lại (idempotent, giống `HabitCheckIn`)                 |
 
 ---
 
 ## 7. Out of Scope for Domain Analysis
 
 ```text
-- Cơ chế invalidate/tính lại snapshot đã tạo (Open Analysis
-  01-ba-overview.md §9) — V1 chấp nhận snapshot sai (do bug) là sai
-  vĩnh viễn, không có công cụ sửa. Nếu cần, đây là một phase riêng
-  sau V1 (vd endpoint admin xóa snapshot để buộc tính lại).
+- Cơ chế invalidate/tính lại snapshot đã tạo theo yêu cầu (Open
+  Analysis 01-ba-overview.md §9) — V1 chấp nhận snapshot sai (do bug)
+  là sai vĩnh viễn, không có công cụ sửa tay. Ngoại lệ duy nhất là
+  tính lại có chủ đích khi nâng schemaVersion loại (b) — DAP-CHR-008.
+  Một bug trong reader có thể được sửa bằng cách nâng schemaVersion
+  và khai báo loại (b), nhưng đó là quyết định của người viết reader,
+  không phải công cụ cho người dùng/admin.
 - Buffer thời gian quanh ranh giới tháng (request đến đúng lúc dữ
   liệu module nguồn chưa ghi xong) — chấp nhận rủi ro cực nhỏ này ở
   V1, không thiết kế cơ chế trì hoãn/retry.
