@@ -35,6 +35,7 @@ import {
   MoveRoutineHabitDownCommand,
   MoveRoutineHabitUpCommand,
   RemoveRoutineHabitCommand,
+  ReorderRoutineHabitsCommand,
   RestoreRoutineCommand,
   UpdateRoutineTitleCommand,
 } from '../../application/commands';
@@ -49,6 +50,7 @@ import {
   CreateRoutineDto,
   GetAvailableRoutineHabitsQueryDto,
   GetRoutinesQueryDto,
+  ReorderRoutineHabitsDto,
   RoutineRevisionDto,
   UpdateRoutineTitleDto,
 } from '../dtos';
@@ -244,6 +246,25 @@ export class RoutineController {
         ownerId,
         habitId,
         expectedRevision: query.expectedRevision,
+      }),
+    );
+  }
+
+  @Patch(':id/habits/reorder')
+  @ApiOperation({
+    summary: 'Reorder every Habit in a Routine at once',
+  })
+  public reorderHabits(
+    @GetUser('id') ownerId: string,
+    @Param('id', new ParseUUIDPipe()) routineId: string,
+    @Body() body: ReorderRoutineHabitsDto,
+  ): Promise<RoutineResponse> {
+    return this.executeMutation(
+      new ReorderRoutineHabitsCommand({
+        routineId,
+        ownerId,
+        habitIds: body.habitIds,
+        expectedRevision: body.expectedRevision,
       }),
     );
   }

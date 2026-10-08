@@ -381,6 +381,11 @@ export const Errors = {
     translationKey: 'exceptions.routine.habit.type.not.allowed',
     statusCode: 409,
   },
+  INVALID_ROUTINE_HABIT_REORDER: {
+    code: 'INVALID_ROUTINE_HABIT_REORDER',
+    translationKey: 'exceptions.routine.habit.reorder.invalid',
+    statusCode: 400,
+  },
 
   // Crucible / Project
   INVALID_PROJECT_ID: {

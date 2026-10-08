@@ -41,6 +41,12 @@ export interface RoutineHabitInput {
   expectedRevision: number;
 }
 
+export interface ReorderRoutineHabitsInput {
+  routineId: string;
+  habitIds: string[];
+  expectedRevision: number;
+}
+
 export type RoutineHabitMoveDirection = "up" | "down";
 
 export type RoutineLifecycleAction = "archive" | "restore";
@@ -248,6 +254,45 @@ export async function removeRoutineHabit(
       `/routines/${input.routineId}/habits/${input.habitId}?${params.toString()}`,
       {
         method: "DELETE",
+      },
+    );
+
+    revalidateRoutine(input.routineId);
+
+    return {
+      status: "success",
+      routine,
+    };
+  } catch (error) {
+    return toMutationError(error);
+  }
+}
+
+export async function reorderRoutineHabits(
+  input: ReorderRoutineHabitsInput,
+): Promise<RoutineMutationResult> {
+  if (
+    !validId(input.routineId) ||
+    !validRevision(input.expectedRevision) ||
+    !Array.isArray(input.habitIds) ||
+    input.habitIds.length === 0 ||
+    !input.habitIds.every(validId)
+  ) {
+    return {
+      status: "error",
+      message: "Dữ liệu Thói quen của Nếp sinh hoạt không hợp lệ.",
+    };
+  }
+
+  try {
+    const routine = await apiFetch<RoutineResponse>(
+      `/routines/${input.routineId}/habits/reorder`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({
+          habitIds: input.habitIds,
+          expectedRevision: input.expectedRevision,
+        }),
       },
     );
 

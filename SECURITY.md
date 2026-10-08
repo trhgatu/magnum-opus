@@ -24,6 +24,18 @@ Trong phạm vi: code trong repo này (server, admin, client, packages), workflo
 
 ## Ngoại lệ dependency đang được chấp nhận
 
-`pnpm audit` hiện bỏ qua duy nhất `GHSA-qwww-vcr4-c8h2`. Advisory này chỉ ảnh hưởng các API React Server Components thử nghiệm của React Router. Admin dùng React Router ở chế độ SPA và không bật các API RSC đó, nên đường tấn công được mô tả không tồn tại trong ứng dụng này. Đây là ngoại lệ có phạm vi, không phải cách làm cho CI xanh bằng cách bỏ qua mọi cảnh báo.
+`pnpm audit` hiện bỏ qua hai advisory.
+
+### `GHSA-qwww-vcr4-c8h2` — React Router
+
+Advisory này chỉ ảnh hưởng các API React Server Components thử nghiệm của React Router. Admin dùng React Router ở chế độ SPA và không bật các API RSC đó, nên đường tấn công được mô tả không tồn tại trong ứng dụng này. Đây là ngoại lệ có phạm vi, không phải cách làm cho CI xanh bằng cách bỏ qua mọi cảnh báo.
 
 Khi Admin chuyển sang RSC, hoặc khi có thể nâng React Router lên bản vá mà không phá vỡ API hiện tại, phải xóa mã advisory khỏi `pnpm.auditConfig.ignoreGhsas` và chạy lại toàn bộ quality, browser E2E và dependency audit. Mọi ngoại lệ mới đều phải ghi rõ package, điều kiện khai thác, lý do repo không bị ảnh hưởng và điều kiện xóa ngoại lệ tại đây.
+
+### `GHSA-vfj7-8cjw-p6xm` — braces
+
+`braces` (≤ 3.0.3) có thể bị stack exhaustion khi mở rộng một glob pattern lồng sâu do kẻ tấn công kiểm soát. Advisory chưa có bản vá nào (patched versions `<0.0.0`), nên không thể xử lý bằng override.
+
+Repo không bị ảnh hưởng vì `braces` chỉ có mặt trong dev tooling — `lint-staged` và `eslint-config-next` (qua `micromatch` / `fast-glob`). `pnpm why braces --prod -r` không trả về đường nào: package này không nằm trong dependency production của server, client hay admin, và chỉ xử lý glob pattern do chính repo khai báo trong config lint, không bao giờ nhận input từ người dùng.
+
+Xóa ngoại lệ khi `braces` phát hành bản vá (thêm override tương ứng), hoặc khi `braces` xuất hiện trong dependency production.

@@ -1,13 +1,18 @@
-import { RoutineHabitNotFoundException } from '../../../domain/exceptions';
+import {
+  InvalidRoutineHabitReorderException,
+  RoutineHabitNotFoundException,
+} from '../../../domain/exceptions';
 import { Routine } from '../../../domain/routine.aggregate';
 import { RoutineId } from '../../../domain/value-objects';
 import { RoutineMutationService } from '../../services';
 import { MoveRoutineHabitDownCommand } from '../move-routine-habit-down.command';
 import { MoveRoutineHabitUpCommand } from '../move-routine-habit-up.command';
 import { RemoveRoutineHabitCommand } from '../remove-routine-habit.command';
+import { ReorderRoutineHabitsCommand } from '../reorder-routine-habits.command';
 import { MoveRoutineHabitDownHandler } from './move-routine-habit-down.handler';
 import { MoveRoutineHabitUpHandler } from './move-routine-habit-up.handler';
 import { RemoveRoutineHabitHandler } from './remove-routine-habit.handler';
+import { ReorderRoutineHabitsHandler } from './reorder-routine-habits.handler';
 
 describe('Routine membership command handlers', () => {
   const repository = {
@@ -22,6 +27,8 @@ describe('Routine membership command handlers', () => {
   const moveUpHandler = new MoveRoutineHabitUpHandler(mutationService);
 
   const moveDownHandler = new MoveRoutineHabitDownHandler(mutationService);
+
+  const reorderHandler = new ReorderRoutineHabitsHandler(mutationService);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -138,6 +145,63 @@ describe('Routine membership command handlers', () => {
         routineId: 'routine-id',
         ownerId: 'owner-id',
         habitId: 'habit-third',
+        expectedRevision: 4,
+      }),
+    );
+
+    expect(result.isSuccess).toBe(true);
+    expect(result.getValue().revision).toBe(4);
+    expect(repository.update).not.toHaveBeenCalled();
+  });
+
+  it('reorders every Habit at once', async () => {
+    const routine = createRoutine();
+    repository.findByIdForOwner.mockResolvedValue(routine);
+
+    const result = await reorderHandler.execute(
+      new ReorderRoutineHabitsCommand({
+        routineId: 'routine-id',
+        ownerId: 'owner-id',
+        habitIds: ['habit-third', 'habit-first', 'habit-second'],
+        expectedRevision: 4,
+      }),
+    );
+
+    expect(result.getValue().habitIds).toEqual([
+      'habit-third',
+      'habit-first',
+      'habit-second',
+    ]);
+    expect(result.getValue().revision).toBe(5);
+    expect(repository.update).toHaveBeenCalledWith(routine, 4);
+  });
+
+  it('returns a domain error when the reordered list drops a Habit', async () => {
+    repository.findByIdForOwner.mockResolvedValue(createRoutine());
+
+    const result = await reorderHandler.execute(
+      new ReorderRoutineHabitsCommand({
+        routineId: 'routine-id',
+        ownerId: 'owner-id',
+        habitIds: ['habit-first', 'habit-second'],
+        expectedRevision: 4,
+      }),
+    );
+
+    expect(result.getError()).toBeInstanceOf(
+      InvalidRoutineHabitReorderException,
+    );
+    expect(repository.update).not.toHaveBeenCalled();
+  });
+
+  it('does not persist when the reordered list is identical', async () => {
+    repository.findByIdForOwner.mockResolvedValue(createRoutine());
+
+    const result = await reorderHandler.execute(
+      new ReorderRoutineHabitsCommand({
+        routineId: 'routine-id',
+        ownerId: 'owner-id',
+        habitIds: ['habit-first', 'habit-second', 'habit-third'],
         expectedRevision: 4,
       }),
     );

@@ -2,6 +2,7 @@ import { AggregateRoot } from '@shared/domain/aggregate-root';
 
 import {
   InvalidRoutineHabitIdException,
+  InvalidRoutineHabitReorderException,
   InvalidRoutineTitleException,
   InvalidRoutineTransitionException,
   RoutineHabitAlreadyExistsException,
@@ -161,6 +162,33 @@ export class Routine extends AggregateRoot {
     }
 
     this.props.habitIds.splice(habitIndex, 1);
+    this.trackChange();
+  }
+
+  public reorderHabits(habitIds: string[]): void {
+    this.ensureActive();
+
+    const normalizedHabitIds = habitIds.map(Routine.normalizeHabitId);
+    const currentHabitIds = this.props.habitIds;
+
+    const isSamePermutation =
+      normalizedHabitIds.length === currentHabitIds.length &&
+      new Set(normalizedHabitIds).size === currentHabitIds.length &&
+      currentHabitIds.every((habitId) => normalizedHabitIds.includes(habitId));
+
+    if (!isSamePermutation) {
+      throw new InvalidRoutineHabitReorderException();
+    }
+
+    const unchanged = normalizedHabitIds.every(
+      (habitId, index) => habitId === currentHabitIds[index],
+    );
+
+    if (unchanged) {
+      return;
+    }
+
+    this.props.habitIds = normalizedHabitIds;
     this.trackChange();
   }
 

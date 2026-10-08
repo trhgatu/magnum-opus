@@ -922,21 +922,27 @@ Việc cập nhật outcome:
 
 ---
 
-## 11.5. Outcome Revision History Is Not Required in V1
+## 11.5. ~~Outcome Revision History Is Not Required in V1~~ Outcome Is an Append-Only History (V1.1)
 
-Projects V1 chỉ yêu cầu current intended outcome của open Cycle.
+**(Đã điều chỉnh — V1.1, xem BR-PRJ-032/033)** Đặc tả gốc dưới đây được giữ lại làm lịch sử quyết định, không còn hiệu lực:
 
-Khi intended outcome được cập nhật:
+> ~~Projects V1 chỉ yêu cầu current intended outcome của open Cycle. Khi intended outcome được cập nhật: Old Value → Update → Current Value. V1 không yêu cầu user-facing hoặc product-level revision history của outcome.~~
+
+Đặc tả hiện hành:
 
 ```text
-Old Value
-   ↓
-Update
-   ↓
-Current Value
+Cycle đang mở
+Outcome history:
+  [1] "Build Projects"                         (setAt T1)
+  [2] "Build Projects V1 đủ dùng hằng ngày"    (setAt T2)
+
+Current outcome = entry mới nhất
 ```
 
-V1 không yêu cầu user-facing hoặc product-level revision history của outcome.
+- Mỗi lần xác định/cập nhật outcome tạo một entry mới; entry cũ không bị thay đổi hay xóa.
+- Lưu lại đúng nội dung giống entry mới nhất không tạo entry mới.
+- Project Detail hiển thị outcome hiện tại là chính; nếu có từ 2 entry trở lên, cho phép mở xem lịch sử (không sửa/xóa được).
+- Lý do: lịch sử điều chỉnh kỳ vọng trong cùng một lần theo đuổi là một phần có giá trị của reflection — ghi đè làm mất nó ngay cả khi Cycle chưa đóng.
 
 ---
 
@@ -957,6 +963,22 @@ COMPLETED
 intended outcome cuối cùng được preserve như historical context.
 
 Closed Cycle outcome không được chỉnh sửa.
+
+**(V1.1)** Bất biến áp dụng cho toàn bộ lịch sử outcome của closed Cycle, cùng với `closingNote` và `targetEndAt` của Cycle đó.
+
+---
+
+## 11.6A. Target End Date (V1.1)
+
+Current Cycle có thể có `targetEndAt` — mốc người dùng dự kiến kết thúc lần theo đuổi này.
+
+- Tùy chọn; set/update/clear được khi Cycle đang mở (`ACTIVE`/`PAUSED`).
+- Không lưu lịch sử thay đổi.
+- Khi đã qua mà Cycle vẫn mở, Project Detail hiển thị tín hiệu nhắc nhẹ (vd "Quá hạn dự kiến N ngày").
+- Không bao giờ đổi lifecycle state, đóng Cycle hay chặn action nào (BR-PRJ-037).
+- Bất biến sau khi Cycle đóng, hiển thị trong lịch sử Cycle.
+
+Đây không phải deadline: Projects V1 vẫn giữ nguyên tắc §4.1 "Project không bắt buộc phải có deadline".
 
 ---
 
@@ -1091,6 +1113,27 @@ stop reason
 ```
 
 để Stop Project.
+
+**(V1.1 — xem §13.2A)** Vẫn không bắt buộc — nhưng giờ người dùng **có thể** ghi `closingNote` tự do khi Stop hoặc Complete.
+
+---
+
+## 13.2A. Closing Note on Stop / Complete (V1.1)
+
+Khi Stop hoặc Complete làm đóng current Cycle, UI cho phép nhập `closingNote` tùy chọn (text tự do) trong cùng bước xác nhận đang có sẵn cho hai action này.
+
+- Không bắt buộc; bỏ trống vẫn Stop/Complete bình thường.
+- Không phải danh sách lý do định sẵn; `endReason` giữ nguyên `STOPPED` | `COMPLETED`.
+- Được trim; chuỗi rỗng sau trim coi như không có note. Tối đa 2000 ký tự sau trim — vượt quá thì Stop/Complete bị từ chối.
+- Ghi nhận một lần duy nhất tại thời điểm đóng Cycle; không sửa/bổ sung được sau đó (muốn suy ngẫm thêm → Journal).
+- `NOT_STARTED → STOPPED` không có Cycle nên không có ô `closingNote`.
+
+Ví dụ giá trị phân biệt mà nhãn `STOPPED` trần trụi không thể hiện được:
+
+```text
+STOPPED + "Chuyển sang học guitar, không còn muốn tiếp tục piano lúc này"
+STOPPED + "Nản vì không có thời gian tập đều"
+```
 
 ---
 
@@ -1522,6 +1565,39 @@ Không có Reopen, Restore hoặc Undo cho một Project đã bị xóa.
 
 ---
 
+## INV-PRJ-016 — Outcome History Is Append-Only (V1.1)
+
+```text
+Outcome entry đã tồn tại
+≠
+Có thể sửa / xóa
+```
+
+Kể cả khi Cycle đang mở, chỉ được thêm entry mới.
+
+---
+
+## INV-PRJ-017 — Closing Note Exists Only on a Closed Cycle (V1.1)
+
+```text
+closingNote != null  ⟹  Cycle đã đóng (endedAt != null)
+```
+
+Cycle đang mở không bao giờ có `closingNote`.
+
+---
+
+## INV-PRJ-018 — Target End Date Never Drives Lifecycle (V1.1)
+
+```text
+targetEndAt
+→ presentation only
+≠
+lifecycle trigger
+```
+
+---
+
 # 20. Functional Capability Baseline
 
 Projects V1 bao gồm các capability:
@@ -1543,11 +1619,15 @@ Project Lifecycle
 
 Project Cycle Context
 ├── Define Intended Outcome
-└── Update Intended Outcome
+├── Update Intended Outcome          (V1.1: append-only, không ghi đè)
+├── View Outcome History             (V1.1)
+├── Set / Clear Target End Date      (V1.1)
+└── Add Closing Note on Stop/Complete (V1.1)
 
 Historical Preservation
 ├── Preserve Lifecycle History
-└── Preserve Project Cycles
+├── Preserve Project Cycles
+└── View Closed Cycle History        (V1.1)
 
 Deletion
 └── Delete a Project That Never Had a Cycle
@@ -1566,8 +1646,12 @@ Projects V1 bao gồm:
 - explicit lifecycle management;
 - Project Cycle semantics;
 - optional Cycle-specific intended outcome;
+- **(V1.1)** lịch sử intended outcome dạng append-only, xem được trong Project Detail;
+- **(V1.1)** `closingNote` tùy chọn khi Stop/Complete đóng một Cycle;
+- **(V1.1)** `targetEndAt` tùy chọn cho current Cycle, kèm tín hiệu nhắc khi quá hạn;
 - lifecycle history preservation;
 - historical Cycle preservation;
+- **(V1.1)** màn hình lịch sử các Cycle đã đóng;
 - reopen behavior;
 - delete behavior cho Project chưa từng có Project Cycle nào.
 
@@ -1596,9 +1680,9 @@ Deferred:
 Deferred:
 
 - pause reason;
-- stop reason;
+- ~~stop reason;~~ **Đã đưa vào V1.1** dưới dạng `closingNote` tự do, tùy chọn (§13.2A) — không phải structured reason;
 - reopen reason;
-- completion note;
+- ~~completion note;~~ **Đã đưa vào V1.1** — gộp chung `closingNote` (§13.2A);
 - structured completion criteria.
 
 ---
@@ -1607,10 +1691,10 @@ Deferred:
 
 Deferred:
 
-- outcome revision history;
-- outcome versioning;
-- change reasoning;
-- automatic distinction giữa refinement và new outcome.
+- ~~outcome revision history;~~ **Đã đưa vào V1.1** — append-only history (§11.5);
+- outcome versioning — vẫn deferred (không có khái niệm "phiên bản" có tên, rollback hay so sánh diff; chỉ là chuỗi entry theo thời gian);
+- change reasoning — vẫn deferred (entry không kèm lý do thay đổi);
+- automatic distinction giữa refinement và new outcome — vẫn deferred.
 
 ---
 
@@ -1659,10 +1743,10 @@ Các behavior cốt lõi đã được baseline, nhưng một số presentation 
 
 Bao gồm:
 
-- Cycle numbering có visible cho user hay không;
-- lifecycle history có dedicated UI hay không;
-- historical Cycle được trình bày dưới dạng timeline hay section;
-- timestamp nào được hiển thị;
+- ~~Cycle numbering có visible cho user hay không;~~ **Đã chốt V1.1** — visible;
+- ~~lifecycle history có dedicated UI hay không;~~ **Đã chốt V1.1** — có, ở mức Cycle (UC-PRJ-014);
+- ~~historical Cycle được trình bày dưới dạng timeline hay section;~~ **Đã chốt V1.1** — section "Lịch sử Cycle" trong Project Detail, mỗi Cycle một khối, mới nhất trước;
+- timestamp nào được hiển thị — V1.1 hiển thị tối thiểu startedAt/endedAt của mỗi Cycle và setAt của mỗi entry outcome;
 - current Cycle được visualized như thế nào.
 
 Các decision này không được thay đổi core lifecycle semantics đã được baseline trong specification.
@@ -1718,8 +1802,10 @@ Một implementation của Projects V1 được xem là phù hợp với Product
 11. Intended Outcome
     → belongs to Cycle
     → optional
-    → editable while ACTIVE / PAUSED
-    → immutable after Cycle closes
+    → (V1.1) each update appends a new entry while ACTIVE / PAUSED
+    → (V1.1) re-saving the exact current outcome is a no-op (no new entry)
+    → (V1.1) existing entries are never edited or deleted
+    → full history immutable after Cycle closes
 
 12. Lifecycle History
     → preserved across future transitions
@@ -1735,6 +1821,21 @@ Một implementation của Projects V1 được xem là phù hợp với Product
     → only allowed when cycles.length == 0 (never Started or Reopened)
     → hard delete, irreversible
     → rejected once any Cycle has ever existed
+
+16. Closing Note                          (V1.1)
+    → optional on Stop / Complete that closes a Cycle
+    → not accepted on NOT_STARTED → STOPPED
+    → immutable once the Cycle closes
+    → endReason stays STOPPED | COMPLETED
+
+17. Target End Date                       (V1.1)
+    → optional, set / update / clear while ACTIVE / PAUSED
+    → never changes lifecycle state or closes a Cycle
+    → immutable after Cycle closes
+
+18. Closed Cycle History                  (V1.1)
+    → every closed Cycle viewable with outcome history, closingNote, targetEndAt
+    → read-only
 ```
 
 Detailed Acceptance Criteria được định nghĩa trong:
