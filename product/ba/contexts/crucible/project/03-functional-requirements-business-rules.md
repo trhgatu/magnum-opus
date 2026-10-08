@@ -253,7 +253,7 @@ Project detail phải cung cấp đủ context để người dùng hiểu:
 - Project hiện có current Cycle hay không;
 - intended outcome của current Cycle nếu đã được xác định.
 
-Việc requirement này tồn tại không đồng nghĩa Projects V1 bắt buộc phải có dedicated lifecycle history UI.
+~~Việc requirement này tồn tại không đồng nghĩa Projects V1 bắt buộc phải có dedicated lifecycle history UI.~~ **(Đã điều chỉnh — V1.1)** Lịch sử ở mức Cycle giờ có màn hình riêng — xem FR-PRJ-017. Timeline mức transition vẫn không bắt buộc.
 
 ### Traceability
 
@@ -536,6 +536,7 @@ Lifecycle Analysis — Project Cycle
 Business Decision — Intended Outcome Belongs to Project Cycle
 Business Decision — Intended Outcome Is Optional
 Lifecycle Analysis §21 — V1.1 Revision (R1)
+DEC-PRJ-LC-021
 ```
 
 ---
@@ -571,7 +572,7 @@ DEC-PRJ-LC-020
 
 > **(Mới — V1.1, xem Lifecycle Analysis §21 R3)**
 
-Hệ thống phải cho phép người dùng xác định, cập nhật hoặc xóa `targetEndAt` (mốc thời gian dự kiến kết thúc) của current Project Cycle khi Cycle đang mở.
+Hệ thống phải cho phép người dùng xác định, cập nhật hoặc xóa `targetEndAt` (mốc **ngày** dự kiến kết thúc — date-only, không có giờ hay múi giờ) của current Project Cycle khi Cycle đang mở.
 
 `targetEndAt`:
 
@@ -581,7 +582,7 @@ Hệ thống phải cho phép người dùng xác định, cập nhật hoặc x
 - bất biến sau khi Cycle đóng (giữ lại như historical context: "đã định xong khi nào");
 - không bao giờ kích hoạt lifecycle transition, không tự đóng Cycle, không chặn thao tác nào.
 
-Hệ thống có thể hiển thị tín hiệu nhắc nhẹ khi `targetEndAt` đã qua mà Cycle vẫn mở. Tín hiệu này thuần túy là presentation.
+Khi `targetEndAt` đã qua (so với ngày hôm nay theo `User.timeZone`) mà Cycle vẫn mở, Project Detail phải hiển thị một tín hiệu nhắc nhẹ (vd "Quá hạn dự kiến N ngày"). Tín hiệu này thuần túy là presentation — nó là lý do chính khiến `targetEndAt` có giá trị với người dùng, nhưng không được kéo theo bất kỳ thay đổi state nào (BR-PRJ-037).
 
 ### Traceability
 
@@ -1347,7 +1348,9 @@ text   → nội dung outcome
 setAt  → thời điểm entry được tạo
 ```
 
-"Intended outcome hiện tại" của Cycle là entry có `setAt` gần nhất.
+Thứ tự của lịch sử là **thứ tự entry được thêm vào**, không suy ra từ `setAt` — hai entry có cùng `setAt` vẫn có thứ tự xác định.
+
+"Intended outcome hiện tại" của Cycle là entry được thêm vào sau cùng.
 
 Cycle chưa có entry nào tương đương với Cycle chưa có intended outcome (BR-PRJ-025 vẫn đúng).
 
@@ -1372,6 +1375,8 @@ Rule này là sự mở rộng trực tiếp của nguyên tắc LP-PRJ-002/003 
 Khi Stop hoặc Complete làm đóng current Project Cycle, người dùng **có thể** cung cấp `closingNote` dạng text tự do.
 
 `closingNote` không bao giờ bắt buộc. Thiếu `closingNote` không ảnh hưởng tính hợp lệ của Stop hoặc Complete.
+
+`closingNote` được trim; chuỗi rỗng sau khi trim được coi là không có note. Độ dài tối đa sau trim là 2000 ký tự — vượt quá thì action bị từ chối.
 
 `closingNote` không phải phân loại có cấu trúc: không có danh sách lý do định sẵn, `endReason` vẫn chỉ nhận `STOPPED` | `COMPLETED`.
 
@@ -1515,7 +1520,7 @@ Lifecycle action trong V1 được thực hiện thông qua explicit user action
 
 ## 13.1. Lifecycle History và Cycle Presentation
 
-V1 preserve lifecycle history nhưng không yêu cầu dedicated history UI. Visualization được defer khỏi V1. Xem Out of Scope.
+~~V1 preserve lifecycle history nhưng không yêu cầu dedicated history UI. Visualization được defer khỏi V1. Xem Out of Scope.~~ **(Đã điều chỉnh — V1.1)** Lịch sử ở mức Cycle có màn hình riêng (FR-PRJ-017); timeline mức transition vẫn defer.
 
 Tuy nhiên vẫn cần xác định những gì được hiển thị trong Project Detail ở V1:
 
@@ -1845,7 +1850,7 @@ Alternative Flow
 
 FR-PRJ-012 và FR-PRJ-013 được verify thông qua postcondition của các lifecycle Use Case.
 
-Dedicated lifecycle history view được defer khỏi V1. Use Case tương ứng sẽ được bổ sung trong version sau khi có user need thực tế.
+~~Dedicated lifecycle history view được defer khỏi V1. Use Case tương ứng sẽ được bổ sung trong version sau khi có user need thực tế.~~ **(Đã điều chỉnh — V1.1)** User need đã xác nhận qua dùng thật; history ở mức Cycle có Use Case riêng là UC-PRJ-014. Timeline mức transition vẫn chưa có Use Case.
 
 ---
 

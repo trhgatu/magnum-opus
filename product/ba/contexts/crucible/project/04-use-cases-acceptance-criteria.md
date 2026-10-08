@@ -937,6 +937,15 @@ Then Stop action vẫn có thể hoàn thành
 
 AC này vẫn giữ nguyên trong V1.1 — `closingNote` là tùy chọn, không bắt buộc.
 
+### AC-PRJ-008-06 — Invalid Stop Is Rejected
+
+```gherkin
+Given Project đang STOPPED hoặc COMPLETED
+When người dùng cố Stop Project
+Then action bị từ chối
+And lifecycle history không bị thay đổi
+```
+
 ### AC-PRJ-008-07 — Closing Note Is Preserved With the Closed Cycle (V1.1)
 
 ```gherkin
@@ -960,18 +969,9 @@ And closed Cycle không thay đổi
 
 ```gherkin
 Given Project đang NOT_STARTED
-When người dùng Stop Project kèm closingNote
+When người dùng Stop Project kèm closingNote không rỗng sau trim
 Then action bị từ chối vì không có Cycle nào để đóng
 And Project không thay đổi
-```
-
-### AC-PRJ-008-06 — Invalid Stop Is Rejected
-
-```gherkin
-Given Project đang STOPPED hoặc COMPLETED
-When người dùng cố Stop Project
-Then action bị từ chối
-And lifecycle history không bị thay đổi
 ```
 
 ---
@@ -1447,6 +1447,17 @@ Then giá trị mới thay thế current intended outcome
 And Projects V1 không yêu cầu preserve previous outcome như một product-level revision
 ```
 
+### AC-PRJ-011-08 — Closed Cycle Outcome Cannot Be Modified
+
+```gherkin
+Given một Project Cycle đã kết thúc bằng STOPPED hoặc COMPLETED
+When người dùng cố cập nhật intended outcome của Cycle đó
+Then action bị từ chối
+And intended outcome đã được preserve không thay đổi
+```
+
+AC này vẫn giữ nguyên trong V1.1 — áp dụng cho toàn bộ lịch sử outcome của closed Cycle, không chỉ entry cuối.
+
 ### AC-PRJ-011-09 — Outcome Update Appends to History (V1.1)
 
 ```gherkin
@@ -1473,17 +1484,6 @@ When người dùng cố sửa hoặc xóa một entry đã tồn tại
 Then action bị từ chối
 And lịch sử outcome không thay đổi
 ```
-
-### AC-PRJ-011-08 — Closed Cycle Outcome Cannot Be Modified
-
-```gherkin
-Given một Project Cycle đã kết thúc bằng STOPPED hoặc COMPLETED
-When người dùng cố cập nhật intended outcome của Cycle đó
-Then action bị từ chối
-And intended outcome đã được preserve không thay đổi
-```
-
-AC này vẫn giữ nguyên trong V1.1 — áp dụng cho toàn bộ lịch sử outcome của closed Cycle, không chỉ entry cuối.
 
 ---
 
@@ -1595,6 +1595,10 @@ User
 - Project có current/open Project Cycle.
 - Project đang `ACTIVE` hoặc `PAUSED`.
 
+### Trigger
+
+Người dùng muốn đặt, đổi hoặc bỏ mốc dự kiến kết thúc của lần theo đuổi hiện tại.
+
 ### Main Flow A — Set or Update Target End Date
 
 1. Người dùng mở Project có current Cycle.
@@ -1614,6 +1618,15 @@ User
 1. `targetEndAt` của current Cycle đã qua, Cycle vẫn mở.
 2. Hệ thống hiển thị tín hiệu nhắc nhẹ trong Project Detail (vd "Quá hạn dự kiến N ngày").
 3. Hệ thống **không** thay đổi lifecycle state, không đóng Cycle, không chặn action nào.
+
+### Postconditions
+
+```text
+Same Project
+Same Cycle (vẫn mở)
+Same Lifecycle State
+Current Cycle.targetEndAt = giá trị mới (hoặc null nếu đã xóa)
+```
 
 ### Related Requirements
 
@@ -1682,6 +1695,10 @@ User
 - Project tồn tại.
 - Project có ít nhất một Project Cycle đã đóng.
 
+### Trigger
+
+Người dùng muốn nhìn lại các lần theo đuổi trước của Project.
+
 ### Main Flow
 
 1. Người dùng mở Project Detail.
@@ -1694,6 +1711,13 @@ User
 
 1. Project chưa có Cycle nào đã đóng.
 2. Hệ thống không hiển thị phần lịch sử Cycle (hoặc hiển thị trạng thái rỗng).
+
+### Postconditions
+
+```text
+Không có dữ liệu nào thay đổi — use case chỉ đọc.
+Project, mọi Cycle và lifecycle state giữ nguyên.
+```
 
 ### Related Requirements
 

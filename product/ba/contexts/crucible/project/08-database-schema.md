@@ -284,26 +284,29 @@ model User {
 
 ## 6. Index Strategy
 
-| Table                           | Index                                | Reason                                |
-| ------------------------------- | ------------------------------------ | ------------------------------------- |
-| `projects`                      | `[ownerId, lifecycleState]`          | List projects filtered by state       |
-| `projects`                      | `[ownerId, createdAt DESC]`          | List projects sorted by creation      |
-| `project_cycles`                | `[projectId, endedAt]`               | Find current cycle (endedAt IS NULL)  |
-| `project_cycles`                | `@@unique([projectId, cycleNumber])` | Prevent duplicate cycle numbers       |
-| `project_lifecycle_transitions` | `[projectId, occurredAt DESC]`       | Query lifecycle history               |
-| `project_lifecycle_transitions` | `[cycleId]`                          | Query transitions of a specific cycle |
+| Table                           | Index                                  | Reason                                                                   |
+| ------------------------------- | -------------------------------------- | ------------------------------------------------------------------------ |
+| `projects`                      | `[ownerId, lifecycleState]`            | List projects filtered by state                                          |
+| `projects`                      | `[ownerId, createdAt DESC]`            | List projects sorted by creation                                         |
+| `project_cycles`                | `[projectId, endedAt]`                 | Find current cycle (endedAt IS NULL)                                     |
+| `project_cycles`                | `@@unique([projectId, cycleNumber])`   | Prevent duplicate cycle numbers                                          |
+| `project_lifecycle_transitions` | `[projectId, occurredAt DESC]`         | Query lifecycle history                                                  |
+| `project_lifecycle_transitions` | `[cycleId]`                            | Query transitions of a specific cycle                                    |
+| `project_cycle_outcome_entries` | `@@unique([cycleId, sequence])` (V1.1) | Đọc lịch sử outcome theo thứ tự, lấy entry mới nhất, chặn trùng sequence |
 
 ---
 
 ## 7. Constraint Summary
 
-| Constraint                           | Model                                     | Rule                                                |
-| ------------------------------------ | ----------------------------------------- | --------------------------------------------------- |
-| `onDelete: Cascade`                  | ProjectCycle → Project                    | Khi Project bị xóa, Cycles bị xóa theo              |
-| `onDelete: Cascade`                  | ProjectLifecycleTransition → Project      | Khi Project bị xóa, Transitions bị xóa theo         |
-| `onDelete: SetNull`                  | ProjectLifecycleTransition → ProjectCycle | Khi Cycle bị xóa, cycleId trong Transition set null |
-| `@@unique([projectId, cycleNumber])` | ProjectCycle                              | Cycle number là unique trong scope của Project      |
-| `@@unique([id, ownerId])`            | Project                                   | Support composite FK nếu cần                        |
+| Constraint                             | Model                                     | Rule                                                            |
+| -------------------------------------- | ----------------------------------------- | --------------------------------------------------------------- |
+| `onDelete: Cascade`                    | ProjectCycle → Project                    | Khi Project bị xóa, Cycles bị xóa theo                          |
+| `onDelete: Cascade`                    | ProjectLifecycleTransition → Project      | Khi Project bị xóa, Transitions bị xóa theo                     |
+| `onDelete: SetNull`                    | ProjectLifecycleTransition → ProjectCycle | Khi Cycle bị xóa, cycleId trong Transition set null             |
+| `onDelete: Restrict` (V1.1)            | ProjectCycleOutcomeEntry → ProjectCycle   | Không cho xóa Cycle còn outcome entry — giữ lịch sử append-only |
+| `@@unique([cycleId, sequence])` (V1.1) | ProjectCycleOutcomeEntry                  | Thứ tự lịch sử outcome xác định trong một Cycle                 |
+| `@@unique([projectId, cycleNumber])`   | ProjectCycle                              | Cycle number là unique trong scope của Project                  |
+| `@@unique([id, ownerId])`              | Project                                   | Support composite FK nếu cần                                    |
 
 ---
 
@@ -452,13 +455,14 @@ model ProjectCycle {
 model ProjectCycleOutcomeEntry {
   id        String   @id @default(uuid())
   cycleId   String   @map("cycle_id")
+  sequence  Int
   outcome   String   @db.Text
   setAt     DateTime @map("set_at")
   createdAt DateTime @default(now()) @map("created_at")
 
-  cycle ProjectCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  cycle ProjectCycle @relation(fields: [cycleId], references: [id], onDelete: Restrict)
 
-  @@index([cycleId, setAt])
+  @@unique([cycleId, sequence])
   @@map("project_cycle_outcome_entries")
 }
 ```
@@ -466,9 +470,11 @@ model ProjectCycleOutcomeEntry {
 **Giải thích:**
 
 - Không có `updatedAt` — entry là immutable record, cùng lý do với `ProjectLifecycleTransition` (§11).
-- `setAt` là business timestamp (thời điểm người dùng đặt outcome); `createdAt` là technical timestamp — tách nhau để migration §14.4 có thể ghi `setAt` xấp xỉ mà không làm sai `createdAt`.
+- `sequence` (1, 2, 3… trong một Cycle) là **khóa thứ tự** của lịch sử — mọi truy vấn đọc lịch sử dùng `ORDER BY sequence`, entry hiện tại là `sequence` lớn nhất. Không sắp theo `setAt`, vì `setAt` có thể trùng (hai lần lưu cùng millisecond, hoặc entry backfill có `setAt` xấp xỉ ở §14.4).
+- `@@unique([cycleId, sequence])` vừa đảm bảo thứ tự xác định, vừa là index phục vụ đọc lịch sử theo thứ tự và lấy entry mới nhất. Nếu hai request cùng append vào một Cycle, row thứ hai vi phạm unique — nhưng trường hợp này đã bị chặn trước bởi compare-and-swap trên `projects.revision` (§11 của Domain Analysis), unique chỉ là lớp bảo vệ cuối.
+- `setAt` là business timestamp (thời điểm người dùng đặt outcome), chỉ để hiển thị; `createdAt` là technical timestamp — tách nhau để migration §14.4 có thể ghi `setAt` xấp xỉ mà không làm sai `createdAt`.
+- `onDelete: Restrict` — xóa một Cycle còn entry sẽ bị DB từ chối, thay vì âm thầm xóa lịch sử theo (BR-PRJ-033). Repository hiện tại `upsert` Cycle và không bao giờ xóa Cycle, nên trong thực tế FK này không bị kích hoạt; nó là lớp chặn nếu sau này có code xóa Cycle. Xóa Project không bị ảnh hưởng: Project chỉ xóa được khi chưa từng có Cycle nào (BR-PRJ-029), nên không có entry nào để chặn.
 - Không lưu `ownerId` — entry luôn được đọc qua Cycle, không có query theo owner trực tiếp.
-- Index `[cycleId, setAt]` cho đọc lịch sử theo đúng thứ tự thời gian và lấy entry mới nhất.
 
 ### 14.3. Vì Sao Bảng Riêng Thay Vì JSONB
 
@@ -491,11 +497,12 @@ Thứ tự:
 2. Tạo bảng `project_cycle_outcome_entries`.
 3. **Backfill:** với mỗi `project_cycles` có `intended_outcome IS NOT NULL`, insert đúng 1 entry:
    ```sql
-   INSERT INTO project_cycle_outcome_entries (id, cycle_id, outcome, set_at, created_at)
-   SELECT gen_random_uuid(), id, intended_outcome, updated_at, now()
+   INSERT INTO project_cycle_outcome_entries (id, cycle_id, sequence, outcome, set_at, created_at)
+   SELECT gen_random_uuid(), id, 1, intended_outcome, updated_at, now()
    FROM project_cycles
    WHERE intended_outcome IS NOT NULL;
    ```
+   Mỗi Cycle V1 có tối đa 1 outcome nên entry backfill luôn là `sequence = 1`.
    `set_at = updated_at` là xấp xỉ — V1 không lưu thời điểm outcome được đặt, và các giá trị bị ghi đè trước đó đã mất từ V1, không khôi phục được. Đây là giới hạn đã biết, chấp nhận được.
 4. Drop cột `intended_outcome` khỏi `project_cycles`.
 

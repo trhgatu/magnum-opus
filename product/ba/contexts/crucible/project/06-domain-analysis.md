@@ -186,14 +186,17 @@ IntendedOutcome("Projects V1 đủ dùng hằng ngày")
 
 ```text
 IntendedOutcomeEntry   (Value Object)
+├── sequence : integer           (1, 2, 3… trong phạm vi một Cycle — khóa thứ tự)
 ├── outcome  : IntendedOutcome   (VO §3.3 — validation giữ nguyên)
-└── setAt    : timestamp
+└── setAt    : timestamp         (business timestamp, chỉ để hiển thị)
 ```
 
 **Characteristics:**
 
 - append-only: Project Cycle chỉ expose thao tác thêm entry, không có sửa/xóa entry;
-- current intended outcome = entry có `setAt` lớn nhất (= entry cuối cùng, vì chỉ append);
+- thứ tự lịch sử được xác định bởi `sequence`, **không** bởi `setAt` — hai lần cập nhật có thể trùng `setAt` (cùng millisecond, hoặc entry backfill có `setAt` xấp xỉ), nên `setAt` không đủ làm khóa sắp xếp;
+- entry mới nhận `sequence = sequence lớn nhất hiện có + 1` (entry đầu tiên là 1);
+- current intended outcome = entry có `sequence` lớn nhất;
 - thêm entry có `outcome` bằng đúng current outcome là no-op (không tạo entry, không tăng revision);
 - toàn bộ collection immutable sau khi Cycle đóng;
 - entry không có identity riêng ở tầng domain (VO) — persistence có thể gán id kỹ thuật.
@@ -472,7 +475,11 @@ Current Cycle.intendedOutcome = outcome        ← superseded
 
 Effect (V1.1):
 if outcome == current outcome → no-op (không đổi revision)
-else → Current Cycle.OutcomeEntries.append({ outcome, setAt: now })
+else → Current Cycle.OutcomeEntries.append({
+          sequence: last sequence + 1,   (1 nếu chưa có entry)
+          outcome,
+          setAt: now
+        })
 
 Event raised:
 none — not a lifecycle transition (no fromState/toState), so nothing
@@ -765,8 +772,8 @@ ProjectDetail
       ├── cycleId
       ├── cycleNumber
       ├── startedAt
-      ├── intendedOutcome (optional — entry mới nhất)
-      ├── outcomeHistory[]   (V1.1 — { outcome, setAt }, cũ → mới)
+      ├── intendedOutcome (optional — entry có sequence lớn nhất)
+      ├── outcomeHistory[]   (V1.1 — { outcome, setAt }, sắp theo sequence tăng dần)
       └── targetEndAt        (V1.1, optional)
 ```
 
@@ -781,10 +788,12 @@ ClosedCycleHistoryItem
 ├── startedAt
 ├── endedAt
 ├── endReason        (STOPPED | COMPLETED)
-├── outcomeHistory[] ({ outcome, setAt }, cũ → mới)
+├── outcomeHistory[] ({ outcome, setAt }, sắp theo sequence tăng dần)
 ├── closingNote      (nullable)
 └── targetEndAt      (nullable)
 ```
+
+`ClosedCycleHistoryItem` là read model ở mức khái niệm. Trên wire, endpoint tương ứng (`GET /projects/:id/cycles/closed`, `07-api-contract.md` §4.14) dùng lại `ProjectCycleResponse` để client chỉ có một kiểu cycle: `cycleId` được serialize thành `id`, và response có thêm `intendedOutcome` (suy ra từ entry cuối của `outcomeHistory`). Hai shape mang cùng một thông tin, không phải hai hợp đồng khác nhau.
 
 Trả về dạng danh sách các Cycle đã đóng của một Project, mới nhất trước. Đây là read model riêng (không nhồi vào `ProjectDetail`) để trang detail không phải tải toàn bộ lịch sử khi người dùng chưa mở phần lịch sử.
 
@@ -840,6 +849,7 @@ project_cycles
 project_cycle_outcome_entries          ← V1.1
 ├── id
 ├── cycle_id
+├── sequence
 ├── outcome
 └── set_at
 

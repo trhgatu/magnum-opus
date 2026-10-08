@@ -1124,6 +1124,7 @@ Khi Stop hoặc Complete làm đóng current Cycle, UI cho phép nhập `closing
 
 - Không bắt buộc; bỏ trống vẫn Stop/Complete bình thường.
 - Không phải danh sách lý do định sẵn; `endReason` giữ nguyên `STOPPED` | `COMPLETED`.
+- Được trim; chuỗi rỗng sau trim coi như không có note. Tối đa 2000 ký tự sau trim — vượt quá thì Stop/Complete bị từ chối.
 - Ghi nhận một lần duy nhất tại thời điểm đóng Cycle; không sửa/bổ sung được sau đó (muốn suy ngẫm thêm → Journal).
 - `NOT_STARTED → STOPPED` không có Cycle nên không có ô `closingNote`.
 
@@ -1618,11 +1619,15 @@ Project Lifecycle
 
 Project Cycle Context
 ├── Define Intended Outcome
-└── Update Intended Outcome
+├── Update Intended Outcome          (V1.1: append-only, không ghi đè)
+├── View Outcome History             (V1.1)
+├── Set / Clear Target End Date      (V1.1)
+└── Add Closing Note on Stop/Complete (V1.1)
 
 Historical Preservation
 ├── Preserve Lifecycle History
-└── Preserve Project Cycles
+├── Preserve Project Cycles
+└── View Closed Cycle History        (V1.1)
 
 Deletion
 └── Delete a Project That Never Had a Cycle
@@ -1641,8 +1646,12 @@ Projects V1 bao gồm:
 - explicit lifecycle management;
 - Project Cycle semantics;
 - optional Cycle-specific intended outcome;
+- **(V1.1)** lịch sử intended outcome dạng append-only, xem được trong Project Detail;
+- **(V1.1)** `closingNote` tùy chọn khi Stop/Complete đóng một Cycle;
+- **(V1.1)** `targetEndAt` tùy chọn cho current Cycle, kèm tín hiệu nhắc khi quá hạn;
 - lifecycle history preservation;
 - historical Cycle preservation;
+- **(V1.1)** màn hình lịch sử các Cycle đã đóng;
 - reopen behavior;
 - delete behavior cho Project chưa từng có Project Cycle nào.
 

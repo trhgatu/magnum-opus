@@ -128,7 +128,7 @@ interface ProjectCycleResponse {
   id: string;
   cycleNumber: number;
   intendedOutcome: string | null; // entry mới nhất của outcomeHistory, giữ để tương thích V1
-  outcomeHistory: OutcomeEntryResponse[]; // V1.1 — cũ → mới, có thể rỗng
+  outcomeHistory: OutcomeEntryResponse[]; // V1.1 — theo thứ tự được thêm vào (cũ → mới), có thể rỗng
   targetEndAt: string | null; // V1.1 — date-only "YYYY-MM-DD"
   closingNote: string | null; // V1.1 — luôn null khi Cycle đang mở
   startedAt: string; // ISO 8601
@@ -478,13 +478,13 @@ ProjectResponse
 
 #### Error Cases
 
-| Status | Reason                                                                                                             |
-| ------ | ------------------------------------------------------------------------------------------------------------------ |
-| 409    | Project đang ở STOPPED hoặc COMPLETED                                                                              |
-| 400    | (V1.1) `closingNote` quá 2000 ký tự, hoặc có `closingNote` khi Project đang `NOT_STARTED` (`INVALID_CLOSING_NOTE`) |
-| 401    | Unauthorized                                                                                                       |
-| 404    | Project không tồn tại                                                                                              |
-| 409    | expectedRevision conflict                                                                                          |
+| Status | Reason                                                                                                                              |
+| ------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| 409    | Project đang ở STOPPED hoặc COMPLETED                                                                                               |
+| 400    | (V1.1) `closingNote` quá 2000 ký tự, hoặc `closingNote` không rỗng sau trim khi Project đang `NOT_STARTED` (`INVALID_CLOSING_NOTE`) |
+| 401    | Unauthorized                                                                                                                        |
+| 404    | Project không tồn tại                                                                                                               |
+| 409    | expectedRevision conflict                                                                                                           |
 
 #### Behavior
 
@@ -651,6 +651,54 @@ Không có endpoint sửa hay xóa một entry outcome (BR-PRJ-033).
 
 ---
 
+### 4.12. Delete Project
+
+```
+DELETE /projects/:id
+```
+
+#### Path Parameters
+
+```text
+id: UUID
+```
+
+#### Query Parameters
+
+```typescript
+interface DeleteProjectQueryDto {
+  expectedRevision: number; // required
+}
+```
+
+#### Response
+
+```
+204 No Content
+```
+
+#### Error Cases
+
+| Status | Reason                                       |
+| ------ | -------------------------------------------- |
+| 409    | Project đã từng có ít nhất một Project Cycle |
+| 401    | Unauthorized                                 |
+| 404    | Project không tồn tại                        |
+| 409    | expectedRevision conflict                    |
+
+#### Behavior
+
+- Chỉ hợp lệ khi Project chưa từng có bất kỳ Project Cycle nào (current lẫn historical) — tương đương `NOT_STARTED`, hoặc `STOPPED` đạt được từ `NOT_STARTED → Stop` mà chưa từng Start.
+- Project bị xóa vĩnh viễn (hard delete).
+- Không có response body.
+- Không thể khôi phục sau khi xóa.
+
+#### Note
+
+`expectedRevision` được truyền qua query parameter thay vì request body, nhất quán với `DELETE /memories/:id` (permanent delete) hiện có trong codebase — `DELETE` trong codebase hiện tại không mang request body cho revision.
+
+---
+
 ### 4.13. Set / Clear Target End Date (V1.1)
 
 ```
@@ -730,54 +778,6 @@ Mảng rỗng nếu Project chưa có Cycle nào đóng. Không phân trang — 
 
 - Read-only, owner-scoped.
 - Cycle đang mở (nếu có) không có trong kết quả — nó đã nằm ở `ProjectResponse.currentCycle`.
-
----
-
-### 4.12. Delete Project
-
-```
-DELETE /projects/:id
-```
-
-#### Path Parameters
-
-```text
-id: UUID
-```
-
-#### Query Parameters
-
-```typescript
-interface DeleteProjectQueryDto {
-  expectedRevision: number; // required
-}
-```
-
-#### Response
-
-```
-204 No Content
-```
-
-#### Error Cases
-
-| Status | Reason                                       |
-| ------ | -------------------------------------------- |
-| 409    | Project đã từng có ít nhất một Project Cycle |
-| 401    | Unauthorized                                 |
-| 404    | Project không tồn tại                        |
-| 409    | expectedRevision conflict                    |
-
-#### Behavior
-
-- Chỉ hợp lệ khi Project chưa từng có bất kỳ Project Cycle nào (current lẫn historical) — tương đương `NOT_STARTED`, hoặc `STOPPED` đạt được từ `NOT_STARTED → Stop` mà chưa từng Start.
-- Project bị xóa vĩnh viễn (hard delete).
-- Không có response body.
-- Không thể khôi phục sau khi xóa.
-
-#### Note
-
-`expectedRevision` được truyền qua query parameter thay vì request body, nhất quán với `DELETE /memories/:id` (permanent delete) hiện có trong codebase — `DELETE` trong codebase hiện tại không mang request body cho revision.
 
 ---
 
@@ -881,19 +881,17 @@ Khi `expectedRevision` không khớp:
 
 ## 8. Out of Scope for V1 API
 
-```text
 - Lifecycle history endpoint (timeline mức transition)
-- Closed Cycle list endpoint      → ĐÃ ĐIỀU CHỈNH V1.1 (§4.14)
+- ~~Closed Cycle list endpoint~~ **Đã điều chỉnh (V1.1)** — §4.14
 - Project analytics endpoint
 - Bulk lifecycle action
 - Webhook / realtime event
 - Public project endpoint
-- Stop reason field              → ĐÃ ĐIỀU CHỈNH V1.1: closingNote tự do (§4.8)
+- ~~Stop reason field~~ **Đã điều chỉnh (V1.1)** — `closingNote` tự do, tùy chọn (§4.8)
 - Pause reason field
-- Completion note field          → ĐÃ ĐIỀU CHỈNH V1.1: closingNote tự do (§4.9)
+- ~~Completion note field~~ **Đã điều chỉnh (V1.1)** — `closingNote` tự do, tùy chọn (§4.9)
 - Reopen reason field
-- Edit / delete outcome entry    (V1.1 — cố ý không có, BR-PRJ-033)
-```
+- Edit / delete outcome entry — **(V1.1)** cố ý không có, BR-PRJ-033
 
 ---
 
