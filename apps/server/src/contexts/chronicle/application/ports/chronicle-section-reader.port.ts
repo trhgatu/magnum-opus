@@ -17,6 +17,14 @@ export interface ChronicleSectionReader<
   /** Phiên bản shape của section data — DAP-CHR-008. Bắt đầu từ 1. */
   readonly schemaVersion: number;
 
+  /**
+   * true khi mọi nguồn dữ liệu của reader bất biến theo thời gian (lịch sử
+   * Forge, check-in, transition) — chỉ khi đó section cũ mới được tính lại
+   * khi nâng phiên bản (DAP-CHR-008 loại b). false khi reader lọc theo
+   * trạng thái hiện tại (vd thùng rác của Journal/Memory).
+   */
+  readonly historyOnly: boolean;
+
   getSummary(
     ownerId: string,
     period: ChroniclePeriod,

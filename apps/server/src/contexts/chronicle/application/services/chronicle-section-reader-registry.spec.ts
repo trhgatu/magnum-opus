@@ -9,6 +9,7 @@ const fakeReader = (
 ): ChronicleSectionReader => ({
   module: module as ChronicleModule,
   schemaVersion,
+  historyOnly: true,
   getSummary: jest.fn(),
 });
 
