@@ -65,6 +65,39 @@ describe("SidebarProvider", () => {
     expect(window.localStorage.getItem("sidebar-collapsed")).toBe("0");
   });
 
+  it("applies every toggle when several are batched before a rerender", () => {
+    function DoubleToggle() {
+      const { collapsed, toggleCollapsed } = useSidebar();
+
+      return (
+        <div>
+          <p>collapsed:{String(collapsed)}</p>
+          <button
+            type="button"
+            onClick={() => {
+              toggleCollapsed();
+              toggleCollapsed();
+            }}
+          >
+            toggle twice
+          </button>
+        </div>
+      );
+    }
+
+    render(
+      <SidebarProvider>
+        <DoubleToggle />
+      </SidebarProvider>,
+    );
+
+    fireEvent.click(screen.getByText("toggle twice"));
+
+    // Hai lần lật liên tiếp phải quay về trạng thái ban đầu.
+    expect(screen.getByText("collapsed:false")).not.toBeNull();
+    expect(window.localStorage.getItem("sidebar-collapsed")).toBe("0");
+  });
+
   it("reads a previously persisted collapsed preference on mount", () => {
     window.localStorage.setItem("sidebar-collapsed", "1");
 
