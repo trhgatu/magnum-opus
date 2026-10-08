@@ -77,7 +77,12 @@ model RoutineLifecycleTransition {
 
 ### 2.2. Migration SQL (sửa tay sau `prisma migrate dev --create-only`)
 
-`--create-only` sinh sẵn `ALTER TABLE ... ADD COLUMN "created_on" DATE NOT NULL` cho `habits`/`routines`. Câu đó **thất bại trên bảng đã có dữ liệu** (cột NOT NULL không có default). Vì vậy phải **thay thế** (không phải nối thêm) 2 câu `ADD COLUMN "created_on"` được sinh ra bằng khối dưới đây — thêm cột nullable, backfill, rồi mới `SET NOT NULL`. Các câu `CREATE TYPE`/`CREATE TABLE`/`CREATE INDEX`/`ADD CONSTRAINT` khác do Prisma sinh giữ nguyên; khối backfill transition (bước 2) đặt **sau** `CREATE TABLE` của 2 bảng transition.
+`--create-only` sinh sẵn `ALTER TABLE ... ADD COLUMN "created_on" DATE NOT NULL` cho `habits`/`routines`. Câu đó **thất bại trên bảng đã có dữ liệu** (cột NOT NULL không có default). Khối SQL dưới đây có 2 bước, đặt ở **2 vị trí khác nhau** trong file migration:
+
+- **Bước 1** (`createdOn`) **thay thế** (không phải nối thêm) 2 câu `ADD COLUMN "created_on"` do Prisma sinh — thêm cột nullable, backfill, rồi mới `SET NOT NULL`.
+- **Bước 2** (backfill `ARCHIVED`) **nối vào cuối file**, sau mọi câu `CREATE TABLE`/`ADD CONSTRAINT` của 2 bảng transition — đặt sớm hơn sẽ lỗi `relation "habit_lifecycle_transitions" does not exist`.
+
+Các câu `CREATE TYPE`/`CREATE TABLE`/`CREATE INDEX`/`ADD CONSTRAINT` khác do Prisma sinh giữ nguyên.
 
 Công thức ngày lịch dùng `users.time_zone` tại lúc migration — gần đúng cho owner đã đổi múi giờ sau khi tạo Habit/Routine (02-domain-analysis.md §6).
 
