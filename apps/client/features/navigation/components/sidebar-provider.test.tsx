@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   SidebarProvider,
@@ -92,18 +92,21 @@ describe("SidebarProvider", () => {
   });
 
   it("throws when useSidebar is used outside the provider", () => {
-    const consoleError = console.error;
-    console.error = () => {};
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
 
     function Broken() {
       useSidebar();
       return null;
     }
 
-    expect(() => render(<Broken />)).toThrow(
-      "useSidebar must be used within a SidebarProvider",
-    );
-
-    console.error = consoleError;
+    try {
+      expect(() => render(<Broken />)).toThrow(
+        "useSidebar must be used within a SidebarProvider",
+      );
+    } finally {
+      consoleError.mockRestore();
+    }
   });
 });

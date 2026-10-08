@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import "@testing-library/jest-dom/vitest";
+
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -14,25 +16,35 @@ vi.mock("next/navigation", () => ({
 describe("HeaderBreadcrumb", () => {
   afterEach(() => cleanup());
 
-  it("shows the matching space and item labels for a nested route", () => {
+  it("exposes the matching space and current item as breadcrumb navigation", () => {
     navigation.pathname = "/journal/some-entry-id";
     render(<HeaderBreadcrumb />);
 
-    expect(screen.getByText("Phản chiếu")).not.toBeNull();
-    expect(screen.getByText("Nhật ký")).not.toBeNull();
+    const breadcrumb = screen.getByRole("navigation", {
+      name: "Vị trí hiện tại",
+    });
+    expect(breadcrumb).toHaveTextContent("Phản chiếu");
+    expect(screen.getByText("Nhật ký")).toHaveAttribute("aria-current", "page");
   });
 
-  it("shows a known extra route label outside product navigation", () => {
+  it("marks a known extra route outside product navigation as the current page", () => {
     navigation.pathname = "/me";
     render(<HeaderBreadcrumb />);
 
-    expect(screen.getByText("Tài khoản")).not.toBeNull();
+    expect(
+      screen.getByRole("navigation", { name: "Vị trí hiện tại" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Tài khoản")).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
   });
 
-  it("falls back to a generic label for an unmatched route", () => {
+  it("falls back to a plain generic label, not breadcrumb navigation, for an unmatched route", () => {
     navigation.pathname = "/somewhere-unknown";
     render(<HeaderBreadcrumb />);
 
-    expect(screen.getByText("Không gian riêng")).not.toBeNull();
+    expect(screen.getByText("Không gian riêng")).toBeInTheDocument();
+    expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
   });
 });

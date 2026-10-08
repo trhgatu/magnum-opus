@@ -35,9 +35,12 @@ describe("MobileNavigation", () => {
       </SidebarProvider>,
     );
 
+    const dialog = document.querySelector("dialog");
+    expect(dialog?.hasAttribute("open")).toBe(false);
+
     fireEvent.click(screen.getByRole("button", { name: "Mở điều hướng" }));
 
-    expect(screen.getByRole("link", { name: "Nhật ký" })).toBeInTheDocument();
+    expect(dialog?.hasAttribute("open")).toBe(true);
   });
 
   it("closes the drawer via the close button", () => {
