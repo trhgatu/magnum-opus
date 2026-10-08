@@ -16,6 +16,7 @@
     "db:migrate": "dotenv -e .env -- pnpm --filter=@repo/database db:migrate",
     "db:deploy": "dotenv -e .env -- pnpm --filter=@repo/database db:deploy",
     "db:seed": "dotenv -e .env -- pnpm --filter=@repo/database db:seed",
+    "db:reset": "dotenv -e .env -- pnpm --filter=@repo/database db:reset",
     "db:migrate:status:production": "dotenv -e .env.production -- pnpm --filter=@repo/database db:migrate:status",
     "db:deploy:production": "dotenv -e .env.production -- pnpm --filter=@repo/database db:deploy",
     "lint": "turbo run lint",
