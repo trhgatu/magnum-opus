@@ -514,11 +514,13 @@ Hệ thống phải cho phép người dùng xác định hoặc cập nhật `i
 
 Intended Outcome được hiển thị ở Project Detail như một field của current Cycle.
 
-Projects V1 không yêu cầu:
+**(Đã điều chỉnh — V1.1, xem BR-PRJ-032/033)** Mỗi lần xác định hoặc cập nhật intended outcome tạo một **entry mới** trong lịch sử outcome của Cycle (append-only), thay vì ghi đè giá trị trước đó. "Intended outcome hiện tại" là entry gần nhất.
 
-- revision history của intended outcome;
-- dedicated timeline hoặc history view cho intended outcome;
-- intended outcome của closed Cycle được hiển thị riêng.
+~~Projects V1 không yêu cầu:~~
+
+- ~~revision history của intended outcome;~~ **Đã điều chỉnh** — outcome history giờ được preserve, xem BR-PRJ-032.
+- dedicated timeline hoặc history view cho intended outcome — vẫn chưa bắt buộc ở mức "timeline", nhưng Project Detail cần cho phép xem lại các entry trước của current Cycle (xem FR-PRJ-017);
+- ~~intended outcome của closed Cycle được hiển thị riêng.~~ **Đã điều chỉnh** — xem FR-PRJ-017.
 
 Việc cập nhật intended outcome:
 
@@ -533,6 +535,89 @@ UN-PRJ-002 — Preserve Project Context
 Lifecycle Analysis — Project Cycle
 Business Decision — Intended Outcome Belongs to Project Cycle
 Business Decision — Intended Outcome Is Optional
+Lifecycle Analysis §21 — V1.1 Revision (R1)
+```
+
+---
+
+## FR-PRJ-015 — Capture Closing Note When a Cycle Ends
+
+> **(Mới — V1.1, xem Lifecycle Analysis §21 R2)**
+
+Hệ thống phải cho phép người dùng ghi kèm một `closingNote` dạng text tự do khi thực hiện Stop hoặc Complete làm đóng current Project Cycle.
+
+`closingNote`:
+
+- hoàn toàn tùy chọn — Stop/Complete vẫn hợp lệ khi không có ghi chú;
+- thuộc về Project Cycle bị đóng, không thuộc Project identity;
+- được ghi nhận trong cùng một action đóng Cycle — không phải một thao tác riêng sau đó;
+- bất biến ngay khi Cycle đóng;
+- không thay thế và không mở rộng `endReason` (`STOPPED` | `COMPLETED` giữ nguyên nhị phân).
+
+`NOT_STARTED → STOPPED` không có Cycle nào để đóng, nên không có chỗ để gắn `closingNote` — action này không nhận closing note.
+
+### Traceability
+
+```text
+UN-PRJ-002 — Preserve Project Context
+UN-PRJ-004 — Revisit Past Projects
+Lifecycle Analysis §21 — V1.1 Revision (R2)
+DEC-PRJ-LC-020
+```
+
+---
+
+## FR-PRJ-016 — Set Optional Target End Date for Current Cycle
+
+> **(Mới — V1.1, xem Lifecycle Analysis §21 R3)**
+
+Hệ thống phải cho phép người dùng xác định, cập nhật hoặc xóa `targetEndAt` (mốc thời gian dự kiến kết thúc) của current Project Cycle khi Cycle đang mở.
+
+`targetEndAt`:
+
+- hoàn toàn tùy chọn;
+- chỉ có thể set/update/clear khi Project đang `ACTIVE` hoặc `PAUSED`;
+- không lưu lịch sử thay đổi (khác với intended outcome) — chỉ giá trị hiện tại có ý nghĩa;
+- bất biến sau khi Cycle đóng (giữ lại như historical context: "đã định xong khi nào");
+- không bao giờ kích hoạt lifecycle transition, không tự đóng Cycle, không chặn thao tác nào.
+
+Hệ thống có thể hiển thị tín hiệu nhắc nhẹ khi `targetEndAt` đã qua mà Cycle vẫn mở. Tín hiệu này thuần túy là presentation.
+
+### Traceability
+
+```text
+UN-PRJ-003 — Track Project Lifecycle
+Lifecycle Analysis §21 — V1.1 Revision (R3)
+DEC-PRJ-LC-022
+```
+
+---
+
+## FR-PRJ-017 — View Closed Cycle History
+
+> **(Mới — V1.1)** Supersedes một phần quyết định "V1 không yêu cầu dedicated lifecycle history UI" tại FR-PRJ-013 và §12.
+
+Hệ thống phải cho phép người dùng xem lại các Project Cycle đã đóng của một Project.
+
+Với mỗi Cycle đã đóng, người dùng phải thấy được:
+
+- số thứ tự Cycle;
+- thời điểm bắt đầu và kết thúc;
+- `endReason` (`STOPPED` | `COMPLETED`);
+- toàn bộ lịch sử intended outcome của Cycle đó;
+- `closingNote` nếu có;
+- `targetEndAt` nếu có.
+
+Requirement này **không** yêu cầu timeline chi tiết từng transition Pause/Resume trong một Cycle — mức độ chi tiết là "từng Cycle", không phải "từng sự kiện".
+
+Lý do: nếu không có màn hình này, R1 (outcome history) và R2 (closing note) chỉ được lưu mà không bao giờ được thấy — giá trị reflection của chúng bằng không.
+
+### Traceability
+
+```text
+UN-PRJ-004 — Revisit Past Projects
+FR-PRJ-013 — Preserve Project Cycles
+Lifecycle Analysis §21 — V1.1 Revision
 ```
 
 ---
@@ -619,7 +704,7 @@ Khoảng thời gian Project ở `NOT_STARTED` trước lần Start đầu tiên
 
 Requirement này không xác định Project Cycle phải được technical representation dưới hình thức nào.
 
-FR-PRJ-012 và FR-PRJ-013 được verify thông qua postcondition của các lifecycle Use Case. V1 không yêu cầu dedicated lifecycle history UI.
+FR-PRJ-012 và FR-PRJ-013 được verify thông qua postcondition của các lifecycle Use Case. ~~V1 không yêu cầu dedicated lifecycle history UI.~~ **(Đã điều chỉnh — V1.1)** Lịch sử ở mức Cycle (không phải từng transition) giờ được hiển thị, xem FR-PRJ-017.
 
 ### Traceability
 
@@ -815,7 +900,9 @@ không có Project Cycle nào được tạo.
 
 Projects V1 không yêu cầu người dùng cung cấp reason khi stop một Project.
 
-Stop reason chỉ nên được bổ sung trong tương lai nếu xuất hiện User Need được xác nhận.
+~~Stop reason chỉ nên được bổ sung trong tương lai nếu xuất hiện User Need được xác nhận.~~
+
+**(Đã điều chỉnh — V1.1, xem BR-PRJ-034)** Phần "không yêu cầu" vẫn giữ nguyên: Stop không bao giờ bắt buộc có lý do. User Need đã được xác nhận qua sử dụng thực tế — người dùng giờ **có thể** ghi `closingNote` tự do (tùy chọn) khi Stop hoặc Complete. Đây không phải structured stop reason (không có danh sách lý do định sẵn).
 
 ---
 
@@ -1145,6 +1232,8 @@ Việc cập nhật intended outcome:
 - không kết thúc current Cycle;
 - không thay đổi Project lifecycle state.
 
+**(Đã điều chỉnh — V1.1, xem BR-PRJ-032)** "Cập nhật" giờ có nghĩa là **thêm entry mới** vào lịch sử outcome của Cycle, không còn là ghi đè giá trị trước đó. Eligibility (chỉ khi `ACTIVE`/`PAUSED`) giữ nguyên.
+
 ---
 
 ## BR-PRJ-027 — Closed Cycle Outcome Is Immutable
@@ -1159,6 +1248,8 @@ COMPLETED
 intended outcome cuối cùng của Cycle được preserve như historical context.
 
 Intended outcome của closed Cycle không được chỉnh sửa.
+
+**(Mở rộng — V1.1, xem BR-PRJ-033)** Rule này vẫn đúng nguyên vẹn, chỉ mở rộng phạm vi: không chỉ outcome cuối cùng mà **toàn bộ lịch sử outcome** của Cycle trở thành bất biến khi Cycle đóng. Tương tự cho `closingNote` (BR-PRJ-035) và `targetEndAt` (BR-PRJ-036).
 
 Nếu người dùng tiếp tục theo đuổi Project:
 
@@ -1243,6 +1334,88 @@ Vì Delete chỉ hợp lệ khi `cycles.length == 0` (BR-PRJ-029), một Project
 
 ---
 
+> Các Business Rule từ BR-PRJ-032 trở đi được bổ sung trong **V1.1 Revision — Cycle Flexibility** (Lifecycle Analysis §21).
+
+## BR-PRJ-032 — Intended Outcome Is an Append-Only History
+
+Intended outcome của một Project Cycle là một chuỗi entry có thứ tự thời gian, không phải một giá trị đơn lẻ.
+
+Mỗi lần người dùng xác định hoặc cập nhật intended outcome trong Cycle đang mở, hệ thống thêm một entry mới gồm:
+
+```text
+text   → nội dung outcome
+setAt  → thời điểm entry được tạo
+```
+
+"Intended outcome hiện tại" của Cycle là entry có `setAt` gần nhất.
+
+Cycle chưa có entry nào tương đương với Cycle chưa có intended outcome (BR-PRJ-025 vẫn đúng).
+
+Việc set lại đúng nội dung giống hệt entry gần nhất không tạo entry mới.
+
+---
+
+## BR-PRJ-033 — Outcome History Entries Are Never Rewritten
+
+Không có thao tác nào được sửa hoặc xóa một entry đã tồn tại trong lịch sử outcome — kể cả khi Cycle vẫn đang mở.
+
+Cách duy nhất để "đổi" outcome là thêm entry mới.
+
+Khi Cycle đóng, toàn bộ lịch sử outcome của Cycle trở thành bất biến — không được thêm entry mới.
+
+Rule này là sự mở rộng trực tiếp của nguyên tắc LP-PRJ-002/003 (historical transitions are meaningful, không rewrite history) sang intended outcome.
+
+---
+
+## BR-PRJ-034 — Closing Note Is Optional Context
+
+Khi Stop hoặc Complete làm đóng current Project Cycle, người dùng **có thể** cung cấp `closingNote` dạng text tự do.
+
+`closingNote` không bao giờ bắt buộc. Thiếu `closingNote` không ảnh hưởng tính hợp lệ của Stop hoặc Complete.
+
+`closingNote` không phải phân loại có cấu trúc: không có danh sách lý do định sẵn, `endReason` vẫn chỉ nhận `STOPPED` | `COMPLETED`.
+
+`NOT_STARTED → STOPPED` không đóng Cycle nào, nên không nhận `closingNote`.
+
+---
+
+## BR-PRJ-035 — Closing Note Is Set Once, at Closing Time
+
+`closingNote` chỉ được ghi nhận trong chính action Stop/Complete đóng Cycle.
+
+Không có action riêng nào để thêm hoặc sửa `closingNote` sau khi Cycle đã đóng.
+
+Nếu người dùng muốn bổ sung suy ngẫm sau này, nơi phù hợp là Reflection (Journal), không phải sửa lại historical record của Cycle.
+
+---
+
+## BR-PRJ-036 — Target End Date Is Optional and Editable Only While Cycle Is Open
+
+`targetEndAt` của Project Cycle là tùy chọn.
+
+`targetEndAt` có thể được set, update hoặc clear khi current Cycle đang mở (`ACTIVE` / `PAUSED`).
+
+Không lưu lịch sử thay đổi của `targetEndAt` — chỉ giá trị hiện tại có ý nghĩa.
+
+Khi Cycle đóng, giá trị `targetEndAt` cuối cùng được preserve như historical context và trở thành bất biến.
+
+`targetEndAt` có thể nằm trong quá khứ tại thời điểm được set — hệ thống không chặn (người dùng có thể ghi nhận một mốc đã lỡ).
+
+---
+
+## BR-PRJ-037 — Target End Date Never Drives Lifecycle
+
+`targetEndAt` không bao giờ:
+
+- kích hoạt bất kỳ lifecycle transition nào;
+- tự động đóng Cycle;
+- chặn hoặc giới hạn bất kỳ lifecycle action nào;
+- ảnh hưởng tới Delete eligibility.
+
+Việc `targetEndAt` đã qua chỉ được phép dùng cho tín hiệu presentation (nhắc nhở), nhất quán với BR-PRJ-002 (lifecycle state chỉ đổi qua explicit user action) và BR-PRJ-028 (completion is user-decided).
+
+---
+
 # 10. Valid State Transition Matrix
 
 | Current State | Start | Pause | Resume | Stop | Complete | Reopen |
@@ -1297,6 +1470,9 @@ COMPLETED
 | `FR-PRJ-012` — Preserve Lifecycle History            | `UN-PRJ-003`, `UN-PRJ-004`       |
 | `FR-PRJ-013` — Preserve Project Cycles               | `UN-PRJ-004`, Lifecycle Analysis |
 | `FR-PRJ-014` — Delete Project                        | `UN-PRJ-005`                     |
+| `FR-PRJ-015` — Capture Closing Note (V1.1)           | `UN-PRJ-002`, `UN-PRJ-004`       |
+| `FR-PRJ-016` — Set Target End Date (V1.1)            | `UN-PRJ-003`                     |
+| `FR-PRJ-017` — View Closed Cycle History (V1.1)      | `UN-PRJ-004`                     |
 
 ---
 
@@ -1310,12 +1486,13 @@ Các capability sau không thuộc Functional Requirements của Projects V1:
 - scheduled start;
 - scheduled resume;
 - automatic state transition;
-- stop reason;
+- ~~stop reason;~~ **Đã điều chỉnh (V1.1)** — `closingNote` tự do, tùy chọn (FR-PRJ-015). Structured stop reason (danh sách lý do) vẫn out of scope;
 - pause reason;
-- completion note;
+- ~~completion note;~~ **Đã điều chỉnh (V1.1)** — gộp chung vào `closingNote` (FR-PRJ-015);
 - reopen reason;
-- intended outcome revision history;
-- Project lifecycle history UI / timeline view — lifecycle history được preserve nhưng dedicated history view được defer khỏi V1;
+- ~~intended outcome revision history;~~ **Đã điều chỉnh (V1.1)** — xem BR-PRJ-032/033;
+- ~~Project lifecycle history UI / timeline view~~ **Đã điều chỉnh một phần (V1.1)** — lịch sử ở mức Cycle giờ có màn hình riêng (FR-PRJ-017); timeline chi tiết từng transition Pause/Resume vẫn out of scope;
+- deadline bắt buộc / auto-close theo thời hạn — `targetEndAt` (FR-PRJ-016) chỉ mang tính thông tin, xem BR-PRJ-037;
 - GitHub synchronization;
 - WakaTime synchronization;
 - commit tracking;
@@ -1645,7 +1822,12 @@ UC-PRJ-010 — Reopen Project
 UC-PRJ-011 — Manage Current Cycle Intended Outcome
 
 UC-PRJ-012 — Delete Project
+
+UC-PRJ-013 — Set Current Cycle Target End Date      (V1.1)
+UC-PRJ-014 — View Closed Cycle History               (V1.1)
 ```
+
+Closing note (FR-PRJ-015) không có Use Case riêng — nó là một optional input của UC-PRJ-008 (Stop) và UC-PRJ-009 (Complete).
 
 `UC-PRJ-011` bao gồm hai flow:
 
@@ -1744,21 +1926,29 @@ Trong một open Cycle:
 ```text
 ACTIVE / PAUSED
       │
-      └── Intended Outcome
+      ├── Intended Outcome History        (V1.1: append-only)
+      │       │
+      │       ├── optional
+      │       ├── can be defined later
+      │       └── each update = new entry, never overwrite
+      │
+      └── Target End Date                 (V1.1)
               │
               ├── optional
-              ├── can be defined later
-              └── can be updated
+              ├── set / update / clear
+              └── informational only
 ```
 
 Khi Cycle đóng:
 
 ```text
-STOPPED / COMPLETED
+STOPPED / COMPLETED  (+ optional closingNote, V1.1)
         ↓
-Final Intended Outcome
+Full Outcome History + closingNote + targetEndAt
         ↓
-Preserved as Historical Context
+Preserved as Immutable Historical Context
+        ↓
+Visible in Closed Cycle History (FR-PRJ-017)
 ```
 
 Trong toàn bộ lifecycle này, hệ thống phải preserve:
@@ -1782,9 +1972,10 @@ Closed Cycle Context
 Projects V1 hiện có:
 
 ```text
-14 Functional Requirements
+17 Functional Requirements
 
-FR-PRJ-001 → FR-PRJ-014
+FR-PRJ-001 → FR-PRJ-014   (V1 baseline)
+FR-PRJ-015 → FR-PRJ-017   (V1.1 — Cycle Flexibility)
 ```
 
 bao phủ:
@@ -1801,9 +1992,10 @@ Deletion
 và:
 
 ```text
-31 Business Rules
+37 Business Rules
 
-BR-PRJ-001 → BR-PRJ-031
+BR-PRJ-001 → BR-PRJ-031   (V1 baseline — BR-PRJ-008/026/027 có ghi chú điều chỉnh V1.1)
+BR-PRJ-032 → BR-PRJ-037   (V1.1 — Cycle Flexibility)
 ```
 
 xác định:

@@ -887,36 +887,41 @@ Một Project chỉ được có tối đa một current Cycle tại một thờ
 
 ## 15. V1 Decisions
 
-| ID             | Decision                                                                                                                                                                                              |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| DEC-PRJ-LC-001 | Projects V1 sử dụng năm lifecycle states: NOT_STARTED, ACTIVE, PAUSED, STOPPED và COMPLETED.                                                                                                          |
-| DEC-PRJ-LC-002 | Project mới được tạo ở trạng thái NOT_STARTED.                                                                                                                                                        |
-| DEC-PRJ-LC-003 | PLANNED hiện không phải lifecycle state vì việc Project chưa bắt đầu không đồng nghĩa với việc một Plan đã tồn tại.                                                                                   |
-| DEC-PRJ-LC-004 | PAUSED biểu thị temporary interruption trong khi intention tiếp tục vẫn tồn tại.                                                                                                                      |
-| DEC-PRJ-LC-005 | STOPPED biểu thị Project đã ngưng trước khi intended outcome đạt được.                                                                                                                                |
-| DEC-PRJ-LC-006 | COMPLETED biểu thị intended outcome đã đạt được.                                                                                                                                                      |
-| DEC-PRJ-LC-007 | PAUSED có thể chuyển trực tiếp sang COMPLETED.                                                                                                                                                        |
-| DEC-PRJ-LC-008 | NOT_STARTED có thể chuyển trực tiếp sang STOPPED.                                                                                                                                                     |
-| DEC-PRJ-LC-009 | STOPPED và COMPLETED kết thúc current Project Cycle nhưng không kết thúc Project identity.                                                                                                            |
-| DEC-PRJ-LC-010 | STOPPED và COMPLETED Project có thể được reopen.                                                                                                                                                      |
-| DEC-PRJ-LC-011 | Reopen bắt đầu một Project Cycle mới.                                                                                                                                                                 |
-| DEC-PRJ-LC-012 | Resume từ PAUSED tiếp tục Cycle hiện tại và không tạo Cycle mới.                                                                                                                                      |
-| DEC-PRJ-LC-013 | Historical lifecycle transitions và các Cycle trước phải được preserve khi Project tiếp tục thay đổi.                                                                                                 |
-| DEC-PRJ-LC-014 | Projects V1 chưa yêu cầu reason khi Project được STOPPED.                                                                                                                                             |
-| DEC-PRJ-LC-015 | Project Cycle là business concept; technical representation của Cycle chưa được quyết định tại BA analysis stage.                                                                                     |
-| DEC-PRJ-LC-016 | Timestamp là bắt buộc cho mỗi lifecycle transition trong V1. Không có timestamp thì lifecycle history không có giá trị.                                                                               |
-| DEC-PRJ-LC-017 | Correction behavior — hoàn tác hoặc sửa một transition đã thực hiện — chưa được baseline trong V1. Reopen là cơ chế thay thế hiện có.                                                                 |
-| DEC-PRJ-LC-018 | NOT_STARTED → STOPPED là transition hợp lệ, biểu diễn Project được ghi nhận nhưng không bao giờ được bắt đầu. Sự khác biệt semantic với ACTIVE → STOPPED có thể được nhận biết qua lifecycle history. |
-| DEC-PRJ-LC-019 | Cycle 1 bắt đầu ở NOT_STARTED. Cycle 2+ bắt đầu thẳng ở ACTIVE sau Reopen. Bất đối xứng này là có chủ ý.                                                                                              |
+| ID             | Decision                                                                                                                                                                                                                                                                   |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DEC-PRJ-LC-001 | Projects V1 sử dụng năm lifecycle states: NOT_STARTED, ACTIVE, PAUSED, STOPPED và COMPLETED.                                                                                                                                                                               |
+| DEC-PRJ-LC-002 | Project mới được tạo ở trạng thái NOT_STARTED.                                                                                                                                                                                                                             |
+| DEC-PRJ-LC-003 | PLANNED hiện không phải lifecycle state vì việc Project chưa bắt đầu không đồng nghĩa với việc một Plan đã tồn tại.                                                                                                                                                        |
+| DEC-PRJ-LC-004 | PAUSED biểu thị temporary interruption trong khi intention tiếp tục vẫn tồn tại.                                                                                                                                                                                           |
+| DEC-PRJ-LC-005 | STOPPED biểu thị Project đã ngưng trước khi intended outcome đạt được.                                                                                                                                                                                                     |
+| DEC-PRJ-LC-006 | COMPLETED biểu thị intended outcome đã đạt được.                                                                                                                                                                                                                           |
+| DEC-PRJ-LC-007 | PAUSED có thể chuyển trực tiếp sang COMPLETED.                                                                                                                                                                                                                             |
+| DEC-PRJ-LC-008 | NOT_STARTED có thể chuyển trực tiếp sang STOPPED.                                                                                                                                                                                                                          |
+| DEC-PRJ-LC-009 | STOPPED và COMPLETED kết thúc current Project Cycle nhưng không kết thúc Project identity.                                                                                                                                                                                 |
+| DEC-PRJ-LC-010 | STOPPED và COMPLETED Project có thể được reopen.                                                                                                                                                                                                                           |
+| DEC-PRJ-LC-011 | Reopen bắt đầu một Project Cycle mới.                                                                                                                                                                                                                                      |
+| DEC-PRJ-LC-012 | Resume từ PAUSED tiếp tục Cycle hiện tại và không tạo Cycle mới.                                                                                                                                                                                                           |
+| DEC-PRJ-LC-013 | Historical lifecycle transitions và các Cycle trước phải được preserve khi Project tiếp tục thay đổi.                                                                                                                                                                      |
+| DEC-PRJ-LC-014 | Projects V1 chưa yêu cầu reason khi Project được STOPPED.                                                                                                                                                                                                                  |
+| DEC-PRJ-LC-015 | Project Cycle là business concept; technical representation của Cycle chưa được quyết định tại BA analysis stage.                                                                                                                                                          |
+| DEC-PRJ-LC-016 | Timestamp là bắt buộc cho mỗi lifecycle transition trong V1. Không có timestamp thì lifecycle history không có giá trị.                                                                                                                                                    |
+| DEC-PRJ-LC-017 | Correction behavior — hoàn tác hoặc sửa một transition đã thực hiện — chưa được baseline trong V1. Reopen là cơ chế thay thế hiện có.                                                                                                                                      |
+| DEC-PRJ-LC-018 | NOT_STARTED → STOPPED là transition hợp lệ, biểu diễn Project được ghi nhận nhưng không bao giờ được bắt đầu. Sự khác biệt semantic với ACTIVE → STOPPED có thể được nhận biết qua lifecycle history.                                                                      |
+| DEC-PRJ-LC-019 | Cycle 1 bắt đầu ở NOT_STARTED. Cycle 2+ bắt đầu thẳng ở ACTIVE sau Reopen. Bất đối xứng này là có chủ ý.                                                                                                                                                                   |
+| DEC-PRJ-LC-020 | **(Mới, xem §21)** Stop và Complete có thể đi kèm một `closingNote` tự do, không bắt buộc, ghi nhận tại đúng thời điểm đóng Cycle. Đây không phải structured reason/enum — chỉ là ngữ cảnh tự do. Supersedes một phần DEC-PRJ-LC-014 (vẫn đúng: không có reason bắt buộc). |
+| DEC-PRJ-LC-021 | **(Mới, xem §21)** Intended Outcome trong một Cycle đang mở được lưu dưới dạng lịch sử append-only (mỗi lần cập nhật là 1 entry mới, không ghi đè) thay vì 1 field duy nhất bị overwrite.                                                                                  |
+| DEC-PRJ-LC-022 | **(Mới, xem §21)** Cycle có thể có `targetEndAt` tùy chọn — chỉ mang tính thông tin/time-boxing nhẹ, không bao giờ tự động đóng Cycle hay đổi lifecycle state.                                                                                                             |
 
 ---
 
 ## 16. Out of Scope for Lifecycle V1
 
+**(Đã điều chỉnh một phần — xem §21)** Hai dòng "Stop reason" và "Completion notes" dưới đây đã được đưa trở lại vào scope dưới dạng `closingNote` tự do, không bắt buộc — xem DEC-PRJ-LC-020 tại §15 và §21. Phần còn lại của danh sách vẫn giữ nguyên out of scope.
+
 Lifecycle V1 hiện chưa yêu cầu:
 
-- Stop reason.
-- Completion notes.
+- ~~Stop reason.~~ **Đã điều chỉnh** — xem §21.
+- ~~Completion notes.~~ **Đã điều chỉnh** — xem §21.
 - Pause reason.
 - Reopen reason.
 - Scheduled resume.
@@ -1150,7 +1155,72 @@ Cách biểu diễn technical cụ thể chưa thuộc phạm vi của BA analys
 
 ---
 
-## 21. Next Step
+## 21. V1.1 Revision — Cycle Flexibility
+
+> **Status:** Revision sau V1 baseline, dựa trên feedback thực tế sử dụng.
+
+Sau khi Projects V1 được dùng thật, ba điểm cứng nhắc của Project Cycle được xác định là đáng sửa, không phải do thiếu sót trong analysis trước đó mà do giả định ban đầu (ASM-PRJ-LC-005 và tương đương) chưa phản ánh đúng nhu cầu thực tế một khi có dữ liệu sử dụng.
+
+### R1 — Intended Outcome Không Còn Bị Ghi Đè
+
+Trước đây (BR-PRJ-026, DEC-PRJ-LC cũ): cập nhật intended outcome trong Cycle đang mở sẽ **ghi đè** giá trị cũ — không giữ lại lịch sử, kể cả khi Cycle vẫn đang mở.
+
+```text
+Trước:
+Cycle đang mở
+Outcome: "Đàn Canon in D"
+      ↓ update
+Outcome: "Đàn Für Elise rút gọn"
+      ↓
+"Đàn Canon in D" biến mất vĩnh viễn — ngay cả khi Cycle chưa đóng.
+```
+
+Đây là rigidity gây khó chịu thực tế nhất: người dùng không có cách nào nhìn lại quá trình mình đã điều chỉnh kỳ vọng ra sao trong cùng một Cycle — một phần có ý nghĩa của "soi chiếu" (reflection) bị mất ngay từ khi Cycle còn đang diễn ra, không phải chỉ sau khi đóng.
+
+**Quyết định mới:** Intended Outcome của một Cycle là một **chuỗi entry append-only** (mỗi lần set/update = 1 entry mới, có timestamp), không phải 1 field bị ghi đè.
+
+```text
+Sau:
+Cycle đang mở
+Outcome history:
+  [1] "Đàn Canon in D"              (setAt: ngày bắt đầu)
+  [2] "Đàn Für Elise rút gọn"        (setAt: +2 tuần)
+
+"Outcome hiện tại" = entry cuối cùng.
+UI chính hiển thị entry cuối, kèm link mở xem toàn bộ lịch sử.
+```
+
+Điểm bất biến **không đổi**: một khi Cycle đóng (`STOPPED`/`COMPLETED`), toàn bộ `outcome history` — không chỉ entry cuối — trở thành bất biến vĩnh viễn, giống hệt tinh thần BR-PRJ-027 cũ, chỉ mở rộng phạm vi "cái gì được đóng băng" từ 1 giá trị thành cả chuỗi lịch sử.
+
+### R2 — Closing Note Tự Do Khi Stop/Complete
+
+Trước đây (BR-PRJ-008 và tương đương ở doc khác): Stop/Complete không yêu cầu và không hỗ trợ bất kỳ lý do/ghi chú nào.
+
+Điều này ép mọi lần kết thúc Cycle vào khung nhị phân "`STOPPED` hoặc `COMPLETED`" trần trụi, không có chỗ cho ngữ cảnh con người — ví dụ không phân biệt được "chủ động đổi hướng sang việc khác" với "bỏ cuộc vì nản".
+
+**Quyết định mới:** Stop và Complete có thể đi kèm một `closingNote` dạng text tự do, **hoàn toàn tùy chọn** (không bắt buộc — giữ đúng tinh thần BR-PRJ-008 là "không ép reason"), ghi nhận tại đúng thời điểm đóng Cycle và bất biến ngay sau đó (không phải một field có thể sửa lại sau).
+
+`closingNote` **không** thay thế `endReason` — `endReason` vẫn chỉ có 2 giá trị (`STOPPED` | `COMPLETED`), dùng cho thống kê (vd Chronicle đếm completedCount/stoppedCount). `closingNote` là lớp ngữ cảnh tường thuật bổ sung, không phải nhãn phân loại mới.
+
+### R3 — Target End Date Tùy Chọn (Time-Boxing Nhẹ)
+
+Đây là bổ sung hoàn toàn mới, không supersede quyết định nào trước đó (Cycle trước nay chưa từng có khái niệm mốc thời gian dự kiến nào).
+
+Cycle có thể có `targetEndAt` tùy chọn — một mốc thời gian người dùng tự đặt khi muốn time-box effort của mình (vd "muốn xong trước sinh nhật bạn").
+
+```text
+targetEndAt đã qua mà Cycle vẫn mở
+      ↓
+UI hiện badge nhắc nhẹ ("Quá hạn dự kiến N ngày")
+      ↓
+KHÔNG tự động Stop/Complete, KHÔNG đổi lifecycle state, KHÔNG chặn thao tác nào
+```
+
+`targetEndAt` thuần túy mang tính thông tin cho người dùng tự quyết định — nhất quán với triết lý toàn bộ app: không ép buộc deadline lên một personal-growth system.
+
+---
+
+## 22. Next Step
 
 The next analysis phase is:
 

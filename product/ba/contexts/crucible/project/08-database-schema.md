@@ -144,6 +144,8 @@ model ProjectCycle {
 - `ownerId` được lưu để support query Cycle theo owner nếu cần sau này.
 - Index `[projectId, endedAt]` cho query current Cycle (endedAt IS NULL).
 
+> **(V1.1)** Model này được sửa ở §14: thêm `closingNote`, `targetEndAt`; `intendedOutcome` chuyển sang bảng `project_cycle_outcome_entries` rồi bị drop.
+
 ---
 
 ### 4.3. ProjectLifecycleTransition
@@ -307,13 +309,15 @@ model User {
 
 ## 8. Nullable Field Summary
 
-| Field             | Model                      | Nullable | Reason                                |
-| ----------------- | -------------------------- | -------- | ------------------------------------- |
-| `description`     | Project                    | Yes      | Optional project information          |
-| `intendedOutcome` | ProjectCycle               | Yes      | Outcome là optional theo Product Spec |
-| `endedAt`         | ProjectCycle               | Yes      | Null khi Cycle đang mở                |
-| `endReason`       | ProjectCycle               | Yes      | Null khi Cycle đang mở                |
-| `cycleId`         | ProjectLifecycleTransition | Yes      | Null khi NOT_STARTED → STOPPED        |
+| Field             | Model                      | Nullable | Reason                                                             |
+| ----------------- | -------------------------- | -------- | ------------------------------------------------------------------ |
+| `description`     | Project                    | Yes      | Optional project information                                       |
+| `intendedOutcome` | ProjectCycle               | Yes      | Outcome là optional theo Product Spec — **V1.1: bị drop, xem §14** |
+| `endedAt`         | ProjectCycle               | Yes      | Null khi Cycle đang mở                                             |
+| `endReason`       | ProjectCycle               | Yes      | Null khi Cycle đang mở                                             |
+| `closingNote`     | ProjectCycle               | Yes      | (V1.1) Tùy chọn; luôn null khi Cycle đang mở                       |
+| `targetEndAt`     | ProjectCycle               | Yes      | (V1.1) Tùy chọn                                                    |
+| `cycleId`         | ProjectLifecycleTransition | Yes      | Null khi NOT_STARTED → STOPPED                                     |
 
 ---
 
@@ -367,15 +371,18 @@ Migration không thay đổi bất kỳ table hoặc enum hiện có ngoài vi�
 
 ## 11. Design Decisions
 
-| Decision                              | Value                        | Reason                                |
-| ------------------------------------- | ---------------------------- | ------------------------------------- |
-| `startedAt` trong ProjectCycle        | Business timestamp, required | Cycle luôn có điểm bắt đầu rõ ràng    |
-| `occurredAt` trong Transition         | Business timestamp, required | Phân biệt với `createdAt` kỹ thuật    |
-| Không có `updatedAt` trong Transition | Intentional                  | Transition là immutable record        |
-| `ownerId` trong ProjectCycle          | Denormalized                 | Hỗ trợ query theo owner mà không JOIN |
-| `intendedOutcome` là Text             | Unbounded                    | Outcome không giới hạn độ dài         |
-| `title` là VarChar(200)               | Bounded                      | Nhất quán với Habit, Memory, Routine  |
-| `cycleId` nullable trong Transition   | Intentional                  | NOT_STARTED → STOPPED không có Cycle  |
+| Decision                              | Value                        | Reason                                                                 |
+| ------------------------------------- | ---------------------------- | ---------------------------------------------------------------------- |
+| `startedAt` trong ProjectCycle        | Business timestamp, required | Cycle luôn có điểm bắt đầu rõ ràng                                     |
+| `occurredAt` trong Transition         | Business timestamp, required | Phân biệt với `createdAt` kỹ thuật                                     |
+| Không có `updatedAt` trong Transition | Intentional                  | Transition là immutable record                                         |
+| `ownerId` trong ProjectCycle          | Denormalized                 | Hỗ trợ query theo owner mà không JOIN                                  |
+| `intendedOutcome` là Text             | Unbounded                    | Outcome không giới hạn độ dài — V1.1: áp dụng cho `outcome` của entry  |
+| `title` là VarChar(200)               | Bounded                      | Nhất quán với Habit, Memory, Routine                                   |
+| `cycleId` nullable trong Transition   | Intentional                  | NOT_STARTED → STOPPED không có Cycle                                   |
+| `closingNote` là VarChar(2000) (V1.1) | Bounded                      | Ngữ cảnh ngắn, không phải nơi viết nhật ký — dài hơn thì thuộc Journal |
+| `targetEndAt` là `@db.Date` (V1.1)    | Date-only                    | Mốc theo ngày, cùng quy ước `Habit.quitStartedAt`; không có múi giờ    |
+| Outcome history là bảng riêng (V1.1)  | 1-N, append-only             | Xem §14.3                                                              |
 
 ---
 
@@ -408,7 +415,95 @@ Không cần schema addition nào khác để hỗ trợ delete ngoài một `DE
 
 ---
 
-## 14. Next Step
+## 14. V1.1 Schema Revision — Cycle Flexibility
+
+Phục vụ FR-PRJ-015/016/017 và BR-PRJ-032 → BR-PRJ-037.
+
+### 14.1. ProjectCycle (sau V1.1)
+
+```prisma
+model ProjectCycle {
+  id          String                 @id @default(uuid())
+  projectId   String                 @map("project_id")
+  ownerId     String                 @map("owner_id")
+  cycleNumber Int                    @map("cycle_number")
+  // intendedOutcome đã bị drop — xem §14.4
+  startedAt   DateTime               @map("started_at")
+  endedAt     DateTime?              @map("ended_at")
+  endReason   ProjectCycleEndReason? @map("end_reason")
+  closingNote String?                @map("closing_note") @db.VarChar(2000)
+  targetEndAt DateTime?              @map("target_end_at") @db.Date
+  createdAt   DateTime               @default(now()) @map("created_at")
+  updatedAt   DateTime               @updatedAt @map("updated_at")
+
+  project        Project                      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  transitions    ProjectLifecycleTransition[]
+  outcomeEntries ProjectCycleOutcomeEntry[]
+
+  @@unique([projectId, cycleNumber])
+  @@index([projectId, endedAt])
+  @@map("project_cycles")
+}
+```
+
+### 14.2. ProjectCycleOutcomeEntry (mới)
+
+```prisma
+model ProjectCycleOutcomeEntry {
+  id        String   @id @default(uuid())
+  cycleId   String   @map("cycle_id")
+  outcome   String   @db.Text
+  setAt     DateTime @map("set_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  cycle ProjectCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+
+  @@index([cycleId, setAt])
+  @@map("project_cycle_outcome_entries")
+}
+```
+
+**Giải thích:**
+
+- Không có `updatedAt` — entry là immutable record, cùng lý do với `ProjectLifecycleTransition` (§11).
+- `setAt` là business timestamp (thời điểm người dùng đặt outcome); `createdAt` là technical timestamp — tách nhau để migration §14.4 có thể ghi `setAt` xấp xỉ mà không làm sai `createdAt`.
+- Không lưu `ownerId` — entry luôn được đọc qua Cycle, không có query theo owner trực tiếp.
+- Index `[cycleId, setAt]` cho đọc lịch sử theo đúng thứ tự thời gian và lấy entry mới nhất.
+
+### 14.3. Vì Sao Bảng Riêng Thay Vì JSONB
+
+Khác với Chronicle snapshot (dữ liệu tính sẵn, đọc nguyên khối, không có quan hệ — nên JSONB hợp lý), outcome entry là một phần của aggregate đang được ghi liên tục và có invariant append-only. Bảng riêng cho phép:
+
+- append đúng 1 row cho mỗi lần cập nhật, không phải đọc–sửa–ghi lại cả mảng JSON (tránh mất entry khi hai request ghi đồng thời);
+- giữ kiểu dữ liệu và ràng buộc ở tầng DB thay vì chỉ ở tầng ứng dụng.
+
+Repository chỉ **insert** entry mới chưa có trong DB; không bao giờ `UPDATE`/`DELETE` entry đã tồn tại — đây là nơi BR-PRJ-033 được giữ ở tầng persistence.
+
+### 14.4. Migration
+
+```bash
+pnpm prisma migrate dev --name project_cycle_flexibility
+```
+
+Thứ tự:
+
+1. Thêm cột `closing_note`, `target_end_at` vào `project_cycles` (nullable — không cần backfill).
+2. Tạo bảng `project_cycle_outcome_entries`.
+3. **Backfill:** với mỗi `project_cycles` có `intended_outcome IS NOT NULL`, insert đúng 1 entry:
+   ```sql
+   INSERT INTO project_cycle_outcome_entries (id, cycle_id, outcome, set_at, created_at)
+   SELECT gen_random_uuid(), id, intended_outcome, updated_at, now()
+   FROM project_cycles
+   WHERE intended_outcome IS NOT NULL;
+   ```
+   `set_at = updated_at` là xấp xỉ — V1 không lưu thời điểm outcome được đặt, và các giá trị bị ghi đè trước đó đã mất từ V1, không khôi phục được. Đây là giới hạn đã biết, chấp nhận được.
+4. Drop cột `intended_outcome` khỏi `project_cycles`.
+
+Bước 3 và 4 phải nằm trong cùng migration file (Prisma sinh bước 1, 2, 4; bước 3 viết tay chèn vào trước bước 4) để không có thời điểm nào dữ liệu outcome cũ bị mất.
+
+---
+
+## 15. Next Step
 
 Phase tiếp theo:
 

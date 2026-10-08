@@ -118,10 +118,19 @@ Có 2 shape khác nhau tùy nguồn gốc lỗi:
 `ProjectResponse` là response shape được trả về bởi tất cả Project endpoints.
 
 ```typescript
+interface OutcomeEntryResponse {
+  // V1.1
+  outcome: string;
+  setAt: string; // ISO 8601
+}
+
 interface ProjectCycleResponse {
   id: string;
   cycleNumber: number;
-  intendedOutcome: string | null;
+  intendedOutcome: string | null; // entry mới nhất của outcomeHistory, giữ để tương thích V1
+  outcomeHistory: OutcomeEntryResponse[]; // V1.1 — cũ → mới, có thể rỗng
+  targetEndAt: string | null; // V1.1 — date-only "YYYY-MM-DD"
+  closingNote: string | null; // V1.1 — luôn null khi Cycle đang mở
   startedAt: string; // ISO 8601
   endedAt: string | null; // ISO 8601
   endReason: 'STOPPED' | 'COMPLETED' | null;
@@ -141,7 +150,9 @@ interface ProjectResponse {
 
 `currentCycle` là `null` khi Project đang `NOT_STARTED` hoặc chưa có Cycle.
 
-Lifecycle history không thuộc V1 response shape.
+~~Lifecycle history không thuộc V1 response shape.~~ **(V1.1)** Lịch sử các Cycle đã đóng không nằm trong `ProjectResponse` mà có endpoint riêng (§4.14). Timeline mức transition vẫn không thuộc response shape.
+
+`intendedOutcome` được giữ lại (= outcome của entry cuối trong `outcomeHistory`) để client V1 hiện tại không vỡ khi deploy backend V1.1 trước client.
 
 ---
 
@@ -449,10 +460,14 @@ id: UUID
 #### Request Body
 
 ```typescript
-interface ProjectRevisionDto {
+interface ProjectClosingDto {
+  // V1.1 — thay cho ProjectRevisionDto ở Stop/Complete
   expectedRevision: number;
+  closingNote?: string | null; // V1.1 — tùy chọn, tối đa 2000 ký tự sau trim
 }
 ```
+
+Client V1 chỉ gửi `{ expectedRevision }` vẫn hợp lệ (`closingNote` vắng mặt = không có note).
 
 #### Response
 
@@ -463,18 +478,19 @@ ProjectResponse
 
 #### Error Cases
 
-| Status | Reason                                |
-| ------ | ------------------------------------- |
-| 409    | Project đang ở STOPPED hoặc COMPLETED |
-| 401    | Unauthorized                          |
-| 404    | Project không tồn tại                 |
-| 409    | expectedRevision conflict             |
+| Status | Reason                                                                                                             |
+| ------ | ------------------------------------------------------------------------------------------------------------------ |
+| 409    | Project đang ở STOPPED hoặc COMPLETED                                                                              |
+| 400    | (V1.1) `closingNote` quá 2000 ký tự, hoặc có `closingNote` khi Project đang `NOT_STARTED` (`INVALID_CLOSING_NOTE`) |
+| 401    | Unauthorized                                                                                                       |
+| 404    | Project không tồn tại                                                                                              |
+| 409    | expectedRevision conflict                                                                                          |
 
 #### Behavior
 
 - Project chuyển sang `STOPPED`.
-- Nếu có current Cycle: Cycle đóng với `endedAt = now`, `endReason = STOPPED`.
-- Nếu Project đang `NOT_STARTED`: không có Cycle nào được tạo hoặc đóng.
+- Nếu có current Cycle: Cycle đóng với `endedAt = now`, `endReason = STOPPED`, `closingNote` = giá trị đã trim (chuỗi rỗng → `null`).
+- Nếu Project đang `NOT_STARTED`: không có Cycle nào được tạo hoặc đóng; `closingNote` không rỗng → 400.
 - `currentCycle` trong response là `null`.
 - `revision` tăng.
 
@@ -495,8 +511,10 @@ id: UUID
 #### Request Body
 
 ```typescript
-interface ProjectRevisionDto {
+interface ProjectClosingDto {
+  // V1.1 — xem §4.8
   expectedRevision: number;
+  closingNote?: string | null;
 }
 ```
 
@@ -509,17 +527,18 @@ ProjectResponse
 
 #### Error Cases
 
-| Status | Reason                             |
-| ------ | ---------------------------------- |
-| 409    | Project không ở ACTIVE hoặc PAUSED |
-| 401    | Unauthorized                       |
-| 404    | Project không tồn tại              |
-| 409    | expectedRevision conflict          |
+| Status | Reason                                                       |
+| ------ | ------------------------------------------------------------ |
+| 409    | Project không ở ACTIVE hoặc PAUSED                           |
+| 400    | (V1.1) `closingNote` quá 2000 ký tự (`INVALID_CLOSING_NOTE`) |
+| 401    | Unauthorized                                                 |
+| 404    | Project không tồn tại                                        |
+| 409    | expectedRevision conflict                                    |
 
 #### Behavior
 
 - Project chuyển sang `COMPLETED`.
-- Current Cycle đóng với `endedAt = now`, `endReason = COMPLETED`.
+- Current Cycle đóng với `endedAt = now`, `endReason = COMPLETED`, `closingNote` = giá trị đã trim (chuỗi rỗng → `null`).
 - `currentCycle` trong response là `null`.
 - `revision` tăng.
 
@@ -611,10 +630,11 @@ ProjectResponse
 
 #### Behavior
 
-- Intended outcome của current Cycle được set hoặc update.
+- ~~Intended outcome của current Cycle được set hoặc update.~~ **(V1.1)** Một entry mới `{ outcome, setAt: now }` được thêm vào `outcomeHistory` của current Cycle; entry cũ không đổi.
+- **(V1.1)** Nếu `intendedOutcome` (sau trim) trùng đúng outcome hiện tại: no-op — không thêm entry, `revision` không tăng, vẫn trả `200` với Project hiện tại.
 - Lifecycle state không thay đổi.
 - Current Cycle không thay đổi.
-- `revision` tăng.
+- `revision` tăng (trừ trường hợp no-op ở trên).
 
 #### Note
 
@@ -625,7 +645,91 @@ Define: current Cycle chưa có intendedOutcome
 Update: current Cycle đã có intendedOutcome
 ```
 
-Behavior phía server là idempotent về mặt semantics — chỉ current value được lưu.
+~~Behavior phía server là idempotent về mặt semantics — chỉ current value được lưu.~~ **(V1.1)** Server lưu toàn bộ lịch sử; idempotent chỉ theo nghĩa gửi lại đúng giá trị hiện tại không tạo entry mới. Giữ nguyên method `PUT` và path để không vỡ client V1 — về mặt HTTP đây là "đặt outcome hiện tại", lịch sử là hệ quả phía server.
+
+Không có endpoint sửa hay xóa một entry outcome (BR-PRJ-033).
+
+---
+
+### 4.13. Set / Clear Target End Date (V1.1)
+
+```
+PUT /projects/:id/cycle/target-end
+```
+
+#### Path Parameters
+
+```text
+id: UUID
+```
+
+#### Request Body
+
+```typescript
+interface SetTargetEndDto {
+  expectedRevision: number; // required
+  targetEndAt: string | null; // required — "YYYY-MM-DD", null để xóa
+}
+```
+
+#### Response
+
+```
+200 OK
+ProjectResponse
+```
+
+#### Error Cases
+
+| Status | Reason                               |
+| ------ | ------------------------------------ |
+| 409    | Project không ở ACTIVE hoặc PAUSED   |
+| 400    | `targetEndAt` không phải ngày hợp lệ |
+| 401    | Unauthorized                         |
+| 404    | Project không tồn tại                |
+| 409    | expectedRevision conflict            |
+
+#### Behavior
+
+- `targetEndAt` của current Cycle được thay bằng giá trị mới (hoặc xóa nếu `null`). Không lưu lịch sử.
+- Không kiểm tra ngày phải ở tương lai.
+- Giá trị trùng giá trị hiện tại → no-op, `revision` không tăng.
+- Lifecycle state không thay đổi; không có transition nào được kích hoạt.
+
+---
+
+### 4.14. List Closed Cycles (V1.1)
+
+```
+GET /projects/:id/cycles/closed
+```
+
+#### Path Parameters
+
+```text
+id: UUID
+```
+
+#### Response
+
+```
+200 OK
+ProjectCycleResponse[]   — chỉ các Cycle đã đóng, sắp xếp mới nhất trước (cycleNumber giảm dần)
+```
+
+Mảng rỗng nếu Project chưa có Cycle nào đóng. Không phân trang — số Cycle của một Project được kỳ vọng nhỏ.
+
+#### Error Cases
+
+| Status | Reason                |
+| ------ | --------------------- |
+| 401    | Unauthorized          |
+| 404    | Project không tồn tại |
+
+#### Behavior
+
+- Read-only, owner-scoped.
+- Cycle đang mở (nếu có) không có trong kết quả — nó đã nằm ở `ProjectResponse.currentCycle`.
 
 ---
 
@@ -735,20 +839,22 @@ Khi `expectedRevision` không khớp:
 
 ## 6. Endpoint Summary
 
-| Method   | Path                          | Action                      |
-| -------- | ----------------------------- | --------------------------- |
-| `POST`   | `/projects`                   | Create Project              |
-| `GET`    | `/projects`                   | List Projects               |
-| `GET`    | `/projects/:id`               | Get Project Detail          |
-| `PUT`    | `/projects/:id`               | Update Project              |
-| `PATCH`  | `/projects/:id/start`         | Start Project               |
-| `PATCH`  | `/projects/:id/pause`         | Pause Project               |
-| `PATCH`  | `/projects/:id/resume`        | Resume Project              |
-| `PATCH`  | `/projects/:id/stop`          | Stop Project                |
-| `PATCH`  | `/projects/:id/complete`      | Complete Project            |
-| `PATCH`  | `/projects/:id/reopen`        | Reopen Project              |
-| `PUT`    | `/projects/:id/cycle/outcome` | Set/Update Intended Outcome |
-| `DELETE` | `/projects/:id`               | Delete Project              |
+| Method   | Path                             | Action                           |
+| -------- | -------------------------------- | -------------------------------- |
+| `POST`   | `/projects`                      | Create Project                   |
+| `GET`    | `/projects`                      | List Projects                    |
+| `GET`    | `/projects/:id`                  | Get Project Detail               |
+| `PUT`    | `/projects/:id`                  | Update Project                   |
+| `PATCH`  | `/projects/:id/start`            | Start Project                    |
+| `PATCH`  | `/projects/:id/pause`            | Pause Project                    |
+| `PATCH`  | `/projects/:id/resume`           | Resume Project                   |
+| `PATCH`  | `/projects/:id/stop`             | Stop Project                     |
+| `PATCH`  | `/projects/:id/complete`         | Complete Project                 |
+| `PATCH`  | `/projects/:id/reopen`           | Reopen Project                   |
+| `PUT`    | `/projects/:id/cycle/outcome`    | Set/Update Intended Outcome      |
+| `PUT`    | `/projects/:id/cycle/target-end` | Set/Clear Target End Date (V1.1) |
+| `GET`    | `/projects/:id/cycles/closed`    | List Closed Cycles (V1.1)        |
+| `DELETE` | `/projects/:id`                  | Delete Project                   |
 
 ---
 
@@ -766,22 +872,27 @@ Khi `expectedRevision` không khớp:
 | Pagination               | `page` + `limit` query params                                                              |
 | Outcome endpoint         | `PUT /projects/:id/cycle/outcome`                                                          |
 | Delete endpoint          | `DELETE /projects/:id`, chỉ hợp lệ khi Project chưa từng có Project Cycle nào, hard delete |
+| Closing note (V1.1)      | Field tùy chọn `closingNote` trong body của Stop/Complete — không có endpoint riêng        |
+| Target end (V1.1)        | `PUT /projects/:id/cycle/target-end`, date-only, `null` để xóa                             |
+| Cycle history (V1.1)     | `GET /projects/:id/cycles/closed`, không phân trang, mới nhất trước                        |
+| Backward compatibility   | V1.1 chỉ thêm field/endpoint; giữ `intendedOutcome` trong response; client V1 không vỡ     |
 
 ---
 
 ## 8. Out of Scope for V1 API
 
 ```text
-- Lifecycle history endpoint
-- Closed Cycle list endpoint
+- Lifecycle history endpoint (timeline mức transition)
+- Closed Cycle list endpoint      → ĐÃ ĐIỀU CHỈNH V1.1 (§4.14)
 - Project analytics endpoint
 - Bulk lifecycle action
 - Webhook / realtime event
 - Public project endpoint
-- Stop reason field
+- Stop reason field              → ĐÃ ĐIỀU CHỈNH V1.1: closingNote tự do (§4.8)
 - Pause reason field
-- Completion note field
+- Completion note field          → ĐÃ ĐIỀU CHỈNH V1.1: closingNote tự do (§4.9)
 - Reopen reason field
+- Edit / delete outcome entry    (V1.1 — cố ý không có, BR-PRJ-033)
 ```
 
 ---
