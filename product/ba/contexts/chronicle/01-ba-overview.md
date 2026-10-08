@@ -253,22 +253,33 @@ tháng, aggregated view, có computation — giống báo cáo định kỳ).
 Cùng nguồn dữ liệu ở phía Reflection (Journal/Memory), nhưng hai
 read model độc lập, không cái nào thay thế cái kia.
 
-KD-CHR-009 — A Closed Month Freezes at First-View Time, Not Month-End
-Nhờ KD-CHR-002 (snapshot khi tháng đã đóng), một tháng đã đóng chỉ
-còn "trôi" cho tới lần đầu tiên nó được xem — sau đó đóng băng vĩnh
-viễn. Nhưng **thời điểm đóng băng là lúc xem lần đầu, không phải lúc
-tháng kết thúc**: nếu tháng 3 đóng nhưng mãi tới tháng 9 mới có ai mở
-Chronicle tháng 3 lần đầu, snapshot phản ánh state của các module tại
-tháng 9, không phải tại tháng 3. Một Habit active suốt tháng 3 nhưng
-bị archive vào tháng 6 sẽ bị loại khỏi completion rate của tháng 3
-nếu tháng 3 chưa từng được xem trước tháng 6. Đây vẫn là đánh đổi có
-chủ đích (giữ KD-CHR-002 đơn giản, không cần lifecycle-transition-log)
-— nhưng khác với khẳng định trước đó, rủi ro drift không chỉ giới hạn
-ở tháng hiện tại: nó áp dụng cho **bất kỳ tháng đã đóng nào chưa từng
-được xem lần đầu**, và biến mất ngay khi tháng đó có snapshot. Trong
-thực tế, hầu hết tháng được xem sớm sau khi đóng (ngay đầu tháng kế
-tiếp) nên cửa sổ rủi ro thường ngắn, nhưng không có gì đảm bảo điều
-đó ở tầng domain.
+KD-CHR-009 — A Closed Month Is Rebuilt From History, Then Frozen
+**(Đã điều chỉnh 2026-10-08 — trước đây Habit/Routine đọc trạng thái
+hiện tại nên số liệu tháng cũ phụ thuộc thời điểm xem lần đầu; nay
+Forge lưu lịch sử, xem `../forge/temporal-history/`.)**
+Mọi số liệu Chronicle được dựng lại từ dữ liệu có ngày hiệu lực, nên
+một tháng đã đóng cho ra cùng kết quả dù được mở lần đầu ngay đầu
+tháng sau hay nhiều tháng sau đó:
+
+  - Habit/Routine: sống hay không, tần suất, thành viên Routine tại
+    từng ngày — từ lịch sử Forge (temporal-history 02 §4).
+  - Check-in, relapse, Project transition, createdAt của Journal/
+    Memory — vốn đã là lịch sử bất biến.
+
+Phần còn có thể "trôi" trước lần xem đầu tiên chỉ là thay đổi cố ý
+của người dùng lên chính dữ liệu đó, và được chấp nhận:
+
+  - Đưa Journal/Memory vào thùng rác → không còn được đếm (người dùng
+    đã chủ động loại bỏ).
+  - Đổi tên Habit → snapshot hiển thị tên mới.
+  - Sửa `quitStartedAt` của Habit QUIT → là sửa lại một sự thật, giá
+    trị mới đúng cho cả quá khứ.
+
+Snapshot (KD-CHR-002) vẫn giữ: nó khóa số liệu sau lần xem đầu tiên
+để những thay đổi cố ý ở trên không viết lại một tháng đã xem.
+
+Sai số còn lại duy nhất nằm ở quá khứ **trước** khi lịch sử Forge
+được bật (backfill gần đúng — temporal-history 02 §6).
 
 KD-CHR-010 — Chronicle Is Owner-Scoped
 Mọi read model của Chronicle lọc theo `ownerId` của người dùng hiện

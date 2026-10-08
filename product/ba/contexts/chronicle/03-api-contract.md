@@ -33,9 +33,10 @@ interface ChronicleResponse {
 }
 
 interface ChronicleHabitSection {
-  buildCompletionRate: number; // 0.0–1.0 — trung bình completion rate
-  // của mọi Habit BUILD active tại thời điểm tính, 0 nếu không có
-  // Habit BUILD nào
+  buildCompletionRate: number; // 0.0–1.0 — tổng ngày hoàn thành /
+  // tổng ngày due của mọi Habit BUILD có ngày due trong tháng (kể cả
+  // Habit nay đã archive), 0 nếu không có ngày due nào
+  // (02-domain-analysis.md §5)
   bestStreak: { habitTitle: string; days: number } | null; // Habit có
   // streak liên tục dài nhất trong tháng; null nếu không có streak
   // nào > 0
@@ -48,11 +49,14 @@ interface ChronicleHabitSection {
   quitHabits: Array<{
     habitTitle: string;
     daysSinceLastRelapse: number;
-  }>; // rỗng nếu owner không có Habit QUIT-type nào active
+  }>; // tính tại ngày sống cuối cùng của Habit trong tháng; rỗng nếu
+  // không có Habit QUIT nào sống trong tháng (02-domain-analysis.md §5)
 }
 
 interface ChronicleRoutineSection {
-  completionRate: number; // 0.0–1.0
+  completionRate: number; // 0.0–1.0 — buổi hoàn thành / tổng buổi;
+  // 1 buổi = 1 ngày Routine có Habit đến hạn, hoàn thành khi mọi Habit
+  // đó đều check-in (02-domain-analysis.md §5)
 }
 
 interface ChronicleProjectSection {
@@ -79,7 +83,17 @@ interface ChronicleMemorySection {
 **Không có field nào tiết lộ đây là live-compute hay đọc từ snapshot**
 — người dùng không cần biết cơ chế bên trong (KD-CHR-002 là chi tiết
 triển khai). `computedAt` đủ để UI hiện "cập nhật lúc..." nếu cần, mà
-không rò rỉ khái niệm "snapshot".
+không rò rỉ khái niệm "snapshot". Với tháng đã đóng, `computedAt` luôn
+là lúc snapshot được tạo lần đầu, kể cả khi sau đó snapshot được tính
+bù section hoặc nâng phiên bản section (02-domain-analysis.md
+DAP-CHR-007/008) — `schemaVersion` và `computedAt` riêng của từng
+section là chi tiết nội bộ, không xuất hiện trong response.
+
+**Response giữ field có tên cho từng module** (`habit`, `routine`, ...)
+thay vì mảng section generic: client cần type cụ thể để hiển thị. Thêm
+module mới vào Chronicle vì vậy có thêm 1 field trong response và 1
+khối hiển thị ở client, nhưng không đổi phần tính toán phía server
+(02-domain-analysis.md DAP-CHR-006).
 
 ---
 
@@ -111,6 +125,13 @@ token, không nhận trong path/query. Tháng hiện tại luôn compute
 real-time; tháng đã đóng đọc/ghi snapshot lazy theo đúng luồng ở
 `02-domain-analysis.md` §4 — client không cần biết phân biệt này,
 response shape giống hệt nhau.
+
+**Ghi chú nội bộ (không ảnh hưởng contract):** ở tầng domain,
+`year`/`month` được map sang `periodType = MONTH` +
+`periodKey`/`periodStart`/`periodEnd` tổng quát (DAP-CHR-005,
+`02-domain-analysis.md` §2) — đây là chi tiết triển khai để dễ mở
+rộng thêm kỳ khác (tuần/quý/năm) sau này mà không đổi schema; endpoint
+và response của V1 không đổi.
 
 ---
 
