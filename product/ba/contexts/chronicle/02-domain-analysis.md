@@ -112,7 +112,9 @@ mang 2 cặp ranh giới nửa mở `[from, to)`, vì dữ liệu nguồn có 2 
 cột khác nhau:
 
 ```text
-firstDate/endDate — ngày lịch date-only (YYYY-MM-DDT00:00Z)
+firstDate/endDate — ngày lịch thuần (YYYY-MM-DD), không mang múi giờ
+  (trong code là Date 00:00Z — đúng cách Prisma trả về cột @db.Date,
+  không phải một instant có ý nghĩa thời điểm)
   → cho cột date-only đã lưu ngày lịch của owner (vd HabitCheckIn.date)
   → so trực tiếp, KHÔNG quy đổi múi giờ (tránh lệch thêm 1 lần nữa)
 
@@ -144,6 +146,7 @@ handler phải inject từng cái:
 interface ChronicleSectionReader<M extends ChronicleModule> {
   readonly module: M; // 'habit' | 'journal' | ...
   readonly schemaVersion: number; // DAP-CHR-008
+  readonly historyOnly: boolean; // mọi nguồn bất biến? — DAP-CHR-008
   getSummary(
     ownerId: string,
     period: ChroniclePeriod,
@@ -198,16 +201,31 @@ section.schemaVersion < reader.schemaVersion  →
   a. Thay đổi bổ sung có giá trị mặc định suy ra được (vd thêm field
      mảng → mặc định rỗng): reader cung cấp hàm nâng cấp, chạy trong
      bộ nhớ khi đọc, KHÔNG ghi lại.
-  b. Thay đổi không suy ra được từ data cũ: tính lại section từ lịch sử
-     và THAY THẾ section đó với schemaVersion mới.
+  b. Thay đổi không suy ra được từ data cũ, CHỈ cho reader thuần lịch
+     sử (xem dưới): tính lại section và THAY THẾ section đó với
+     schemaVersion mới.
+  c. Thay đổi không suy ra được, cho reader có phụ thuộc trạng thái
+     hiện tại: KHÔNG tính lại. Field mới nhận giá trị "không có dữ
+     liệu" (null) cho section cũ, nâng cấp trong bộ nhớ như (a).
 section.schemaVersion > reader.schemaVersion  → lỗi hệ thống (code
   cũ hơn dữ liệu — không được xảy ra khi deploy đúng thứ tự)
 ```
 
+**Reader thuần lịch sử** là reader mà mọi nguồn đều bất biến theo thời
+gian — tính lại một tháng cũ hôm nay hay năm sau đều ra cùng kết quả:
+Habit, Routine (lịch sử Forge + check-in + relapse), Project
+(transition). Journal, Mood, Memory **không** thuần lịch sử: chúng lọc
+theo `state` hiện tại (thùng rác — KD-CHR-009), nên tính lại sẽ làm mất
+những entry người dùng trash sau lần xem đầu tiên, tức viết lại một
+tháng đã chốt. Mỗi reader khai báo mình có thuần lịch sử hay không;
+registry từ chối khai báo phiên bản loại (b) cho reader không thuần
+lịch sử.
+
 Trường hợp (b) là **ngoại lệ có chủ đích duy nhất** của tính bất biến
 snapshot. Nó an toàn vì section được tính lại từ cùng dữ liệu lịch sử
-(DAP-CHR-004), không phải từ trạng thái hiện tại. Mỗi lần nâng phiên
-bản, người viết reader phải ghi rõ thay đổi đó thuộc (a) hay (b).
+bất biến (DAP-CHR-004), không phải từ trạng thái hiện tại. Mỗi lần nâng
+phiên bản, người viết reader phải ghi rõ thay đổi đó thuộc (a), (b) hay
+(c).
 
 ---
 
@@ -475,6 +493,7 @@ Lower bound navigation:
 | Mỗi module tối đa 1 section / snapshot                                     | `@@unique([snapshotId, module])` (DAP-CHR-001)                       |
 | Tháng hiện tại không có snapshot row                                       | Query handler kiểm tra trước khi đọc/ghi (DAP-CHR-003)               |
 | Section đã ghi không bị sửa/xóa — trừ thay thế khi nâng phiên bản loại (b) | Chỉ có insert section thiếu + replace theo DAP-CHR-008 (DAP-CHR-007) |
+| Chỉ reader thuần lịch sử được tính lại section (loại b)                    | Registry từ chối loại (b) khi `historyOnly = false` (DAP-CHR-008)    |
 | Mỗi module trong `CHRONICLE_MODULES` có đúng 1 reader                      | Kiểm tra lúc khởi động (DAP-CHR-006)                                 |
 | Section mang `schemaVersion` ≤ phiên bản reader hiện tại                   | Kiểm tra khi đọc (DAP-CHR-008)                                       |
 | Không navigate quá tháng hiện tại                                          | KD-CHR-007 (upper bound)                                             |
@@ -488,12 +507,14 @@ Lower bound navigation:
 
 ```text
 - Cơ chế invalidate/tính lại snapshot đã tạo theo yêu cầu (Open
-  Analysis 01-ba-overview.md §9) — V1 chấp nhận snapshot sai (do bug)
+  Analysis 01-ba-overview.md §10) — V1 chấp nhận snapshot sai (do bug)
   là sai vĩnh viễn, không có công cụ sửa tay. Ngoại lệ duy nhất là
   tính lại có chủ đích khi nâng schemaVersion loại (b) — DAP-CHR-008.
-  Một bug trong reader có thể được sửa bằng cách nâng schemaVersion
-  và khai báo loại (b), nhưng đó là quyết định của người viết reader,
-  không phải công cụ cho người dùng/admin.
+  Một bug trong reader thuần lịch sử có thể được sửa bằng cách nâng
+  schemaVersion và khai báo loại (b), nhưng đó là quyết định của người
+  viết reader, không phải công cụ cho người dùng/admin. Bug trong
+  reader không thuần lịch sử (Journal/Mood/Memory) không sửa được cho
+  tháng đã chốt.
 - Buffer thời gian quanh ranh giới tháng (request đến đúng lúc dữ
   liệu module nguồn chưa ghi xong) — chấp nhận rủi ro cực nhỏ này ở
   V1, không thiết kế cơ chế trì hoãn/retry.

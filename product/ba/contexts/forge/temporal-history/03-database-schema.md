@@ -75,7 +75,11 @@ model RoutineLifecycleTransition {
 
 **Quan hệ qua `[habitId, ownerId]`**: giống `HabitCheckIn` — bảo đảm ở tầng database rằng lịch sử luôn cùng owner với Habit.
 
-### 2.2. Migration SQL (bổ sung tay sau `prisma migrate dev --create-only`)
+### 2.2. Migration SQL (sửa tay sau `prisma migrate dev --create-only`)
+
+`--create-only` sinh sẵn `ALTER TABLE ... ADD COLUMN "created_on" DATE NOT NULL` cho `habits`/`routines`. Câu đó **thất bại trên bảng đã có dữ liệu** (cột NOT NULL không có default). Vì vậy phải **thay thế** (không phải nối thêm) 2 câu `ADD COLUMN "created_on"` được sinh ra bằng khối dưới đây — thêm cột nullable, backfill, rồi mới `SET NOT NULL`. Các câu `CREATE TYPE`/`CREATE TABLE`/`CREATE INDEX`/`ADD CONSTRAINT` khác do Prisma sinh giữ nguyên; khối backfill transition (bước 2) đặt **sau** `CREATE TABLE` của 2 bảng transition.
+
+Công thức ngày lịch dùng `users.time_zone` tại lúc migration — gần đúng cho owner đã đổi múi giờ sau khi tạo Habit/Routine (02-domain-analysis.md §6).
 
 ```sql
 -- 1) createdOn: thêm nullable → backfill → NOT NULL
@@ -143,7 +147,9 @@ model HabitScheduleVersion {
 }
 ```
 
-### 3.2. Migration SQL
+### 3.2. Migration SQL (nối thêm sau phần `--create-only` sinh ra)
+
+Prisma sinh `CREATE TABLE` và index thường; khối dưới đây nối thêm **sau** đó (bảng mới nên không có vấn đề NOT NULL như §2.2).
 
 ```sql
 -- Bất biến 02 §5: tối đa 1 phiên bản đang mở / Habit; khoảng hợp lệ
@@ -201,7 +207,9 @@ model RoutineHabitMembership {
 }
 ```
 
-### 4.2. Migration SQL
+### 4.2. Migration SQL (nối thêm sau phần `--create-only` sinh ra)
+
+Prisma sinh `CREATE TABLE` và index thường; khối dưới đây nối thêm **sau** đó (bảng mới nên không có vấn đề NOT NULL như §2.2).
 
 ```sql
 CREATE UNIQUE INDEX "routine_habit_memberships_one_open_per_pair"
