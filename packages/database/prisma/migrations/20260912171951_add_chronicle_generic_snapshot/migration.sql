@@ -19,6 +19,8 @@ CREATE TABLE "chronicle_snapshot_sections" (
     "id" TEXT NOT NULL,
     "snapshot_id" TEXT NOT NULL,
     "module" TEXT NOT NULL,
+    "schema_version" INTEGER NOT NULL,
+    "computed_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "data" JSONB NOT NULL,
 
     CONSTRAINT "chronicle_snapshot_sections_pkey" PRIMARY KEY ("id")

@@ -494,10 +494,12 @@ model ChronicleSnapshot {
 }
 
 model ChronicleSnapshotSection {
-  id         String @id @default(uuid())
-  snapshotId String @map("snapshot_id")
-  module     String
-  data       Json
+  id            String   @id @default(uuid())
+  snapshotId    String   @map("snapshot_id")
+  module        String
+  schemaVersion Int      @map("schema_version")
+  computedAt    DateTime @default(now()) @map("computed_at")
+  data          Json
 
   snapshot ChronicleSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
 
