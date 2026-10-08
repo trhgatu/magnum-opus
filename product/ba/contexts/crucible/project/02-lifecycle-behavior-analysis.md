@@ -1159,7 +1159,7 @@ Cách biểu diễn technical cụ thể chưa thuộc phạm vi của BA analys
 
 > **Status:** Revision sau V1 baseline, dựa trên feedback thực tế sử dụng.
 
-Sau khi Projects V1 được dùng thật, ba điểm cứng nhắc của Project Cycle được xác định là đáng sửa, không phải do thiếu sót trong analysis trước đó mà do giả định ban đầu (ASM-PRJ-LC-005 và tương đương) chưa phản ánh đúng nhu cầu thực tế một khi có dữ liệu sử dụng.
+Sau khi Projects V1 được dùng thật, ba điểm cứng nhắc của Project Cycle được xác định là đáng sửa, không phải do thiếu sót trong analysis trước đó mà do các quyết định V1 có chủ ý — BR-PRJ-008 (không có stop reason), BR-PRJ-026/027 (outcome ghi đè, chỉ giữ giá trị cuối) và các mục Out of Scope tương ứng — chưa phản ánh đúng nhu cầu thực tế một khi có dữ liệu sử dụng. Riêng `targetEndAt` (R3) là bổ sung mới, không đảo ngược quyết định nào.
 
 ### R1 — Intended Outcome Không Còn Bị Ghi Đè
 

@@ -1803,6 +1803,7 @@ Một implementation của Projects V1 được xem là phù hợp với Product
     → belongs to Cycle
     → optional
     → (V1.1) each update appends a new entry while ACTIVE / PAUSED
+    → (V1.1) re-saving the exact current outcome is a no-op (no new entry)
     → (V1.1) existing entries are never edited or deleted
     → full history immutable after Cycle closes
 

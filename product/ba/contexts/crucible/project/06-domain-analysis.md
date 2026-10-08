@@ -839,7 +839,7 @@ project_cycles
 ├── id
 ├── project_id
 ├── cycle_number
-├── intended_outcome (nullable)        ← V1; V1.1 chuyển sang bảng entry bên dưới
+├── [DROPPED V1.1] intended_outcome    ← chỉ tồn tại ở V1; V1.1 chuyển sang bảng entry bên dưới rồi drop cột
 ├── started_at
 ├── ended_at (nullable)
 ├── end_reason (nullable: STOPPED | COMPLETED)
@@ -869,24 +869,24 @@ Schema trên là candidate, không phải final decision.
 
 ## 15. Domain Invariant Summary
 
-| Invariant                                            | Enforced By                                                                        |
-| ---------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| Lifecycle transition eligibility                     | Project.method()                                                                   |
-| Single current Cycle                                 | Project Aggregate                                                                  |
-| Cycle starts only on ACTIVE                          | Project.start() / Project.reopen()                                                 |
-| Cycle ends only on STOP / COMPLETE                   | Project.stop() / Project.complete()                                                |
-| Closed Cycle outcome is immutable                    | ProjectCycle.setOutcome()                                                          |
-| Outcome only settable on open Cycle                  | Project.setIntendedOutcome()                                                       |
-| Revision conflict detection                          | ProjectMutationService (preflight) + ProjectRepository.update() (compare-and-swap) |
-| NOT_STARTED → STOPPED creates no Cycle               | Project.stop()                                                                     |
-| Delete only allowed when cycles.length == 0          | Project.canBeDeleted()                                                             |
-| Delete race-safe against concurrent lifecycle action | ProjectRepository.deletePermanently() (compare-and-swap)                           |
-| Outcome entries append-only (V1.1)                   | ProjectCycle (không expose sửa/xóa entry)                                          |
-| Closed Cycle rejects new outcome entry (V1.1)        | ProjectCycle / Project.setIntendedOutcome()                                        |
-| closingNote only set when closing (V1.1)             | Project.stop() / Project.complete()                                                |
-| No closingNote on NOT_STARTED → STOPPED (V1.1)       | Project.stop()                                                                     |
-| targetEndAt only settable on open Cycle (V1.1)       | Project.setTargetEndAt()                                                           |
-| targetEndAt never drives lifecycle (V1.1)            | Không có code path nào đọc targetEndAt trong lifecycle method                      |
+| Invariant                                            | Enforced By                                                                                       |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Lifecycle transition eligibility                     | Project.method()                                                                                  |
+| Single current Cycle                                 | Project Aggregate                                                                                 |
+| Cycle starts only on ACTIVE                          | Project.start() / Project.reopen()                                                                |
+| Cycle ends only on STOP / COMPLETE                   | Project.stop() / Project.complete()                                                               |
+| Closed Cycle outcome is immutable                    | Project.setIntendedOutcome() (từ chối khi Cycle đã đóng) + ProjectCycle (V1.1: chỉ expose append) |
+| Outcome only settable on open Cycle                  | Project.setIntendedOutcome()                                                                      |
+| Revision conflict detection                          | ProjectMutationService (preflight) + ProjectRepository.update() (compare-and-swap)                |
+| NOT_STARTED → STOPPED creates no Cycle               | Project.stop()                                                                                    |
+| Delete only allowed when cycles.length == 0          | Project.canBeDeleted()                                                                            |
+| Delete race-safe against concurrent lifecycle action | ProjectRepository.deletePermanently() (compare-and-swap)                                          |
+| Outcome entries append-only (V1.1)                   | ProjectCycle (không expose sửa/xóa entry)                                                         |
+| Closed Cycle rejects new outcome entry (V1.1)        | ProjectCycle / Project.setIntendedOutcome()                                                       |
+| closingNote only set when closing (V1.1)             | Project.stop() / Project.complete()                                                               |
+| No closingNote on NOT_STARTED → STOPPED (V1.1)       | Project.stop()                                                                                    |
+| targetEndAt only settable on open Cycle (V1.1)       | Project.setTargetEndAt()                                                                          |
+| targetEndAt never drives lifecycle (V1.1)            | Không có code path nào đọc targetEndAt trong lifecycle method                                     |
 
 ---
 

@@ -974,6 +974,29 @@ Then action bị từ chối vì không có Cycle nào để đóng
 And Project không thay đổi
 ```
 
+### AC-PRJ-008-10 — Whitespace-Only Closing Note Is Treated as No Note (V1.1)
+
+Áp dụng cho cả Stop và Complete khi đóng một Cycle.
+
+```gherkin
+Given Project đang ACTIVE hoặc PAUSED
+When người dùng Stop hoặc Complete Project kèm closingNote chỉ gồm khoảng trắng
+Then action thành công
+And closed Cycle không có closingNote
+```
+
+### AC-PRJ-008-11 — Closing Note Over 2000 Characters Is Rejected (V1.1)
+
+Áp dụng cho cả Stop và Complete khi đóng một Cycle.
+
+```gherkin
+Given Project đang ACTIVE hoặc PAUSED
+When người dùng Stop hoặc Complete Project kèm closingNote dài hơn 2000 ký tự sau trim
+Then action bị từ chối
+And Project vẫn giữ nguyên lifecycle state
+And current Cycle vẫn mở
+```
+
 ---
 
 # 13. UC-PRJ-009 — Complete Project
@@ -1576,30 +1599,28 @@ And không có cơ chế khôi phục
 
 ---
 
-# 16A. V1.1 Use Cases — Cycle Flexibility
+# 16A. UC-PRJ-013 — Set Current Cycle Target End Date
 
-> Bổ sung theo **V1.1 Revision — Cycle Flexibility** (Lifecycle Analysis §21). Đánh số `16A` để không làm thay đổi số thứ tự các section phía sau.
+> Bổ sung theo **V1.1 Revision — Cycle Flexibility** (Lifecycle Analysis §21), cùng với `16B`. Đánh số `16A`/`16B` để không làm thay đổi số thứ tự các section phía sau.
 
-## UC-PRJ-013 — Set Current Cycle Target End Date
-
-### Goal
+## Goal
 
 Cho phép người dùng đặt một mốc thời gian dự kiến cho lần theo đuổi hiện tại, như một cách time-box nhẹ — không phải deadline bắt buộc.
 
-### Primary Actor
+## Primary Actor
 
 User
 
-### Preconditions
+## Preconditions
 
 - Project có current/open Project Cycle.
 - Project đang `ACTIVE` hoặc `PAUSED`.
 
-### Trigger
+## Trigger
 
 Người dùng muốn đặt, đổi hoặc bỏ mốc dự kiến kết thúc của lần theo đuổi hiện tại.
 
-### Main Flow A — Set or Update Target End Date
+## Main Flow A — Set or Update Target End Date
 
 1. Người dùng mở Project có current Cycle.
 2. Người dùng chọn hoặc thay đổi mốc dự kiến kết thúc.
@@ -1607,19 +1628,19 @@ Người dùng muốn đặt, đổi hoặc bỏ mốc dự kiến kết thúc c
 4. Hệ thống lưu `targetEndAt` vào current Cycle, thay thế giá trị trước (không lưu lịch sử).
 5. Lifecycle state không thay đổi.
 
-### Alternative Flow B — Clear Target End Date
+## Alternative Flow B — Clear Target End Date
 
 1. Current Cycle đang có `targetEndAt`.
 2. Người dùng xóa mốc dự kiến.
 3. Hệ thống đặt `targetEndAt` của current Cycle về rỗng.
 
-### Alternative Flow C — Target End Date Has Passed
+## Alternative Flow C — Target End Date Has Passed
 
 1. `targetEndAt` của current Cycle đã qua, Cycle vẫn mở.
 2. Hệ thống hiển thị tín hiệu nhắc nhẹ trong Project Detail (vd "Quá hạn dự kiến N ngày").
 3. Hệ thống **không** thay đổi lifecycle state, không đóng Cycle, không chặn action nào.
 
-### Postconditions
+## Postconditions
 
 ```text
 Same Project
@@ -1628,22 +1649,22 @@ Same Lifecycle State
 Current Cycle.targetEndAt = giá trị mới (hoặc null nếu đã xóa)
 ```
 
-### Related Requirements
+## Related Requirements
 
 ```text
 FR-PRJ-016 — Set Optional Target End Date for Current Cycle
 ```
 
-### Related Business Rules
+## Related Business Rules
 
 ```text
 BR-PRJ-036
 BR-PRJ-037
 ```
 
-### Acceptance Criteria
+## Acceptance Criteria
 
-#### AC-PRJ-013-01 — Set Target End Date While ACTIVE
+### AC-PRJ-013-01 — Set Target End Date While ACTIVE
 
 ```gherkin
 Given Project đang ACTIVE
@@ -1652,7 +1673,7 @@ Then targetEndAt được lưu vào current Cycle
 And Project vẫn ở ACTIVE
 ```
 
-#### AC-PRJ-013-02 — Clear Target End Date
+### AC-PRJ-013-02 — Clear Target End Date
 
 ```gherkin
 Given current Cycle có targetEndAt
@@ -1660,7 +1681,7 @@ When người dùng xóa targetEndAt
 Then current Cycle không còn targetEndAt
 ```
 
-#### AC-PRJ-013-03 — Overdue Target Does Not Change Lifecycle
+### AC-PRJ-013-03 — Overdue Target Does Not Change Lifecycle
 
 ```gherkin
 Given current Cycle có targetEndAt đã qua
@@ -1670,7 +1691,7 @@ And current Cycle vẫn mở
 And mọi lifecycle action hợp lệ vẫn khả dụng
 ```
 
-#### AC-PRJ-013-04 — Cannot Set Target on Closed Cycle or Without Cycle
+### AC-PRJ-013-04 — Cannot Set Target on Closed Cycle or Without Cycle
 
 ```gherkin
 Given Project đang NOT_STARTED, STOPPED hoặc COMPLETED
@@ -1680,26 +1701,27 @@ Then action bị từ chối
 
 ---
 
-## UC-PRJ-014 — View Closed Cycle History
+# 16B. UC-PRJ-014 — View Closed Cycle History
 
-### Goal
+## Goal
 
 Cho phép người dùng nhìn lại các lần theo đuổi trước đây của cùng một Project — họ đã muốn đạt được gì, đã điều chỉnh kỳ vọng ra sao, và đã kết thúc như thế nào.
 
-### Primary Actor
+## Primary Actor
 
 User
 
-### Preconditions
+## Preconditions
 
 - Project tồn tại.
-- Project có ít nhất một Project Cycle đã đóng.
 
-### Trigger
+Không yêu cầu Project đã có Cycle đóng — trường hợp chưa có được xử lý ở Alternative Flow.
+
+## Trigger
 
 Người dùng muốn nhìn lại các lần theo đuổi trước của Project.
 
-### Main Flow
+## Main Flow
 
 1. Người dùng mở Project Detail.
 2. Người dùng mở phần lịch sử Cycle.
@@ -1707,37 +1729,38 @@ Người dùng muốn nhìn lại các lần theo đuổi trước của Project
 4. Với mỗi Cycle, hệ thống hiển thị: số Cycle, thời điểm bắt đầu/kết thúc, `endReason`, toàn bộ lịch sử outcome, `closingNote` (nếu có), `targetEndAt` (nếu có).
 5. Không thông tin nào của closed Cycle có thể được chỉnh sửa từ màn hình này.
 
-### Alternative Flow — No Closed Cycle
+## Alternative Flow — No Closed Cycle
 
 1. Project chưa có Cycle nào đã đóng.
 2. Hệ thống không hiển thị phần lịch sử Cycle (hoặc hiển thị trạng thái rỗng).
 
-### Postconditions
+## Postconditions
 
 ```text
 Không có dữ liệu nào thay đổi — use case chỉ đọc.
 Project, mọi Cycle và lifecycle state giữ nguyên.
 ```
 
-### Related Requirements
+## Related Requirements
 
 ```text
 FR-PRJ-013 — Preserve Project Cycles
 FR-PRJ-017 — View Closed Cycle History
 ```
 
-### Related Business Rules
+## Related Business Rules
 
 ```text
 BR-PRJ-019
 BR-PRJ-027
 BR-PRJ-033
 BR-PRJ-035
+BR-PRJ-036
 ```
 
-### Acceptance Criteria
+## Acceptance Criteria
 
-#### AC-PRJ-014-01 — Closed Cycles Are Listed
+### AC-PRJ-014-01 — Closed Cycles Are Listed
 
 ```gherkin
 Given Project đã trải qua Cycle 1 (COMPLETED) và Cycle 2 (STOPPED)
@@ -1746,7 +1769,7 @@ Then cả Cycle 1 và Cycle 2 được hiển thị
 And mỗi Cycle hiển thị đúng endReason của nó
 ```
 
-#### AC-PRJ-014-02 — Full Outcome History Is Shown
+### AC-PRJ-014-02 — Full Outcome History Is Shown
 
 ```gherkin
 Given một closed Cycle có lịch sử outcome gồm 2 entry
@@ -1754,7 +1777,7 @@ When người dùng xem Cycle đó trong lịch sử
 Then cả 2 entry được hiển thị theo thứ tự thời gian
 ```
 
-#### AC-PRJ-014-03 — Closing Note Is Shown When Present
+### AC-PRJ-014-03 — Closing Note Is Shown When Present
 
 ```gherkin
 Given một closed Cycle có closingNote
@@ -1762,7 +1785,7 @@ When người dùng xem Cycle đó trong lịch sử
 Then closingNote được hiển thị
 ```
 
-#### AC-PRJ-014-04 — Current Open Cycle Is Not Listed as History
+### AC-PRJ-014-04 — Current Open Cycle Is Not Listed as History
 
 ```gherkin
 Given Project đang ACTIVE với Cycle 3 đang mở
@@ -1986,6 +2009,8 @@ Use Case analysis hiện tại vẫn chưa baseline các vấn đề sau:
 Một số timestamp đã được chốt là bắt buộc trong V1 tại FR doc mục 13.2.
 
 Việc expose timestamp nào như user-facing information trong Project Detail hoặc Cycle context chưa được xác định và có thể được làm rõ trong Product Specification.
+
+**(Đã chốt một phần — V1.1)** Lịch sử Cycle (UC-PRJ-014) hiển thị thời điểm bắt đầu và kết thúc của mỗi Cycle đã đóng, cùng `setAt` của mỗi entry outcome. Timestamp của từng transition Pause/Resume vẫn chưa được expose.
 
 ---
 

@@ -559,7 +559,7 @@ Các khu vực sau intentionally chưa được baseline:
 
 - Archive semantics.
 - Project naming rules.
-- ~~Description / purpose / intended outcome model.~~ **Đã baseline** ở các phase sau: description tại `03` (FR-PRJ-001/004); intended outcome tại `03` (BR-PRJ-024 → 027, V1.1: BR-PRJ-032/033) và `06` §3.3–3.3A.
+- ~~Description / purpose / intended outcome model.~~ **Đã baseline** ở các phase sau: description tại `03` (FR-PRJ-001/004); intended outcome tại `03` (BR-PRJ-024 → 027, V1.1: BR-PRJ-032/033) và `06` §3.3–3.3A. `purpose` **không** có field riêng: người dùng ghi lý do theo đuổi vào description; một model purpose riêng vẫn chưa được baseline.
 - Start date semantics.
 - Completion date semantics.
 - Goal association.

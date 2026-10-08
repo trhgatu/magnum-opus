@@ -519,7 +519,7 @@ Intended Outcome được hiển thị ở Project Detail như một field của
 ~~Projects V1 không yêu cầu:~~
 
 - ~~revision history của intended outcome;~~ **Đã điều chỉnh** — outcome history giờ được preserve, xem BR-PRJ-032.
-- dedicated timeline hoặc history view cho intended outcome — vẫn chưa bắt buộc ở mức "timeline", nhưng Project Detail cần cho phép xem lại các entry trước của current Cycle (xem FR-PRJ-017);
+- dedicated timeline hoặc history view cho intended outcome — vẫn chưa bắt buộc ở mức "timeline". **(V1.1)** Tuy nhiên chính FR này yêu cầu: Project Detail phải cho phép xem lại toàn bộ entry outcome của **current Cycle** (đang mở) — xem UC-PRJ-011 Alternative Flow C. Lịch sử outcome của các Cycle **đã đóng** thuộc FR-PRJ-017;
 - ~~intended outcome của closed Cycle được hiển thị riêng.~~ **Đã điều chỉnh** — xem FR-PRJ-017.
 
 Việc cập nhật intended outcome:
@@ -1524,10 +1524,10 @@ Lifecycle action trong V1 được thực hiện thông qua explicit user action
 
 Tuy nhiên vẫn cần xác định những gì được hiển thị trong Project Detail ở V1:
 
-- current Cycle được trình bày như thế nào;
-- Cycle numbering có cần visible cho người dùng hay không;
-- người dùng có cần thấy `Cycle 1`, `Cycle 2`, `Cycle 3` hay không;
-- closed Cycle cần expose những information nào nếu có.
+- current Cycle được trình bày như thế nào — vẫn mở (thuộc Product Design);
+- ~~Cycle numbering có cần visible cho người dùng hay không;~~ **Đã chốt (V1.1)** — có, FR-PRJ-017;
+- ~~người dùng có cần thấy `Cycle 1`, `Cycle 2`, `Cycle 3` hay không;~~ **Đã chốt (V1.1)** — có, trong lịch sử Cycle;
+- ~~closed Cycle cần expose những information nào nếu có.~~ **Đã chốt (V1.1)** — số Cycle, thời điểm bắt đầu/kết thúc, `endReason`, toàn bộ lịch sử outcome, `closingNote`, `targetEndAt` (FR-PRJ-017).
 
 Điểm cần giữ rõ:
 

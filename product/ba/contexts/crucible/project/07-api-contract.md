@@ -837,6 +837,26 @@ Khi `expectedRevision` không khớp:
 
 ---
 
+### 5.4. Invalid Closing Note (400) — V1.1
+
+Khi Stop/Complete gửi `closingNote` dài hơn 2000 ký tự sau trim, hoặc Stop từ `NOT_STARTED` kèm `closingNote` không rỗng sau trim. Đây là domain error (có `code`), khác với lỗi validation DTO dạng mảng message không có `code` ở §2.6.
+
+```json
+{
+  "statusCode": 400,
+  "code": "INVALID_CLOSING_NOTE",
+  "translationKey": "exceptions.project.closing.note.invalid",
+  "message": "Closing note must be at most 2000 characters",
+  "args": { "maxLength": 2000 },
+  "error": "InvalidClosingNoteException",
+  "timestamp": "2026-10-08T14:00:00.000Z"
+}
+```
+
+Với trường hợp `NOT_STARTED`, `message` nêu rõ không có Cycle nào để gắn note và `args` là `{ "currentState": "NOT_STARTED" }`.
+
+---
+
 ## 6. Endpoint Summary
 
 | Method   | Path                             | Action                           |

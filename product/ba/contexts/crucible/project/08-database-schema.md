@@ -184,6 +184,8 @@ model ProjectLifecycleTransition {
 
 ## 5. Full Schema Addition
 
+> **(V1.1)** Block dưới đây là schema **V1** (đã được áp dụng). Đừng dán lại nguyên block này cho V1.1: model `ProjectCycle` đã được sửa và có thêm model `ProjectCycleOutcomeEntry` — dùng §14.1, §14.2 và migration ở §14.4.
+
 Đây là phần cần thêm vào `schema.prisma` hiện tại:
 
 ```prisma
