@@ -139,6 +139,13 @@ test("reorders Routine Habits by dragging the grip handle", async ({
     name: `Kéo để sắp xếp lại "${firstHabit}"`,
   });
 
+  // Thêm Habit thứ hai xong, danh sách đã hiện đủ 2 dòng ngay (payload
+  // revalidatePath đi kèm response của Server Action), nhưng transition vẫn
+  // pending trong lúc router.refresh() chạy tiếp — tay cầm kéo bị disable.
+  // Mouse down lúc đó chỉ bôi đen text chứ không kéo. Đợi tay cầm sẵn sàng.
+  await expect(secondGrip).toBeEnabled();
+  await expect(firstGrip).toBeEnabled();
+
   const secondBox = await secondGrip.boundingBox();
   const firstBox = await firstGrip.boundingBox();
   if (!secondBox || !firstBox) {
