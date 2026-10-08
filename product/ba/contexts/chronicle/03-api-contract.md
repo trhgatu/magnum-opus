@@ -91,9 +91,11 @@ section là chi tiết nội bộ, không xuất hiện trong response.
 
 **Response giữ field có tên cho từng module** (`habit`, `routine`, ...)
 thay vì mảng section generic: client cần type cụ thể để hiển thị. Thêm
-module mới vào Chronicle vì vậy cần: 1 reader + 1 section-data type
-mới phía server (phần tính toán riêng của module đó), 1 field trong
-response và 1 khối hiển thị ở client. Phần dùng chung — query handler,
+module mới vào Chronicle vì vậy cần đủ: thêm giá trị vào
+`CHRONICLE_MODULES`, 1 section-data type, 1 reader (phần tính toán riêng
+của module đó) và 1 dòng đăng ký reader vào registry phía server —
+thiếu bước đăng ký thì app không khởi động (DAP-CHR-006); cộng 1 field
+trong response và 1 khối hiển thị ở client. Phần dùng chung — query handler,
 lưu/đọc snapshot, bảng database — không đổi (02-domain-analysis.md
 DAP-CHR-006).
 
