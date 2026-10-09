@@ -21,6 +21,7 @@ export interface HabitScheduleEntry {
 }
 
 export interface HabitHistory {
+  id: string;
   title: string;
   type: 'BUILD' | 'QUIT';
   createdOn: CalendarDay;
@@ -31,13 +32,18 @@ export interface HabitHistory {
   relapseDays: CalendarDay[];
 }
 
-export function isAliveOn(habit: HabitHistory, day: CalendarDay): boolean {
-  if (day < habit.createdOn) {
+// Dùng chung cho Habit và Routine — cùng quy tắc lifecycle (temporal-history
+// 02 §4.1–4.2), nên chỉ cần createdOn và lifecycle.
+export function isAliveOn(
+  subject: Pick<HabitHistory, 'createdOn' | 'lifecycle'>,
+  day: CalendarDay,
+): boolean {
+  if (day < subject.createdOn) {
     return false;
   }
   let alive = true;
 
-  for (const entry of habit.lifecycle) {
+  for (const entry of subject.lifecycle) {
     if (entry.effectiveOn > day) {
       break;
     }

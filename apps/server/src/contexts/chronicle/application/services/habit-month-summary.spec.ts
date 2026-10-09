@@ -8,6 +8,7 @@ import {
 const SEPTEMBER = { from: '2026-09-01', to: '2026-10-01' };
 
 const build = (overrides: Partial<HabitHistory> = {}): HabitHistory => ({
+  id: 'build-habit',
   title: 'Đọc sách',
   type: 'BUILD',
   createdOn: '2026-01-01',
@@ -27,6 +28,7 @@ const build = (overrides: Partial<HabitHistory> = {}): HabitHistory => ({
 });
 
 const quit = (overrides: Partial<HabitHistory> = {}): HabitHistory => ({
+  id: 'quit-habit',
   title: 'Thuốc lá',
   type: 'QUIT',
   createdOn: '2026-01-01',
