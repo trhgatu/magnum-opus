@@ -1,19 +1,44 @@
 import { Injectable } from '@nestjs/common';
 
+import type { Prisma } from '@repo/database';
+
 import { PrismaService } from '@infrastructure/database/prisma.service';
 
-import { HabitLifecycleTransitionedEvent } from '../../domain/events';
+import {
+  HabitLifecycleTransitionedEvent,
+  HabitScheduleVersionStartedEvent,
+} from '../../domain/events';
 import { Habit } from '../../domain/habit.aggregate';
 import { HabitRepository } from '../../domain/ports/habit.repository';
-import { PrismaHabitMapper } from '../mappers/prisma-habit.mapper';
+import {
+  HabitLifecycleTransitionPersistence,
+  HabitScheduleVersionPersistence,
+  PrismaHabitMapper,
+} from '../mappers/prisma-habit.mapper';
+
+interface HabitHistoryWrites {
+  transitions: HabitLifecycleTransitionPersistence[];
+  scheduleVersions: HabitScheduleVersionPersistence[];
+}
 
 @Injectable()
 export class PrismaHabitRepository implements HabitRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   public async create(habit: Habit): Promise<void> {
-    await this.prisma.habit.create({
-      data: PrismaHabitMapper.toPersistence(habit),
+    const raw = PrismaHabitMapper.toPersistence(habit);
+    const { scheduleVersions } = PrismaHabitRepository.pullHistory(habit);
+
+    // Phiên bản tần suất ban đầu ghi cùng transaction với Habit: không bao giờ
+    // có Habit BUILD thiếu phiên bản đang mở (02 §5).
+    await this.prisma.$transaction(async (transaction) => {
+      await transaction.habit.create({ data: raw });
+
+      if (scheduleVersions.length > 0) {
+        await transaction.habitScheduleVersion.createMany({
+          data: scheduleVersions,
+        });
+      }
     });
   }
 
@@ -22,16 +47,12 @@ export class PrismaHabitRepository implements HabitRepository {
     expectedRevision: number,
   ): Promise<boolean> {
     const raw = PrismaHabitMapper.toPersistence(habit);
-    const transitions = habit
-      .pullDomainEvents()
-      .filter(
-        (event): event is HabitLifecycleTransitionedEvent =>
-          event instanceof HabitLifecycleTransitionedEvent,
-      )
-      .map((event) => PrismaHabitMapper.transitionToPersistence(event));
+    const { transitions, scheduleVersions } =
+      PrismaHabitRepository.pullHistory(habit);
 
-    // Lịch sử lifecycle ghi cùng transaction với optimistic update: revision
-    // lệch thì không có transition nào được ghi (DAP-FTH-003).
+    // Lịch sử lifecycle và tần suất ghi cùng transaction với optimistic
+    // update: revision lệch thì không có dòng lịch sử nào được ghi
+    // (DAP-FTH-003).
     return this.prisma.$transaction(async (transaction) => {
       const result = await transaction.habit.updateMany({
         where: {
@@ -61,6 +82,11 @@ export class PrismaHabitRepository implements HabitRepository {
         });
       }
 
+      await PrismaHabitRepository.writeScheduleVersions(
+        transaction,
+        scheduleVersions,
+      );
+
       return true;
     });
   }
@@ -80,9 +106,54 @@ export class PrismaHabitRepository implements HabitRepository {
           orderBy: [{ effectiveOn: 'desc' }, { occurredAt: 'desc' }],
           take: 1,
         },
+        // Partial unique index bảo đảm tối đa 1 phiên bản đang mở.
+        scheduleVersions: {
+          select: { effectiveFrom: true },
+          where: { effectiveTo: null },
+          take: 1,
+        },
       },
     });
 
     return raw ? PrismaHabitMapper.toDomain(raw) : null;
+  }
+
+  private static pullHistory(habit: Habit): HabitHistoryWrites {
+    const events = habit.pullDomainEvents();
+
+    return {
+      transitions: events
+        .filter(
+          (event): event is HabitLifecycleTransitionedEvent =>
+            event instanceof HabitLifecycleTransitionedEvent,
+        )
+        .map((event) => PrismaHabitMapper.transitionToPersistence(event)),
+      scheduleVersions: events
+        .filter(
+          (event): event is HabitScheduleVersionStartedEvent =>
+            event instanceof HabitScheduleVersionStartedEvent,
+        )
+        .map((event) => PrismaHabitMapper.scheduleVersionToPersistence(event)),
+    };
+  }
+
+  // Lịch sử chỉ có 2 thao tác ghi (KD-FTH-006): đóng phiên bản đang mở tại
+  // ngày bắt đầu của phiên bản mới, rồi thêm phiên bản mới. Ghi tuần tự theo
+  // thứ tự event để partial unique index "1 phiên bản mở / Habit" luôn đúng.
+  private static async writeScheduleVersions(
+    transaction: Prisma.TransactionClient,
+    versions: HabitScheduleVersionPersistence[],
+  ): Promise<void> {
+    for (const version of versions) {
+      await transaction.habitScheduleVersion.updateMany({
+        where: {
+          habitId: version.habitId,
+          ownerId: version.ownerId,
+          effectiveTo: null,
+        },
+        data: { effectiveTo: version.effectiveFrom },
+      });
+      await transaction.habitScheduleVersion.create({ data: version });
+    }
   }
 }
