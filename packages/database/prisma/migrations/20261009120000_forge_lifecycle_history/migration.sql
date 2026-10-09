@@ -7,18 +7,29 @@ CREATE TYPE "ForgeLifecycleAction" AS ENUM ('ARCHIVED', 'RESTORED');
 -- users.time_zone tại lúc migration (02-domain-analysis.md §6). created_at
 -- lưu giờ UTC không kèm múi giờ, nên gắn UTC trước rồi mới đổi sang múi giờ
 -- owner.
+-- users.time_zone không phải múi giờ PostgreSQL nhận ra (giá trị cũ/sai) thì
+-- `AT TIME ZONE` sẽ lỗi và hủy cả migration, nên múi giờ lạ quy về UTC qua
+-- pg_timezone_names (gần đúng như mọi backfill khác ở đây).
 ALTER TABLE "habits" ADD COLUMN     "created_on" DATE;
 
 -- AlterTable
 ALTER TABLE "routines" ADD COLUMN     "created_on" DATE;
 
+WITH owner_zones AS (
+  SELECT u."id", COALESCE(tz."name", 'UTC') AS "time_zone"
+  FROM "users" u LEFT JOIN pg_timezone_names tz ON tz."name" = u."time_zone"
+)
 UPDATE "habits" h
-SET "created_on" = (h."created_at" AT TIME ZONE 'UTC' AT TIME ZONE u."time_zone")::date
-FROM "users" u WHERE u."id" = h."owner_id";
+SET "created_on" = (h."created_at" AT TIME ZONE 'UTC' AT TIME ZONE z."time_zone")::date
+FROM owner_zones z WHERE z."id" = h."owner_id";
 
+WITH owner_zones AS (
+  SELECT u."id", COALESCE(tz."name", 'UTC') AS "time_zone"
+  FROM "users" u LEFT JOIN pg_timezone_names tz ON tz."name" = u."time_zone"
+)
 UPDATE "routines" r
-SET "created_on" = (r."created_at" AT TIME ZONE 'UTC' AT TIME ZONE u."time_zone")::date
-FROM "users" u WHERE u."id" = r."owner_id";
+SET "created_on" = (r."created_at" AT TIME ZONE 'UTC' AT TIME ZONE z."time_zone")::date
+FROM owner_zones z WHERE z."id" = r."owner_id";
 
 ALTER TABLE "habits" ALTER COLUMN "created_on" SET NOT NULL;
 ALTER TABLE "routines" ALTER COLUMN "created_on" SET NOT NULL;
@@ -69,18 +80,26 @@ ALTER TABLE "routine_lifecycle_transitions" ADD CONSTRAINT "routine_lifecycle_tr
 
 -- Backfill ARCHIVED cho Habit/Routine đang archive (02-domain-analysis.md §6).
 -- Gần đúng: updated_at là thay đổi cuối, thường chính là lần archive.
+WITH owner_zones AS (
+  SELECT u."id", COALESCE(tz."name", 'UTC') AS "time_zone"
+  FROM "users" u LEFT JOIN pg_timezone_names tz ON tz."name" = u."time_zone"
+)
 INSERT INTO "habit_lifecycle_transitions"
   ("id", "habit_id", "owner_id", "action", "effective_on", "occurred_at")
 SELECT gen_random_uuid()::text, h."id", h."owner_id", 'ARCHIVED'::"ForgeLifecycleAction",
-       (h."updated_at" AT TIME ZONE 'UTC' AT TIME ZONE u."time_zone")::date,
+       (h."updated_at" AT TIME ZONE 'UTC' AT TIME ZONE z."time_zone")::date,
        h."updated_at"
-FROM "habits" h JOIN "users" u ON u."id" = h."owner_id"
+FROM "habits" h JOIN owner_zones z ON z."id" = h."owner_id"
 WHERE h."is_active" = false;
 
+WITH owner_zones AS (
+  SELECT u."id", COALESCE(tz."name", 'UTC') AS "time_zone"
+  FROM "users" u LEFT JOIN pg_timezone_names tz ON tz."name" = u."time_zone"
+)
 INSERT INTO "routine_lifecycle_transitions"
   ("id", "routine_id", "owner_id", "action", "effective_on", "occurred_at")
 SELECT gen_random_uuid()::text, r."id", r."owner_id", 'ARCHIVED'::"ForgeLifecycleAction",
-       (r."updated_at" AT TIME ZONE 'UTC' AT TIME ZONE u."time_zone")::date,
+       (r."updated_at" AT TIME ZONE 'UTC' AT TIME ZONE z."time_zone")::date,
        r."updated_at"
-FROM "routines" r JOIN "users" u ON u."id" = r."owner_id"
+FROM "routines" r JOIN owner_zones z ON z."id" = r."owner_id"
 WHERE r."is_active" = false;
