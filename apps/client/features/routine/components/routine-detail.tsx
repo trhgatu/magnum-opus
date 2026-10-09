@@ -12,7 +12,7 @@ import { RoutineLifecycleControls } from "@/features/routine/components/routine-
 export function RoutineDetail({ routine }: { routine: RoutineDetailResponse }) {
   return (
     <article
-      className="mx-auto flex w-full max-w-5xl flex-col gap-6"
+      className="flex w-full flex-col gap-6"
       aria-labelledby="routine-title"
     >
       <Link
