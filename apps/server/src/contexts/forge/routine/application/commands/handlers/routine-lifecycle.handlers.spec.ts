@@ -185,6 +185,7 @@ function createRoutine(
               new Date(`${latestLifecycleEffectiveOn}T00:00:00.000Z`),
             )
           : null,
+    membershipFloors: new Map(),
     updatedAt: new Date('2026-08-20T10:00:00.000Z'),
   });
 }

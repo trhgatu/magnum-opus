@@ -2,11 +2,16 @@ import {
   ForgeLifecycleAction as PrismaForgeLifecycleAction,
   Routine as PrismaRoutine,
   RoutineHabit as PrismaRoutineHabit,
+  RoutineHabitMembership as PrismaRoutineHabitMembership,
   RoutineLifecycleTransition as PrismaRoutineLifecycleTransition,
 } from '@repo/database';
 
 import { RoutineLifecycleAction } from '../../domain/enums';
-import { RoutineLifecycleTransitionedEvent } from '../../domain/events';
+import {
+  RoutineHabitAddedEvent,
+  RoutineHabitRemovedEvent,
+  RoutineLifecycleTransitionedEvent,
+} from '../../domain/events';
 import { Routine } from '../../domain/routine.aggregate';
 import { RoutineCalendarDate, RoutineId } from '../../domain/value-objects';
 
@@ -19,11 +24,31 @@ export type PrismaRoutineWithHabits = PrismaRoutine & {
     PrismaRoutineLifecycleTransition,
     'effectiveOn'
   >[];
+  // Toàn bộ lịch sử thành viên của Routine — chỉ cần mốc ngày để dựng mốc
+  // sàn theo từng Habit (DAP-FTH-001).
+  membershipHistory?: Pick<
+    PrismaRoutineHabitMembership,
+    'habitId' | 'addedOn' | 'removedOn'
+  >[];
 };
 
 export interface RoutinePersistence {
   routine: PrismaRoutine;
   habits: PrismaRoutineHabit[];
+}
+
+export interface RoutineHabitMembershipOpening {
+  routineId: string;
+  habitId: string;
+  ownerId: string;
+  addedOn: Date;
+}
+
+export interface RoutineHabitMembershipClosing {
+  routineId: string;
+  habitId: string;
+  ownerId: string;
+  removedOn: Date;
 }
 
 export interface RoutineLifecycleTransitionPersistence {
@@ -59,6 +84,9 @@ export class PrismaRoutineMapper {
       createdOn: RoutineCalendarDate.fromPersistenceDate(raw.createdOn),
       latestLifecycleEffectiveOn: PrismaRoutineMapper.toLifecycleFloor(
         raw.lifecycleTransitions,
+      ),
+      membershipFloors: PrismaRoutineMapper.toMembershipFloors(
+        raw.membershipHistory,
       ),
       updatedAt: raw.updatedAt,
     });
@@ -101,6 +129,58 @@ export class PrismaRoutineMapper {
     return latest
       ? RoutineCalendarDate.fromPersistenceDate(latest.effectiveOn)
       : null;
+  }
+
+  // undefined = caller không nạp membershipHistory (reader). Mốc sàn của 1
+  // Habit = ngày muộn nhất trong mọi addedOn/removedOn của cặp đó.
+  private static toMembershipFloors(
+    history: PrismaRoutineWithHabits['membershipHistory'],
+  ): Map<string, RoutineCalendarDate> | undefined {
+    if (history === undefined) {
+      return undefined;
+    }
+
+    const floors = new Map<string, RoutineCalendarDate>();
+
+    for (const row of history) {
+      for (const date of [row.addedOn, row.removedOn]) {
+        if (date === null) {
+          continue;
+        }
+
+        floors.set(
+          row.habitId,
+          RoutineCalendarDate.latest(
+            RoutineCalendarDate.fromPersistenceDate(date),
+            floors.get(row.habitId) ?? null,
+          ),
+        );
+      }
+    }
+
+    return floors;
+  }
+
+  public static membershipOpeningToPersistence(
+    event: RoutineHabitAddedEvent,
+  ): RoutineHabitMembershipOpening {
+    return {
+      routineId: event.routineId,
+      habitId: event.habitId,
+      ownerId: event.ownerId,
+      addedOn: event.addedOn.toPersistenceDate(),
+    };
+  }
+
+  public static membershipClosingToPersistence(
+    event: RoutineHabitRemovedEvent,
+  ): RoutineHabitMembershipClosing {
+    return {
+      routineId: event.routineId,
+      habitId: event.habitId,
+      ownerId: event.ownerId,
+      removedOn: event.removedOn.toPersistenceDate(),
+    };
   }
 
   public static transitionToPersistence(
