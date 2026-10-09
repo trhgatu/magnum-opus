@@ -146,20 +146,21 @@ test("reorders Routine Habits by dragging the grip handle", async ({
   await expect(secondGrip).toBeEnabled();
   await expect(firstGrip).toBeEnabled();
 
-  const secondBox = await secondGrip.boundingBox();
+  // boundingBox() tính theo viewport: nếu trang cuộn sau lúc đo (trace CI
+  // từng ghi scrollTop nhảy 97 → 443), mouse.down rơi vào tọa độ cũ và chỉ
+  // bôi đen text. hover() tự cuộn tay cầm vào khung nhìn, chờ nó đứng yên rồi
+  // đặt chuột lên đúng tâm; vị trí đích chỉ đo sau khi đã nhấn chuột.
+  await secondGrip.hover();
+  await page.mouse.down();
+
   const firstBox = await firstGrip.boundingBox();
-  if (!secondBox || !firstBox) {
-    throw new Error("Drag handles did not report a bounding box");
+  if (!firstBox) {
+    throw new Error("Drag handle did not report a bounding box");
   }
 
   // dnd-kit's PointerSensor cần vượt qua activationConstraint (4px) rồi mới
   // bắt đầu kéo — di chuyển qua nhiều bước nhỏ để nó nhận đủ các sự kiện
   // pointermove cần thiết cho collision detection, thay vì nhảy thẳng.
-  await page.mouse.move(
-    secondBox.x + secondBox.width / 2,
-    secondBox.y + secondBox.height / 2,
-  );
-  await page.mouse.down();
   await page.mouse.move(
     firstBox.x + firstBox.width / 2,
     firstBox.y + firstBox.height / 2 - 4,
