@@ -27,6 +27,8 @@ model User {
 
   projects Project[]
 
+  chronicleSnapshots ChronicleSnapshot[]
+
   userRoles               UserRole[]
   notifications           Notification[]
   passwordResetTokens     PasswordResetToken[]
@@ -560,4 +562,46 @@ model ProjectLifecycleTransition {
   @@index([projectId, occurredAt(sort: Desc)])
   @@index([cycleId])
   @@map("project_lifecycle_transitions")
+}
+
+enum ChroniclePeriodType {
+  DAY
+  MONTH
+  QUARTER
+  YEAR
+}
+
+model ChronicleSnapshot {
+  id          String              @id @default(uuid())
+  ownerId     String              @map("owner_id")
+  periodType  ChroniclePeriodType @map("period_type")
+  periodKey   String              @map("period_key")
+  periodStart DateTime            @map("period_start")
+  periodEnd   DateTime            @map("period_end")
+  // Múi giờ owner lúc đóng băng — section tính bù/tính lại sau này phải dùng
+  // đúng ranh giới này, kể cả khi owner đã đổi múi giờ (DAP-CHR-007).
+  timeZone    String              @map("time_zone") @db.VarChar(64)
+  computedAt  DateTime            @default(now()) @map("computed_at")
+
+  owner    User                       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  sections ChronicleSnapshotSection[]
+
+  // CHECK "chronicle_snapshots_valid_period" (period_end > period_start) chỉ
+  // có trong migration SQL — Prisma không biểu diễn được.
+  @@unique([ownerId, periodType, periodKey])
+  @@map("chronicle_snapshots")
+}
+
+model ChronicleSnapshotSection {
+  id            String   @id @default(uuid())
+  snapshotId    String   @map("snapshot_id")
+  module        String
+  schemaVersion Int      @map("schema_version")
+  computedAt    DateTime @default(now()) @map("computed_at")
+  data          Json
+
+  snapshot ChronicleSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+
+  @@unique([snapshotId, module])
+  @@map("chronicle_snapshot_sections")
 }
