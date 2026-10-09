@@ -146,4 +146,28 @@ describe('PrismaHabitHistoryReader', () => {
     expect(habit.quitStartedOn).toBe('2026-08-01');
     expect(habit.relapseDays).toEqual(['2026-08-21']);
   });
+
+  it('keeps a relapse early on the local quit start day', async () => {
+    habitModel.findMany.mockResolvedValue([
+      {
+        id: 'h3',
+        title: 'Thuốc lá',
+        type: 'QUIT',
+        createdOn: day('2026-01-01'),
+        quitStartedAt: day('2026-08-01'),
+        lifecycleTransitions: [],
+        scheduleVersions: [],
+        checkIns: [],
+        relapses: [
+          // 23:00Z ngày 31/7 = 06:00 ngày 1/8 giờ Việt Nam — đúng ngày bắt
+          // đầu bỏ, thuộc lần cai này dù instant < 00:00Z ngày 1/8.
+          { occurredAt: new Date('2026-07-31T23:00:00.000Z') },
+        ],
+      },
+    ]);
+
+    const [habit] = await reader.findForOwner('owner-id', august, augustDays);
+
+    expect(habit.relapseDays).toEqual(['2026-08-01']);
+  });
 });

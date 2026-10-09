@@ -72,6 +72,7 @@ describe('ChroniclePeriod', () => {
       [Number.NaN, 9],
       [1969, 12],
       [999, 1],
+      [9999, 12],
       [10000, 1],
     ])('rejects an invalid year/month combination (%p, %p)', (year, month) => {
       expect(() => ChroniclePeriod.forMonth(year, month, 'UTC')).toThrow(
@@ -142,6 +143,15 @@ describe('ChroniclePeriod', () => {
       const now = new Date('2026-09-15T12:00:00.000Z');
 
       expect(period.isInFuture(now)).toBe(false);
+    });
+  });
+
+  it('keeps the last accepted month inside the YYYY-MM-DD day format', () => {
+    const period = ChroniclePeriod.forMonth(9998, 12, 'UTC');
+
+    expect(period.countableDays(new Date('2026-09-15T03:00:00.000Z'))).toEqual({
+      from: '9998-12-01',
+      to: '9999-01-01',
     });
   });
 

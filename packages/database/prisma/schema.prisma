@@ -578,11 +578,16 @@ model ChronicleSnapshot {
   periodKey   String              @map("period_key")
   periodStart DateTime            @map("period_start")
   periodEnd   DateTime            @map("period_end")
+  // Múi giờ owner lúc đóng băng — section tính bù/tính lại sau này phải dùng
+  // đúng ranh giới này, kể cả khi owner đã đổi múi giờ (DAP-CHR-007).
+  timeZone    String              @map("time_zone") @db.VarChar(64)
   computedAt  DateTime            @default(now()) @map("computed_at")
 
   owner    User                       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   sections ChronicleSnapshotSection[]
 
+  // CHECK "chronicle_snapshots_valid_period" (period_end > period_start) chỉ
+  // có trong migration SQL — Prisma không biểu diễn được.
   @@unique([ownerId, periodType, periodKey])
   @@map("chronicle_snapshots")
 }

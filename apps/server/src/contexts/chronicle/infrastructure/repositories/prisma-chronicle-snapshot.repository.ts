@@ -35,6 +35,7 @@ export class PrismaChronicleSnapshotRepository implements ChronicleSnapshotRepos
       },
       select: {
         id: true,
+        timeZone: true,
         computedAt: true,
         sections: { select: sectionSelect },
       },
@@ -57,6 +58,7 @@ export class PrismaChronicleSnapshotRepository implements ChronicleSnapshotRepos
           periodKey: period.key,
           periodStart: period.start,
           periodEnd: period.end,
+          timeZone: period.timeZone,
           computedAt,
           sections: {
             create: sections.map((section) =>
@@ -66,6 +68,7 @@ export class PrismaChronicleSnapshotRepository implements ChronicleSnapshotRepos
         },
         select: {
           id: true,
+          timeZone: true,
           computedAt: true,
           sections: { select: sectionSelect },
         },

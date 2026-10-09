@@ -76,7 +76,9 @@ export class PrismaHabitHistoryReader {
     });
 
     return habits.map((habit) => {
-      const quitStartedAt = habit.quitStartedAt;
+      const quitStartedOn = habit.quitStartedAt
+        ? calendarDayOf(habit.quitStartedAt)
+        : null;
 
       return {
         id: habit.id,
@@ -98,13 +100,16 @@ export class PrismaHabitHistoryReader {
         checkInDays: new Set(
           habit.checkIns.map((checkIn) => calendarDayOf(checkIn.date)),
         ),
-        quitStartedOn: quitStartedAt ? calendarDayOf(quitStartedAt) : null,
-        relapseDays: quitStartedAt
+        quitStartedOn,
+        // So theo NGÀY LỊCH của owner (BR-HAB2-004): quitStartedAt là cột
+        // date-only, còn occurredAt là instant — so instant với 00:00Z sẽ
+        // loại nhầm relapse lúc sáng sớm ngày bắt đầu bỏ ở múi giờ dương.
+        relapseDays: quitStartedOn
           ? habit.relapses
-              .filter((relapse) => relapse.occurredAt >= quitStartedAt)
               .map((relapse) =>
                 calendarDayAt(relapse.occurredAt, period.timeZone),
               )
+              .filter((relapseDay) => relapseDay >= quitStartedOn)
           : [],
       };
     });

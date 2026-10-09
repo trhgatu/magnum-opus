@@ -9,6 +9,7 @@ CREATE TABLE "chronicle_snapshots" (
     "period_key" TEXT NOT NULL,
     "period_start" TIMESTAMP(3) NOT NULL,
     "period_end" TIMESTAMP(3) NOT NULL,
+    "time_zone" VARCHAR(64) NOT NULL,
     "computed_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "chronicle_snapshots_pkey" PRIMARY KEY ("id")
@@ -37,3 +38,9 @@ ALTER TABLE "chronicle_snapshots" ADD CONSTRAINT "chronicle_snapshots_owner_id_f
 
 -- AddForeignKey
 ALTER TABLE "chronicle_snapshot_sections" ADD CONSTRAINT "chronicle_snapshot_sections_snapshot_id_fkey" FOREIGN KEY ("snapshot_id") REFERENCES "chronicle_snapshots"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- Ranh giới kỳ đã đóng băng là cơ sở để đọc lại snapshot — chặn dòng sai ngay
+-- ở database (Prisma không biểu diễn được CHECK).
+ALTER TABLE "chronicle_snapshots"
+  ADD CONSTRAINT "chronicle_snapshots_valid_period"
+  CHECK ("period_end" > "period_start");

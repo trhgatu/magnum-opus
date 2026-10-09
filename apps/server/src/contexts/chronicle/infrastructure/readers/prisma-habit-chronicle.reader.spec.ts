@@ -5,8 +5,9 @@ import { PrismaHabitChronicleReader } from './prisma-habit-chronicle.reader';
 
 describe('PrismaHabitChronicleReader', () => {
   const habitHistories = { findForOwner: jest.fn() };
-  // "Bây giờ" = 15/9/2026 10:00 giờ Việt Nam.
-  const clock = { now: () => new Date('2026-09-15T03:00:00.000Z') };
+  // 18:00Z ngày 14/9 đã là 01:00 ngày 15/9 giờ Việt Nam — khác ngày với UTC,
+  // nên test bắt được nếu ranh giới bị tính theo UTC.
+  const clock = { now: () => new Date('2026-09-14T18:00:00.000Z') };
   const reader = new PrismaHabitChronicleReader(habitHistories as never, clock);
 
   const dailyHabit = (checkInDays: string[]): HabitHistory => ({

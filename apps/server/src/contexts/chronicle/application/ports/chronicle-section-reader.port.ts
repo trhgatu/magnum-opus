@@ -29,4 +29,12 @@ export interface ChronicleSectionReader<
     ownerId: string,
     period: ChroniclePeriod,
   ): Promise<ChronicleSectionDataByModule[M]>;
+
+  /**
+   * Nâng section đã lưu ở phiên bản cũ lên phiên bản hiện tại NGAY TRONG BỘ
+   * NHỚ, không ghi lại (DAP-CHR-008 loại a/c) — vd thêm field mới với giá
+   * trị mặc định, hoặc null cho reader không thuần lịch sử. Khi có hook này,
+   * handler luôn dùng nó trước khi cân nhắc tính lại.
+   */
+  upgrade?(data: unknown, fromVersion: number): ChronicleSectionDataByModule[M];
 }

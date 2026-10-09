@@ -88,6 +88,14 @@ export class GetMonthlyChronicleHandler implements IQueryHandler<
         await this.computeAll(ownerId, period),
       ));
 
+    // Section tính bù/tính lại phải dùng ranh giới lúc đóng băng: owner có
+    // thể đã đổi múi giờ sau đó, và 1 snapshot không được trộn 2 khoảng
+    // thời gian khác nhau.
+    const frozenPeriod =
+      snapshot.timeZone === period.timeZone
+        ? period
+        : ChroniclePeriod.forMonth(year, month, snapshot.timeZone);
+
     const sections: ChronicleSectionToStore[] = [];
 
     for (const reader of this.readers.all()) {
@@ -101,7 +109,7 @@ export class GetMonthlyChronicleHandler implements IQueryHandler<
           stored,
           snapshot,
           ownerId,
-          period,
+          frozenPeriod,
           now,
         ),
       );
@@ -140,6 +148,14 @@ export class GetMonthlyChronicleHandler implements IQueryHandler<
       throw new Error(
         `Chronicle section "${reader.module}" is v${stored.schemaVersion}, newer than reader v${reader.schemaVersion}`,
       );
+    }
+
+    if (reader.upgrade) {
+      return {
+        module: reader.module,
+        schemaVersion: reader.schemaVersion,
+        data: reader.upgrade(stored.data, stored.schemaVersion),
+      };
     }
 
     if (!reader.historyOnly) {

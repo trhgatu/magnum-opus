@@ -26,6 +26,7 @@ describe('PrismaChronicleSnapshotRepository', () => {
   };
   const stored = {
     id: 'snapshot-id',
+    timeZone: 'Asia/Ho_Chi_Minh',
     computedAt,
     sections: [
       { module: 'journal', schemaVersion: 1, data: { entryCount: 12 } },
@@ -34,6 +35,7 @@ describe('PrismaChronicleSnapshotRepository', () => {
   const sectionSelect = { module: true, schemaVersion: true, data: true };
   const snapshotSelect = {
     id: true,
+    timeZone: true,
     computedAt: true,
     sections: { select: sectionSelect },
   };
@@ -80,6 +82,7 @@ describe('PrismaChronicleSnapshotRepository', () => {
           periodKey: '2026-08',
           periodStart: period.start,
           periodEnd: period.end,
+          timeZone: 'Asia/Ho_Chi_Minh',
           computedAt,
           sections: {
             create: [{ ...journalSection, computedAt }],
@@ -115,11 +118,9 @@ describe('PrismaChronicleSnapshotRepository', () => {
     it('adds the missing section to the snapshot', async () => {
       sectionModel.create.mockResolvedValue(stored.sections[0]);
 
-      await repository.addSectionOrGet(
-        'snapshot-id',
-        journalSection,
-        computedAt,
-      );
+      await expect(
+        repository.addSectionOrGet('snapshot-id', journalSection, computedAt),
+      ).resolves.toEqual(stored.sections[0]);
 
       expect(sectionModel.create).toHaveBeenCalledWith({
         data: { snapshotId: 'snapshot-id', ...journalSection, computedAt },
@@ -153,7 +154,9 @@ describe('PrismaChronicleSnapshotRepository', () => {
       };
       sectionModel.update.mockResolvedValue(upgraded);
 
-      await repository.replaceSection('snapshot-id', upgraded, computedAt);
+      await expect(
+        repository.replaceSection('snapshot-id', upgraded, computedAt),
+      ).resolves.toEqual(upgraded);
 
       expect(sectionModel.update).toHaveBeenCalledWith({
         where: {

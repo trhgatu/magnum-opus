@@ -48,8 +48,10 @@ describe('GetMonthlyChronicleHandler', () => {
 
   const storedSnapshot = (
     sections: StoredChronicleSnapshot['sections'],
+    timeZone = TIME_ZONE,
   ): StoredChronicleSnapshot => ({
     id: 'snapshot-id',
+    timeZone,
     computedAt: new Date('2026-09-01T02:00:00.000Z'),
     sections,
   });
@@ -86,6 +88,7 @@ describe('GetMonthlyChronicleHandler', () => {
       new GetMonthlyChronicleQuery('owner-id', 2026, 10),
     );
 
+    expect(result.isFailure).toBe(true);
     expect(result.getError()).toBeInstanceOf(ChronicleMonthInFutureException);
     expect(snapshots.findForPeriod).not.toHaveBeenCalled();
   });
@@ -221,6 +224,47 @@ describe('GetMonthlyChronicleHandler', () => {
     expect(snapshots.replaceSection).not.toHaveBeenCalled();
   });
 
+  it('upgrades an outdated section in memory when the reader provides an upgrade hook', async () => {
+    const upgrade = jest.fn().mockReturnValue({ upgraded: 'journal' });
+    readers = CHRONICLE_MODULES.map((module) =>
+      module === 'journal'
+        ? makeReader(module, { schemaVersion: 2, historyOnly: false, upgrade })
+        : makeReader(module),
+    );
+    build();
+    snapshots.findForPeriod.mockResolvedValue(storedSnapshot(storedAll()));
+
+    const result = await handler.execute(
+      new GetMonthlyChronicleQuery('owner-id', 2026, 8),
+    );
+
+    expect(upgrade).toHaveBeenCalledWith({ stored: 'journal' }, 1);
+    expect(result.getValue().sections.journal).toEqual({ upgraded: 'journal' });
+    // Loại a/c: không ghi lại, không gọi reader tính lại.
+    expect(snapshots.replaceSection).not.toHaveBeenCalled();
+    expect(
+      readers[CHRONICLE_MODULES.indexOf('journal')].getSummary,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('prefers the upgrade hook over recomputing for a history-only reader', async () => {
+    const upgrade = jest.fn().mockReturnValue({ upgraded: 'project' });
+    readers = CHRONICLE_MODULES.map((module) =>
+      module === 'project'
+        ? makeReader(module, { schemaVersion: 2, historyOnly: true, upgrade })
+        : makeReader(module),
+    );
+    build();
+    snapshots.findForPeriod.mockResolvedValue(storedSnapshot(storedAll()));
+
+    const result = await handler.execute(
+      new GetMonthlyChronicleQuery('owner-id', 2026, 8),
+    );
+
+    expect(result.getValue().sections.project).toEqual({ upgraded: 'project' });
+    expect(snapshots.replaceSection).not.toHaveBeenCalled();
+  });
+
   it('fails loudly when a stored section is newer than its reader', async () => {
     snapshots.findForPeriod.mockResolvedValue(
       storedSnapshot(
@@ -233,6 +277,28 @@ describe('GetMonthlyChronicleHandler', () => {
     await expect(
       handler.execute(new GetMonthlyChronicleQuery('owner-id', 2026, 8)),
     ).rejects.toThrow('newer than reader');
+  });
+
+  it('fills a missing section with the time zone the snapshot was frozen in', async () => {
+    // Snapshot tháng 8 đóng băng khi owner còn ở UTC; nay owner ở UTC+7.
+    snapshots.findForPeriod.mockResolvedValue(
+      storedSnapshot(
+        storedAll().filter((section) => section.module !== 'mood'),
+        'UTC',
+      ),
+    );
+    snapshots.addSectionOrGet.mockResolvedValue({
+      module: 'mood',
+      schemaVersion: 1,
+      data: { fresh: 'mood' },
+    });
+
+    await handler.execute(new GetMonthlyChronicleQuery('owner-id', 2026, 8));
+
+    const moodReader = readers[CHRONICLE_MODULES.indexOf('mood')];
+    const [, period] = moodReader.getSummary.mock.calls[0];
+    expect(period.timeZone).toBe('UTC');
+    expect(period.start.toISOString()).toBe('2026-08-01T00:00:00.000Z');
   });
 
   it('ignores stored sections of modules no longer registered', async () => {

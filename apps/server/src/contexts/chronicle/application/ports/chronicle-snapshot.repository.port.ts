@@ -14,6 +14,8 @@ export interface StoredChronicleSection {
 
 export interface StoredChronicleSnapshot {
   id: string;
+  /** Múi giờ owner lúc đóng băng — ranh giới kỳ của snapshot này. */
+  timeZone: string;
   computedAt: Date;
   sections: StoredChronicleSection[];
 }

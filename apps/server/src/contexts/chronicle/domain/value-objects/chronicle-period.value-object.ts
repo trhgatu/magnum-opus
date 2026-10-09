@@ -9,7 +9,9 @@ import { ChroniclePeriodType } from '../enums';
 import { InvalidChronicleMonthException } from '../exceptions';
 
 const MIN_YEAR = 1970;
-const MAX_YEAR = 9999;
+// 9998, không phải 9999: tháng 12/9999 có endDate là năm 10000 — ra khỏi
+// định dạng YYYY-MM-DD mà CalendarDay và so sánh chuỗi dựa vào.
+const MAX_YEAR = 9998;
 
 /**
  * Một kỳ Chronicle (V1 chỉ có tháng) theo múi giờ của owner (KD-CHR-011).
@@ -68,16 +70,7 @@ export class ChroniclePeriod {
   }
 
   public static currentMonthKey(now: Date, timeZone: string): string {
-    const parts = new Intl.DateTimeFormat('en-CA', {
-      timeZone,
-      year: 'numeric',
-      month: '2-digit',
-    }).formatToParts(now);
-
-    const part = (type: Intl.DateTimeFormatPartTypes): string =>
-      parts.find((candidate) => candidate.type === type)?.value ?? '';
-
-    return `${part('year')}-${part('month')}`;
+    return calendarDayAt(now, timeZone).slice(0, 7);
   }
 
   public isCurrent(now: Date): boolean {
@@ -110,6 +103,11 @@ export class ChroniclePeriod {
  * ra instant thật. Đoán bằng chính UTC-midnight, đo độ lệch giờ địa phương
  * tại đó rồi bù lại; đo lại lần 2 vì độ lệch có thể đổi (DST) giữa điểm
  * đoán và kết quả.
+ *
+ * Giới hạn đã biết: ở vài múi giờ hiếm, đồng hồ nhảy qua đúng 00:00 (vd
+ * Casablanca DST 2008–2009, Kiritimati 1979) — ngày đó không có 00:00 địa
+ * phương, kết quả rơi vào thời điểm chuyển giờ gần nhất. Chấp nhận: chỉ lệch
+ * ranh giới của đúng tháng đó ở những múi giờ đó, trong quá khứ xa.
  */
 function zonedMidnightToInstant(date: Date, timeZone: string): Date {
   const guess = date.getTime();
