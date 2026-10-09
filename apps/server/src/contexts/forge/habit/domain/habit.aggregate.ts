@@ -166,7 +166,8 @@ export class Habit extends AggregateRoot {
     description?: string | null;
     frequency?: HabitFrequency | null;
     quitStartedAt?: Date | null;
-    today: HabitCalendarDate;
+    // Chỉ bắt buộc khi tần suất thật sự đổi — xem changesFrequency().
+    today?: HabitCalendarDate;
   }): void {
     this.ensureActive();
 
@@ -197,6 +198,12 @@ export class Habit extends AggregateRoot {
       this.ensureScheduleFloorLoaded();
     }
 
+    if (frequencyChanged && nextFrequency !== null && !input.today) {
+      throw new Error(
+        'Owner calendar date is required to change a Habit frequency',
+      );
+    }
+
     this.props.title = nextTitle;
     this.props.description = nextDescription;
     this.props.frequency = nextFrequency;
@@ -204,9 +211,20 @@ export class Habit extends AggregateRoot {
     this.trackChange();
 
     // Chỉ Habit BUILD mới đổi được tần suất (QUIT luôn null ở cả 2 phía).
-    if (frequencyChanged && nextFrequency !== null) {
+    if (frequencyChanged && nextFrequency !== null && input.today) {
       this.recordScheduleVersion(nextFrequency, input.today);
     }
+  }
+
+  /**
+   * Lần update với tần suất này có mở phiên bản tần suất mới không — để tầng
+   * application chỉ tính "hôm nay" của owner (đọc múi giờ) khi thật sự cần.
+   */
+  public changesFrequency(frequency: HabitFrequency | null): boolean {
+    return (
+      frequency !== null &&
+      !Habit.frequenciesEqual(this.props.frequency, frequency)
+    );
   }
 
   public archive(today: HabitCalendarDate): void {

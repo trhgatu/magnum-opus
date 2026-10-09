@@ -4,7 +4,7 @@ CREATE TABLE "habit_schedule_versions" (
     "habit_id" TEXT NOT NULL,
     "owner_id" TEXT NOT NULL,
     "frequency_type" "HabitFrequencyType" NOT NULL,
-    "frequency_days" INTEGER[] DEFAULT ARRAY[]::INTEGER[],
+    "frequency_days" INTEGER[] NOT NULL DEFAULT ARRAY[]::INTEGER[],
     "effective_from" DATE NOT NULL,
     "effective_to" DATE,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,

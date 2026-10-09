@@ -81,6 +81,20 @@ describe('UpdateHabitHandler', () => {
 
     expect(result.getValue().revision).toBe(2);
     expect(result.getValue().getDomainEvents()).toEqual([]);
+    // Không đổi tần suất thì không cần "hôm nay" — không đọc múi giờ owner.
+    expect(timeZoneReader.getForUser).not.toHaveBeenCalled();
+  });
+
+  it('updates without resolving the owner time zone even if the owner row is gone', async () => {
+    repository.findByIdForOwner.mockResolvedValue(createHabit());
+    timeZoneReader.getForUser.mockRejectedValue(new Error('user not found'));
+
+    const result = await handler.execute(
+      updateCommand({ title: 'Evening walk' }),
+    );
+
+    expect(result.isSuccess).toBe(true);
+    expect(timeZoneReader.getForUser).not.toHaveBeenCalled();
   });
 
   it('keeps effectiveFrom monotonic after the owner moved to a western time zone', async () => {

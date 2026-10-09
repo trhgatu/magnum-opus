@@ -673,6 +673,28 @@ describe('Habit', () => {
       expect(habit.getDomainEvents()).toEqual([]);
     });
 
+    it('requires the owner calendar date only when the frequency changes', () => {
+      const habit = Habit.rehydrate(createProps());
+
+      expect(habit.changesFrequency(HabitFrequency.weekly([1, 5]))).toBe(false);
+      expect(habit.changesFrequency(HabitFrequency.daily())).toBe(true);
+      expect(habit.changesFrequency(null)).toBe(false);
+
+      habit.update({
+        title: 'Evening walk',
+        frequency: HabitFrequency.weekly([1, 5]),
+      });
+      expect(habit.title).toBe('Evening walk');
+
+      expect(() =>
+        habit.update({
+          title: 'Evening walk',
+          frequency: HabitFrequency.daily(),
+        }),
+      ).toThrow('Owner calendar date is required to change a Habit frequency');
+      expect(habit.frequency?.days).toEqual([1, 5]);
+    });
+
     it('allows non-frequency edits when the schedule floor was not loaded', () => {
       const habit = Habit.rehydrate(
         createProps({ openScheduleEffectiveFrom: undefined }),

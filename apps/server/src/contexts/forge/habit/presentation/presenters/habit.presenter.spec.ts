@@ -24,7 +24,9 @@ describe('HabitPresenter', () => {
         new Date('2026-08-20T00:00:00.000Z'),
       ),
       latestLifecycleEffectiveOn: null,
-      openScheduleEffectiveFrom: null,
+      openScheduleEffectiveFrom: HabitCalendarDate.fromPersistenceDate(
+        new Date('2026-08-20T00:00:00.000Z'),
+      ),
       updatedAt: new Date('2026-08-21T10:00:00.000Z'),
     });
 

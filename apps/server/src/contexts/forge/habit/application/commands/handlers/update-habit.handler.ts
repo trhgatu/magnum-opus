@@ -35,14 +35,19 @@ export class UpdateHabitHandler implements ICommandHandler<
           ? HabitFrequency.create(command.frequencyType, command.frequencyDays)
           : null;
 
-        // "Hôm nay" chỉ tính sau khi Habit đã được tìm thấy, để Habit không
-        // tồn tại vẫn trả HabitNotFoundException thay vì lỗi đọc múi giờ.
+        // "Hôm nay" chỉ tính sau khi Habit đã được tìm thấy, và chỉ khi tần
+        // suất thật sự đổi — sửa tên/mô tả hay Habit QUIT không cần đọc múi
+        // giờ của owner.
+        const today = habit.changesFrequency(frequency)
+          ? await this.todayService.todayForOwner(command.ownerId)
+          : undefined;
+
         habit.update({
           title: command.title,
           description: command.description,
           frequency,
           quitStartedAt: command.quitStartedAt,
-          today: await this.todayService.todayForOwner(command.ownerId),
+          today,
         });
       },
     });
