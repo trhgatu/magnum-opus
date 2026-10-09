@@ -183,7 +183,7 @@ describe('RoutineController', () => {
 
   it('adds a Habit using the authenticated owner', async () => {
     const routine = createRoutine();
-    routine.addHabit('habit-third');
+    routine.addHabit('habit-third', TODAY);
 
     commandBus.execute.mockResolvedValue(Result.ok(routine));
 
@@ -204,7 +204,7 @@ describe('RoutineController', () => {
 
   it('removes a Habit using query revision', async () => {
     const routine = createRoutine();
-    routine.removeHabit('habit-second');
+    routine.removeHabit('habit-second', TODAY);
 
     commandBus.execute.mockResolvedValue(Result.ok(routine));
 
@@ -321,6 +321,7 @@ function createRoutine(): Routine {
       new Date('2026-08-20T00:00:00.000Z'),
     ),
     latestLifecycleEffectiveOn: null,
+    membershipFloors: new Map(),
     updatedAt: new Date('2026-08-21T10:00:00.000Z'),
   });
 }

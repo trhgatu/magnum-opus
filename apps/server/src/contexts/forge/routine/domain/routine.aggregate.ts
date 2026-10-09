@@ -1,7 +1,11 @@
 import { AggregateRoot } from '@shared/domain/aggregate-root';
 
 import { RoutineLifecycleAction } from './enums';
-import { RoutineLifecycleTransitionedEvent } from './events';
+import {
+  RoutineHabitAddedEvent,
+  RoutineHabitRemovedEvent,
+  RoutineLifecycleTransitionedEvent,
+} from './events';
 import {
   InvalidRoutineHabitIdException,
   InvalidRoutineHabitReorderException,
@@ -29,6 +33,12 @@ export interface RoutineProps {
   // null = đã nạp, chưa có transition nào; undefined = không được nạp (vd
   // aggregate dựng từ reader chỉ để hiển thị) — khi đó cấm archive/restore.
   latestLifecycleEffectiveOn: RoutineCalendarDate | null | undefined;
+  // Mốc hiệu lực mới nhất đã ghi trong lịch sử thành viên của TỪNG Habit
+  // (max của addedOn/removedOn của cặp routine–habit đó) — mốc sàn để
+  // addedOn/removedOn không bao giờ giảm (DAP-FTH-001). Habit chưa từng có
+  // lịch sử thì không có trong map. undefined = không được nạp (reader) —
+  // khi đó cấm thêm/gỡ Habit.
+  membershipFloors: Map<string, RoutineCalendarDate> | undefined;
   updatedAt: Date;
 }
 
@@ -66,6 +76,7 @@ export class Routine extends AggregateRoot {
       createdAt: now,
       createdOn: input.today,
       latestLifecycleEffectiveOn: null,
+      membershipFloors: new Map(),
       updatedAt: now,
     });
   }
@@ -74,6 +85,9 @@ export class Routine extends AggregateRoot {
     return new Routine({
       ...props,
       habitIds: [...props.habitIds],
+      membershipFloors: props.membershipFloors
+        ? new Map(props.membershipFloors)
+        : undefined,
     });
   }
 
@@ -164,7 +178,7 @@ export class Routine extends AggregateRoot {
       updatedAt: this.props.updatedAt,
     };
   }
-  public addHabit(habitId: string): void {
+  public addHabit(habitId: string, today: RoutineCalendarDate): void {
     this.ensureActive();
 
     const normalizedHabitId = Routine.normalizeHabitId(habitId);
@@ -173,11 +187,21 @@ export class Routine extends AggregateRoot {
       throw new RoutineHabitAlreadyExistsException(normalizedHabitId);
     }
 
+    this.ensureMembershipFloorsLoaded();
+
     this.props.habitIds.push(normalizedHabitId);
     this.trackChange();
+    this.addDomainEvent(
+      new RoutineHabitAddedEvent(
+        this.props.id.value,
+        this.props.ownerId,
+        normalizedHabitId,
+        this.nextMembershipDate(normalizedHabitId, today),
+      ),
+    );
   }
 
-  public removeHabit(habitId: string): void {
+  public removeHabit(habitId: string, today: RoutineCalendarDate): void {
     this.ensureActive();
 
     const normalizedHabitId = Routine.normalizeHabitId(habitId);
@@ -187,8 +211,18 @@ export class Routine extends AggregateRoot {
       throw new RoutineHabitNotFoundException(normalizedHabitId);
     }
 
+    this.ensureMembershipFloorsLoaded();
+
     this.props.habitIds.splice(habitIndex, 1);
     this.trackChange();
+    this.addDomainEvent(
+      new RoutineHabitRemovedEvent(
+        this.props.id.value,
+        this.props.ownerId,
+        normalizedHabitId,
+        this.nextMembershipDate(normalizedHabitId, today),
+      ),
+    );
   }
 
   public reorderHabits(habitIds: string[]): void {
@@ -265,6 +299,41 @@ export class Routine extends AggregateRoot {
         'Routine lifecycle floor was not loaded; load the Routine through RoutineRepository before archive/restore',
       );
     }
+  }
+
+  // Lỗi lập trình, giống ensureLifecycleFloorLoaded: thêm/gỡ Habit trên
+  // aggregate không nạp mốc sàn sẽ bỏ qua quy tắc mốc hiệu lực không giảm.
+  private ensureMembershipFloorsLoaded(): void {
+    if (this.props.membershipFloors === undefined) {
+      throw new Error(
+        'Routine membership floors were not loaded; load the Routine through RoutineRepository before adding/removing Habits',
+      );
+    }
+  }
+
+  // Ngày hiệu lực cho 1 lần thêm/gỡ Habit: không sớm hơn mốc mới nhất của
+  // chính cặp routine–habit đó, cũng không sớm hơn createdOn (DAP-FTH-001).
+  private nextMembershipDate(
+    habitId: string,
+    today: RoutineCalendarDate,
+  ): RoutineCalendarDate {
+    this.ensureMembershipFloorsLoaded();
+
+    // Đã được đảm bảo ở dòng trên — không có nhánh dự phòng nào để một
+    // aggregate chưa nạp mốc sàn lặng lẽ trở thành "đã nạp".
+    const floors = this.props.membershipFloors as Map<
+      string,
+      RoutineCalendarDate
+    >;
+    const floor = RoutineCalendarDate.latest(
+      this.props.createdOn,
+      floors.get(habitId) ?? null,
+    );
+    const effectiveOn = RoutineCalendarDate.latest(today, floor);
+
+    floors.set(habitId, effectiveOn);
+
+    return effectiveOn;
   }
 
   // Mốc hiệu lực không bao giờ giảm (DAP-FTH-001): nếu "hôm nay" theo múi

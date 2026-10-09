@@ -4,7 +4,11 @@ import {
   RoutineHabit as PrismaRoutineHabit,
 } from '@repo/database';
 
-import { RoutineLifecycleTransitionedEvent } from '../../domain/events';
+import {
+  RoutineHabitAddedEvent,
+  RoutineHabitRemovedEvent,
+  RoutineLifecycleTransitionedEvent,
+} from '../../domain/events';
 import { Routine } from '../../domain/routine.aggregate';
 import { RoutineCalendarDate, RoutineId } from '../../domain/value-objects';
 
@@ -13,9 +17,26 @@ import {
   type PrismaRoutineWithHabits,
 } from './prisma-routine.mapper';
 
-const TODAY = RoutineCalendarDate.fromPersistenceDate(
-  new Date('2026-10-09T00:00:00.000Z'),
-);
+const calendarDate = (value: string): RoutineCalendarDate =>
+  RoutineCalendarDate.fromPersistenceDate(new Date(`${value}T00:00:00.000Z`));
+
+const TODAY = calendarDate('2026-10-09');
+
+const membershipDates = (routine: Routine): Record<string, string> => {
+  const dates: Record<string, string> = {};
+
+  for (const event of routine.getDomainEvents()) {
+    if (event instanceof RoutineHabitAddedEvent) {
+      dates[event.habitId] = event.addedOn.value;
+    }
+
+    if (event instanceof RoutineHabitRemovedEvent) {
+      dates[event.habitId] = event.removedOn.value;
+    }
+  }
+
+  return dates;
+};
 
 describe('PrismaRoutineMapper', () => {
   const createdAt = new Date('2026-08-20T10:00:00.000Z');
@@ -82,6 +103,7 @@ describe('PrismaRoutineMapper', () => {
       createdAt,
       createdOn: RoutineCalendarDate.fromPersistenceDate(createdOn),
       latestLifecycleEffectiveOn: null,
+      membershipFloors: new Map(),
       updatedAt,
     });
 
@@ -184,6 +206,112 @@ describe('PrismaRoutineMapper', () => {
       });
     },
   );
+
+  describe('membership floors', () => {
+    it('refuses add/remove when the membership history was not loaded', () => {
+      // Reader không nạp membershipHistory: aggregate chỉ dùng để hiển thị.
+      const routine = PrismaRoutineMapper.toDomain(raw);
+
+      expect(() => routine.addHabit('habit-new', TODAY)).toThrow(
+        'Routine membership floors were not loaded',
+      );
+      expect(() => routine.removeHabit('habit-first', TODAY)).toThrow(
+        'Routine membership floors were not loaded',
+      );
+      expect(routine.revision).toBe(4);
+    });
+
+    it('treats a loaded-but-empty history as having no floors', () => {
+      const routine = PrismaRoutineMapper.toDomain({
+        ...raw,
+        membershipHistory: [],
+      });
+
+      routine.addHabit('habit-new', TODAY);
+      routine.removeHabit('habit-first', TODAY);
+
+      expect(membershipDates(routine)).toEqual({
+        'habit-new': '2026-10-09',
+        'habit-first': '2026-10-09',
+      });
+    });
+
+    it('uses the latest addedOn/removedOn of each Habit as its floor', () => {
+      const routine = PrismaRoutineMapper.toDomain({
+        ...raw,
+        membershipHistory: [
+          {
+            habitId: 'habit-first',
+            addedOn: new Date('2026-10-11T00:00:00.000Z'),
+            removedOn: null,
+          },
+          {
+            habitId: 'habit-first',
+            addedOn: new Date('2026-09-01T00:00:00.000Z'),
+            removedOn: new Date('2026-10-10T00:00:00.000Z'),
+          },
+          {
+            habitId: 'habit-gone',
+            addedOn: new Date('2026-09-01T00:00:00.000Z'),
+            removedOn: new Date('2026-10-12T00:00:00.000Z'),
+          },
+          {
+            habitId: 'habit-second',
+            addedOn: new Date('2026-08-20T00:00:00.000Z'),
+            removedOn: null,
+          },
+        ],
+      });
+
+      routine.removeHabit('habit-first', TODAY);
+      routine.addHabit('habit-gone', TODAY);
+      routine.removeHabit('habit-second', TODAY);
+      routine.addHabit('habit-new', calendarDate('2026-09-01'));
+
+      expect(membershipDates(routine)).toEqual({
+        'habit-first': '2026-10-11',
+        'habit-gone': '2026-10-12',
+        'habit-second': '2026-10-09',
+        'habit-new': '2026-09-01',
+      });
+    });
+
+    it('maps an added event to an open membership row', () => {
+      const event = new RoutineHabitAddedEvent(
+        'routine-id',
+        'owner-id',
+        'habit-first',
+        TODAY,
+      );
+
+      expect(PrismaRoutineMapper.membershipOpeningToPersistence(event)).toEqual(
+        {
+          routineId: 'routine-id',
+          habitId: 'habit-first',
+          ownerId: 'owner-id',
+          addedOn: new Date('2026-10-09T00:00:00.000Z'),
+        },
+      );
+    });
+
+    it('maps a removed event to a membership closing', () => {
+      const event = new RoutineHabitRemovedEvent(
+        'routine-id',
+        'owner-id',
+        'habit-first',
+        TODAY,
+      );
+
+      expect(PrismaRoutineMapper.membershipClosingToPersistence(event)).toEqual(
+        {
+          routineId: 'routine-id',
+          habitId: 'habit-first',
+          ownerId: 'owner-id',
+          removedOn: new Date('2026-10-09T00:00:00.000Z'),
+        },
+      );
+    });
+  });
 
   it('does not mutate the Prisma relation array while sorting', () => {
     PrismaRoutineMapper.toDomain(raw);
