@@ -332,6 +332,7 @@ model Habit {
   relapses             HabitRelapse[]
   routineLinks         RoutineHabit[]
   lifecycleTransitions HabitLifecycleTransition[]
+  scheduleVersions     HabitScheduleVersion[]
 
   @@unique([id, ownerId])
   @@index([ownerId, isActive])
@@ -380,6 +381,31 @@ model HabitLifecycleTransition {
   @@index([habitId, effectiveOn, occurredAt])
   @@index([ownerId, effectiveOn])
   @@map("habit_lifecycle_transitions")
+}
+
+// Lịch sử tần suất của Habit BUILD: mỗi phiên bản hiệu lực trong
+// [effectiveFrom, effectiveTo), effectiveTo = null là phiên bản đang dùng.
+// Prisma không biểu diễn được 2 ràng buộc dưới đây — chúng chỉ tồn tại trong
+// migration 20261009130000_forge_habit_schedule_history, đừng bỏ khi sửa model:
+//   - partial unique index "habit_schedule_versions_one_open_per_habit"
+//     ON (habit_id) WHERE effective_to IS NULL — tối đa 1 phiên bản mở / Habit
+//   - CHECK "habit_schedule_versions_valid_range"
+//     effective_to IS NULL OR effective_to >= effective_from
+model HabitScheduleVersion {
+  id            String             @id @default(uuid())
+  habitId       String             @map("habit_id")
+  ownerId       String             @map("owner_id")
+  frequencyType HabitFrequencyType @map("frequency_type")
+  frequencyDays Int[]              @default([]) @map("frequency_days")
+  effectiveFrom DateTime           @map("effective_from") @db.Date
+  effectiveTo   DateTime?          @map("effective_to") @db.Date
+  createdAt     DateTime           @default(now()) @map("created_at")
+
+  habit Habit @relation(fields: [habitId, ownerId], references: [id, ownerId], onDelete: Cascade)
+
+  @@index([habitId, effectiveFrom])
+  @@index([ownerId, effectiveFrom])
+  @@map("habit_schedule_versions")
 }
 
 model Routine {

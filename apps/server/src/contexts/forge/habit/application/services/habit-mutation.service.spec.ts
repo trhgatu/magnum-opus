@@ -107,6 +107,7 @@ describe('HabitMutationService', () => {
           title: 'Morning walk',
           description: null,
           frequency: HabitFrequency.daily(),
+          today: TODAY,
         }),
     });
 
@@ -145,6 +146,7 @@ function createHabit(revision = 1): Habit {
       new Date('2026-08-20T00:00:00.000Z'),
     ),
     latestLifecycleEffectiveOn: null,
+    openScheduleEffectiveFrom: null,
     updatedAt: new Date('2026-08-20T10:00:00.000Z'),
   });
 }
