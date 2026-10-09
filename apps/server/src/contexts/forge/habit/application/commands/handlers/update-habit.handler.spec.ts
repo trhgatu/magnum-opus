@@ -5,7 +5,11 @@ import {
 } from '../../../domain/exceptions';
 import { HabitFrequencyType, HabitType } from '../../../domain/enums';
 import { Habit } from '../../../domain/habit.aggregate';
-import { HabitFrequency, HabitId } from '../../../domain/value-objects';
+import {
+  HabitCalendarDate,
+  HabitFrequency,
+  HabitId,
+} from '../../../domain/value-objects';
 import { HabitMutationService } from '../../services';
 import { UpdateHabitCommand } from '../update-habit.command';
 import { UpdateHabitHandler } from './update-habit.handler';
@@ -113,6 +117,10 @@ function createHabit(revision = 1): Habit {
     isActive: true,
     revision,
     createdAt: new Date('2026-08-20T10:00:00.000Z'),
+    createdOn: HabitCalendarDate.fromPersistenceDate(
+      new Date('2026-08-20T00:00:00.000Z'),
+    ),
+    latestLifecycleEffectiveOn: null,
     updatedAt: new Date('2026-08-20T10:00:00.000Z'),
   });
 }

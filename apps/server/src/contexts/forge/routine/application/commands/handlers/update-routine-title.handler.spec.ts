@@ -1,5 +1,5 @@
 import { Routine } from '../../../domain/routine.aggregate';
-import { RoutineId } from '../../../domain/value-objects';
+import { RoutineCalendarDate, RoutineId } from '../../../domain/value-objects';
 import { RoutineMutationService } from '../../services';
 import { UpdateRoutineTitleCommand } from '../update-routine-title.command';
 import { UpdateRoutineTitleHandler } from './update-routine-title.handler';
@@ -48,6 +48,10 @@ function createRoutine(): Routine {
     isActive: true,
     revision: 4,
     createdAt: new Date('2026-08-20T10:00:00.000Z'),
+    createdOn: RoutineCalendarDate.fromPersistenceDate(
+      new Date('2026-08-20T00:00:00.000Z'),
+    ),
+    latestLifecycleEffectiveOn: null,
     updatedAt: new Date('2026-08-20T10:00:00.000Z'),
   });
 }

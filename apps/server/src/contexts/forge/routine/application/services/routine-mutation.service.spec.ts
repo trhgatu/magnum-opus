@@ -4,8 +4,12 @@ import {
   RoutineRevisionConflictException,
 } from '../../domain/exceptions';
 import { Routine } from '../../domain/routine.aggregate';
-import { RoutineId } from '../../domain/value-objects';
+import { RoutineCalendarDate, RoutineId } from '../../domain/value-objects';
 import { RoutineMutationService } from './routine-mutation.service';
+
+const TODAY = RoutineCalendarDate.fromPersistenceDate(
+  new Date('2026-10-09T00:00:00.000Z'),
+);
 
 describe('RoutineMutationService', () => {
   const repository = {
@@ -28,7 +32,7 @@ describe('RoutineMutationService', () => {
       routineId: 'routine-id',
       ownerId: 'owner-id',
       expectedRevision: 1,
-      mutate: (current) => current.archive(),
+      mutate: (current) => current.archive(TODAY),
     });
 
     expect(result.getValue().isActive).toBe(false);
@@ -48,7 +52,7 @@ describe('RoutineMutationService', () => {
       routineId: 'routine-id',
       ownerId: 'different-owner',
       expectedRevision: 1,
-      mutate: (routine) => routine.archive(),
+      mutate: (routine) => routine.archive(TODAY),
     });
 
     expect(result.getError()).toBeInstanceOf(RoutineNotFoundException);
@@ -64,7 +68,7 @@ describe('RoutineMutationService', () => {
       routineId: 'routine-id',
       ownerId: 'owner-id',
       expectedRevision: 2,
-      mutate: (current) => current.archive(),
+      mutate: (current) => current.archive(TODAY),
     });
 
     expect(result.getError()).toBeInstanceOf(RoutineRevisionConflictException);
@@ -75,14 +79,14 @@ describe('RoutineMutationService', () => {
 
   it('returns a domain transition error without writing', async () => {
     const routine = createRoutine();
-    routine.archive();
+    routine.archive(TODAY);
     repository.findByIdForOwner.mockResolvedValue(routine);
 
     const result = await service.mutate({
       routineId: 'routine-id',
       ownerId: 'owner-id',
       expectedRevision: 2,
-      mutate: (current) => current.archive(),
+      mutate: (current) => current.archive(TODAY),
     });
 
     expect(result.getError()).toBeInstanceOf(InvalidRoutineTransitionException);
@@ -113,7 +117,7 @@ describe('RoutineMutationService', () => {
       routineId: 'routine-id',
       ownerId: 'owner-id',
       expectedRevision: 1,
-      mutate: (routine) => routine.archive(),
+      mutate: (routine) => routine.archive(TODAY),
     });
 
     expect(result.getError()).toBeInstanceOf(RoutineRevisionConflictException);
@@ -129,6 +133,10 @@ function createRoutine(revision = 1): Routine {
     isActive: true,
     revision,
     createdAt: new Date('2026-08-20T10:00:00.000Z'),
+    createdOn: RoutineCalendarDate.fromPersistenceDate(
+      new Date('2026-08-20T00:00:00.000Z'),
+    ),
+    latestLifecycleEffectiveOn: null,
     updatedAt: new Date('2026-08-20T10:00:00.000Z'),
   });
 }

@@ -1,7 +1,11 @@
 import { HabitType } from '../../../domain/enums';
 import { HabitNotFoundException } from '../../../domain/exceptions';
 import { Habit } from '../../../domain/habit.aggregate';
-import { HabitFrequency, HabitId } from '../../../domain/value-objects';
+import {
+  HabitCalendarDate,
+  HabitFrequency,
+  HabitId,
+} from '../../../domain/value-objects';
 import { GetHabitQuery } from '../get-habit.query';
 import { GetHabitHandler } from './get-habit.handler';
 
@@ -51,6 +55,10 @@ function createHabit(): Habit {
     isActive: true,
     revision: 1,
     createdAt: new Date('2026-08-20T10:00:00.000Z'),
+    createdOn: HabitCalendarDate.fromPersistenceDate(
+      new Date('2026-08-20T00:00:00.000Z'),
+    ),
+    latestLifecycleEffectiveOn: null,
     updatedAt: new Date('2026-08-20T10:00:00.000Z'),
   });
 }

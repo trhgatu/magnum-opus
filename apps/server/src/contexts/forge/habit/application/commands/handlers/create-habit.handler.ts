@@ -11,6 +11,7 @@ import {
   type HabitRepository,
 } from '../../../domain/ports/habit.repository';
 import { HabitFrequency } from '../../../domain/value-objects';
+import { HabitTodayService } from '../../services';
 import { CreateHabitCommand } from '../create-habit.command';
 
 @CommandHandler(CreateHabitCommand)
@@ -21,6 +22,7 @@ export class CreateHabitHandler implements ICommandHandler<
   constructor(
     @Inject(HABIT_REPOSITORY)
     private readonly habitRepository: HabitRepository,
+    private readonly todayService: HabitTodayService,
   ) {}
 
   public async execute(
@@ -30,6 +32,7 @@ export class CreateHabitHandler implements ICommandHandler<
       throw new InvalidHabitTypeException();
     }
 
+    const today = await this.todayService.todayForOwner(command.ownerId);
     const habit = Habit.create({
       ownerId: command.ownerId,
       title: command.title,
@@ -39,6 +42,7 @@ export class CreateHabitHandler implements ICommandHandler<
         ? HabitFrequency.create(command.frequencyType, command.frequencyDays)
         : null,
       quitStartedAt: command.quitStartedAt,
+      today,
     });
 
     await this.habitRepository.create(habit);

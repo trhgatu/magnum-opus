@@ -11,14 +11,21 @@ import { ReorderRoutineHabitsHandler } from './application/commands/handlers/reo
 import { RestoreRoutineHandler } from './application/commands/handlers/restore-routine.handler';
 import { UpdateRoutineTitleHandler } from './application/commands/handlers/update-routine-title.handler';
 import { GetAvailableRoutineHabitsHandler } from './application/queries/handlers/get-available-routine-habits.handler';
+import { CLOCK } from './application/ports/clock.port';
 import { ROUTINE_HABIT_READER } from './application/ports/routine-habit-reader.port';
 import { ROUTINE_READER } from './application/ports/routine-reader.port';
+import { USER_TIME_ZONE_READER } from './application/ports/user-time-zone-reader.port';
 import { GetRoutineHandler } from './application/queries/handlers/get-routine.handler';
 import { GetRoutinesHandler } from './application/queries/handlers/get-routines.handler';
-import { RoutineMutationService } from './application/services';
+import {
+  RoutineMutationService,
+  RoutineTodayService,
+} from './application/services';
 import { ROUTINE_REPOSITORY } from './domain/ports/routine.repository';
+import { SystemClock } from './infrastructure/clock/system-clock';
 import { PrismaRoutineHabitReader } from './infrastructure/readers/prisma-routine-habit.reader';
 import { PrismaRoutineReader } from './infrastructure/readers/prisma-routine.reader';
+import { PrismaUserTimeZoneReader } from './infrastructure/readers/prisma-user-time-zone.reader';
 import { PrismaRoutineRepository } from './infrastructure/repositories/prisma-routine.repository';
 import { RoutineController } from './presentation/controllers/routine.controller';
 
@@ -44,6 +51,8 @@ const queryHandlers = [
   imports: [CqrsModule],
   controllers: [RoutineController],
   providers: [
+    { provide: CLOCK, useClass: SystemClock },
+    { provide: USER_TIME_ZONE_READER, useClass: PrismaUserTimeZoneReader },
     {
       provide: ROUTINE_REPOSITORY,
       useClass: PrismaRoutineRepository,
@@ -57,6 +66,7 @@ const queryHandlers = [
       useClass: PrismaRoutineHabitReader,
     },
     RoutineMutationService,
+    RoutineTodayService,
     ...commandHandlers,
     ...queryHandlers,
   ],

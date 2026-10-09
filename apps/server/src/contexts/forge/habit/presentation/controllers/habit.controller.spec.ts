@@ -7,8 +7,16 @@ import {
 import { GetHabitsQuery } from '../../application/queries';
 import { HabitFrequencyType, HabitType } from '../../domain/enums';
 import { Habit } from '../../domain/habit.aggregate';
-import { HabitFrequency, HabitId } from '../../domain/value-objects';
+import {
+  HabitCalendarDate,
+  HabitFrequency,
+  HabitId,
+} from '../../domain/value-objects';
 import { HabitController } from './habit.controller';
+
+const TODAY = HabitCalendarDate.fromPersistenceDate(
+  new Date('2026-10-09T00:00:00.000Z'),
+);
 
 describe('HabitController', () => {
   const commandBus = { execute: jest.fn() };
@@ -78,7 +86,7 @@ describe('HabitController', () => {
 
   it('sends the expected revision when archiving', async () => {
     const habit = createHabit();
-    habit.archive();
+    habit.archive(TODAY);
     commandBus.execute.mockResolvedValue(Result.ok(habit));
 
     await controller.archive('owner-id', 'habit-id', {
@@ -103,6 +111,10 @@ function createHabit(): Habit {
     isActive: true,
     revision: 1,
     createdAt: new Date('2026-08-20T10:00:00.000Z'),
+    createdOn: HabitCalendarDate.fromPersistenceDate(
+      new Date('2026-08-20T00:00:00.000Z'),
+    ),
+    latestLifecycleEffectiveOn: null,
     updatedAt: new Date('2026-08-20T10:00:00.000Z'),
   });
 }

@@ -1,5 +1,7 @@
 import { AggregateRoot } from '@shared/domain/aggregate-root';
 
+import { RoutineLifecycleAction } from './enums';
+import { RoutineLifecycleTransitionedEvent } from './events';
 import {
   InvalidRoutineHabitIdException,
   InvalidRoutineHabitReorderException,
@@ -9,7 +11,7 @@ import {
   RoutineHabitNotFoundException,
 } from './exceptions';
 
-import { RoutineId } from './value-objects';
+import { RoutineCalendarDate, RoutineId } from './value-objects';
 
 const MAX_TITLE_LENGTH = 200;
 
@@ -21,6 +23,12 @@ export interface RoutineProps {
   isActive: boolean;
   revision: number;
   createdAt: Date;
+  createdOn: RoutineCalendarDate;
+  // effectiveOn của lifecycle transition mới nhất đã ghi — mốc sàn để
+  // effectiveOn không bao giờ giảm khi owner đổi múi giờ về phía tây.
+  // null = đã nạp, chưa có transition nào; undefined = không được nạp (vd
+  // aggregate dựng từ reader chỉ để hiển thị) — khi đó cấm archive/restore.
+  latestLifecycleEffectiveOn: RoutineCalendarDate | null | undefined;
   updatedAt: Date;
 }
 
@@ -32,6 +40,7 @@ export interface RoutinePrimitives {
   isActive: boolean;
   revision: number;
   createdAt: Date;
+  createdOn: string;
   updatedAt: Date;
 }
 
@@ -40,7 +49,11 @@ export class Routine extends AggregateRoot {
     super();
   }
 
-  public static create(input: { ownerId: string; title: string }): Routine {
+  public static create(input: {
+    ownerId: string;
+    title: string;
+    today: RoutineCalendarDate;
+  }): Routine {
     const now = new Date();
 
     return new Routine({
@@ -51,6 +64,8 @@ export class Routine extends AggregateRoot {
       isActive: true,
       revision: 1,
       createdAt: now,
+      createdOn: input.today,
+      latestLifecycleEffectiveOn: null,
       updatedAt: now,
     });
   }
@@ -90,6 +105,10 @@ export class Routine extends AggregateRoot {
     return this.props.createdAt;
   }
 
+  public get createdOn(): RoutineCalendarDate {
+    return this.props.createdOn;
+  }
+
   public get updatedAt(): Date {
     return this.props.updatedAt;
   }
@@ -109,21 +128,27 @@ export class Routine extends AggregateRoot {
     this.trackChange();
   }
 
-  public restore(): void {
+  public restore(today: RoutineCalendarDate): void {
+    this.ensureLifecycleFloorLoaded();
+
     if (this.props.isActive) {
       throw new InvalidRoutineTransitionException(true);
     }
 
     this.props.isActive = true;
     this.trackChange();
+    this.recordLifecycleTransition(RoutineLifecycleAction.RESTORED, today);
   }
 
-  public archive(): void {
+  public archive(today: RoutineCalendarDate): void {
+    this.ensureLifecycleFloorLoaded();
+
     if (!this.props.isActive) {
       throw new InvalidRoutineTransitionException(false);
     }
     this.props.isActive = false;
     this.trackChange();
+    this.recordLifecycleTransition(RoutineLifecycleAction.ARCHIVED, today);
   }
 
   public toPrimitives(): RoutinePrimitives {
@@ -135,6 +160,7 @@ export class Routine extends AggregateRoot {
       revision: this.props.revision,
       habitIds: [...this.props.habitIds],
       createdAt: this.props.createdAt,
+      createdOn: this.props.createdOn.value,
       updatedAt: this.props.updatedAt,
     };
   }
@@ -168,7 +194,9 @@ export class Routine extends AggregateRoot {
   public reorderHabits(habitIds: string[]): void {
     this.ensureActive();
 
-    const normalizedHabitIds = habitIds.map(Routine.normalizeHabitId);
+    const normalizedHabitIds = habitIds.map((habitId) =>
+      Routine.normalizeHabitId(habitId),
+    );
     const currentHabitIds = this.props.habitIds;
 
     const isSamePermutation =
@@ -227,6 +255,40 @@ export class Routine extends AggregateRoot {
   private trackChange(): void {
     this.props.revision += 1;
     this.props.updatedAt = new Date();
+  }
+
+  // Lỗi lập trình, không phải lỗi nghiệp vụ: archive/restore trên aggregate
+  // không nạp mốc sàn sẽ lặng lẽ bỏ qua quy tắc mốc hiệu lực không giảm.
+  private ensureLifecycleFloorLoaded(): void {
+    if (this.props.latestLifecycleEffectiveOn === undefined) {
+      throw new Error(
+        'Routine lifecycle floor was not loaded; load the Routine through RoutineRepository before archive/restore',
+      );
+    }
+  }
+
+  // Mốc hiệu lực không bao giờ giảm (DAP-FTH-001): nếu "hôm nay" theo múi
+  // giờ hiện tại sớm hơn mốc đã ghi, transition được kẹp về mốc đó. Chuỗi
+  // lifecycle bắt đầu từ createdOn nên createdOn cũng là mốc sàn.
+  private recordLifecycleTransition(
+    action: RoutineLifecycleAction,
+    today: RoutineCalendarDate,
+  ): void {
+    const floor = RoutineCalendarDate.latest(
+      this.props.createdOn,
+      this.props.latestLifecycleEffectiveOn ?? null,
+    );
+    const effectiveOn = RoutineCalendarDate.latest(today, floor);
+
+    this.props.latestLifecycleEffectiveOn = effectiveOn;
+    this.addDomainEvent(
+      new RoutineLifecycleTransitionedEvent(
+        this.props.id.value,
+        this.props.ownerId,
+        action,
+        effectiveOn,
+      ),
+    );
   }
 
   private moveHabit(habitId: string, offset: -1 | 1): void {
