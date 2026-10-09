@@ -317,8 +317,14 @@ export class Routine extends AggregateRoot {
     habitId: string,
     today: RoutineCalendarDate,
   ): RoutineCalendarDate {
-    const floors =
-      this.props.membershipFloors ?? new Map<string, RoutineCalendarDate>();
+    this.ensureMembershipFloorsLoaded();
+
+    // Đã được đảm bảo ở dòng trên — không có nhánh dự phòng nào để một
+    // aggregate chưa nạp mốc sàn lặng lẽ trở thành "đã nạp".
+    const floors = this.props.membershipFloors as Map<
+      string,
+      RoutineCalendarDate
+    >;
     const floor = RoutineCalendarDate.latest(
       this.props.createdOn,
       floors.get(habitId) ?? null,
@@ -326,7 +332,6 @@ export class Routine extends AggregateRoot {
     const effectiveOn = RoutineCalendarDate.latest(today, floor);
 
     floors.set(habitId, effectiveOn);
-    this.props.membershipFloors = floors;
 
     return effectiveOn;
   }

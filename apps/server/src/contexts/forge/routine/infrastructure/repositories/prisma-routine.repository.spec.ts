@@ -50,6 +50,9 @@ describe('PrismaRoutineRepository', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    transactionClient.routineHabitMembership.updateMany.mockResolvedValue({
+      count: 1,
+    });
   });
 
   describe('create', () => {
@@ -229,6 +232,25 @@ describe('PrismaRoutineRepository', () => {
         transactionClient.routineHabitMembership.create,
       ).not.toHaveBeenCalled();
     });
+
+    it.each([0, 2])(
+      'fails the whole write when removing a Habit closes %p open intervals',
+      async (count) => {
+        transactionClient.routine.updateMany.mockResolvedValue({ count: 1 });
+        transactionClient.routineHabitMembership.updateMany.mockResolvedValue({
+          count,
+        });
+
+        const routine = createDomainRoutine();
+        routine.removeHabit('habit-first', TODAY);
+
+        // Ném trong callback của $transaction → Prisma rollback toàn bộ,
+        // gồm cả việc gỡ Habit khỏi RoutineHabit.
+        await expect(repository.update(routine, 4)).rejects.toThrow(
+          `Expected exactly one open membership for routine routine-id and habit habit-first, closed ${count}`,
+        );
+      },
+    );
 
     it('writes membership changes in event order', async () => {
       transactionClient.routine.updateMany.mockResolvedValue({

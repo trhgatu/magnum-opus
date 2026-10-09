@@ -103,7 +103,7 @@ export class PrismaRoutineRepository implements RoutineRepository {
         const closing =
           PrismaRoutineMapper.membershipClosingToPersistence(event);
 
-        await transaction.routineHabitMembership.updateMany({
+        const closed = await transaction.routineHabitMembership.updateMany({
           where: {
             routineId: closing.routineId,
             habitId: closing.habitId,
@@ -112,6 +112,15 @@ export class PrismaRoutineRepository implements RoutineRepository {
           },
           data: { removedOn: closing.removedOn },
         });
+
+        // Thành viên hiện tại ⇔ đúng 1 khoảng đang mở (02 §5). Không đóng được
+        // khoảng nào nghĩa là lịch sử đã lệch khỏi RoutineHabit — ném lỗi để
+        // rollback cả transaction thay vì gỡ Habit mà lịch sử vẫn mở.
+        if (closed.count !== 1) {
+          throw new Error(
+            `Expected exactly one open membership for routine ${closing.routineId} and habit ${closing.habitId}, closed ${closed.count}`,
+          );
+        }
       }
 
       return true;
