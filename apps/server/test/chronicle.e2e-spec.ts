@@ -11,16 +11,7 @@ import cookieParser from 'cookie-parser';
 import request from 'supertest';
 
 import { AppModule } from '../src/app.module';
-import { ChronicleModule } from '../src/contexts/chronicle/chronicle.module';
-import {
-  CHRONICLE_SECTION_READERS,
-  CLOCK,
-  type ChronicleSectionReader,
-} from '../src/contexts/chronicle/application/ports';
-import { PrismaJournalChronicleReader } from '../src/contexts/chronicle/infrastructure/readers/prisma-journal-chronicle.reader';
-import { PrismaMemoryChronicleReader } from '../src/contexts/chronicle/infrastructure/readers/prisma-memory-chronicle.reader';
-import { PrismaMoodChronicleReader } from '../src/contexts/chronicle/infrastructure/readers/prisma-mood-chronicle.reader';
-import { PrismaProjectChronicleReader } from '../src/contexts/chronicle/infrastructure/readers/prisma-project-chronicle.reader';
+import { CLOCK } from '../src/contexts/chronicle/application/ports';
 import { PrismaService } from '../src/infrastructure/database/prisma.service';
 import { DomainExceptionFilter } from '../src/presentation/filters/domain-exception.filter';
 
@@ -28,28 +19,7 @@ import { DomainExceptionFilter } from '../src/presentation/filters/domain-except
 const FIXED_NOW = new Date('2026-09-15T03:00:00.000Z');
 const OWNER_TIME_ZONE = 'Asia/Ho_Chi_Minh';
 
-// TODO(chronicle): bỏ 2 reader tạm này và override CHRONICLE_SECTION_READERS
-// khi reader Habit/Routine thật có (cần Forge temporal history PR 2/3), đồng
-// thời import ChronicleModule vào AppModule thay vì import riêng ở đây.
-const placeholderHabitReader: ChronicleSectionReader<'habit'> = {
-  module: 'habit',
-  schemaVersion: 1,
-  historyOnly: true,
-  getSummary: () =>
-    Promise.resolve({
-      buildCompletionRate: 0,
-      bestStreak: null,
-      mostConsistentHabit: null,
-      quitHabits: [],
-    }),
-};
-
-const placeholderRoutineReader: ChronicleSectionReader<'routine'> = {
-  module: 'routine',
-  schemaVersion: 1,
-  historyOnly: true,
-  getSummary: () => Promise.resolve({ completionRate: 0 }),
-};
+const day = (value: string) => new Date(`${value}T00:00:00.000Z`);
 
 describe('Chronicle (E2E)', () => {
   let app: INestApplication;
@@ -57,24 +27,10 @@ describe('Chronicle (E2E)', () => {
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule, ChronicleModule],
+      imports: [AppModule],
     })
       .overrideProvider(CLOCK)
       .useValue({ now: () => new Date(FIXED_NOW) })
-      .overrideProvider(CHRONICLE_SECTION_READERS)
-      .useFactory({
-        factory: (...readers: ChronicleSectionReader[]) => [
-          ...readers,
-          placeholderHabitReader,
-          placeholderRoutineReader,
-        ],
-        inject: [
-          PrismaJournalChronicleReader,
-          PrismaMemoryChronicleReader,
-          PrismaMoodChronicleReader,
-          PrismaProjectChronicleReader,
-        ],
-      })
       .compile();
 
     app = moduleFixture.createNestApplication();
@@ -253,6 +209,81 @@ describe('Chronicle (E2E)', () => {
     expect(second.body).toEqual(first.body);
   });
 
+  it('rebuilds habit and routine numbers of a closed month from Forge history', async () => {
+    const owner = await createOwner('forge-history');
+
+    // "Chạy bộ": hằng ngày từ 1/8, archive ngày 16/8 → chỉ 1–15 là ngày due,
+    // check-in đủ cả 15 ngày.
+    const running = await createHabit(owner.id, {
+      title: 'Chạy bộ',
+      createdOn: '2026-08-01',
+      schedule: { frequencyType: 'DAILY', frequencyDays: [] },
+      archivedOn: '2026-08-16',
+      checkInDays: Array.from(
+        { length: 15 },
+        (_, index) => `2026-08-${String(index + 1).padStart(2, '0')}`,
+      ),
+    });
+    // "Đọc sách": Thứ 2 hằng tuần (3, 10, 17, 24, 31/8), không check-in.
+    const reading = await createHabit(owner.id, {
+      title: 'Đọc sách',
+      createdOn: '2026-07-01',
+      schedule: { frequencyType: 'WEEKLY', frequencyDays: [1] },
+    });
+    // "Thuốc lá": bỏ từ 1/8, tái phạm 06:30 ngày 21/8 giờ Việt Nam.
+    await createHabit(owner.id, {
+      title: 'Thuốc lá',
+      createdOn: '2026-07-01',
+      type: 'QUIT',
+      quitStartedAt: '2026-08-01',
+      relapsesAt: ['2026-08-20T23:30:00.000Z'],
+    });
+
+    // Routine gồm cả 2 Habit BUILD.
+    const routine = await prisma.routine.create({
+      data: {
+        ownerId: owner.id,
+        title: 'Buổi sáng',
+        createdOn: day('2026-07-01'),
+      },
+      select: { id: true },
+    });
+    await prisma.routineHabitMembership.createMany({
+      data: [
+        {
+          routineId: routine.id,
+          habitId: running,
+          ownerId: owner.id,
+          addedOn: day('2026-08-01'),
+        },
+        {
+          routineId: routine.id,
+          habitId: reading,
+          ownerId: owner.id,
+          addedOn: day('2026-07-01'),
+        },
+      ],
+    });
+
+    const response = await request(app.getHttpServer())
+      .get('/chronicle/2026/8')
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(HttpStatus.OK);
+
+    // Habit: 15/15 + 0/5 = 15/20. Đọc sách chỉ có 5 ngày due → dưới ngưỡng
+    // 7, không được xét "đều đặn nhất".
+    expect(response.body.habit).toEqual({
+      buildCompletionRate: 0.75,
+      bestStreak: { habitTitle: 'Chạy bộ', days: 15 },
+      mostConsistentHabit: { habitTitle: 'Chạy bộ', completionRate: 1 },
+      quitHabits: [{ habitTitle: 'Thuốc lá', daysSinceLastRelapse: 10 }],
+    });
+    // Routine: 1–15/8 có buổi (Chạy bộ due), 3 và 10/8 thêm Đọc sách nên
+    // không hoàn thành; 17, 24, 31/8 chỉ còn Đọc sách → không hoàn thành.
+    // 18 buổi, 13 hoàn thành.
+    expect(response.body.routine.completionRate).toBeCloseTo(13 / 18);
+  });
+
   it('computes the current month live without storing a snapshot', async () => {
     const owner = await createOwner('current-month');
     await createJournalEntry(owner.id, '2026-09-02T12:00:00.000Z', {});
@@ -339,6 +370,82 @@ describe('Chronicle (E2E)', () => {
     });
 
     return { id: user.id, token: login.body.accessToken as string };
+  }
+
+  async function createHabit(
+    ownerId: string,
+    options: {
+      title: string;
+      createdOn: string;
+      type?: 'BUILD' | 'QUIT';
+      schedule?: { frequencyType: 'DAILY' | 'WEEKLY'; frequencyDays: number[] };
+      archivedOn?: string;
+      checkInDays?: string[];
+      quitStartedAt?: string;
+      relapsesAt?: string[];
+    },
+  ): Promise<string> {
+    const habit = await prisma.habit.create({
+      data: {
+        ownerId,
+        title: options.title,
+        type: options.type ?? 'BUILD',
+        frequencyType: options.schedule?.frequencyType ?? null,
+        frequencyDays: options.schedule?.frequencyDays ?? [],
+        quitStartedAt: options.quitStartedAt
+          ? day(options.quitStartedAt)
+          : null,
+        isActive: options.archivedOn === undefined,
+        createdOn: day(options.createdOn),
+      },
+      select: { id: true },
+    });
+
+    if (options.schedule) {
+      await prisma.habitScheduleVersion.create({
+        data: {
+          habitId: habit.id,
+          ownerId,
+          frequencyType: options.schedule.frequencyType,
+          frequencyDays: options.schedule.frequencyDays,
+          effectiveFrom: day(options.createdOn),
+        },
+      });
+    }
+
+    if (options.archivedOn) {
+      await prisma.habitLifecycleTransition.create({
+        data: {
+          habitId: habit.id,
+          ownerId,
+          action: 'ARCHIVED',
+          effectiveOn: day(options.archivedOn),
+          occurredAt: new Date(`${options.archivedOn}T05:00:00.000Z`),
+        },
+      });
+    }
+
+    if (options.checkInDays?.length) {
+      await prisma.habitCheckIn.createMany({
+        data: options.checkInDays.map((checkInDay) => ({
+          habitId: habit.id,
+          ownerId,
+          date: day(checkInDay),
+        })),
+      });
+    }
+
+    if (options.relapsesAt?.length) {
+      await prisma.habitRelapse.createMany({
+        data: options.relapsesAt.map((occurredAt) => ({
+          habitId: habit.id,
+          ownerId,
+          occurredAt: new Date(occurredAt),
+        })),
+      });
+    }
+
+    return habit.id;
   }
 
   async function createJournalEntry(
