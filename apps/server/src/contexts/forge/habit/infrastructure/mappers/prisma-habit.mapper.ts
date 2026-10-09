@@ -3,6 +3,7 @@ import {
   Habit as PrismaHabit,
   HabitFrequencyType as PrismaHabitFrequencyType,
   HabitLifecycleTransition as PrismaHabitLifecycleTransition,
+  HabitScheduleVersion as PrismaHabitScheduleVersion,
   HabitType as PrismaHabitType,
 } from '@repo/database';
 
@@ -11,7 +12,10 @@ import {
   HabitLifecycleAction,
   HabitType,
 } from '../../domain/enums';
-import { HabitLifecycleTransitionedEvent } from '../../domain/events';
+import {
+  HabitLifecycleTransitionedEvent,
+  HabitScheduleVersionStartedEvent,
+} from '../../domain/events';
 import { Habit } from '../../domain/habit.aggregate';
 import {
   HabitCalendarDate,
@@ -19,11 +23,12 @@ import {
   HabitId,
 } from '../../domain/value-objects';
 
-// Repository nạp kèm transition mới nhất để aggregate giữ mốc hiệu lực
-// không giảm. Reader chỉ phục vụ hiển thị nên không nạp — aggregate khi đó
-// không được archive/restore.
+// Repository nạp kèm transition mới nhất và phiên bản tần suất đang mở để
+// aggregate giữ mốc hiệu lực không giảm. Reader chỉ phục vụ hiển thị nên không
+// nạp — aggregate khi đó không được archive/restore hay đổi tần suất.
 export type PrismaHabitWithLatestTransition = PrismaHabit & {
   lifecycleTransitions?: Pick<PrismaHabitLifecycleTransition, 'effectiveOn'>[];
+  scheduleVersions?: Pick<PrismaHabitScheduleVersion, 'effectiveFrom'>[];
 };
 
 export interface HabitLifecycleTransitionPersistence {
@@ -32,6 +37,14 @@ export interface HabitLifecycleTransitionPersistence {
   action: PrismaForgeLifecycleAction;
   effectiveOn: Date;
   occurredAt: Date;
+}
+
+export interface HabitScheduleVersionPersistence {
+  habitId: string;
+  ownerId: string;
+  frequencyType: PrismaHabitFrequencyType;
+  frequencyDays: number[];
+  effectiveFrom: Date;
 }
 
 const domainFrequencyTypes: Record<
@@ -91,6 +104,9 @@ export class PrismaHabitMapper {
       latestLifecycleEffectiveOn: PrismaHabitMapper.toLifecycleFloor(
         raw.lifecycleTransitions,
       ),
+      openScheduleEffectiveFrom: PrismaHabitMapper.toScheduleFloor(
+        raw.scheduleVersions,
+      ),
       updatedAt: raw.updatedAt,
     });
   }
@@ -134,6 +150,22 @@ export class PrismaHabitMapper {
       : null;
   }
 
+  // undefined = caller không nạp scheduleVersions (reader); mảng rỗng = đã nạp
+  // nhưng không có phiên bản đang mở (Habit QUIT).
+  private static toScheduleFloor(
+    versions: PrismaHabitWithLatestTransition['scheduleVersions'],
+  ): HabitCalendarDate | null | undefined {
+    if (versions === undefined) {
+      return undefined;
+    }
+
+    const [open] = versions;
+
+    return open
+      ? HabitCalendarDate.fromPersistenceDate(open.effectiveFrom)
+      : null;
+  }
+
   public static transitionToPersistence(
     event: HabitLifecycleTransitionedEvent,
   ): HabitLifecycleTransitionPersistence {
@@ -143,6 +175,18 @@ export class PrismaHabitMapper {
       action: persistenceLifecycleActions[event.action],
       effectiveOn: event.effectiveOn.toPersistenceDate(),
       occurredAt: event.occurredOn,
+    };
+  }
+
+  public static scheduleVersionToPersistence(
+    event: HabitScheduleVersionStartedEvent,
+  ): HabitScheduleVersionPersistence {
+    return {
+      habitId: event.habitId,
+      ownerId: event.ownerId,
+      frequencyType: persistenceFrequencyTypes[event.frequency.type],
+      frequencyDays: event.frequency.days,
+      effectiveFrom: event.effectiveFrom.toPersistenceDate(),
     };
   }
 }

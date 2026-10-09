@@ -6,9 +6,12 @@ import {
 } from '@repo/database';
 
 import { HabitFrequencyType, HabitType } from '../../domain/enums';
-import { HabitLifecycleTransitionedEvent } from '../../domain/events';
+import {
+  HabitLifecycleTransitionedEvent,
+  HabitScheduleVersionStartedEvent,
+} from '../../domain/events';
 import { Habit } from '../../domain/habit.aggregate';
-import { HabitCalendarDate } from '../../domain/value-objects';
+import { HabitCalendarDate, HabitFrequency } from '../../domain/value-objects';
 import { PrismaHabitMapper } from './prisma-habit.mapper';
 
 const TODAY = HabitCalendarDate.fromPersistenceDate(
@@ -174,6 +177,81 @@ describe('PrismaHabitMapper', () => {
       frequencyType: null,
       frequencyDays: [],
       quitStartedAt,
+    });
+  });
+
+  describe('schedule versions', () => {
+    const changeToDaily = (habit: Habit, today = TODAY): void =>
+      habit.update({
+        title: 'Morning walk',
+        frequency: HabitFrequency.daily(),
+        today,
+      });
+
+    it('uses the loaded open version as the effectiveFrom floor', () => {
+      const habit = PrismaHabitMapper.toDomain({
+        ...raw,
+        scheduleVersions: [
+          { effectiveFrom: new Date('2026-10-09T00:00:00.000Z') },
+        ],
+      });
+
+      changeToDaily(
+        habit,
+        HabitCalendarDate.fromPersistenceDate(
+          new Date('2026-10-08T00:00:00.000Z'),
+        ),
+      );
+
+      const [event] =
+        habit.getDomainEvents() as HabitScheduleVersionStartedEvent[];
+      expect(event.effectiveFrom.value).toBe('2026-10-09');
+    });
+
+    it('treats loaded-but-empty versions as having no open version', () => {
+      const habit = PrismaHabitMapper.toDomain({
+        ...raw,
+        scheduleVersions: [],
+      });
+
+      changeToDaily(habit);
+
+      const [event] =
+        habit.getDomainEvents() as HabitScheduleVersionStartedEvent[];
+      expect(event.effectiveFrom.value).toBe('2026-10-09');
+    });
+
+    it('refuses a frequency change when the open version was not loaded', () => {
+      // Reader không nạp scheduleVersions: aggregate chỉ dùng để hiển thị.
+      const habit = PrismaHabitMapper.toDomain(raw);
+
+      expect(() => changeToDaily(habit)).toThrow(
+        'Habit schedule floor was not loaded',
+      );
+      expect(habit.revision).toBe(4);
+      expect(habit.getDomainEvents()).toEqual([]);
+    });
+
+    it('maps a schedule version event to a persistence row', () => {
+      const habit = PrismaHabitMapper.toDomain({
+        ...raw,
+        scheduleVersions: [{ effectiveFrom: createdOn }],
+      });
+      habit.update({
+        title: 'Morning walk',
+        frequency: HabitFrequency.weekly([7, 2]),
+        today: TODAY,
+      });
+      const [event] =
+        habit.getDomainEvents() as HabitScheduleVersionStartedEvent[];
+
+      expect(PrismaHabitMapper.scheduleVersionToPersistence(event)).toEqual({
+        habitId: 'habit-id',
+        ownerId: 'owner-id',
+        frequencyType: PrismaHabitFrequencyType.WEEKLY,
+        frequencyDays: [2, 7],
+        effectiveFrom: new Date('2026-10-09T00:00:00.000Z'),
+      });
     });
   });
 });

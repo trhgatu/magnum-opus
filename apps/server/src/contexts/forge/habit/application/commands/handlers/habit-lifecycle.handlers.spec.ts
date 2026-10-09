@@ -186,6 +186,9 @@ function createHabit(
               new Date(`${latestLifecycleEffectiveOn}T00:00:00.000Z`),
             )
           : null,
+    openScheduleEffectiveFrom: HabitCalendarDate.fromPersistenceDate(
+      new Date('2026-08-20T00:00:00.000Z'),
+    ),
     updatedAt: new Date('2026-08-20T10:00:00.000Z'),
   });
 }

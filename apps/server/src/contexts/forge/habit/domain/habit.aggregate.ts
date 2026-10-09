@@ -1,7 +1,10 @@
 import { AggregateRoot } from '@shared/domain/aggregate-root';
 
 import { HabitFrequencyType, HabitLifecycleAction, HabitType } from './enums';
-import { HabitLifecycleTransitionedEvent } from './events';
+import {
+  HabitLifecycleTransitionedEvent,
+  HabitScheduleVersionStartedEvent,
+} from './events';
 import {
   InvalidHabitTitleException,
   InvalidHabitTransitionException,
@@ -29,6 +32,11 @@ export interface HabitProps {
   // null = đã nạp, chưa có transition nào; undefined = không được nạp (vd
   // aggregate dựng từ reader chỉ để hiển thị) — khi đó cấm archive/restore.
   latestLifecycleEffectiveOn: HabitCalendarDate | null | undefined;
+  // effectiveFrom của phiên bản tần suất đang mở — mốc sàn khi đổi tần suất,
+  // để không bao giờ đóng phiên bản trước ngày nó bắt đầu. null = đã nạp,
+  // không có phiên bản mở (Habit QUIT); undefined = không được nạp — khi đó
+  // cấm đổi tần suất.
+  openScheduleEffectiveFrom: HabitCalendarDate | null | undefined;
   updatedAt: Date;
 }
 
@@ -75,7 +83,7 @@ export class Habit extends AggregateRoot {
       now,
     );
 
-    return new Habit({
+    const habit = new Habit({
       id: HabitId.generate(),
       ownerId: input.ownerId,
       title: Habit.normalizeTitle(input.title),
@@ -88,8 +96,17 @@ export class Habit extends AggregateRoot {
       createdAt: now,
       createdOn: input.today,
       latestLifecycleEffectiveOn: null,
+      openScheduleEffectiveFrom: null,
       updatedAt: now,
     });
+
+    // Habit BUILD bắt đầu với phiên bản tần suất [createdOn, null); Habit
+    // QUIT không có tần suất nên không bao giờ có phiên bản.
+    if (frequency !== null) {
+      habit.recordScheduleVersion(frequency, input.today);
+    }
+
+    return habit;
   }
 
   public static rehydrate(props: HabitProps): Habit {
@@ -149,6 +166,7 @@ export class Habit extends AggregateRoot {
     description?: string | null;
     frequency?: HabitFrequency | null;
     quitStartedAt?: Date | null;
+    today: HabitCalendarDate;
   }): void {
     this.ensureActive();
 
@@ -159,15 +177,24 @@ export class Habit extends AggregateRoot {
         input.frequency ?? null,
         input.quitStartedAt ?? null,
       );
+    const frequencyChanged = !Habit.frequenciesEqual(
+      this.props.frequency,
+      nextFrequency,
+    );
 
     const changed =
       this.props.title !== nextTitle ||
       this.props.description !== nextDescription ||
-      !Habit.frequenciesEqual(this.props.frequency, nextFrequency) ||
+      frequencyChanged ||
       !Habit.datesEqual(this.props.quitStartedAt, nextQuitStartedAt);
 
     if (!changed) {
       return;
+    }
+
+    // Kiểm tra trước khi đổi bất kỳ field nào để aggregate không bị sửa dở.
+    if (frequencyChanged) {
+      this.ensureScheduleFloorLoaded();
     }
 
     this.props.title = nextTitle;
@@ -175,6 +202,11 @@ export class Habit extends AggregateRoot {
     this.props.frequency = nextFrequency;
     this.props.quitStartedAt = nextQuitStartedAt;
     this.trackChange();
+
+    // Chỉ Habit BUILD mới đổi được tần suất (QUIT luôn null ở cả 2 phía).
+    if (frequencyChanged && nextFrequency !== null) {
+      this.recordScheduleVersion(nextFrequency, input.today);
+    }
   }
 
   public archive(today: HabitCalendarDate): void {
@@ -268,6 +300,42 @@ export class Habit extends AggregateRoot {
         this.props.ownerId,
         action,
         effectiveOn,
+      ),
+    );
+  }
+
+  // Lỗi lập trình, giống ensureLifecycleFloorLoaded: đổi tần suất trên
+  // aggregate không nạp phiên bản đang mở sẽ bỏ qua quy tắc mốc không giảm.
+  private ensureScheduleFloorLoaded(): void {
+    if (this.props.openScheduleEffectiveFrom === undefined) {
+      throw new Error(
+        'Habit schedule floor was not loaded; load the Habit through HabitRepository before changing its frequency',
+      );
+    }
+  }
+
+  // Mốc hiệu lực không giảm (DAP-FTH-001): chuỗi phiên bản bắt đầu từ
+  // createdOn, và phiên bản mới không được bắt đầu trước phiên bản đang mở —
+  // nếu không, đóng phiên bản cũ sẽ tạo khoảng effectiveTo < effectiveFrom khi
+  // owner đổi múi giờ về phía tây. Đổi nhiều lần trong cùng ngày D để lại các
+  // khoảng rỗng [D, D) (KD-FTH-006) — cố ý, không gộp hay xóa.
+  private recordScheduleVersion(
+    frequency: HabitFrequency,
+    today: HabitCalendarDate,
+  ): void {
+    const floor = HabitCalendarDate.latest(
+      this.props.createdOn,
+      this.props.openScheduleEffectiveFrom ?? null,
+    );
+    const effectiveFrom = HabitCalendarDate.latest(today, floor);
+
+    this.props.openScheduleEffectiveFrom = effectiveFrom;
+    this.addDomainEvent(
+      new HabitScheduleVersionStartedEvent(
+        this.props.id.value,
+        this.props.ownerId,
+        frequency,
+        effectiveFrom,
       ),
     );
   }

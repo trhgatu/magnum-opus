@@ -1,4 +1,5 @@
 import { HabitFrequencyType, HabitType } from '../../../domain/enums';
+import { HabitScheduleVersionStartedEvent } from '../../../domain/events';
 import { InvalidHabitTypeException } from '../../../domain/exceptions';
 import { HabitTodayService } from '../../services';
 import { CreateHabitCommand } from '../create-habit.command';
@@ -23,7 +24,7 @@ describe('CreateHabitHandler', () => {
     timeZoneReader.getForUser.mockResolvedValue('Asia/Ho_Chi_Minh');
   });
 
-  it("stamps createdOn with the owner's calendar date", async () => {
+  it("stamps createdOn and the initial schedule version with the owner's calendar date", async () => {
     const result = await handler.execute(
       new CreateHabitCommand({
         ownerId: 'owner-id',
@@ -35,7 +36,11 @@ describe('CreateHabitHandler', () => {
 
     expect(timeZoneReader.getForUser).toHaveBeenCalledWith('owner-id');
     expect(result.getValue().createdOn.value).toBe('2026-10-09');
-    expect(result.getValue().getDomainEvents()).toEqual([]);
+    const [event] = result.getValue().getDomainEvents();
+    expect(event).toBeInstanceOf(HabitScheduleVersionStartedEvent);
+    expect(
+      (event as HabitScheduleVersionStartedEvent).effectiveFrom.value,
+    ).toBe('2026-10-09');
   });
 
   it('creates and persists a private weekly Habit', async () => {

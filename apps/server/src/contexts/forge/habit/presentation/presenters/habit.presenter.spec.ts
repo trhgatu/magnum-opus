@@ -24,6 +24,7 @@ describe('HabitPresenter', () => {
         new Date('2026-08-20T00:00:00.000Z'),
       ),
       latestLifecycleEffectiveOn: null,
+      openScheduleEffectiveFrom: null,
       updatedAt: new Date('2026-08-21T10:00:00.000Z'),
     });
 
@@ -58,6 +59,7 @@ describe('HabitPresenter', () => {
         new Date('2026-08-20T00:00:00.000Z'),
       ),
       latestLifecycleEffectiveOn: null,
+      openScheduleEffectiveFrom: null,
       updatedAt: new Date('2026-08-20T10:00:00.000Z'),
     });
 
