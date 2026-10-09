@@ -1,5 +1,5 @@
 import { Routine } from '../../domain/routine.aggregate';
-import { RoutineId } from '../../domain/value-objects';
+import { RoutineCalendarDate, RoutineId } from '../../domain/value-objects';
 import { RoutinePresenter } from './routine.presenter';
 import { RoutineDetailReadModel } from '../../application/ports/routine-reader.port';
 
@@ -13,6 +13,10 @@ describe('RoutinePresenter', () => {
       isActive: true,
       revision: 4,
       createdAt: new Date('2026-08-20T10:00:00.000Z'),
+      createdOn: RoutineCalendarDate.fromPersistenceDate(
+        new Date('2026-08-20T00:00:00.000Z'),
+      ),
+      latestLifecycleEffectiveOn: null,
       updatedAt: new Date('2026-08-21T10:00:00.000Z'),
     });
 

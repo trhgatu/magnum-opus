@@ -1,4 +1,4 @@
-import { Inject, Injectable, Res } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 
 import { DomainException } from '@shared/domain/exceptions/domain.exception';
 import { Result } from '@shared/domain/result';
@@ -17,7 +17,10 @@ export interface RoutineMutationInput {
   routineId: string;
   ownerId: string;
   expectedRevision: number;
-  mutate: (routine: Routine) => void;
+  // Chỉ chạy sau khi Routine đã được tìm thấy và đúng revision, nên phần cần
+  // await bên trong (vd tính "hôm nay" của owner) không chạy cho Routine
+  // không tồn tại.
+  mutate: (routine: Routine) => void | Promise<void>;
 }
 
 @Injectable()
@@ -49,7 +52,7 @@ export class RoutineMutationService {
     }
 
     try {
-      input.mutate(routine);
+      await input.mutate(routine);
     } catch (error: unknown) {
       if (error instanceof DomainException) {
         return Result.fail(error);

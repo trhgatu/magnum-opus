@@ -17,7 +17,10 @@ export interface HabitMutationInput {
   habitId: string;
   ownerId: string;
   expectedRevision: number;
-  mutate: (habit: Habit) => void;
+  // Chỉ chạy sau khi Habit đã được tìm thấy và đúng revision, nên phần cần
+  // await bên trong (vd tính "hôm nay" của owner) không chạy cho Habit không
+  // tồn tại.
+  mutate: (habit: Habit) => void | Promise<void>;
 }
 
 @Injectable()
@@ -49,7 +52,7 @@ export class HabitMutationService {
     }
 
     try {
-      input.mutate(habit);
+      await input.mutate(habit);
     } catch (error: unknown) {
       if (error instanceof DomainException) {
         return Result.fail(error);

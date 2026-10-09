@@ -309,6 +309,11 @@ enum HabitType {
   QUIT
 }
 
+enum ForgeLifecycleAction {
+  ARCHIVED
+  RESTORED
+}
+
 model Habit {
   id            String              @id @default(uuid())
   ownerId       String              @map("owner_id")
@@ -321,12 +326,14 @@ model Habit {
   isActive      Boolean             @default(true) @map("is_active")
   revision      Int                 @default(1)
   createdAt     DateTime            @default(now()) @map("created_at")
+  createdOn     DateTime            @map("created_on") @db.Date
   updatedAt     DateTime            @updatedAt @map("updated_at")
 
-  owner        User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  checkIns     HabitCheckIn[]
-  relapses     HabitRelapse[]
-  routineLinks RoutineHabit[]
+  owner                User                       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  checkIns             HabitCheckIn[]
+  relapses             HabitRelapse[]
+  routineLinks         RoutineHabit[]
+  lifecycleTransitions HabitLifecycleTransition[]
 
   @@unique([id, ownerId])
   @@index([ownerId, isActive])
@@ -361,6 +368,22 @@ model HabitRelapse {
   @@map("habit_relapses")
 }
 
+model HabitLifecycleTransition {
+  id          String               @id @default(uuid())
+  habitId     String               @map("habit_id")
+  ownerId     String               @map("owner_id")
+  action      ForgeLifecycleAction
+  effectiveOn DateTime             @map("effective_on") @db.Date
+  occurredAt  DateTime             @map("occurred_at")
+  createdAt   DateTime             @default(now()) @map("created_at")
+
+  habit Habit @relation(fields: [habitId, ownerId], references: [id, ownerId], onDelete: Cascade)
+
+  @@index([habitId, effectiveOn, occurredAt])
+  @@index([ownerId, effectiveOn])
+  @@map("habit_lifecycle_transitions")
+}
+
 model Routine {
   id        String   @id @default(uuid())
   ownerId   String   @map("owner_id")
@@ -368,10 +391,12 @@ model Routine {
   isActive  Boolean  @default(true) @map("is_active")
   revision  Int      @default(1)
   createdAt DateTime @default(now()) @map("created_at")
+  createdOn DateTime @map("created_on") @db.Date
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  owner  User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  habits RoutineHabit[]
+  owner                User                         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  habits               RoutineHabit[]
+  lifecycleTransitions RoutineLifecycleTransition[]
 
   @@unique([id, ownerId])
   @@index([ownerId, isActive])
@@ -390,6 +415,22 @@ model RoutineHabit {
   @@id([routineId, habitId])
   @@unique([routineId, order])
   @@map("routine_habits")
+}
+
+model RoutineLifecycleTransition {
+  id          String               @id @default(uuid())
+  routineId   String               @map("routine_id")
+  ownerId     String               @map("owner_id")
+  action      ForgeLifecycleAction
+  effectiveOn DateTime             @map("effective_on") @db.Date
+  occurredAt  DateTime             @map("occurred_at")
+  createdAt   DateTime             @default(now()) @map("created_at")
+
+  routine Routine @relation(fields: [routineId, ownerId], references: [id, ownerId], onDelete: Cascade)
+
+  @@index([routineId, effectiveOn, occurredAt])
+  @@index([ownerId, effectiveOn])
+  @@map("routine_lifecycle_transitions")
 }
 
 enum ProjectLifecycleState {

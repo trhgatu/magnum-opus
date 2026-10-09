@@ -1,13 +1,14 @@
 import { AggregateRoot } from '@shared/domain/aggregate-root';
 
-import { HabitFrequencyType, HabitType } from './enums';
+import { HabitFrequencyType, HabitLifecycleAction, HabitType } from './enums';
+import { HabitLifecycleTransitionedEvent } from './events';
 import {
   InvalidHabitTitleException,
   InvalidHabitTransitionException,
   InvalidHabitTypeException,
   InvalidQuitStartedAtException,
 } from './exceptions';
-import { HabitFrequency, HabitId } from './value-objects';
+import { HabitCalendarDate, HabitFrequency, HabitId } from './value-objects';
 
 const MAX_TITLE_LENGTH = 200;
 
@@ -22,6 +23,12 @@ export interface HabitProps {
   isActive: boolean;
   revision: number;
   createdAt: Date;
+  createdOn: HabitCalendarDate;
+  // effectiveOn của lifecycle transition mới nhất đã ghi — mốc sàn để
+  // effectiveOn không bao giờ giảm khi owner đổi múi giờ về phía tây.
+  // null = đã nạp, chưa có transition nào; undefined = không được nạp (vd
+  // aggregate dựng từ reader chỉ để hiển thị) — khi đó cấm archive/restore.
+  latestLifecycleEffectiveOn: HabitCalendarDate | null | undefined;
   updatedAt: Date;
 }
 
@@ -37,6 +44,7 @@ export interface HabitPrimitives {
   isActive: boolean;
   revision: number;
   createdAt: Date;
+  createdOn: string;
   updatedAt: Date;
 }
 
@@ -57,6 +65,7 @@ export class Habit extends AggregateRoot {
     type: HabitType;
     frequency?: HabitFrequency | null;
     quitStartedAt?: Date | null;
+    today: HabitCalendarDate;
   }): Habit {
     const now = new Date();
     const { frequency, quitStartedAt } = Habit.resolveFieldsForCreate(
@@ -77,6 +86,8 @@ export class Habit extends AggregateRoot {
       isActive: true,
       revision: 1,
       createdAt: now,
+      createdOn: input.today,
+      latestLifecycleEffectiveOn: null,
       updatedAt: now,
     });
   }
@@ -125,6 +136,10 @@ export class Habit extends AggregateRoot {
     return this.props.createdAt;
   }
 
+  public get createdOn(): HabitCalendarDate {
+    return this.props.createdOn;
+  }
+
   public get updatedAt(): Date {
     return this.props.updatedAt;
   }
@@ -162,22 +177,28 @@ export class Habit extends AggregateRoot {
     this.trackChange();
   }
 
-  public archive(): void {
+  public archive(today: HabitCalendarDate): void {
+    this.ensureLifecycleFloorLoaded();
+
     if (!this.props.isActive) {
       throw new InvalidHabitTransitionException(false);
     }
 
     this.props.isActive = false;
     this.trackChange();
+    this.recordLifecycleTransition(HabitLifecycleAction.ARCHIVED, today);
   }
 
-  public restore(): void {
+  public restore(today: HabitCalendarDate): void {
+    this.ensureLifecycleFloorLoaded();
+
     if (this.props.isActive) {
       throw new InvalidHabitTransitionException(true);
     }
 
     this.props.isActive = true;
     this.trackChange();
+    this.recordLifecycleTransition(HabitLifecycleAction.RESTORED, today);
   }
 
   public isDueOn(isoWeekday: number): boolean {
@@ -201,6 +222,7 @@ export class Habit extends AggregateRoot {
       isActive: this.props.isActive,
       revision: this.props.revision,
       createdAt: this.props.createdAt,
+      createdOn: this.props.createdOn.value,
       updatedAt: this.props.updatedAt,
     };
   }
@@ -214,6 +236,40 @@ export class Habit extends AggregateRoot {
   private trackChange(): void {
     this.props.revision += 1;
     this.props.updatedAt = new Date();
+  }
+
+  // Lỗi lập trình, không phải lỗi nghiệp vụ: archive/restore trên aggregate
+  // không nạp mốc sàn sẽ lặng lẽ bỏ qua quy tắc mốc hiệu lực không giảm.
+  private ensureLifecycleFloorLoaded(): void {
+    if (this.props.latestLifecycleEffectiveOn === undefined) {
+      throw new Error(
+        'Habit lifecycle floor was not loaded; load the Habit through HabitRepository before archive/restore',
+      );
+    }
+  }
+
+  // Mốc hiệu lực không bao giờ giảm (DAP-FTH-001): nếu "hôm nay" theo múi
+  // giờ hiện tại sớm hơn mốc đã ghi, transition được kẹp về mốc đó. Chuỗi
+  // lifecycle bắt đầu từ createdOn nên createdOn cũng là mốc sàn.
+  private recordLifecycleTransition(
+    action: HabitLifecycleAction,
+    today: HabitCalendarDate,
+  ): void {
+    const floor = HabitCalendarDate.latest(
+      this.props.createdOn,
+      this.props.latestLifecycleEffectiveOn ?? null,
+    );
+    const effectiveOn = HabitCalendarDate.latest(today, floor);
+
+    this.props.latestLifecycleEffectiveOn = effectiveOn;
+    this.addDomainEvent(
+      new HabitLifecycleTransitionedEvent(
+        this.props.id.value,
+        this.props.ownerId,
+        action,
+        effectiveOn,
+      ),
+    );
   }
 
   private resolveFieldsForUpdate(

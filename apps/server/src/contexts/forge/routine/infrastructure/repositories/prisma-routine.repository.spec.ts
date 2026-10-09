@@ -4,9 +4,13 @@ import {
 } from '@repo/database';
 
 import { Routine } from '../../domain/routine.aggregate';
-import { RoutineId } from '../../domain/value-objects';
+import { RoutineCalendarDate, RoutineId } from '../../domain/value-objects';
 import { PrismaRoutineWithHabits } from '../mappers/prisma-routine.mapper';
 import { PrismaRoutineRepository } from './prisma-routine.repository';
+
+const TODAY = RoutineCalendarDate.fromPersistenceDate(
+  new Date('2026-10-09T00:00:00.000Z'),
+);
 
 describe('PrismaRoutineRepository', () => {
   const transactionClient = {
@@ -16,6 +20,9 @@ describe('PrismaRoutineRepository', () => {
     },
     routineHabit: {
       deleteMany: jest.fn(),
+      createMany: jest.fn(),
+    },
+    routineLifecycleTransition: {
       createMany: jest.fn(),
     },
   };
@@ -117,6 +124,45 @@ describe('PrismaRoutineRepository', () => {
       expect(transactionClient.routineHabit.createMany).toHaveBeenCalledWith({
         data: rawMemberships(),
       });
+
+      expect(
+        transactionClient.routineLifecycleTransition.createMany,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('writes the lifecycle transition in the same transaction as the update', async () => {
+      transactionClient.routine.updateMany.mockResolvedValue({
+        count: 1,
+      });
+
+      const routine = createDomainRoutine();
+      routine.archive(TODAY);
+
+      const updated = await repository.update(routine, 4);
+
+      expect(updated).toBe(true);
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+
+      expect(transactionClient.routine.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ isActive: false, revision: 5 }),
+        }),
+      );
+
+      expect(
+        transactionClient.routineLifecycleTransition.createMany,
+      ).toHaveBeenCalledWith({
+        data: [
+          {
+            routineId: 'routine-id',
+            ownerId: 'owner-id',
+            action: 'ARCHIVED',
+            effectiveOn: new Date('2026-10-09T00:00:00.000Z'),
+            occurredAt: expect.any(Date),
+          },
+        ],
+      });
+      expect(routine.getDomainEvents()).toEqual([]);
     });
 
     it('returns false without replacing memberships when revision is stale', async () => {
@@ -124,13 +170,20 @@ describe('PrismaRoutineRepository', () => {
         count: 0,
       });
 
-      const updated = await repository.update(createDomainRoutine(), 3);
+      const routine = createDomainRoutine();
+      routine.archive(TODAY);
+
+      const updated = await repository.update(routine, 3);
 
       expect(updated).toBe(false);
 
       expect(transactionClient.routineHabit.deleteMany).not.toHaveBeenCalled();
 
       expect(transactionClient.routineHabit.createMany).not.toHaveBeenCalled();
+
+      expect(
+        transactionClient.routineLifecycleTransition.createMany,
+      ).not.toHaveBeenCalled();
     });
 
     it('persists the new order after moving a Habit', async () => {
@@ -216,6 +269,11 @@ describe('PrismaRoutineRepository', () => {
               order: 'asc',
             },
           },
+          lifecycleTransitions: {
+            select: { effectiveOn: true },
+            orderBy: [{ effectiveOn: 'desc' }, { occurredAt: 'desc' }],
+            take: 1,
+          },
         },
       });
 
@@ -227,6 +285,7 @@ describe('PrismaRoutineRepository', () => {
         isActive: true,
         revision: 4,
         createdAt: new Date('2026-08-20T10:00:00.000Z'),
+        createdOn: '2026-08-20',
         updatedAt: new Date('2026-08-21T10:00:00.000Z'),
       });
     });
@@ -252,6 +311,10 @@ function createDomainRoutine(
     isActive: true,
     revision: 4,
     createdAt: new Date('2026-08-20T10:00:00.000Z'),
+    createdOn: RoutineCalendarDate.fromPersistenceDate(
+      new Date('2026-08-20T00:00:00.000Z'),
+    ),
+    latestLifecycleEffectiveOn: null,
     updatedAt: new Date('2026-08-21T10:00:00.000Z'),
   });
 }
@@ -264,6 +327,7 @@ function rawRoutine(): PrismaRoutine {
     isActive: true,
     revision: 4,
     createdAt: new Date('2026-08-20T10:00:00.000Z'),
+    createdOn: new Date('2026-08-20T00:00:00.000Z'),
     updatedAt: new Date('2026-08-21T10:00:00.000Z'),
   };
 }
