@@ -243,7 +243,7 @@ ChronicleSnapshot
 ├── periodEnd            (DateTime, cuối kỳ)
 ├── timeZone             (múi giờ owner lúc đóng băng — section tính bù/
 │                         tính lại sau này dùng đúng ranh giới này, kể cả
-│                         khi owner đã đổi múi giờ; DAP-CHR-007)
+│                         khi owner đã đổi múi giờ; DAP-CHR-007/008)
 ├── computedAt           (thời điểm snapshot được tạo, không phải
 │                         thời điểm kỳ kết thúc)
 └── sections: ChronicleSnapshotSection[]   (1 dòng / module — §3.2)
