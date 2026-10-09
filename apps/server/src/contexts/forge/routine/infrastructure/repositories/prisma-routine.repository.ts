@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 import { PrismaService } from '@infrastructure/database/prisma.service';
 
+import { RoutineLifecycleTransitionedEvent } from '../../domain/events';
 import { Routine } from '../../domain/routine.aggregate';
 import { RoutineRepository } from '../../domain/ports/routine.repository';
 import { PrismaRoutineMapper } from '../mappers/prisma-routine.mapper';
@@ -31,7 +32,16 @@ export class PrismaRoutineRepository implements RoutineRepository {
     expectedRevision: number,
   ): Promise<boolean> {
     const raw = PrismaRoutineMapper.toPersistence(routine);
+    const transitions = routine
+      .pullDomainEvents()
+      .filter(
+        (event): event is RoutineLifecycleTransitionedEvent =>
+          event instanceof RoutineLifecycleTransitionedEvent,
+      )
+      .map((event) => PrismaRoutineMapper.transitionToPersistence(event));
 
+    // Lịch sử lifecycle ghi cùng transaction với optimistic update: revision
+    // lệch thì không có transition nào được ghi (DAP-FTH-003).
     return this.prisma.$transaction(async (transaction) => {
       const result = await transaction.routine.updateMany({
         where: {
@@ -63,6 +73,12 @@ export class PrismaRoutineRepository implements RoutineRepository {
           data: raw.habits,
         });
       }
+
+      if (transitions.length > 0) {
+        await transaction.routineLifecycleTransition.createMany({
+          data: transitions,
+        });
+      }
       return true;
     });
   }
@@ -81,6 +97,11 @@ export class PrismaRoutineRepository implements RoutineRepository {
           orderBy: {
             order: 'asc',
           },
+        },
+        lifecycleTransitions: {
+          select: { effectiveOn: true },
+          orderBy: [{ effectiveOn: 'desc' }, { occurredAt: 'desc' }],
+          take: 1,
         },
       },
     });

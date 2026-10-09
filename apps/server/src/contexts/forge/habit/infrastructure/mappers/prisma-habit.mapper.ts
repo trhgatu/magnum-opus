@@ -1,12 +1,37 @@
 import {
+  ForgeLifecycleAction as PrismaForgeLifecycleAction,
   Habit as PrismaHabit,
   HabitFrequencyType as PrismaHabitFrequencyType,
+  HabitLifecycleTransition as PrismaHabitLifecycleTransition,
   HabitType as PrismaHabitType,
 } from '@repo/database';
 
-import { HabitFrequencyType, HabitType } from '../../domain/enums';
+import {
+  HabitFrequencyType,
+  HabitLifecycleAction,
+  HabitType,
+} from '../../domain/enums';
+import { HabitLifecycleTransitionedEvent } from '../../domain/events';
 import { Habit } from '../../domain/habit.aggregate';
-import { HabitFrequency, HabitId } from '../../domain/value-objects';
+import {
+  HabitCalendarDate,
+  HabitFrequency,
+  HabitId,
+} from '../../domain/value-objects';
+
+// Repository nạp kèm transition mới nhất để aggregate giữ mốc hiệu lực
+// không giảm. Reader chỉ phục vụ hiển thị nên không cần nạp.
+export type PrismaHabitWithLatestTransition = PrismaHabit & {
+  lifecycleTransitions?: Pick<PrismaHabitLifecycleTransition, 'effectiveOn'>[];
+};
+
+export interface HabitLifecycleTransitionPersistence {
+  habitId: string;
+  ownerId: string;
+  action: PrismaForgeLifecycleAction;
+  effectiveOn: Date;
+  occurredAt: Date;
+}
 
 const domainFrequencyTypes: Record<
   PrismaHabitFrequencyType,
@@ -34,8 +59,18 @@ const persistenceHabitTypes: Record<HabitType, PrismaHabitType> = {
   [HabitType.QUIT]: PrismaHabitType.QUIT,
 };
 
+const persistenceLifecycleActions: Record<
+  HabitLifecycleAction,
+  PrismaForgeLifecycleAction
+> = {
+  [HabitLifecycleAction.ARCHIVED]: PrismaForgeLifecycleAction.ARCHIVED,
+  [HabitLifecycleAction.RESTORED]: PrismaForgeLifecycleAction.RESTORED,
+};
+
 export class PrismaHabitMapper {
-  public static toDomain(raw: PrismaHabit): Habit {
+  public static toDomain(raw: PrismaHabitWithLatestTransition): Habit {
+    const latestTransition = raw.lifecycleTransitions?.[0];
+
     return Habit.rehydrate({
       id: new HabitId(raw.id),
       ownerId: raw.ownerId,
@@ -53,6 +88,10 @@ export class PrismaHabitMapper {
       isActive: raw.isActive,
       revision: raw.revision,
       createdAt: raw.createdAt,
+      createdOn: HabitCalendarDate.fromPersistenceDate(raw.createdOn),
+      latestLifecycleEffectiveOn: latestTransition
+        ? HabitCalendarDate.fromPersistenceDate(latestTransition.effectiveOn)
+        : null,
       updatedAt: raw.updatedAt,
     });
   }
@@ -75,7 +114,20 @@ export class PrismaHabitMapper {
       isActive: props.isActive,
       revision: props.revision,
       createdAt: props.createdAt,
+      createdOn: habit.createdOn.toPersistenceDate(),
       updatedAt: props.updatedAt,
+    };
+  }
+
+  public static transitionToPersistence(
+    event: HabitLifecycleTransitionedEvent,
+  ): HabitLifecycleTransitionPersistence {
+    return {
+      habitId: event.habitId,
+      ownerId: event.ownerId,
+      action: persistenceLifecycleActions[event.action],
+      effectiveOn: event.effectiveOn.toPersistenceDate(),
+      occurredAt: event.occurredOn,
     };
   }
 }

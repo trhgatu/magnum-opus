@@ -5,8 +5,16 @@ import {
 } from '../../domain/exceptions';
 import { HabitType } from '../../domain/enums';
 import { Habit } from '../../domain/habit.aggregate';
-import { HabitFrequency, HabitId } from '../../domain/value-objects';
+import {
+  HabitCalendarDate,
+  HabitFrequency,
+  HabitId,
+} from '../../domain/value-objects';
 import { HabitMutationService } from './habit-mutation.service';
+
+const TODAY = HabitCalendarDate.fromPersistenceDate(
+  new Date('2026-10-09T00:00:00.000Z'),
+);
 
 describe('HabitMutationService', () => {
   const repository = {
@@ -29,7 +37,7 @@ describe('HabitMutationService', () => {
       habitId: 'habit-id',
       ownerId: 'owner-id',
       expectedRevision: 1,
-      mutate: (current) => current.archive(),
+      mutate: (current) => current.archive(TODAY),
     });
 
     expect(result.getValue().isActive).toBe(false);
@@ -47,7 +55,7 @@ describe('HabitMutationService', () => {
       habitId: 'habit-id',
       ownerId: 'different-owner',
       expectedRevision: 1,
-      mutate: (habit) => habit.archive(),
+      mutate: (habit) => habit.archive(TODAY),
     });
 
     expect(result.getError()).toBeInstanceOf(HabitNotFoundException);
@@ -62,7 +70,7 @@ describe('HabitMutationService', () => {
       habitId: 'habit-id',
       ownerId: 'owner-id',
       expectedRevision: 2,
-      mutate: (current) => current.archive(),
+      mutate: (current) => current.archive(TODAY),
     });
 
     expect(result.getError()).toBeInstanceOf(HabitRevisionConflictException);
@@ -72,14 +80,14 @@ describe('HabitMutationService', () => {
 
   it('returns a domain transition error without writing', async () => {
     const habit = createHabit();
-    habit.archive();
+    habit.archive(TODAY);
     repository.findByIdForOwner.mockResolvedValue(habit);
 
     const result = await service.mutate({
       habitId: 'habit-id',
       ownerId: 'owner-id',
       expectedRevision: 2,
-      mutate: (current) => current.archive(),
+      mutate: (current) => current.archive(TODAY),
     });
 
     expect(result.getError()).toBeInstanceOf(InvalidHabitTransitionException);
@@ -114,7 +122,7 @@ describe('HabitMutationService', () => {
       habitId: 'habit-id',
       ownerId: 'owner-id',
       expectedRevision: 1,
-      mutate: (habit) => habit.archive(),
+      mutate: (habit) => habit.archive(TODAY),
     });
 
     expect(result.getError()).toBeInstanceOf(HabitRevisionConflictException);
@@ -133,6 +141,10 @@ function createHabit(revision = 1): Habit {
     isActive: true,
     revision,
     createdAt: new Date('2026-08-20T10:00:00.000Z'),
+    createdOn: HabitCalendarDate.fromPersistenceDate(
+      new Date('2026-08-20T00:00:00.000Z'),
+    ),
+    latestLifecycleEffectiveOn: null,
     updatedAt: new Date('2026-08-20T10:00:00.000Z'),
   });
 }

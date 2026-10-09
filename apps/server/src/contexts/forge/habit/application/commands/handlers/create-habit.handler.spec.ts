@@ -1,5 +1,6 @@
 import { HabitFrequencyType, HabitType } from '../../../domain/enums';
 import { InvalidHabitTypeException } from '../../../domain/exceptions';
+import { HabitTodayService } from '../../services';
 import { CreateHabitCommand } from '../create-habit.command';
 import { CreateHabitHandler } from './create-habit.handler';
 
@@ -7,12 +8,34 @@ describe('CreateHabitHandler', () => {
   const repository = {
     create: jest.fn(),
   };
+  const timeZoneReader = { getForUser: jest.fn() };
+  const clock = { now: jest.fn() };
 
-  const handler = new CreateHabitHandler(repository as never);
+  const handler = new CreateHabitHandler(
+    repository as never,
+    new HabitTodayService(timeZoneReader, clock),
+  );
 
   beforeEach(() => {
     jest.clearAllMocks();
     repository.create.mockResolvedValue(undefined);
+    clock.now.mockReturnValue(new Date('2026-10-08T18:00:00.000Z'));
+    timeZoneReader.getForUser.mockResolvedValue('Asia/Ho_Chi_Minh');
+  });
+
+  it("stamps createdOn with the owner's calendar date", async () => {
+    const result = await handler.execute(
+      new CreateHabitCommand({
+        ownerId: 'owner-id',
+        title: 'Drink water',
+        type: HabitType.BUILD,
+        frequencyType: HabitFrequencyType.DAILY,
+      }),
+    );
+
+    expect(timeZoneReader.getForUser).toHaveBeenCalledWith('owner-id');
+    expect(result.getValue().createdOn.value).toBe('2026-10-09');
+    expect(result.getValue().getDomainEvents()).toEqual([]);
   });
 
   it('creates and persists a private weekly Habit', async () => {

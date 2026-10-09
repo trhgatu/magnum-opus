@@ -1,4 +1,5 @@
-import { HabitType } from './enums';
+import { HabitLifecycleAction, HabitType } from './enums';
+import { HabitLifecycleTransitionedEvent } from './events';
 import {
   InvalidHabitTitleException,
   InvalidHabitTransitionException,
@@ -6,13 +7,19 @@ import {
   InvalidQuitStartedAtException,
 } from './exceptions';
 import { Habit, type HabitProps } from './habit.aggregate';
-import { HabitFrequency, HabitId } from './value-objects';
+import { HabitCalendarDate, HabitFrequency, HabitId } from './value-objects';
+
+const calendarDate = (value: string): HabitCalendarDate =>
+  HabitCalendarDate.fromPersistenceDate(new Date(`${value}T00:00:00.000Z`));
+
+const TODAY = calendarDate('2026-10-09');
 
 describe('Habit', () => {
   describe('create (BUILD)', () => {
     it('creates an active Habit at revision 1', () => {
       const habit = Habit.create({
         ownerId: 'owner-id',
+        today: TODAY,
         title: '  Morning walk  ',
         description: '  Walk without headphones  ',
         type: HabitType.BUILD,
@@ -29,6 +36,7 @@ describe('Habit', () => {
       expect(habit.isActive).toBe(true);
       expect(habit.revision).toBe(1);
       expect(habit.createdAt).toEqual(habit.updatedAt);
+      expect(habit.createdOn.value).toBe('2026-10-09');
       expect(habit.getDomainEvents()).toEqual([]);
     });
 
@@ -53,6 +61,7 @@ describe('Habit', () => {
       expect(() =>
         Habit.create({
           ownerId: 'owner-id',
+          today: TODAY,
           title: 'Morning walk',
           type: HabitType.BUILD,
         }),
@@ -63,6 +72,7 @@ describe('Habit', () => {
       expect(() =>
         Habit.create({
           ownerId: 'owner-id',
+          today: TODAY,
           title: 'Morning walk',
           type: HabitType.BUILD,
           frequency: HabitFrequency.daily(),
@@ -76,6 +86,7 @@ describe('Habit', () => {
     it('creates a QUIT Habit with no frequency', () => {
       const habit = Habit.create({
         ownerId: 'owner-id',
+        today: TODAY,
         title: 'Quit smoking',
         type: HabitType.QUIT,
         quitStartedAt: new Date('2026-08-01'),
@@ -91,6 +102,7 @@ describe('Habit', () => {
 
       const habit = Habit.create({
         ownerId: 'owner-id',
+        today: TODAY,
         title: 'Quit smoking',
         type: HabitType.QUIT,
       });
@@ -109,6 +121,7 @@ describe('Habit', () => {
       expect(() =>
         Habit.create({
           ownerId: 'owner-id',
+          today: TODAY,
           title: 'Quit smoking',
           type: HabitType.QUIT,
           frequency: HabitFrequency.daily(),
@@ -123,6 +136,7 @@ describe('Habit', () => {
       expect(() =>
         Habit.create({
           ownerId: 'owner-id',
+          today: TODAY,
           title: 'Quit smoking',
           type: HabitType.QUIT,
           quitStartedAt: tomorrow,
@@ -133,6 +147,7 @@ describe('Habit', () => {
     it('normalizes a quitStartedAt with a time component to a canonical day', () => {
       const habit = Habit.create({
         ownerId: 'owner-id',
+        today: TODAY,
         title: 'Quit smoking',
         type: HabitType.QUIT,
         quitStartedAt: new Date('2026-08-01T15:30:00.000Z'),
@@ -145,6 +160,7 @@ describe('Habit', () => {
       expect(() =>
         Habit.create({
           ownerId: 'owner-id',
+          today: TODAY,
           title: 'Quit smoking',
           type: 'SOMETHING_ELSE' as HabitType,
         }),
@@ -220,7 +236,7 @@ describe('Habit', () => {
 
     it('does not allow editing an archived Habit', () => {
       const habit = createHabit();
-      habit.archive();
+      habit.archive(TODAY);
 
       expect(() =>
         habit.update({
@@ -235,6 +251,7 @@ describe('Habit', () => {
     it('updates quitStartedAt while active', () => {
       const habit = Habit.create({
         ownerId: 'owner-id',
+        today: TODAY,
         title: 'Quit smoking',
         type: HabitType.QUIT,
         quitStartedAt: new Date('2026-08-01'),
@@ -252,6 +269,7 @@ describe('Habit', () => {
     it('normalizes a quitStartedAt with a time component to a canonical day', () => {
       const habit = Habit.create({
         ownerId: 'owner-id',
+        today: TODAY,
         title: 'Quit smoking',
         type: HabitType.QUIT,
         quitStartedAt: new Date('2026-08-01'),
@@ -268,6 +286,7 @@ describe('Habit', () => {
     it('rejects update missing quitStartedAt', () => {
       const habit = Habit.create({
         ownerId: 'owner-id',
+        today: TODAY,
         title: 'Quit smoking',
         type: HabitType.QUIT,
       });
@@ -280,6 +299,7 @@ describe('Habit', () => {
     it('rejects update carrying a frequency', () => {
       const habit = Habit.create({
         ownerId: 'owner-id',
+        today: TODAY,
         title: 'Quit smoking',
         type: HabitType.QUIT,
       });
@@ -296,6 +316,7 @@ describe('Habit', () => {
     it('rejects a future quitStartedAt', () => {
       const habit = Habit.create({
         ownerId: 'owner-id',
+        today: TODAY,
         title: 'Quit smoking',
         type: HabitType.QUIT,
       });
@@ -312,7 +333,7 @@ describe('Habit', () => {
     it('archives an active Habit', () => {
       const habit = createHabit();
 
-      habit.archive();
+      habit.archive(TODAY);
 
       expect(habit.isActive).toBe(false);
       expect(habit.revision).toBe(2);
@@ -320,9 +341,9 @@ describe('Habit', () => {
 
     it('restores an archived Habit', () => {
       const habit = createHabit();
-      habit.archive();
+      habit.archive(TODAY);
 
-      habit.restore();
+      habit.restore(TODAY);
 
       expect(habit.isActive).toBe(true);
       expect(habit.revision).toBe(3);
@@ -330,15 +351,131 @@ describe('Habit', () => {
 
     it('rejects archiving an archived Habit', () => {
       const habit = createHabit();
-      habit.archive();
+      habit.archive(TODAY);
 
-      expect(() => habit.archive()).toThrow(InvalidHabitTransitionException);
+      expect(() => habit.archive(TODAY)).toThrow(
+        InvalidHabitTransitionException,
+      );
     });
 
     it('rejects restoring an active Habit', () => {
-      expect(() => createHabit().restore()).toThrow(
+      expect(() => createHabit().restore(TODAY)).toThrow(
         InvalidHabitTransitionException,
       );
+    });
+
+    it('records an ARCHIVED transition effective on the given calendar date', () => {
+      const habit = createHabit();
+
+      habit.archive(TODAY);
+
+      const [event] = habit.getDomainEvents();
+      expect(event).toBeInstanceOf(HabitLifecycleTransitionedEvent);
+      expect(event).toMatchObject({
+        habitId: habit.id,
+        ownerId: 'owner-id',
+        action: HabitLifecycleAction.ARCHIVED,
+      });
+      expect((event as HabitLifecycleTransitionedEvent).effectiveOn.value).toBe(
+        '2026-10-09',
+      );
+    });
+
+    it('records one transition per change, even on the same day', () => {
+      const habit = createHabit();
+
+      habit.archive(TODAY);
+      habit.restore(TODAY);
+
+      expect(lifecycleTransitions(habit)).toEqual([
+        { action: HabitLifecycleAction.ARCHIVED, effectiveOn: '2026-10-09' },
+        { action: HabitLifecycleAction.RESTORED, effectiveOn: '2026-10-09' },
+      ]);
+    });
+
+    it('records no transition when the change is rejected', () => {
+      const habit = createHabit();
+
+      expect(() => habit.restore(TODAY)).toThrow(
+        InvalidHabitTransitionException,
+      );
+      expect(habit.getDomainEvents()).toEqual([]);
+    });
+
+    it('never moves effectiveOn before the latest recorded transition', () => {
+      // Owner đổi múi giờ từ UTC+7 sang UTC-5: "hôm nay" mới sớm hơn mốc
+      // đã ghi, transition bị kẹp về mốc đó để lịch sử không đảo thứ tự.
+      const habit = Habit.rehydrate(
+        createProps({
+          isActive: false,
+          createdOn: calendarDate('2026-10-01'),
+          latestLifecycleEffectiveOn: calendarDate('2026-10-09'),
+        }),
+      );
+
+      habit.restore(calendarDate('2026-10-08'));
+
+      expect(lifecycleTransitions(habit)).toEqual([
+        { action: HabitLifecycleAction.RESTORED, effectiveOn: '2026-10-09' },
+      ]);
+    });
+
+    it('keeps effectiveOn monotonic across consecutive changes in memory', () => {
+      const habit = Habit.rehydrate(
+        createProps({
+          createdOn: calendarDate('2026-10-01'),
+          latestLifecycleEffectiveOn: null,
+        }),
+      );
+
+      habit.archive(calendarDate('2026-10-09'));
+      habit.restore(calendarDate('2026-10-08'));
+
+      expect(lifecycleTransitions(habit)).toEqual([
+        { action: HabitLifecycleAction.ARCHIVED, effectiveOn: '2026-10-09' },
+        { action: HabitLifecycleAction.RESTORED, effectiveOn: '2026-10-09' },
+      ]);
+    });
+
+    it('never moves effectiveOn before createdOn', () => {
+      const habit = Habit.rehydrate(
+        createProps({
+          createdOn: calendarDate('2026-10-09'),
+          latestLifecycleEffectiveOn: null,
+        }),
+      );
+
+      habit.archive(calendarDate('2026-10-08'));
+
+      expect(lifecycleTransitions(habit)).toEqual([
+        { action: HabitLifecycleAction.ARCHIVED, effectiveOn: '2026-10-09' },
+      ]);
+    });
+
+    it('uses today when it is later than the latest recorded transition', () => {
+      const habit = Habit.rehydrate(
+        createProps({
+          isActive: false,
+          latestLifecycleEffectiveOn: calendarDate('2026-09-01'),
+        }),
+      );
+
+      habit.restore(TODAY);
+
+      expect(lifecycleTransitions(habit)).toEqual([
+        { action: HabitLifecycleAction.RESTORED, effectiveOn: '2026-10-09' },
+      ]);
+    });
+
+    it('does not record a transition for a regular update', () => {
+      const habit = createHabit();
+
+      habit.update({
+        title: 'Evening walk',
+        frequency: HabitFrequency.daily(),
+      });
+
+      expect(habit.getDomainEvents()).toEqual([]);
     });
   });
 
@@ -354,7 +491,7 @@ describe('Habit', () => {
 
     it('is not due while archived', () => {
       const habit = createHabit();
-      habit.archive();
+      habit.archive(TODAY);
 
       expect(habit.isDueOn(1)).toBe(false);
     });
@@ -362,6 +499,7 @@ describe('Habit', () => {
     it('is never due for QUIT-type Habits', () => {
       const habit = Habit.create({
         ownerId: 'owner-id',
+        today: TODAY,
         title: 'Quit smoking',
         type: HabitType.QUIT,
       });
@@ -397,6 +535,7 @@ describe('Habit', () => {
         isActive: true,
         revision: 1,
         createdAt: new Date('2026-08-20T10:00:00Z'),
+        createdOn: '2026-08-20',
         updatedAt: new Date('2026-08-20T10:00:00Z'),
       });
     });
@@ -429,6 +568,7 @@ function createHabit(
 ): Habit {
   return Habit.create({
     ownerId: 'owner-id',
+    today: TODAY,
     title: overrides.title ?? 'Morning walk',
     description: overrides.description,
     type: HabitType.BUILD,
@@ -448,7 +588,24 @@ function createProps(overrides: Partial<HabitProps> = {}): HabitProps {
     isActive: true,
     revision: 1,
     createdAt: new Date('2026-08-20T10:00:00Z'),
+    createdOn: calendarDate('2026-08-20'),
+    latestLifecycleEffectiveOn: null,
     updatedAt: new Date('2026-08-20T10:00:00Z'),
     ...overrides,
   };
+}
+
+function lifecycleTransitions(
+  habit: Habit,
+): { action: HabitLifecycleAction; effectiveOn: string }[] {
+  return habit
+    .getDomainEvents()
+    .filter(
+      (event): event is HabitLifecycleTransitionedEvent =>
+        event instanceof HabitLifecycleTransitionedEvent,
+    )
+    .map((event) => ({
+      action: event.action,
+      effectiveOn: event.effectiveOn.value,
+    }));
 }

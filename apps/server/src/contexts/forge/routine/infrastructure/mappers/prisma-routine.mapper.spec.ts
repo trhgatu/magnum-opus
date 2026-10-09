@@ -3,8 +3,9 @@ import {
   RoutineHabit as PrismaRoutineHabit,
 } from '@repo/database';
 
+import { RoutineLifecycleTransitionedEvent } from '../../domain/events';
 import { Routine } from '../../domain/routine.aggregate';
-import { RoutineId } from '../../domain/value-objects';
+import { RoutineCalendarDate, RoutineId } from '../../domain/value-objects';
 
 import {
   PrismaRoutineMapper,
@@ -13,6 +14,7 @@ import {
 
 describe('PrismaRoutineMapper', () => {
   const createdAt = new Date('2026-08-20T10:00:00.000Z');
+  const createdOn = new Date('2026-08-20T00:00:00.000Z');
   const updatedAt = new Date('2026-08-21T10:00:00.000Z');
 
   const rawRoutine: PrismaRoutine = {
@@ -22,6 +24,7 @@ describe('PrismaRoutineMapper', () => {
     isActive: true,
     revision: 4,
     createdAt,
+    createdOn,
     updatedAt,
   };
 
@@ -56,6 +59,7 @@ describe('PrismaRoutineMapper', () => {
       isActive: true,
       revision: 4,
       createdAt,
+      createdOn: '2026-08-20',
       updatedAt,
     });
 
@@ -71,6 +75,8 @@ describe('PrismaRoutineMapper', () => {
       isActive: true,
       revision: 4,
       createdAt,
+      createdOn: RoutineCalendarDate.fromPersistenceDate(createdOn),
+      latestLifecycleEffectiveOn: null,
       updatedAt,
     });
 
@@ -90,6 +96,52 @@ describe('PrismaRoutineMapper', () => {
           order: 2,
         },
       ],
+    });
+  });
+
+  it('round-trips the Routine row through the domain aggregate', () => {
+    expect(
+      PrismaRoutineMapper.toPersistence(PrismaRoutineMapper.toDomain(raw))
+        .routine,
+    ).toEqual(rawRoutine);
+  });
+
+  it('uses the loaded latest transition as the effectiveOn floor', () => {
+    const routine = PrismaRoutineMapper.toDomain({
+      ...raw,
+      isActive: false,
+      lifecycleTransitions: [
+        { effectiveOn: new Date('2026-10-09T00:00:00.000Z') },
+      ],
+    });
+
+    routine.restore(
+      RoutineCalendarDate.fromPersistenceDate(
+        new Date('2026-10-08T00:00:00.000Z'),
+      ),
+    );
+
+    const [event] =
+      routine.getDomainEvents() as RoutineLifecycleTransitionedEvent[];
+    expect(event.effectiveOn.value).toBe('2026-10-09');
+  });
+
+  it('maps a lifecycle transition event to a persistence row', () => {
+    const routine = PrismaRoutineMapper.toDomain(raw);
+    routine.archive(
+      RoutineCalendarDate.fromPersistenceDate(
+        new Date('2026-10-09T00:00:00.000Z'),
+      ),
+    );
+    const [event] =
+      routine.getDomainEvents() as RoutineLifecycleTransitionedEvent[];
+
+    expect(PrismaRoutineMapper.transitionToPersistence(event)).toEqual({
+      routineId: 'routine-id',
+      ownerId: 'owner-id',
+      action: 'ARCHIVED',
+      effectiveOn: new Date('2026-10-09T00:00:00.000Z'),
+      occurredAt: event.occurredOn,
     });
   });
 

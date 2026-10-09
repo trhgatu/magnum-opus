@@ -14,10 +14,14 @@ import {
   GetRoutineQuery,
 } from '../../application/queries';
 import { Routine } from '../../domain/routine.aggregate';
-import { RoutineId } from '../../domain/value-objects';
+import { RoutineCalendarDate, RoutineId } from '../../domain/value-objects';
 import { RoutineController } from './routine.controller';
 
 import type { RoutineDetailReadModel } from '../../application/ports/routine-reader.port';
+
+const TODAY = RoutineCalendarDate.fromPersistenceDate(
+  new Date('2026-10-09T00:00:00.000Z'),
+);
 
 describe('RoutineController', () => {
   const commandBus = {
@@ -240,7 +244,7 @@ describe('RoutineController', () => {
 
   it('sends the expected revision when archiving', async () => {
     const routine = createRoutine();
-    routine.archive();
+    routine.archive(TODAY);
 
     commandBus.execute.mockResolvedValue(Result.ok(routine));
 
@@ -313,6 +317,10 @@ function createRoutine(): Routine {
     isActive: true,
     revision: 4,
     createdAt: new Date('2026-08-20T10:00:00.000Z'),
+    createdOn: RoutineCalendarDate.fromPersistenceDate(
+      new Date('2026-08-20T00:00:00.000Z'),
+    ),
+    latestLifecycleEffectiveOn: null,
     updatedAt: new Date('2026-08-21T10:00:00.000Z'),
   });
 }

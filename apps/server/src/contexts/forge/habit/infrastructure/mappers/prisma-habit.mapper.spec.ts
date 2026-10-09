@@ -5,10 +5,13 @@ import {
 } from '@repo/database';
 
 import { HabitFrequencyType, HabitType } from '../../domain/enums';
+import { HabitLifecycleTransitionedEvent } from '../../domain/events';
+import { HabitCalendarDate } from '../../domain/value-objects';
 import { PrismaHabitMapper } from './prisma-habit.mapper';
 
 describe('PrismaHabitMapper', () => {
   const createdAt = new Date('2026-08-20T10:00:00.000Z');
+  const createdOn = new Date('2026-08-20T00:00:00.000Z');
   const updatedAt = new Date('2026-08-21T10:00:00.000Z');
 
   const raw: PrismaHabit = {
@@ -23,6 +26,7 @@ describe('PrismaHabitMapper', () => {
     isActive: true,
     revision: 4,
     createdAt,
+    createdOn,
     updatedAt,
   };
 
@@ -41,6 +45,7 @@ describe('PrismaHabitMapper', () => {
       isActive: true,
       revision: 4,
       createdAt,
+      createdOn: '2026-08-20',
       updatedAt,
     });
     expect(habit.getDomainEvents()).toEqual([]);
@@ -50,6 +55,45 @@ describe('PrismaHabitMapper', () => {
     expect(
       PrismaHabitMapper.toPersistence(PrismaHabitMapper.toDomain(raw)),
     ).toEqual(raw);
+  });
+
+  it('uses the loaded latest transition as the effectiveOn floor', () => {
+    const habit = PrismaHabitMapper.toDomain({
+      ...raw,
+      isActive: false,
+      lifecycleTransitions: [
+        { effectiveOn: new Date('2026-10-09T00:00:00.000Z') },
+      ],
+    });
+
+    habit.restore(
+      HabitCalendarDate.fromPersistenceDate(
+        new Date('2026-10-08T00:00:00.000Z'),
+      ),
+    );
+
+    const [event] =
+      habit.getDomainEvents() as HabitLifecycleTransitionedEvent[];
+    expect(event.effectiveOn.value).toBe('2026-10-09');
+  });
+
+  it('maps a lifecycle transition event to a persistence row', () => {
+    const habit = PrismaHabitMapper.toDomain(raw);
+    habit.archive(
+      HabitCalendarDate.fromPersistenceDate(
+        new Date('2026-10-09T00:00:00.000Z'),
+      ),
+    );
+    const [event] =
+      habit.getDomainEvents() as HabitLifecycleTransitionedEvent[];
+
+    expect(PrismaHabitMapper.transitionToPersistence(event)).toEqual({
+      habitId: 'habit-id',
+      ownerId: 'owner-id',
+      action: 'ARCHIVED',
+      effectiveOn: new Date('2026-10-09T00:00:00.000Z'),
+      occurredAt: event.occurredOn,
+    });
   });
 
   it.each([
