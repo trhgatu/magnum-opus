@@ -144,4 +144,27 @@ describe('ChroniclePeriod', () => {
       expect(period.isInFuture(now)).toBe(false);
     });
   });
+
+  describe('countableDays', () => {
+    it('covers the whole month once it is closed', () => {
+      const period = ChroniclePeriod.forMonth(2026, 8, 'Asia/Ho_Chi_Minh');
+      const now = new Date('2026-09-15T03:00:00.000Z');
+
+      expect(period.countableDays(now)).toEqual({
+        from: '2026-08-01',
+        to: '2026-09-01',
+      });
+    });
+
+    it('stops after today in the owner time zone for the current month', () => {
+      // 2026-09-14T18:00Z đã là 01:00 ngày 15/9 ở Việt Nam.
+      const period = ChroniclePeriod.forMonth(2026, 9, 'Asia/Ho_Chi_Minh');
+      const now = new Date('2026-09-14T18:00:00.000Z');
+
+      expect(period.countableDays(now)).toEqual({
+        from: '2026-09-01',
+        to: '2026-09-16',
+      });
+    });
+  });
 });

@@ -1,3 +1,9 @@
+import {
+  addDays,
+  calendarDayAt,
+  calendarDayOf,
+  CalendarDay,
+} from '../calendar-day';
 import { ChroniclePeriodType } from '../enums';
 
 import { InvalidChronicleMonthException } from '../exceptions';
@@ -81,6 +87,21 @@ export class ChroniclePeriod {
   public isInFuture(now: Date): boolean {
     // So chuỗi `YYYY-MM` an toàn vì năm luôn đủ 4 chữ số (MIN_YEAR..MAX_YEAR).
     return this.key > ChroniclePeriod.currentMonthKey(now, this.timeZone);
+  }
+
+  /**
+   * Khoảng ngày lịch được tính số liệu, nửa mở [from, to). Kỳ đã đóng: cả
+   * kỳ. Kỳ hiện tại: chỉ tới hết HÔM NAY theo múi giờ owner — mẫu số "đến
+   * hôm nay" (02-domain-analysis.md §5), tránh tỷ lệ thấp giả tạo đầu tháng.
+   */
+  public countableDays(now: Date): { from: CalendarDay; to: CalendarDay } {
+    const from = calendarDayOf(this.firstDate);
+
+    if (!this.isCurrent(now)) {
+      return { from, to: calendarDayOf(this.endDate) };
+    }
+
+    return { from, to: addDays(calendarDayAt(now, this.timeZone), 1) };
   }
 }
 
