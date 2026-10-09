@@ -143,16 +143,22 @@ describe('Routine lifecycle command handlers', () => {
     expect(timeZoneReader.getForUser).not.toHaveBeenCalled();
   });
 
-  it('fails loudly when the repository did not load the lifecycle floor', async () => {
-    repository.findByIdForOwner.mockResolvedValue(
-      createRoutine(true, 1, NOT_LOADED),
-    );
+  it.each([
+    ['archive', true, () => archiveHandler.execute(archiveCommand)],
+    ['restore', false, () => restoreHandler.execute(restoreCommand)],
+  ])(
+    'fails loudly on %s when the repository did not load the lifecycle floor',
+    async (_, isActive, execute) => {
+      repository.findByIdForOwner.mockResolvedValue(
+        createRoutine(isActive, 1, NOT_LOADED),
+      );
 
-    await expect(archiveHandler.execute(archiveCommand)).rejects.toThrow(
-      'Routine lifecycle floor was not loaded',
-    );
-    expect(repository.update).not.toHaveBeenCalled();
-  });
+      await expect(execute()).rejects.toThrow(
+        'Routine lifecycle floor was not loaded',
+      );
+      expect(repository.update).not.toHaveBeenCalled();
+    },
+  );
 });
 
 function createRoutine(

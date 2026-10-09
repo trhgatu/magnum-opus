@@ -485,9 +485,8 @@ describe('Habit', () => {
         createProps({ isActive: false, latestLifecycleEffectiveOn: undefined }),
       );
 
-      expect(() => active.archive(TODAY)).toThrow(Error);
-      expect(() => active.archive(TODAY)).not.toThrow(
-        InvalidHabitTransitionException,
+      expect(() => active.archive(TODAY)).toThrow(
+        'Habit lifecycle floor was not loaded',
       );
       expect(() => archived.restore(TODAY)).toThrow(
         'Habit lifecycle floor was not loaded',
