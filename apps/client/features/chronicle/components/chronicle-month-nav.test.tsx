@@ -31,12 +31,23 @@ describe("ChronicleMonthNav", () => {
       <ChronicleMonthNav month={{ year: 2026, month: 10 }} isCurrentMonth />,
     );
 
-    expect(
-      screen.queryByRole("link", { name: "Tháng 11 · 2026" }),
-    ).not.toBeInTheDocument();
-    expect(screen.getByText("Tháng 11 · 2026").closest("span")).toHaveAttribute(
-      "aria-disabled",
-      "true",
+    const next = screen.getByRole("link", { name: "Tháng 11 · 2026" });
+
+    expect(next).toHaveAttribute("aria-disabled", "true");
+    expect(next).not.toHaveAttribute("href");
+  });
+
+  it("does not link before the first supported month", () => {
+    render(
+      <ChronicleMonthNav
+        month={{ year: 1970, month: 1 }}
+        isCurrentMonth={false}
+      />,
     );
+
+    const previous = screen.getByRole("link", { name: "Tháng 12 · 1969" });
+
+    expect(previous).toHaveAttribute("aria-disabled", "true");
+    expect(previous).not.toHaveAttribute("href");
   });
 });

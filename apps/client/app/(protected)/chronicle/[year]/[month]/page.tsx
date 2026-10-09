@@ -34,6 +34,7 @@ function isEmptyMonth(chronicle: ChronicleResponse): boolean {
   return (
     habit.buildCompletionRate === 0 &&
     habit.bestStreak === null &&
+    habit.mostConsistentHabit === null &&
     habit.quitHabits.length === 0 &&
     routine.completionRate === 0 &&
     project.activeCount + project.completedCount + project.stoppedCount === 0 &&

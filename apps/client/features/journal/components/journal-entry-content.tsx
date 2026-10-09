@@ -39,7 +39,7 @@ export function JournalEntryContent({
   onContentChange,
 }: JournalEntryContentProps) {
   return (
-    <div className="flex min-h-[58vh] flex-col">
+    <div className="mx-auto flex min-h-[58vh] w-full max-w-3xl flex-col">
       {/* Input phía dưới đã mang vai trò thị giác của tiêu đề trang, nhưng
           role="heading" không hợp lệ trên input (ARIA in HTML không cho phép
           ghi đè role của textbox) — thêm h1 ẩn để trang có đúng 1 heading

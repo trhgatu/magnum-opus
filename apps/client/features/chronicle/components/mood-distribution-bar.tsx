@@ -17,12 +17,13 @@ interface MoodDistributionBarProps {
 export function MoodDistributionBar({
   distribution,
 }: MoodDistributionBarProps) {
-  // Giữ thứ tự cố định của MOOD_OPTIONS để màu của 1 mood không nhảy giữa
-  // các tháng.
-  const segments = MOOD_OPTIONS.flatMap((option) => {
+  // Màu lấy theo vị trí của mood trong MOOD_OPTIONS (trước khi lọc) để màu
+  // của 1 mood không nhảy giữa các tháng.
+  const segments = MOOD_OPTIONS.flatMap((option, optionIndex) => {
     const count = distribution[option.value as MoodLabel] ?? 0;
+    const color = SEGMENT_COLORS[optionIndex % SEGMENT_COLORS.length];
 
-    return count > 0 ? [{ ...option, count }] : [];
+    return count > 0 ? [{ ...option, count, color }] : [];
   });
   const total = segments.reduce((sum, segment) => sum + segment.count, 0);
 
@@ -41,19 +42,19 @@ export function MoodDistributionBar({
         aria-label={`Phân bố tâm trạng: ${summary}`}
         className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted"
       >
-        {segments.map((segment, index) => (
+        {segments.map((segment) => (
           <div
             key={segment.value}
-            className={SEGMENT_COLORS[index % SEGMENT_COLORS.length]}
+            className={segment.color}
             style={{ width: `${(segment.count / total) * 100}%` }}
           />
         ))}
       </div>
       <ul className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
-        {segments.map((segment, index) => (
+        {segments.map((segment) => (
           <li key={segment.value} className="flex items-center gap-1.5">
             <span
-              className={`size-2 rounded-full ${SEGMENT_COLORS[index % SEGMENT_COLORS.length]}`}
+              className={`size-2 rounded-full ${segment.color}`}
               aria-hidden="true"
             />
             <span>

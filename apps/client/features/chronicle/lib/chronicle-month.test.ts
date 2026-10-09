@@ -4,6 +4,7 @@ import {
   chronicleHref,
   compareMonths,
   formatChronicleMonth,
+  isChronicleMonthInRange,
   monthOfDay,
   parseChronicleMonth,
   shiftMonth,
@@ -25,6 +26,15 @@ describe("parseChronicleMonth", () => {
     ["2026", "9.5"],
   ])("rejects %s/%s", (year, month) => {
     expect(parseChronicleMonth(year, month)).toBeNull();
+  });
+});
+
+describe("isChronicleMonthInRange", () => {
+  it("accepts 01/1970 through 12/9998 only", () => {
+    expect(isChronicleMonthInRange({ year: 1970, month: 1 })).toBe(true);
+    expect(isChronicleMonthInRange({ year: 9998, month: 12 })).toBe(true);
+    expect(isChronicleMonthInRange({ year: 1969, month: 12 })).toBe(false);
+    expect(isChronicleMonthInRange({ year: 9999, month: 1 })).toBe(false);
   });
 });
 

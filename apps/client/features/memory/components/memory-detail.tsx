@@ -129,7 +129,7 @@ export function MemoryDetail({ memory }: MemoryDetailProps) {
               Nội dung ký ức
             </h2>
 
-            <p className="whitespace-pre-wrap text-base leading-8 text-foreground/90 sm:text-lg sm:leading-9">
+            <p className="max-w-3xl whitespace-pre-wrap text-base leading-8 text-foreground/90 sm:text-lg sm:leading-9">
               {memory.content}
             </p>
           </section>

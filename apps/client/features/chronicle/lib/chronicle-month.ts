@@ -17,16 +17,15 @@ export function parseChronicleMonth(
 
   const parsed = { year: Number(year), month: Number(month) };
 
-  if (
-    parsed.year < MIN_YEAR ||
-    parsed.year > MAX_YEAR ||
-    parsed.month < 1 ||
-    parsed.month > 12
-  ) {
-    return null;
-  }
+  return isChronicleMonthInRange(parsed) ? parsed : null;
+}
 
-  return parsed;
+/** Tháng nằm trong khoảng Chronicle nhận (năm 1970–9998). */
+export function isChronicleMonthInRange({
+  year,
+  month,
+}: ChronicleMonth): boolean {
+  return year >= MIN_YEAR && year <= MAX_YEAR && month >= 1 && month <= 12;
 }
 
 /** Tháng chứa ngày lịch `YYYY-MM-DD` (vd ngày hôm nay theo múi giờ owner). */

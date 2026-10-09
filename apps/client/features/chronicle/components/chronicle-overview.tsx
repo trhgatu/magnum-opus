@@ -126,8 +126,12 @@ export function ChronicleOverview({
                 ? `${habit.mostConsistentHabit.habitTitle} · ${formatPercent(habit.mostConsistentHabit.completionRate)}`
                 : "Chưa có"}
             </DetailRow>
-            {habit.quitHabits.map((quitHabit) => (
-              <DetailRow key={quitHabit.habitTitle} label="Đang bỏ">
+            {/* Tên thói quen do người dùng đặt nên có thể trùng. */}
+            {habit.quitHabits.map((quitHabit, index) => (
+              <DetailRow
+                key={`${quitHabit.habitTitle}-${index}`}
+                label="Đang bỏ"
+              >
                 {`${quitHabit.habitTitle} · ${quitHabit.daysSinceLastRelapse} ngày không tái phạm`}
               </DetailRow>
             ))}
