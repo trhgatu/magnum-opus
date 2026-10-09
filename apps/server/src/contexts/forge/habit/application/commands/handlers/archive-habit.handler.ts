@@ -17,16 +17,16 @@ export class ArchiveHabitHandler implements ICommandHandler<
     private readonly todayService: HabitTodayService,
   ) {}
 
-  public async execute(
+  public execute(
     command: ArchiveHabitCommand,
   ): Promise<Result<Habit, DomainException>> {
-    const today = await this.todayService.todayForOwner(command.ownerId);
-
     return this.mutationService.mutate({
       habitId: command.habitId,
       ownerId: command.ownerId,
       expectedRevision: command.expectedRevision,
-      mutate: (habit) => habit.archive(today),
+      mutate: async (habit) => {
+        habit.archive(await this.todayService.todayForOwner(command.ownerId));
+      },
     });
   }
 }

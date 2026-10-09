@@ -26,7 +26,9 @@ export interface HabitProps {
   createdOn: HabitCalendarDate;
   // effectiveOn của lifecycle transition mới nhất đã ghi — mốc sàn để
   // effectiveOn không bao giờ giảm khi owner đổi múi giờ về phía tây.
-  latestLifecycleEffectiveOn: HabitCalendarDate | null;
+  // null = đã nạp, chưa có transition nào; undefined = không được nạp (vd
+  // aggregate dựng từ reader chỉ để hiển thị) — khi đó cấm archive/restore.
+  latestLifecycleEffectiveOn: HabitCalendarDate | null | undefined;
   updatedAt: Date;
 }
 
@@ -176,6 +178,8 @@ export class Habit extends AggregateRoot {
   }
 
   public archive(today: HabitCalendarDate): void {
+    this.ensureLifecycleFloorLoaded();
+
     if (!this.props.isActive) {
       throw new InvalidHabitTransitionException(false);
     }
@@ -186,6 +190,8 @@ export class Habit extends AggregateRoot {
   }
 
   public restore(today: HabitCalendarDate): void {
+    this.ensureLifecycleFloorLoaded();
+
     if (this.props.isActive) {
       throw new InvalidHabitTransitionException(true);
     }
@@ -232,6 +238,16 @@ export class Habit extends AggregateRoot {
     this.props.updatedAt = new Date();
   }
 
+  // Lỗi lập trình, không phải lỗi nghiệp vụ: archive/restore trên aggregate
+  // không nạp mốc sàn sẽ lặng lẽ bỏ qua quy tắc mốc hiệu lực không giảm.
+  private ensureLifecycleFloorLoaded(): void {
+    if (this.props.latestLifecycleEffectiveOn === undefined) {
+      throw new Error(
+        'Habit lifecycle floor was not loaded; load the Habit through HabitRepository before archive/restore',
+      );
+    }
+  }
+
   // Mốc hiệu lực không bao giờ giảm (DAP-FTH-001): nếu "hôm nay" theo múi
   // giờ hiện tại sớm hơn mốc đã ghi, transition được kẹp về mốc đó. Chuỗi
   // lifecycle bắt đầu từ createdOn nên createdOn cũng là mốc sàn.
@@ -241,7 +257,7 @@ export class Habit extends AggregateRoot {
   ): void {
     const floor = HabitCalendarDate.latest(
       this.props.createdOn,
-      this.props.latestLifecycleEffectiveOn,
+      this.props.latestLifecycleEffectiveOn ?? null,
     );
     const effectiveOn = HabitCalendarDate.latest(today, floor);
 

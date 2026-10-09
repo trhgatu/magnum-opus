@@ -20,7 +20,8 @@ import {
 } from '../../domain/value-objects';
 
 // Repository nạp kèm transition mới nhất để aggregate giữ mốc hiệu lực
-// không giảm. Reader chỉ phục vụ hiển thị nên không cần nạp.
+// không giảm. Reader chỉ phục vụ hiển thị nên không nạp — aggregate khi đó
+// không được archive/restore.
 export type PrismaHabitWithLatestTransition = PrismaHabit & {
   lifecycleTransitions?: Pick<PrismaHabitLifecycleTransition, 'effectiveOn'>[];
 };
@@ -69,8 +70,6 @@ const persistenceLifecycleActions: Record<
 
 export class PrismaHabitMapper {
   public static toDomain(raw: PrismaHabitWithLatestTransition): Habit {
-    const latestTransition = raw.lifecycleTransitions?.[0];
-
     return Habit.rehydrate({
       id: new HabitId(raw.id),
       ownerId: raw.ownerId,
@@ -89,9 +88,9 @@ export class PrismaHabitMapper {
       revision: raw.revision,
       createdAt: raw.createdAt,
       createdOn: HabitCalendarDate.fromPersistenceDate(raw.createdOn),
-      latestLifecycleEffectiveOn: latestTransition
-        ? HabitCalendarDate.fromPersistenceDate(latestTransition.effectiveOn)
-        : null,
+      latestLifecycleEffectiveOn: PrismaHabitMapper.toLifecycleFloor(
+        raw.lifecycleTransitions,
+      ),
       updatedAt: raw.updatedAt,
     });
   }
@@ -117,6 +116,22 @@ export class PrismaHabitMapper {
       createdOn: habit.createdOn.toPersistenceDate(),
       updatedAt: props.updatedAt,
     };
+  }
+
+  // undefined = caller không nạp lifecycleTransitions (reader); mảng rỗng =
+  // đã nạp nhưng Habit chưa có transition nào.
+  private static toLifecycleFloor(
+    transitions: PrismaHabitWithLatestTransition['lifecycleTransitions'],
+  ): HabitCalendarDate | null | undefined {
+    if (transitions === undefined) {
+      return undefined;
+    }
+
+    const [latest] = transitions;
+
+    return latest
+      ? HabitCalendarDate.fromPersistenceDate(latest.effectiveOn)
+      : null;
   }
 
   public static transitionToPersistence(

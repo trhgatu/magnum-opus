@@ -11,7 +11,8 @@ import { Routine } from '../../domain/routine.aggregate';
 import { RoutineCalendarDate, RoutineId } from '../../domain/value-objects';
 
 // Repository nạp kèm transition mới nhất để aggregate giữ mốc hiệu lực
-// không giảm. Reader chỉ phục vụ hiển thị nên không cần nạp.
+// không giảm. Reader chỉ phục vụ hiển thị nên không nạp — aggregate khi đó
+// không được archive/restore.
 export type PrismaRoutineWithHabits = PrismaRoutine & {
   habits: PrismaRoutineHabit[];
   lifecycleTransitions?: Pick<
@@ -46,7 +47,6 @@ export class PrismaRoutineMapper {
     const habitIds = [...raw.habits]
       .sort((left, right) => left.order - right.order)
       .map((membership) => membership.habitId);
-    const latestTransition = raw.lifecycleTransitions?.[0];
 
     return Routine.rehydrate({
       id: new RoutineId(raw.id),
@@ -57,9 +57,9 @@ export class PrismaRoutineMapper {
       revision: raw.revision,
       createdAt: raw.createdAt,
       createdOn: RoutineCalendarDate.fromPersistenceDate(raw.createdOn),
-      latestLifecycleEffectiveOn: latestTransition
-        ? RoutineCalendarDate.fromPersistenceDate(latestTransition.effectiveOn)
-        : null,
+      latestLifecycleEffectiveOn: PrismaRoutineMapper.toLifecycleFloor(
+        raw.lifecycleTransitions,
+      ),
       updatedAt: raw.updatedAt,
     });
   }
@@ -85,6 +85,22 @@ export class PrismaRoutineMapper {
         order: index + 1,
       })),
     };
+  }
+
+  // undefined = caller không nạp lifecycleTransitions (reader); mảng rỗng =
+  // đã nạp nhưng Routine chưa có transition nào.
+  private static toLifecycleFloor(
+    transitions: PrismaRoutineWithHabits['lifecycleTransitions'],
+  ): RoutineCalendarDate | null | undefined {
+    if (transitions === undefined) {
+      return undefined;
+    }
+
+    const [latest] = transitions;
+
+    return latest
+      ? RoutineCalendarDate.fromPersistenceDate(latest.effectiveOn)
+      : null;
   }
 
   public static transitionToPersistence(

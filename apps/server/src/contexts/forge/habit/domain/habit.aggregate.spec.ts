@@ -467,6 +467,36 @@ describe('Habit', () => {
       ]);
     });
 
+    it('treats a newly created Habit as having a loaded, empty floor', () => {
+      const habit = createHabit();
+
+      habit.archive(TODAY);
+
+      expect(lifecycleTransitions(habit)).toEqual([
+        { action: HabitLifecycleAction.ARCHIVED, effectiveOn: '2026-10-09' },
+      ]);
+    });
+
+    it('fails loudly on archive/restore when the floor was not loaded', () => {
+      const active = Habit.rehydrate(
+        createProps({ latestLifecycleEffectiveOn: undefined }),
+      );
+      const archived = Habit.rehydrate(
+        createProps({ isActive: false, latestLifecycleEffectiveOn: undefined }),
+      );
+
+      expect(() => active.archive(TODAY)).toThrow(Error);
+      expect(() => active.archive(TODAY)).not.toThrow(
+        InvalidHabitTransitionException,
+      );
+      expect(() => archived.restore(TODAY)).toThrow(
+        'Habit lifecycle floor was not loaded',
+      );
+      expect(active.isActive).toBe(true);
+      expect(active.revision).toBe(1);
+      expect(active.getDomainEvents()).toEqual([]);
+    });
+
     it('does not record a transition for a regular update', () => {
       const habit = createHabit();
 

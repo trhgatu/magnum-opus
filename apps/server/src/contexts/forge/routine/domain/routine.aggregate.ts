@@ -26,7 +26,9 @@ export interface RoutineProps {
   createdOn: RoutineCalendarDate;
   // effectiveOn của lifecycle transition mới nhất đã ghi — mốc sàn để
   // effectiveOn không bao giờ giảm khi owner đổi múi giờ về phía tây.
-  latestLifecycleEffectiveOn: RoutineCalendarDate | null;
+  // null = đã nạp, chưa có transition nào; undefined = không được nạp (vd
+  // aggregate dựng từ reader chỉ để hiển thị) — khi đó cấm archive/restore.
+  latestLifecycleEffectiveOn: RoutineCalendarDate | null | undefined;
   updatedAt: Date;
 }
 
@@ -127,6 +129,8 @@ export class Routine extends AggregateRoot {
   }
 
   public restore(today: RoutineCalendarDate): void {
+    this.ensureLifecycleFloorLoaded();
+
     if (this.props.isActive) {
       throw new InvalidRoutineTransitionException(true);
     }
@@ -137,6 +141,8 @@ export class Routine extends AggregateRoot {
   }
 
   public archive(today: RoutineCalendarDate): void {
+    this.ensureLifecycleFloorLoaded();
+
     if (!this.props.isActive) {
       throw new InvalidRoutineTransitionException(false);
     }
@@ -188,7 +194,9 @@ export class Routine extends AggregateRoot {
   public reorderHabits(habitIds: string[]): void {
     this.ensureActive();
 
-    const normalizedHabitIds = habitIds.map(Routine.normalizeHabitId);
+    const normalizedHabitIds = habitIds.map((habitId) =>
+      Routine.normalizeHabitId(habitId),
+    );
     const currentHabitIds = this.props.habitIds;
 
     const isSamePermutation =
@@ -249,6 +257,16 @@ export class Routine extends AggregateRoot {
     this.props.updatedAt = new Date();
   }
 
+  // Lỗi lập trình, không phải lỗi nghiệp vụ: archive/restore trên aggregate
+  // không nạp mốc sàn sẽ lặng lẽ bỏ qua quy tắc mốc hiệu lực không giảm.
+  private ensureLifecycleFloorLoaded(): void {
+    if (this.props.latestLifecycleEffectiveOn === undefined) {
+      throw new Error(
+        'Routine lifecycle floor was not loaded; load the Routine through RoutineRepository before archive/restore',
+      );
+    }
+  }
+
   // Mốc hiệu lực không bao giờ giảm (DAP-FTH-001): nếu "hôm nay" theo múi
   // giờ hiện tại sớm hơn mốc đã ghi, transition được kẹp về mốc đó. Chuỗi
   // lifecycle bắt đầu từ createdOn nên createdOn cũng là mốc sàn.
@@ -258,7 +276,7 @@ export class Routine extends AggregateRoot {
   ): void {
     const floor = RoutineCalendarDate.latest(
       this.props.createdOn,
-      this.props.latestLifecycleEffectiveOn,
+      this.props.latestLifecycleEffectiveOn ?? null,
     );
     const effectiveOn = RoutineCalendarDate.latest(today, floor);
 

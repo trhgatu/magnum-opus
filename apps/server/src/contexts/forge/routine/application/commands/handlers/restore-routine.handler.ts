@@ -17,16 +17,16 @@ export class RestoreRoutineHandler implements ICommandHandler<
     private readonly todayService: RoutineTodayService,
   ) {}
 
-  public async execute(
+  public execute(
     command: RestoreRoutineCommand,
   ): Promise<Result<Routine, DomainException>> {
-    const today = await this.todayService.todayForOwner(command.ownerId);
-
     return this.mutationService.mutate({
       routineId: command.routineId,
       ownerId: command.ownerId,
       expectedRevision: command.expectedRevision,
-      mutate: (routine) => routine.restore(today),
+      mutate: async (routine) => {
+        routine.restore(await this.todayService.todayForOwner(command.ownerId));
+      },
     });
   }
 }

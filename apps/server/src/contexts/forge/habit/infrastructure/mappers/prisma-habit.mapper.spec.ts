@@ -1,4 +1,5 @@
 import {
+  ForgeLifecycleAction as PrismaForgeLifecycleAction,
   Habit as PrismaHabit,
   HabitFrequencyType as PrismaHabitFrequencyType,
   HabitType as PrismaHabitType,
@@ -6,8 +7,13 @@ import {
 
 import { HabitFrequencyType, HabitType } from '../../domain/enums';
 import { HabitLifecycleTransitionedEvent } from '../../domain/events';
+import { Habit } from '../../domain/habit.aggregate';
 import { HabitCalendarDate } from '../../domain/value-objects';
 import { PrismaHabitMapper } from './prisma-habit.mapper';
+
+const TODAY = HabitCalendarDate.fromPersistenceDate(
+  new Date('2026-10-09T00:00:00.000Z'),
+);
 
 describe('PrismaHabitMapper', () => {
   const createdAt = new Date('2026-08-20T10:00:00.000Z');
@@ -77,24 +83,59 @@ describe('PrismaHabitMapper', () => {
     expect(event.effectiveOn.value).toBe('2026-10-09');
   });
 
-  it('maps a lifecycle transition event to a persistence row', () => {
-    const habit = PrismaHabitMapper.toDomain(raw);
-    habit.archive(
-      HabitCalendarDate.fromPersistenceDate(
-        new Date('2026-10-09T00:00:00.000Z'),
-      ),
-    );
+  it('treats loaded-but-empty transitions as having no floor', () => {
+    const habit = PrismaHabitMapper.toDomain({
+      ...raw,
+      lifecycleTransitions: [],
+    });
+
+    habit.archive(TODAY);
+
     const [event] =
       habit.getDomainEvents() as HabitLifecycleTransitionedEvent[];
-
-    expect(PrismaHabitMapper.transitionToPersistence(event)).toEqual({
-      habitId: 'habit-id',
-      ownerId: 'owner-id',
-      action: 'ARCHIVED',
-      effectiveOn: new Date('2026-10-09T00:00:00.000Z'),
-      occurredAt: event.occurredOn,
-    });
+    expect(event.effectiveOn.value).toBe('2026-10-09');
   });
+
+  it('refuses archive/restore when the lifecycle floor was not loaded', () => {
+    // Reader không nạp lifecycleTransitions: aggregate chỉ dùng để hiển thị.
+    const active = PrismaHabitMapper.toDomain(raw);
+    const archived = PrismaHabitMapper.toDomain({ ...raw, isActive: false });
+
+    expect(() => active.archive(TODAY)).toThrow(
+      'Habit lifecycle floor was not loaded',
+    );
+    expect(() => archived.restore(TODAY)).toThrow(
+      'Habit lifecycle floor was not loaded',
+    );
+    expect(active.isActive).toBe(true);
+    expect(active.revision).toBe(4);
+    expect(active.getDomainEvents()).toEqual([]);
+  });
+
+  it.each([
+    ['ARCHIVED', true, (habit: Habit) => habit.archive(TODAY)],
+    ['RESTORED', false, (habit: Habit) => habit.restore(TODAY)],
+  ] as const)(
+    'maps a %s transition event to a persistence row',
+    (action, isActive, change) => {
+      const habit = PrismaHabitMapper.toDomain({
+        ...raw,
+        isActive,
+        lifecycleTransitions: [],
+      });
+      change(habit);
+      const [event] =
+        habit.getDomainEvents() as HabitLifecycleTransitionedEvent[];
+
+      expect(PrismaHabitMapper.transitionToPersistence(event)).toEqual({
+        habitId: 'habit-id',
+        ownerId: 'owner-id',
+        action: PrismaForgeLifecycleAction[action],
+        effectiveOn: new Date('2026-10-09T00:00:00.000Z'),
+        occurredAt: event.occurredOn,
+      });
+    },
+  );
 
   it.each([
     [PrismaHabitFrequencyType.DAILY, HabitFrequencyType.DAILY, []],

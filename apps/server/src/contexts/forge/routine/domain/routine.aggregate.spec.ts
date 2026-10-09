@@ -235,6 +235,40 @@ describe('Routine', () => {
       ]);
     });
 
+    it('treats a newly created Routine as having a loaded, empty floor', () => {
+      const routine = Routine.create({
+        ownerId: 'owner-1',
+        today: TODAY,
+        title: 'Morning',
+      });
+
+      routine.archive(TODAY);
+
+      expect(lifecycleTransitions(routine)).toEqual([
+        { action: RoutineLifecycleAction.ARCHIVED, effectiveOn: '2026-10-09' },
+      ]);
+    });
+
+    it('fails loudly on archive/restore when the floor was not loaded', () => {
+      const active = rehydrateRoutine({
+        latestLifecycleEffectiveOn: undefined,
+      });
+      const archived = rehydrateRoutine({
+        isActive: false,
+        latestLifecycleEffectiveOn: undefined,
+      });
+
+      expect(() => active.archive(TODAY)).toThrow(
+        'Routine lifecycle floor was not loaded',
+      );
+      expect(() => archived.restore(TODAY)).toThrow(
+        'Routine lifecycle floor was not loaded',
+      );
+      expect(active.isActive).toBe(true);
+      expect(active.revision).toBe(1);
+      expect(active.getDomainEvents()).toEqual([]);
+    });
+
     it('does not record a transition for membership or title changes', () => {
       const routine = rehydrateRoutine();
 
