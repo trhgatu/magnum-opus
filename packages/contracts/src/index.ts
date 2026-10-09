@@ -17,3 +17,4 @@ export * from './habit-relapse/habit-relapse.js';
 export * from './routine/routine.js';
 export * from './today/today.js';
 export * from './project/project.js';
+export * from './chronicle/chronicle.js';
