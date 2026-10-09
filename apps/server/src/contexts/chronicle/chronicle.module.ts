@@ -16,10 +16,15 @@ import { PrismaMemoryChronicleReader } from './infrastructure/readers/prisma-mem
 import { PrismaMoodChronicleReader } from './infrastructure/readers/prisma-mood-chronicle.reader';
 import { PrismaProjectChronicleReader } from './infrastructure/readers/prisma-project-chronicle.reader';
 import { PrismaUserTimeZoneReader } from './infrastructure/readers/prisma-user-time-zone.reader';
+import { PrismaHabitChronicleReader } from './infrastructure/readers/prisma-habit-chronicle.reader';
+import { PrismaHabitHistoryReader } from './infrastructure/readers/prisma-habit-history.reader';
+import { PrismaRoutineChronicleReader } from './infrastructure/readers/prisma-routine-chronicle.reader';
 import { PrismaChronicleSnapshotRepository } from './infrastructure/repositories/prisma-chronicle-snapshot.repository';
 import { ChronicleController } from './presentation/controllers/chronicle.controller';
 
 const SECTION_READERS = [
+  PrismaHabitChronicleReader,
+  PrismaRoutineChronicleReader,
   PrismaJournalChronicleReader,
   PrismaMemoryChronicleReader,
   PrismaMoodChronicleReader,
@@ -36,6 +41,7 @@ const SECTION_READERS = [
       provide: CHRONICLE_SNAPSHOT_REPOSITORY,
       useClass: PrismaChronicleSnapshotRepository,
     },
+    PrismaHabitHistoryReader,
     ...SECTION_READERS,
     {
       provide: CHRONICLE_SECTION_READERS,
