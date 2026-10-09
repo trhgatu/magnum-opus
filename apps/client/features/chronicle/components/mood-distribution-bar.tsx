@@ -2,13 +2,20 @@ import type { ChronicleMoodSection, MoodLabel } from "@repo/contracts";
 
 import { MOOD_OPTIONS } from "@/features/mood/config/mood-labels";
 
-const SEGMENT_COLORS = [
-  "bg-chart-1",
-  "bg-chart-2",
-  "bg-chart-3",
-  "bg-chart-4",
-  "bg-chart-5",
-];
+// Mỗi mood 1 màu cố định, không trùng nhau: theme chỉ có 5 màu chart nên 5
+// mood sau dùng lại 5 màu đó ở độ đậm thấp hơn.
+const MOOD_COLORS: Record<MoodLabel, string> = {
+  JOYFUL: "bg-chart-1",
+  CALM: "bg-chart-2",
+  HOPEFUL: "bg-chart-3",
+  ENERGETIC: "bg-chart-4",
+  NEUTRAL: "bg-chart-5",
+  TIRED: "bg-chart-1/45",
+  ANXIOUS: "bg-chart-2/45",
+  SAD: "bg-chart-3/45",
+  ANGRY: "bg-chart-4/45",
+  OVERWHELMED: "bg-chart-5/45",
+};
 
 interface MoodDistributionBarProps {
   distribution: ChronicleMoodSection["distribution"];
@@ -17,13 +24,12 @@ interface MoodDistributionBarProps {
 export function MoodDistributionBar({
   distribution,
 }: MoodDistributionBarProps) {
-  // Màu lấy theo vị trí của mood trong MOOD_OPTIONS (trước khi lọc) để màu
-  // của 1 mood không nhảy giữa các tháng.
-  const segments = MOOD_OPTIONS.flatMap((option, optionIndex) => {
-    const count = distribution[option.value as MoodLabel] ?? 0;
-    const color = SEGMENT_COLORS[optionIndex % SEGMENT_COLORS.length];
+  // Màu gắn theo mood (không theo vị trí) nên không nhảy giữa các tháng.
+  const segments = MOOD_OPTIONS.flatMap((option) => {
+    const mood = option.value as MoodLabel;
+    const count = distribution[mood] ?? 0;
 
-    return count > 0 ? [{ ...option, count, color }] : [];
+    return count > 0 ? [{ ...option, count, color: MOOD_COLORS[mood] }] : [];
   });
   const total = segments.reduce((sum, segment) => sum + segment.count, 0);
 

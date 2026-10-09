@@ -23,7 +23,34 @@ describe("MoodDistributionBar", () => {
 
     render(<MoodDistributionBar distribution={{ CALM: 4 }} />);
 
+    expect(colorWithJoyful).toBeDefined();
     expect(segmentColorOf(/Bình yên/)).toBe(colorWithJoyful);
+  });
+
+  it("gives every mood its own color", () => {
+    render(
+      <MoodDistributionBar
+        distribution={{
+          JOYFUL: 1,
+          CALM: 1,
+          HOPEFUL: 1,
+          ENERGETIC: 1,
+          NEUTRAL: 1,
+          TIRED: 1,
+          ANXIOUS: 1,
+          SAD: 1,
+          ANGRY: 1,
+          OVERWHELMED: 1,
+        }}
+      />,
+    );
+
+    const colors = screen
+      .getAllByRole("listitem")
+      .map((item) => item.firstElementChild?.className);
+
+    expect(colors).toHaveLength(10);
+    expect(new Set(colors).size).toBe(10);
   });
 
   it("renders nothing for an empty distribution", () => {
