@@ -330,9 +330,10 @@ model Habit {
   owner                User                       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   checkIns             HabitCheckIn[]
   relapses             HabitRelapse[]
-  routineLinks         RoutineHabit[]
-  lifecycleTransitions HabitLifecycleTransition[]
-  scheduleVersions     HabitScheduleVersion[]
+  routineLinks             RoutineHabit[]
+  lifecycleTransitions     HabitLifecycleTransition[]
+  scheduleVersions         HabitScheduleVersion[]
+  routineMembershipHistory RoutineHabitMembership[]
 
   @@unique([id, ownerId])
   @@index([ownerId, isActive])
@@ -421,6 +422,7 @@ model Routine {
   owner                User                         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   habits               RoutineHabit[]
   lifecycleTransitions RoutineLifecycleTransition[]
+  membershipHistory    RoutineHabitMembership[]
 
   @@unique([id, ownerId])
   @@index([ownerId, isActive])
@@ -439,6 +441,31 @@ model RoutineHabit {
   @@id([routineId, habitId])
   @@unique([routineId, order])
   @@map("routine_habits")
+}
+
+// Lịch sử thành viên Routine (Forge temporal history §3.4): mỗi khoảng
+// [addedOn, removedOn) là 1 lần Habit nằm trong Routine. RoutineHabit vẫn là
+// nguồn sự thật cho thành viên HIỆN TẠI + thứ tự; bảng này chỉ là lịch sử.
+// Ràng buộc chỉ có trong migration SQL (Prisma không biểu diễn được):
+//   - partial unique index "routine_habit_memberships_one_open_per_pair"
+//     ON (routine_id, habit_id) WHERE removed_on IS NULL — tối đa 1 khoảng mở / cặp
+//   - CHECK "routine_habit_memberships_valid_range"
+//     removed_on IS NULL OR removed_on >= added_on
+model RoutineHabitMembership {
+  id        String    @id @default(uuid())
+  routineId String    @map("routine_id")
+  habitId   String    @map("habit_id")
+  ownerId   String    @map("owner_id")
+  addedOn   DateTime  @map("added_on") @db.Date
+  removedOn DateTime? @map("removed_on") @db.Date
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  routine Routine @relation(fields: [routineId, ownerId], references: [id, ownerId], onDelete: Cascade)
+  habit   Habit   @relation(fields: [habitId, ownerId], references: [id, ownerId], onDelete: Cascade)
+
+  @@index([routineId, addedOn])
+  @@index([habitId])
+  @@map("routine_habit_memberships")
 }
 
 model RoutineLifecycleTransition {

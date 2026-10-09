@@ -7,7 +7,11 @@ import {
   RoutineHabitNotFoundException,
 } from './exceptions';
 import { RoutineLifecycleAction } from './enums';
-import { RoutineLifecycleTransitionedEvent } from './events';
+import {
+  RoutineHabitAddedEvent,
+  RoutineHabitRemovedEvent,
+  RoutineLifecycleTransitionedEvent,
+} from './events';
 import { Routine, type RoutineProps } from './routine.aggregate';
 import { RoutineCalendarDate, RoutineId } from './value-objects';
 
@@ -27,6 +31,7 @@ const rehydrateRoutine = (overrides: Partial<RoutineProps> = {}): Routine =>
     createdAt: new Date('2026-08-01T00:00:00.000Z'),
     createdOn: calendarDate('2026-08-01'),
     latestLifecycleEffectiveOn: null,
+    membershipFloors: new Map(),
     updatedAt: new Date('2026-08-01T00:00:00.000Z'),
     ...overrides,
   });
@@ -49,6 +54,33 @@ const lifecycleTransitions = (
       action: event.action,
       effectiveOn: event.effectiveOn.value,
     }));
+
+type MembershipChange = {
+  change: 'added' | 'removed';
+  habitId: string;
+  on: string;
+};
+
+const membershipChanges = (routine: Routine): MembershipChange[] =>
+  routine.getDomainEvents().flatMap((event): MembershipChange[] => {
+    if (event instanceof RoutineHabitAddedEvent) {
+      return [
+        { change: 'added', habitId: event.habitId, on: event.addedOn.value },
+      ];
+    }
+
+    if (event instanceof RoutineHabitRemovedEvent) {
+      return [
+        {
+          change: 'removed',
+          habitId: event.habitId,
+          on: event.removedOn.value,
+        },
+      ];
+    }
+
+    return [];
+  });
 
 describe('Routine', () => {
   describe('create', () => {
@@ -273,9 +305,9 @@ describe('Routine', () => {
       const routine = rehydrateRoutine();
 
       routine.updateTitle('Evening');
-      routine.addHabit('habit-1');
+      routine.addHabit('habit-1', TODAY);
 
-      expect(routine.getDomainEvents()).toEqual([]);
+      expect(lifecycleTransitions(routine)).toEqual([]);
     });
   });
 
@@ -294,6 +326,7 @@ describe('Routine', () => {
         createdAt,
         createdOn: calendarDate('2026-08-01'),
         latestLifecycleEffectiveOn: calendarDate('2026-08-02'),
+        membershipFloors: new Map(),
         updatedAt,
       });
 
@@ -327,7 +360,7 @@ describe('Routine', () => {
     it('adds a Habit to the end of the Routine', () => {
       const routine = rehydrateActiveRoutine(['habit-1']);
 
-      routine.addHabit('habit-2');
+      routine.addHabit('habit-2', TODAY);
 
       expect(routine.habitIds).toEqual(['habit-1', 'habit-2']);
       expect(routine.revision).toBe(2);
@@ -336,7 +369,7 @@ describe('Routine', () => {
     it('normalizes a Habit ID before adding it', () => {
       const routine = rehydrateActiveRoutine();
 
-      routine.addHabit('  habit-1  ');
+      routine.addHabit('  habit-1  ', TODAY);
 
       expect(routine.habitIds).toEqual(['habit-1']);
     });
@@ -344,7 +377,7 @@ describe('Routine', () => {
     it('rejects an empty Habit ID', () => {
       const routine = rehydrateActiveRoutine();
 
-      expect(() => routine.addHabit('   ')).toThrow(
+      expect(() => routine.addHabit('   ', TODAY)).toThrow(
         InvalidRoutineHabitIdException,
       );
     });
@@ -352,7 +385,7 @@ describe('Routine', () => {
     it('does not add the same Habit twice', () => {
       const routine = rehydrateActiveRoutine(['habit-1']);
 
-      expect(() => routine.addHabit('habit-1')).toThrow(
+      expect(() => routine.addHabit('habit-1', TODAY)).toThrow(
         RoutineHabitAlreadyExistsException,
       );
 
@@ -363,7 +396,7 @@ describe('Routine', () => {
     it('removes a Habit and closes the order gap', () => {
       const routine = rehydrateActiveRoutine(['habit-1', 'habit-2', 'habit-3']);
 
-      routine.removeHabit('habit-2');
+      routine.removeHabit('habit-2', TODAY);
 
       expect(routine.habitIds).toEqual(['habit-1', 'habit-3']);
       expect(routine.revision).toBe(2);
@@ -372,9 +405,182 @@ describe('Routine', () => {
     it('does not remove a missing Habit', () => {
       const routine = rehydrateActiveRoutine(['habit-1']);
 
-      expect(() => routine.removeHabit('habit-2')).toThrow(
+      expect(() => routine.removeHabit('habit-2', TODAY)).toThrow(
         RoutineHabitNotFoundException,
       );
+    });
+  });
+
+  describe('Habit membership history', () => {
+    it('records an added event dated today', () => {
+      const routine = rehydrateActiveRoutine();
+
+      routine.addHabit('  habit-1  ', TODAY);
+
+      const [event] = routine.getDomainEvents();
+      expect(event).toBeInstanceOf(RoutineHabitAddedEvent);
+      expect(event).toMatchObject({
+        routineId: 'routine-1',
+        ownerId: 'owner-1',
+        habitId: 'habit-1',
+      });
+      expect(membershipChanges(routine)).toEqual([
+        { change: 'added', habitId: 'habit-1', on: '2026-10-09' },
+      ]);
+    });
+
+    it('records a removed event dated today', () => {
+      const routine = rehydrateActiveRoutine(['habit-1']);
+
+      routine.removeHabit('habit-1', TODAY);
+
+      const [event] = routine.getDomainEvents();
+      expect(event).toBeInstanceOf(RoutineHabitRemovedEvent);
+      expect(event).toMatchObject({
+        routineId: 'routine-1',
+        ownerId: 'owner-1',
+        habitId: 'habit-1',
+      });
+      expect(membershipChanges(routine)).toEqual([
+        { change: 'removed', habitId: 'habit-1', on: '2026-10-09' },
+      ]);
+    });
+
+    it('records every change in order, even on the same day', () => {
+      const routine = rehydrateActiveRoutine(['habit-1']);
+
+      routine.removeHabit('habit-1', TODAY);
+      routine.addHabit('habit-1', TODAY);
+
+      expect(membershipChanges(routine)).toEqual([
+        { change: 'removed', habitId: 'habit-1', on: '2026-10-09' },
+        { change: 'added', habitId: 'habit-1', on: '2026-10-09' },
+      ]);
+      expect(routine.habitIds).toEqual(['habit-1']);
+      expect(routine.revision).toBe(3);
+    });
+
+    it('never dates a re-add before the latest recorded change of that Habit', () => {
+      // Habit đã được gỡ vào 10-12 (owner từng ở múi giờ phía đông hơn).
+      const routine = rehydrateRoutine({
+        membershipFloors: new Map([['habit-1', calendarDate('2026-10-12')]]),
+      });
+
+      routine.addHabit('habit-1', TODAY);
+
+      expect(membershipChanges(routine)).toEqual([
+        { change: 'added', habitId: 'habit-1', on: '2026-10-12' },
+      ]);
+    });
+
+    it('does not clamp a Habit by another Habit floor', () => {
+      const routine = rehydrateRoutine({
+        habitIds: ['habit-2'],
+        membershipFloors: new Map([['habit-1', calendarDate('2026-10-12')]]),
+      });
+
+      routine.addHabit('habit-3', TODAY);
+      routine.removeHabit('habit-2', TODAY);
+
+      expect(membershipChanges(routine)).toEqual([
+        { change: 'added', habitId: 'habit-3', on: '2026-10-09' },
+        { change: 'removed', habitId: 'habit-2', on: '2026-10-09' },
+      ]);
+    });
+
+    it('never dates a change before createdOn', () => {
+      const routine = rehydrateRoutine({ createdOn: TODAY });
+
+      routine.addHabit('habit-1', calendarDate('2026-10-08'));
+
+      expect(membershipChanges(routine)).toEqual([
+        { change: 'added', habitId: 'habit-1', on: '2026-10-09' },
+      ]);
+    });
+
+    it('keeps dates monotonic when the owner moves west within one aggregate', () => {
+      const routine = rehydrateActiveRoutine(['habit-1']);
+
+      routine.removeHabit('habit-1', TODAY);
+      // Owner đổi múi giờ về phía tây: "hôm nay" lùi về 10-08.
+      routine.addHabit('habit-1', calendarDate('2026-10-08'));
+
+      expect(membershipChanges(routine)).toEqual([
+        { change: 'removed', habitId: 'habit-1', on: '2026-10-09' },
+        { change: 'added', habitId: 'habit-1', on: '2026-10-09' },
+      ]);
+    });
+
+    it('treats a newly created Routine as having loaded, empty floors', () => {
+      const routine = Routine.create({
+        ownerId: 'owner-1',
+        today: TODAY,
+        title: 'Morning',
+      });
+
+      routine.addHabit('habit-1', calendarDate('2026-10-10'));
+
+      expect(membershipChanges(routine)).toEqual([
+        { change: 'added', habitId: 'habit-1', on: '2026-10-10' },
+      ]);
+    });
+
+    it('fails loudly on add/remove when the floors were not loaded', () => {
+      const routine = rehydrateRoutine({
+        habitIds: ['habit-1'],
+        membershipFloors: undefined,
+      });
+
+      expect(() => routine.addHabit('habit-2', TODAY)).toThrow(
+        'Routine membership floors were not loaded',
+      );
+      expect(() => routine.removeHabit('habit-1', TODAY)).toThrow(
+        'Routine membership floors were not loaded',
+      );
+      expect(routine.habitIds).toEqual(['habit-1']);
+      expect(routine.revision).toBe(1);
+      expect(routine.getDomainEvents()).toEqual([]);
+    });
+
+    it('still reports domain errors before the not-loaded guard', () => {
+      const routine = rehydrateRoutine({
+        habitIds: ['habit-1'],
+        membershipFloors: undefined,
+      });
+
+      expect(() => routine.addHabit('habit-1', TODAY)).toThrow(
+        RoutineHabitAlreadyExistsException,
+      );
+      expect(() => routine.removeHabit('habit-2', TODAY)).toThrow(
+        RoutineHabitNotFoundException,
+      );
+      expect(() => routine.addHabit('   ', TODAY)).toThrow(
+        InvalidRoutineHabitIdException,
+      );
+    });
+
+    it('does not record membership events when reordering', () => {
+      const routine = rehydrateActiveRoutine(['habit-1', 'habit-2', 'habit-3']);
+
+      routine.reorderHabits(['habit-3', 'habit-1', 'habit-2']);
+      routine.moveHabitUp('habit-2');
+      routine.moveHabitDown('habit-3');
+
+      expect(routine.revision).toBe(4);
+      expect(routine.getDomainEvents()).toEqual([]);
+    });
+
+    it('does not record events for rejected changes', () => {
+      const routine = rehydrateActiveRoutine(['habit-1']);
+
+      expect(() => routine.addHabit('habit-1', TODAY)).toThrow(
+        RoutineHabitAlreadyExistsException,
+      );
+      expect(() => routine.removeHabit('habit-2', TODAY)).toThrow(
+        RoutineHabitNotFoundException,
+      );
+
+      expect(routine.getDomainEvents()).toEqual([]);
     });
   });
 
@@ -482,11 +688,11 @@ describe('Routine', () => {
 
       routine.archive(TODAY);
 
-      expect(() => routine.addHabit('habit-2')).toThrow(
+      expect(() => routine.addHabit('habit-2', TODAY)).toThrow(
         InvalidRoutineTransitionException,
       );
 
-      expect(() => routine.removeHabit('habit-1')).toThrow(
+      expect(() => routine.removeHabit('habit-1', TODAY)).toThrow(
         InvalidRoutineTransitionException,
       );
 

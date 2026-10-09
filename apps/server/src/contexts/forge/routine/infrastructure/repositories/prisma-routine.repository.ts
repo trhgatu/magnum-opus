@@ -2,7 +2,11 @@ import { Injectable } from '@nestjs/common';
 
 import { PrismaService } from '@infrastructure/database/prisma.service';
 
-import { RoutineLifecycleTransitionedEvent } from '../../domain/events';
+import {
+  RoutineHabitAddedEvent,
+  RoutineHabitRemovedEvent,
+  RoutineLifecycleTransitionedEvent,
+} from '../../domain/events';
 import { Routine } from '../../domain/routine.aggregate';
 import { RoutineRepository } from '../../domain/ports/routine.repository';
 import { PrismaRoutineMapper } from '../mappers/prisma-routine.mapper';
@@ -32,16 +36,24 @@ export class PrismaRoutineRepository implements RoutineRepository {
     expectedRevision: number,
   ): Promise<boolean> {
     const raw = PrismaRoutineMapper.toPersistence(routine);
-    const transitions = routine
-      .pullDomainEvents()
+    const events = routine.pullDomainEvents();
+    const transitions = events
       .filter(
         (event): event is RoutineLifecycleTransitionedEvent =>
           event instanceof RoutineLifecycleTransitionedEvent,
       )
       .map((event) => PrismaRoutineMapper.transitionToPersistence(event));
+    // Giữ đúng thứ tự sự kiện: gỡ rồi thêm lại cùng 1 Habit phải đóng khoảng
+    // cũ trước khi mở khoảng mới (partial unique index 1 khoảng mở / cặp).
+    const membershipEvents = events.filter(
+      (event): event is RoutineHabitAddedEvent | RoutineHabitRemovedEvent =>
+        event instanceof RoutineHabitAddedEvent ||
+        event instanceof RoutineHabitRemovedEvent,
+    );
 
-    // Lịch sử lifecycle ghi cùng transaction với optimistic update: revision
-    // lệch thì không có transition nào được ghi (DAP-FTH-003).
+    // Lịch sử lifecycle và thành viên ghi cùng transaction với optimistic
+    // update: revision lệch thì không có dòng lịch sử nào được ghi
+    // (DAP-FTH-003).
     return this.prisma.$transaction(async (transaction) => {
       const result = await transaction.routine.updateMany({
         where: {
@@ -79,6 +91,29 @@ export class PrismaRoutineRepository implements RoutineRepository {
           data: transitions,
         });
       }
+
+      for (const event of membershipEvents) {
+        if (event instanceof RoutineHabitAddedEvent) {
+          await transaction.routineHabitMembership.create({
+            data: PrismaRoutineMapper.membershipOpeningToPersistence(event),
+          });
+          continue;
+        }
+
+        const closing =
+          PrismaRoutineMapper.membershipClosingToPersistence(event);
+
+        await transaction.routineHabitMembership.updateMany({
+          where: {
+            routineId: closing.routineId,
+            habitId: closing.habitId,
+            ownerId: closing.ownerId,
+            removedOn: null,
+          },
+          data: { removedOn: closing.removedOn },
+        });
+      }
+
       return true;
     });
   }
@@ -102,6 +137,9 @@ export class PrismaRoutineRepository implements RoutineRepository {
           select: { effectiveOn: true },
           orderBy: [{ effectiveOn: 'desc' }, { occurredAt: 'desc' }],
           take: 1,
+        },
+        membershipHistory: {
+          select: { habitId: true, addedOn: true, removedOn: true },
         },
       },
     });

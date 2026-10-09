@@ -17,6 +17,7 @@ describe('RoutinePresenter', () => {
         new Date('2026-08-20T00:00:00.000Z'),
       ),
       latestLifecycleEffectiveOn: null,
+      membershipFloors: new Map(),
       updatedAt: new Date('2026-08-21T10:00:00.000Z'),
     });
 
