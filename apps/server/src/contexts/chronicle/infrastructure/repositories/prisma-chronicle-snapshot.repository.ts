@@ -8,7 +8,7 @@ import {
   ChronicleSnapshotRepository,
   StoredChronicleSection,
   StoredChronicleSnapshot,
-} from '../../application/ports';
+} from '../../application/ports/chronicle-snapshot.repository.port';
 import { ChroniclePeriod } from '../../domain/value-objects';
 
 const sectionSelect = {

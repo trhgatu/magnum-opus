@@ -7,18 +7,19 @@ import { Result } from '@shared/domain/result';
 import { ChronicleMonthInFutureException } from '../../../domain/exceptions';
 import { ChroniclePeriod } from '../../../domain/value-objects';
 
+import { type ChronicleSectionReader } from '../../ports/chronicle-section-reader.port';
 import {
   CHRONICLE_SNAPSHOT_REPOSITORY,
-  CLOCK,
-  USER_TIME_ZONE_READER,
-  type ChronicleSectionReader,
   type ChronicleSectionToStore,
   type ChronicleSnapshotRepository,
-  type Clock,
   type StoredChronicleSection,
   type StoredChronicleSnapshot,
+} from '../../ports/chronicle-snapshot.repository.port';
+import { CLOCK, type Clock } from '../../ports/clock.port';
+import {
+  USER_TIME_ZONE_READER,
   type UserTimeZoneReader,
-} from '../../ports';
+} from '../../ports/user-time-zone-reader.port';
 
 import { ChronicleSectionDataByModule } from '../../section-data';
 

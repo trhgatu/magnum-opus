@@ -2,11 +2,11 @@ import {
   ChronicleMonthInFutureException,
   InvalidChronicleMonthException,
 } from '../../../domain/exceptions';
+import { ChronicleSectionReader } from '../../ports/chronicle-section-reader.port';
 import {
-  ChronicleSectionReader,
   ChronicleSnapshotRepository,
   StoredChronicleSnapshot,
-} from '../../ports';
+} from '../../ports/chronicle-snapshot.repository.port';
 import { CHRONICLE_MODULES, ChronicleModule } from '../../section-data';
 import { ChronicleSectionReaderRegistry } from '../../services/chronicle-section-reader-registry';
 

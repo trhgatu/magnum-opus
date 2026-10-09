@@ -1,4 +1,4 @@
-import { ChronicleSectionReader } from '../ports';
+import { ChronicleSectionReader } from '../ports/chronicle-section-reader.port';
 import { CHRONICLE_MODULES, ChronicleModule } from '../section-data';
 
 /**

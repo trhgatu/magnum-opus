@@ -2,11 +2,8 @@ import { Inject, Injectable } from '@nestjs/common';
 
 import { PrismaService } from '@infrastructure/database/prisma.service';
 
-import {
-  CLOCK,
-  type ChronicleSectionReader,
-  type Clock,
-} from '../../application/ports';
+import { type ChronicleSectionReader } from '../../application/ports/chronicle-section-reader.port';
+import { CLOCK, type Clock } from '../../application/ports/clock.port';
 import { RoutineSectionData } from '../../application/section-data';
 import { summarizeRoutines } from '../../application/services/routine-month-summary';
 import { calendarDayOf, calendarDayToDate } from '../../domain/calendar-day';

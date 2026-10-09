@@ -11,7 +11,7 @@ import cookieParser from 'cookie-parser';
 import request from 'supertest';
 
 import { AppModule } from '../src/app.module';
-import { CLOCK } from '../src/contexts/chronicle/application/ports';
+import { CLOCK } from '../src/contexts/chronicle/application/ports/clock.port';
 import { PrismaService } from '../src/infrastructure/database/prisma.service';
 import { DomainExceptionFilter } from '../src/presentation/filters/domain-exception.filter';
 

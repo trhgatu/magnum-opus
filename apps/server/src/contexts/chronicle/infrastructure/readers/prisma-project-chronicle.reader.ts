@@ -4,7 +4,7 @@ import { ProjectLifecycleState } from '@repo/database';
 
 import { PrismaService } from '@infrastructure/database/prisma.service';
 
-import { ChronicleSectionReader } from '../../application/ports';
+import { ChronicleSectionReader } from '../../application/ports/chronicle-section-reader.port';
 import { ProjectSectionData } from '../../application/section-data';
 import { ChroniclePeriod } from '../../domain/value-objects';
 

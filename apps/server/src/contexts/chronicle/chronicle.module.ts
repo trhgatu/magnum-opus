@@ -3,11 +3,11 @@ import { CqrsModule } from '@nestjs/cqrs';
 
 import {
   CHRONICLE_SECTION_READERS,
-  CHRONICLE_SNAPSHOT_REPOSITORY,
-  CLOCK,
-  USER_TIME_ZONE_READER,
   type ChronicleSectionReader,
-} from './application/ports';
+} from './application/ports/chronicle-section-reader.port';
+import { CHRONICLE_SNAPSHOT_REPOSITORY } from './application/ports/chronicle-snapshot.repository.port';
+import { CLOCK } from './application/ports/clock.port';
+import { USER_TIME_ZONE_READER } from './application/ports/user-time-zone-reader.port';
 import { GetMonthlyChronicleHandler } from './application/queries/handlers/get-monthly-chronicle.handler';
 import { ChronicleSectionReaderRegistry } from './application/services/chronicle-section-reader-registry';
 import { SystemClock } from './infrastructure/clock/system-clock';

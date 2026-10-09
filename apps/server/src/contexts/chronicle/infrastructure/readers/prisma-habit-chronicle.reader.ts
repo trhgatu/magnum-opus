@@ -1,10 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 
-import {
-  CLOCK,
-  type ChronicleSectionReader,
-  type Clock,
-} from '../../application/ports';
+import { type ChronicleSectionReader } from '../../application/ports/chronicle-section-reader.port';
+import { CLOCK, type Clock } from '../../application/ports/clock.port';
 import { HabitSectionData } from '../../application/section-data';
 import { summarizeHabits } from '../../application/services/habit-month-summary';
 import { ChroniclePeriod } from '../../domain/value-objects';
