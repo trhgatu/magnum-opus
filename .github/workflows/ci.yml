@@ -7,7 +7,9 @@ on:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # Chỉ hủy run cũ của PR. Run trên main có thể đang migrate production DB —
+  # hủy giữa chừng thì một migration có thể đã áp dụng mà server chưa deploy.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   TURBO_TELEMETRY_DISABLED: '1'
@@ -300,10 +302,61 @@ jobs:
           docker push "$IMAGE:${{ github.sha }}"
           docker push "$IMAGE:latest"
 
+  # Render gói free không có Pre-Deploy Command, nên migrate ở đây: áp dụng
+  # migration lên production DB trước, thành công rồi mới báo Render deploy.
+  # Migration phải theo kiểu expand (chỉ thêm) để server cũ đang chạy vẫn
+  # tương thích với schema mới trong lúc chờ Render kéo image mới.
+  deploy-server:
+    name: Migrate production database, deploy server
+    runs-on: ubuntu-latest
+    # Rộng tay: hết giờ giữa lúc migrate cũng là dừng giữa chừng, và có
+    # migration build index CONCURRENTLY trên bảng lớn (audit log).
+    timeout-minutes: 60
+    needs: [image]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Không bao giờ chạy 2 lần migrate production song song hoặc hủy giữa chừng.
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v4.4.0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Kiểm tra đủ cả hai secret TRƯỚC khi migrate: migrate xong mà không
+      # gọi được hook thì DB ở schema mới còn server chưa deploy.
+      - name: Check deploy secrets
+        env:
+          PRODUCTION_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+          RENDER_DEPLOY_HOOK_SERVER: ${{ secrets.RENDER_DEPLOY_HOOK_SERVER }}
+        run: |
+          missing=0
+          for name in PRODUCTION_DATABASE_URL RENDER_DEPLOY_HOOK_SERVER; do
+            if [ -z "$(printenv "$name")" ]; then
+              echo "::error::Secret $name chưa được cấu hình — không migrate, không deploy."
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Apply pending migrations to the production database
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+        run: pnpm --filter=@repo/database db:deploy
+
       # Render deploy-from-registry không tự pull lại image khi có bản mới —
       # phải chủ động báo qua Deploy Hook sau khi :latest đã lên GHCR.
-      - name: Trigger Render redeploy (server only)
-        if: >-
-          github.event_name == 'push' && github.ref == 'refs/heads/main' &&
-          matrix.image == 'server'
-        run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_SERVER }}"
+      - name: Trigger Render redeploy
+        env:
+          RENDER_DEPLOY_HOOK_SERVER: ${{ secrets.RENDER_DEPLOY_HOOK_SERVER }}
+        run: curl -fsS -X POST "$RENDER_DEPLOY_HOOK_SERVER"
