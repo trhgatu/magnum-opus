@@ -7,6 +7,7 @@ import { ContextHero } from "@/components/system/context-hero";
 import { Badge } from "@/components/ui/badge";
 import { getChronicle } from "@/features/chronicle/api/chronicle";
 import { ChronicleMonthNav } from "@/features/chronicle/components/chronicle-month-nav";
+import { ChronicleMonthPicker } from "@/features/chronicle/components/chronicle-month-picker";
 import { ChronicleOverview } from "@/features/chronicle/components/chronicle-overview";
 import {
   type ChronicleMonth,
@@ -107,8 +108,9 @@ export default async function ChronicleMonthPage({
   }
 
   const { chronicle, today } = loaded;
+  const currentMonth = monthOfDay(today.date);
 
-  const isCurrentMonth = compareMonths(requested, monthOfDay(today.date)) === 0;
+  const isCurrentMonth = compareMonths(requested, currentMonth) === 0;
   const frozenAt = formatFrozenAt(chronicle.computedAt, today.timeZone);
 
   return (
@@ -136,10 +138,16 @@ export default async function ChronicleMonthPage({
           )
         }
         actions={
-          <ChronicleMonthNav
-            month={requested}
-            isCurrentMonth={isCurrentMonth}
-          />
+          <div className="flex flex-wrap gap-2">
+            <ChronicleMonthNav
+              month={requested}
+              isCurrentMonth={isCurrentMonth}
+            />
+            <ChronicleMonthPicker
+              month={requested}
+              currentMonth={currentMonth}
+            />
+          </div>
         }
       />
 
