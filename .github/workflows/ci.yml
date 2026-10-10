@@ -309,7 +309,9 @@ jobs:
   deploy-server:
     name: Migrate production database, deploy server
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # Rộng tay: hết giờ giữa lúc migrate cũng là dừng giữa chừng, và có
+    # migration build index CONCURRENTLY trên bảng lớn (audit log).
+    timeout-minutes: 60
     needs: [image]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     # Không bao giờ chạy 2 lần migrate production song song hoặc hủy giữa chừng.
@@ -331,15 +333,26 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Kiểm tra đủ cả hai secret TRƯỚC khi migrate: migrate xong mà không
+      # gọi được hook thì DB ở schema mới còn server chưa deploy.
+      - name: Check deploy secrets
+        env:
+          PRODUCTION_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+          RENDER_DEPLOY_HOOK_SERVER: ${{ secrets.RENDER_DEPLOY_HOOK_SERVER }}
+        run: |
+          missing=0
+          for name in PRODUCTION_DATABASE_URL RENDER_DEPLOY_HOOK_SERVER; do
+            if [ -z "$(printenv "$name")" ]; then
+              echo "::error::Secret $name chưa được cấu hình — không migrate, không deploy."
+              missing=1
+            fi
+          done
+          exit "$missing"
+
       - name: Apply pending migrations to the production database
         env:
           DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
-        run: |
-          if [ -z "$DATABASE_URL" ]; then
-            echo "::error::Secret PRODUCTION_DATABASE_URL chưa được cấu hình — không deploy khi chưa migrate."
-            exit 1
-          fi
-          pnpm --filter=@repo/database db:deploy
+        run: pnpm --filter=@repo/database db:deploy
 
       # Render deploy-from-registry không tự pull lại image khi có bản mới —
       # phải chủ động báo qua Deploy Hook sau khi :latest đã lên GHCR.

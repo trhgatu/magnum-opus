@@ -164,6 +164,8 @@ push main → quality + E2E → image push :<sha> + :latest
 → gọi Render Deploy Hook (secret RENDER_DEPLOY_HOOK_SERVER)
 ```
 
+`PRODUCTION_DATABASE_URL` phải là connection string **direct** của Neon (host không có `-pooler`): `prisma migrate deploy` cần advisory lock ở mức session, mà pooler chế độ transaction không giữ được. Job kiểm tra đủ cả hai secret trước khi migrate.
+
 Render gói free không có Pre-Deploy Command nên migrate nằm ở CI. Migrate lỗi thì không gọi hook, nên server mới không bao giờ lên trên schema cũ. Server cũ vẫn chạy trên schema mới trong lúc chờ Render kéo image, vì vậy migration phải theo kiểu expand (thêm bảng/cột); xóa hoặc đổi tên cột cần tách thành hai lần deploy. Job dùng concurrency group `deploy-production` không hủy giữa chừng, và run CI trên `main` không bị run sau hủy.
 
 ## Backup
