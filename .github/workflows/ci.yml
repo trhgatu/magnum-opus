@@ -29,7 +29,7 @@ jobs:
       API_URL: https://api.ci.example.invalid
       SESSION_SECRET: ci-only-session-secret-0123456789abcdef
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: pnpm/action-setup@v4.4.0
 
@@ -106,7 +106,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: pnpm/action-setup@v4.4.0
 
@@ -194,7 +194,7 @@ jobs:
       E2E_ADMIN_EMAIL: admin.e2e@example.com
       E2E_ADMIN_PASSWORD: AdminE2EPassword123!
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: pnpm/action-setup@v4.4.0
 
@@ -263,7 +263,7 @@ jobs:
           - image: client
             dockerfile: apps/client/Dockerfile
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       # ghcr yêu cầu tên image chữ thường; tên repo có chữ hoa
       - name: Resolve image name
