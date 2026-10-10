@@ -7,7 +7,9 @@ on:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # Chỉ hủy run cũ của PR. Run trên main có thể đang migrate production DB —
+  # hủy giữa chừng thì một migration có thể đã áp dụng mà server chưa deploy.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   TURBO_TELEMETRY_DISABLED: '1'
@@ -300,10 +302,48 @@ jobs:
           docker push "$IMAGE:${{ github.sha }}"
           docker push "$IMAGE:latest"
 
+  # Render gói free không có Pre-Deploy Command, nên migrate ở đây: áp dụng
+  # migration lên production DB trước, thành công rồi mới báo Render deploy.
+  # Migration phải theo kiểu expand (chỉ thêm) để server cũ đang chạy vẫn
+  # tương thích với schema mới trong lúc chờ Render kéo image mới.
+  deploy-server:
+    name: Migrate production database, deploy server
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [image]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Không bao giờ chạy 2 lần migrate production song song hoặc hủy giữa chừng.
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v4.4.0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply pending migrations to the production database
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::Secret PRODUCTION_DATABASE_URL chưa được cấu hình — không deploy khi chưa migrate."
+            exit 1
+          fi
+          pnpm --filter=@repo/database db:deploy
+
       # Render deploy-from-registry không tự pull lại image khi có bản mới —
       # phải chủ động báo qua Deploy Hook sau khi :latest đã lên GHCR.
-      - name: Trigger Render redeploy (server only)
-        if: >-
-          github.event_name == 'push' && github.ref == 'refs/heads/main' &&
-          matrix.image == 'server'
-        run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_SERVER }}"
+      - name: Trigger Render redeploy
+        env:
+          RENDER_DEPLOY_HOOK_SERVER: ${{ secrets.RENDER_DEPLOY_HOOK_SERVER }}
+        run: curl -fsS -X POST "$RENDER_DEPLOY_HOOK_SERVER"
