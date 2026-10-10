@@ -62,7 +62,12 @@ export function ChronicleMonthPicker({
           >
             <ChevronLeft aria-hidden="true" />
           </Button>
-          <p className="font-mono text-sm font-semibold tabular-nums">{year}</p>
+          <p
+            aria-live="polite"
+            className="font-mono text-sm font-semibold tabular-nums"
+          >
+            {year}
+          </p>
           <Button
             variant="ghost"
             size="icon-sm"

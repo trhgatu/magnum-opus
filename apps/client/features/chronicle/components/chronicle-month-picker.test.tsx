@@ -49,7 +49,8 @@ describe("ChronicleMonthPicker", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Năm 2025" }));
 
-    expect(screen.getByText("2025")).toBeInTheDocument();
+    // Screen reader được báo năm mới sau khi bấm mũi tên.
+    expect(screen.getByText("2025")).toHaveAttribute("aria-live", "polite");
     expect(
       screen.getByRole("link", { name: "Tháng 12 · 2025" }),
     ).toHaveAttribute("href", "/chronicle/2025/12");
