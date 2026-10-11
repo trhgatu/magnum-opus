@@ -24,7 +24,6 @@ describe('MetricsService', () => {
         delayed: 0,
         completed: 8,
         failed: 2,
-        paused: 0,
       }),
       getJobs: jest.fn().mockResolvedValue([{ timestamp: now - 10_000 }]),
     };
@@ -43,6 +42,14 @@ describe('MetricsService', () => {
     service.onModuleInit();
     const output = await service.metrics();
 
+    // BullMQ 6 không còn trạng thái 'paused'.
+    expect(queue.getJobCounts).toHaveBeenCalledWith(
+      'waiting',
+      'active',
+      'delayed',
+      'completed',
+      'failed',
+    );
     expect(output).toContain(
       `bullmq_jobs{queue="${USER_QUEUE}",status="waiting"} 3`,
     );
