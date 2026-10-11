@@ -11,6 +11,7 @@ import { CreateUserCommandHandler } from './application/commands/handlers/create
 import { DeleteUserCommandHandler } from './application/commands/handlers/delete-user.handler';
 import { ActivateUserCommandHandler } from './application/commands/handlers/activate-user.handler';
 import { UpdateUserCommandHandler } from './application/commands/handlers/update-user.handler';
+import { UpdateMyTimeZoneHandler } from './application/commands/handlers/update-my-time-zone.handler';
 import { USER_QUEUE } from './application/jobs/user-email.jobs';
 import { USER_REPOSITORY } from './domain/ports/user.repository';
 import { PASSWORD_HASHER } from './application/ports/password-hasher.port';
@@ -36,6 +37,7 @@ import { PASSWORD_HASHER } from './application/ports/password-hasher.port';
     DeleteUserCommandHandler,
     ActivateUserCommandHandler,
     UpdateUserCommandHandler,
+    UpdateMyTimeZoneHandler,
   ],
   exports: [USER_REPOSITORY, PASSWORD_HASHER, BullModule],
 })

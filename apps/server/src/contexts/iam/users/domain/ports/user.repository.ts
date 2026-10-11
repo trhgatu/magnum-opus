@@ -18,6 +18,15 @@ export interface UserRepository {
   findById(id: string): Promise<UserEntity | null>;
   findByEmail(email: string): Promise<UserEntity | null>;
   changePassword(userId: string, passwordHash: string): Promise<boolean>;
+  /**
+   * Ghi riêng cột time zone — `save()` không đụng tới nó, để một lần lưu
+   * hồ sơ/vai trò từ snapshot cũ không ghi đè lựa chọn mới hơn.
+   */
+  changeTimeZone(
+    userId: string,
+    timeZone: string,
+    updatedBy: string,
+  ): Promise<boolean>;
   markEmailVerified(
     userId: string,
     email: string,

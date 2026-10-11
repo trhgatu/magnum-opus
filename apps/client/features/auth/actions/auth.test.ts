@@ -207,6 +207,36 @@ describe("email verification", () => {
     );
   });
 
+  it("sends the browser time zone captured by the form", async () => {
+    apiFetchPublic.mockResolvedValue({ emailVerificationRequired: true });
+    const data = new FormData();
+    data.set("email", "member@example.com");
+    data.set("username", "member");
+    data.set("password", "new-password-123");
+    data.set("confirmPassword", "new-password-123");
+    data.set("timeZone", "Asia/Ho_Chi_Minh");
+    await register({ status: "idle" }, data);
+
+    const [, init] = apiFetchPublic.mock.calls[0];
+    expect(JSON.parse(init.body)).toMatchObject({
+      timeZone: "Asia/Ho_Chi_Minh",
+    });
+  });
+
+  it("omits the time zone when the form could not capture one", async () => {
+    apiFetchPublic.mockResolvedValue({ emailVerificationRequired: true });
+    const data = new FormData();
+    data.set("email", "member@example.com");
+    data.set("username", "member");
+    data.set("password", "new-password-123");
+    data.set("confirmPassword", "new-password-123");
+    data.set("timeZone", "");
+    await register({ status: "idle" }, data);
+
+    const [, init] = apiFetchPublic.mock.calls[0];
+    expect(JSON.parse(init.body)).not.toHaveProperty("timeZone");
+  });
+
   it("rejects a malformed verification token before calling the API", async () => {
     const data = new FormData();
     data.set("token", "short");

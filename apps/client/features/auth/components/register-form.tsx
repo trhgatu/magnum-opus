@@ -7,17 +7,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { register, type RegisterState } from "../actions/auth";
+import { useBrowserTimeZone } from "@/features/account/hooks/use-browser-time-zone";
 
 export function RegisterForm() {
   const [state, action, pending] = useActionState<RegisterState, FormData>(
     register,
     { status: "idle" },
   );
+  const timeZone = useBrowserTimeZone();
   const error = (
     field: "email" | "username" | "password" | "confirmPassword",
   ) => (state.status === "error" ? state.fieldErrors?.[field]?.[0] : undefined);
   return (
     <form action={action} className="flex flex-col gap-5" noValidate>
+      <input type="hidden" name="timeZone" value={timeZone ?? ""} />
       {state.status === "error" && state.formError ? (
         <Alert variant="destructive" role="alert">
           <AlertDescription>{state.formError}</AlertDescription>

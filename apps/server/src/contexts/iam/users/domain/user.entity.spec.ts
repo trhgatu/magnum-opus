@@ -94,4 +94,42 @@ describe('UserEntity', () => {
     user.restore('admin-id');
     expect(user.isDeleted).toBe(false);
   });
+
+  describe('time zone', () => {
+    it('registers in UTC when no time zone is given', () => {
+      expect(registerUser().timeZone).toBe('UTC');
+    });
+
+    it('registers in the given time zone', () => {
+      const user = UserEntity.register({
+        id: 'user-id',
+        email: 'user@example.com',
+        username: 'user',
+        passwordHash: 'hashed-password',
+        timeZone: 'Asia/Ho_Chi_Minh',
+      });
+
+      expect(user.timeZone).toBe('Asia/Ho_Chi_Minh');
+      expect(user.toPrimitives().timeZone).toBe('Asia/Ho_Chi_Minh');
+    });
+
+    it('changes the time zone without revoking access tokens', () => {
+      const user = registerUser();
+      const tokenVersion = user.tokenVersion;
+
+      const changed = user.changeTimeZone('Asia/Ho_Chi_Minh');
+
+      expect(changed).toBe(true);
+      expect(user.timeZone).toBe('Asia/Ho_Chi_Minh');
+      expect(user.tokenVersion).toBe(tokenVersion);
+    });
+
+    it('reports no change when the time zone is the same', () => {
+      const user = registerUser();
+      const updatedAt = user.updatedAt;
+
+      expect(user.changeTimeZone('UTC')).toBe(false);
+      expect(user.updatedAt).toBe(updatedAt);
+    });
+  });
 });

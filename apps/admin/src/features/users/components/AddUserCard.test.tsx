@@ -25,6 +25,7 @@ const createdUser: User = {
   isActive: true,
   isDeleted: false,
   roles: ["USER"],
+  timeZone: "UTC",
   createdAt: "2026-07-27T00:00:00.000Z",
 };
 

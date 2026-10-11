@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
 
 export class RegisterDto {
   @ApiProperty({
@@ -21,4 +21,14 @@ export class RegisterDto {
   @IsString()
   @MinLength(6, { message: 'Password must be at least 6 characters long' })
   password!: string;
+  @ApiProperty({
+    example: 'Asia/Ho_Chi_Minh',
+    description: 'Browser time zone; falls back to UTC when missing or unknown',
+    required: false,
+  })
+  // Không giới hạn độ dài ở đây: giá trị lạ (kể cả quá dài) phải tới được
+  // RegisterHandler để lùi về UTC, không được chặn cả việc đăng ký.
+  @IsOptional()
+  @IsString()
+  timeZone?: string;
 }

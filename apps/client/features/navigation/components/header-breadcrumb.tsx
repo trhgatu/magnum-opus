@@ -10,6 +10,7 @@ import { isNavigationItemActive } from "@/features/navigation/lib/navigation-sta
  * hướng chính, nhưng vẫn cần 1 tiêu đề trong header. */
 const EXTRA_ROUTE_LABELS: Record<string, string> = {
   "/me": "Tài khoản",
+  "/settings": "Cài đặt",
 };
 
 export function HeaderBreadcrumb() {

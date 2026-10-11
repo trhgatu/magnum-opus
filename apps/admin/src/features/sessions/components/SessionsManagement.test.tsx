@@ -17,6 +17,7 @@ const setPermissions = (permissions: string[]) => {
       isActive: true,
       isDeleted: false,
       roles: ["ADMIN"],
+      timeZone: "UTC",
       permissions,
       createdAt: "2026-07-27T00:00:00.000Z",
     },

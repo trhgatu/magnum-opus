@@ -7,6 +7,8 @@ import { ContextHero } from "@/components/system/context-hero";
 import { EmptyState } from "@/components/system/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { getCurrentUser } from "@/features/account/api/current-user";
+import { TimeZoneMismatchNotice } from "@/features/account/components/time-zone-mismatch-notice";
 import { getToday } from "@/features/today/api/today";
 import { TodayBoard } from "@/features/today/components/today-board";
 import {
@@ -36,6 +38,19 @@ async function TodayMeta({
         {today.timeZone}
       </Badge>
     </>
+  );
+}
+
+async function TodayTimeZoneNotice({
+  todayPromise,
+}: {
+  todayPromise: ReturnType<typeof getToday>;
+}) {
+  // getCurrentUser() đã được layout gọi trong cùng request (React cache),
+  // nên không thêm round-trip nào.
+  const [today, user] = await Promise.all([todayPromise, getCurrentUser()]);
+  return (
+    <TimeZoneMismatchNotice userId={user.id} accountTimeZone={today.timeZone} />
   );
 }
 
@@ -92,6 +107,9 @@ export default async function TodayPage() {
           </Suspense>
         }
       />
+      <Suspense fallback={null}>
+        <TodayTimeZoneNotice todayPromise={todayPromise} />
+      </Suspense>
 
       <Suspense fallback={<TodayBoardSkeleton />}>
         <TodayBody todayPromise={todayPromise} />

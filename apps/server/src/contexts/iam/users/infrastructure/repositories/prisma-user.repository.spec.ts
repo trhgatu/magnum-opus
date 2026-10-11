@@ -64,3 +64,70 @@ describe('PrismaUserRepository.changePassword', () => {
     });
   });
 });
+
+describe('PrismaUserRepository.changeTimeZone', () => {
+  it('writes only the time zone column and records who changed it', async () => {
+    const updateMany = jest.fn().mockResolvedValue({ count: 1 });
+    const repository = new PrismaUserRepository({
+      user: { updateMany },
+    } as unknown as PrismaService);
+
+    await expect(
+      repository.changeTimeZone('user-id', 'Asia/Ho_Chi_Minh', 'user-id'),
+    ).resolves.toBe(true);
+    expect(updateMany).toHaveBeenCalledWith({
+      where: { id: 'user-id', isDeleted: false },
+      data: {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        updatedBy: 'user-id',
+        updatedAt: expect.any(Date),
+      },
+    });
+  });
+
+  it('reports a missing or deleted user', async () => {
+    const repository = new PrismaUserRepository({
+      user: { updateMany: jest.fn().mockResolvedValue({ count: 0 }) },
+    } as unknown as PrismaService);
+
+    await expect(
+      repository.changeTimeZone('gone', 'UTC', 'gone'),
+    ).resolves.toBe(false);
+  });
+});
+
+describe('PrismaUserRepository.save', () => {
+  it('never overwrites the time zone of an existing user', async () => {
+    // A profile/role save works on a snapshot loaded earlier; writing its
+    // time zone back could revert a newer choice made in the meantime.
+    const tx = {
+      user: {
+        findFirst: jest.fn().mockResolvedValue({ id: 'user-id' }),
+        upsert: jest.fn().mockResolvedValue(undefined),
+      },
+      userRole: {
+        deleteMany: jest.fn(),
+        createMany: jest.fn(),
+        create: jest.fn(),
+      },
+      role: { findMany: jest.fn().mockResolvedValue([]), findFirst: jest.fn() },
+      outboxEvent: { createMany: jest.fn() },
+    };
+    const repository = new PrismaUserRepository({
+      $transaction: (run: (client: typeof tx) => Promise<void>) => run(tx),
+    } as unknown as PrismaService);
+    const user = UserEntity.register({
+      id: 'user-id',
+      email: 'member@example.com',
+      username: 'member',
+      passwordHash: 'hashed-password',
+      timeZone: 'Asia/Ho_Chi_Minh',
+    });
+
+    await repository.save(user);
+
+    const [{ update, create }] = tx.user.upsert.mock.calls[0];
+    expect(update).not.toHaveProperty('timeZone');
+    expect(create).toMatchObject({ timeZone: 'Asia/Ho_Chi_Minh' });
+  });
+});

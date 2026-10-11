@@ -3,3 +3,4 @@ export * from './update-user.command';
 export * from './delete-user.command';
 export * from './deactivate-user.command';
 export * from './activate-user.command';
+export * from './update-my-time-zone.command';

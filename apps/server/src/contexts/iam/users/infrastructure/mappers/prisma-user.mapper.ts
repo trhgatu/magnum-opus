@@ -1,6 +1,12 @@
 import { User as PrismaUser, UserRole, Role } from '@repo/database';
 import { UserEntity } from '../../domain/user.entity';
-import { UserId, Email, Password, Username } from '../../domain/value-objects/';
+import {
+  UserId,
+  Email,
+  Password,
+  Username,
+  TimeZone,
+} from '../../domain/value-objects/';
 
 export class PrismaUserMapper {
   public static toDomain(
@@ -15,6 +21,7 @@ export class PrismaUserMapper {
       isActive: raw.isActive,
       isDeleted: raw.isDeleted,
       tokenVersion: raw.tokenVersion,
+      timeZone: new TimeZone(raw.timeZone),
       emailVerifiedAt: raw.emailVerifiedAt,
       roles: raw.userRoles ? raw.userRoles.map((ur) => ur.role.name) : [],
       createdAt: raw.createdAt,

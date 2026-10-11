@@ -1,6 +1,9 @@
 {
   "invalid": {
-    "credentials": "Invalid email or password."
+    "credentials": "Invalid email or password.",
+    "time": {
+      "zone": "Unknown time zone \"{{timeZone}}\". Choose a time zone from the list."
+    }
   },
   "user": {
     "deactivated": "User account \"{{email}}\" has been deactivated.",

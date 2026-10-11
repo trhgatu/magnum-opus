@@ -84,6 +84,8 @@ export class PrismaUserRepository implements UserRepository {
         isActive: data.isActive,
         isDeleted: data.isDeleted,
         tokenVersion: data.tokenVersion,
+        // timeZone cố ý không có ở đây: chỉ changeTimeZone() được ghi nó,
+        // để lần lưu hồ sơ/vai trò từ snapshot cũ không ghi đè lựa chọn mới.
         emailVerifiedAt: data.emailVerifiedAt,
         updatedBy: data.updatedBy,
       },
@@ -96,6 +98,7 @@ export class PrismaUserRepository implements UserRepository {
         isActive: data.isActive,
         isDeleted: data.isDeleted,
         tokenVersion: data.tokenVersion,
+        timeZone: data.timeZone,
         createdBy: data.createdBy,
         emailVerifiedAt: data.emailVerifiedAt,
       },
@@ -175,6 +178,18 @@ export class PrismaUserRepository implements UserRepository {
         tokenVersion: { increment: 1 },
         updatedAt: new Date(),
       },
+    });
+    return result.count === 1;
+  }
+
+  async changeTimeZone(
+    userId: string,
+    timeZone: string,
+    updatedBy: string,
+  ): Promise<boolean> {
+    const result = await this.prisma.user.updateMany({
+      where: { id: userId, isDeleted: false },
+      data: { timeZone, updatedBy, updatedAt: new Date() },
     });
     return result.count === 1;
   }

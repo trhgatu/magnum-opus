@@ -1,6 +1,9 @@
 {
   "invalid": {
-    "credentials": "Tài khoản hoặc mật khẩu không chính xác."
+    "credentials": "Tài khoản hoặc mật khẩu không chính xác.",
+    "time": {
+      "zone": "Múi giờ \"{{timeZone}}\" không hợp lệ. Hãy chọn một múi giờ trong danh sách."
+    }
   },
   "user": {
     "deactivated": "Tài khoản \"{{email}}\" đã bị khóa hoặc vô hiệu hóa.",
