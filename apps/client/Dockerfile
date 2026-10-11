@@ -2,7 +2,7 @@
 # Build from the repository root:
 # docker build -f apps/client/Dockerfile -t magnum-opus-client .
 
-FROM node:20-alpine AS base
+FROM node:24-alpine AS base
 RUN corepack enable
 ENV HUSKY=0
 WORKDIR /app
@@ -20,7 +20,7 @@ RUN API_URL=https://api.build.example.invalid \
   SESSION_SECRET=build-only-session-secret-0123456789abcdef \
   pnpm turbo run build --filter=client...
 
-FROM node:20-alpine AS runner
+FROM node:24-alpine AS runner
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
