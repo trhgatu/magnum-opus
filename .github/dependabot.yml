@@ -6,6 +6,11 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 10
+    ignore:
+      # @types/node phải khớp major của Node đang chạy (.nvmrc). Nâng nó
+      # cùng lúc với nâng Node, không để dependabot tự đề xuất.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
     groups:
       minor-and-patch:
         update-types:
