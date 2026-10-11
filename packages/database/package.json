@@ -39,7 +39,7 @@
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@types/bcrypt": "^6.0.0",
-    "@types/node": "^26.1.1",
+    "@types/node": "^20.19.43",
     "@types/pg": "^8.20.0",
     "bcrypt": "^6.0.0",
     "eslint": "^9.39.1",
