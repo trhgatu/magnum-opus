@@ -82,6 +82,7 @@ export async function register(
   const username = String(formData.get("username") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const confirmPassword = String(formData.get("confirmPassword") ?? "");
+  const timeZone = String(formData.get("timeZone") ?? "").trim();
   const fieldErrors: Record<string, string[]> = {};
   if (!EMAIL_PATTERN.test(email)) fieldErrors.email = ["Email không hợp lệ."];
   if (username.length < 3)
@@ -99,7 +100,12 @@ export async function register(
       emailVerificationRequired: boolean;
     }>("/auth/register", {
       method: "POST",
-      body: JSON.stringify({ email, username, password }),
+      body: JSON.stringify({
+        email,
+        username,
+        password,
+        ...(timeZone ? { timeZone } : {}),
+      }),
     });
     verificationRequired = response.emailVerificationRequired;
   } catch (error) {

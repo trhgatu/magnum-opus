@@ -1,5 +1,5 @@
 import type { User } from "@repo/types";
-import { LogOut, UserRound } from "lucide-react";
+import { LogOut, UserRound, Settings } from "lucide-react";
 import Link from "next/link";
 
 import { logout } from "@/features/auth/actions/auth";
@@ -46,6 +46,14 @@ export function AccountMenu({ user }: AccountMenuProps) {
           <UserRound className="size-4" aria-hidden="true" />
           Hồ sơ cá nhân
         </Link>
+        <Link
+          href="/settings"
+          className="flex min-h-9 items-center gap-2 rounded-lg px-2 py-1.5 outline-none transition-colors hover:bg-accent focus-visible:bg-accent"
+        >
+          <Settings className="size-4" aria-hidden="true" />
+          Cài đặt
+        </Link>
+
         <div className="my-1 h-px bg-border" />
         <form action={logout}>
           <button

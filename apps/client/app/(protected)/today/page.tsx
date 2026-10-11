@@ -13,6 +13,7 @@ import {
   TodayBoardSkeleton,
   TodayMetaSkeleton,
 } from "@/features/today/components/today-skeletons";
+import { TimeZoneMismatchNotice } from "@/features/account/components/time-zone-mismatch-notice";
 
 export const metadata: Metadata = {
   title: "Hôm nay",
@@ -37,6 +38,15 @@ async function TodayMeta({
       </Badge>
     </>
   );
+}
+
+async function TodayTimeZoneNotice({
+  todayPromise,
+}: {
+  todayPromise: ReturnType<typeof getToday>;
+}) {
+  const today = await todayPromise;
+  return <TimeZoneMismatchNotice accountTimeZone={today.timeZone} />;
 }
 
 async function TodayBody({
@@ -92,6 +102,9 @@ export default async function TodayPage() {
           </Suspense>
         }
       />
+      <Suspense fallback={null}>
+        <TodayTimeZoneNotice todayPromise={todayPromise} />
+      </Suspense>
 
       <Suspense fallback={<TodayBoardSkeleton />}>
         <TodayBody todayPromise={todayPromise} />

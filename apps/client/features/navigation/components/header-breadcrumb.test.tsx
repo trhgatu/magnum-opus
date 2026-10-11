@@ -40,6 +40,13 @@ describe("HeaderBreadcrumb", () => {
     );
   });
 
+  it("labels the settings page", () => {
+    navigation.pathname = "/settings";
+    render(<HeaderBreadcrumb />);
+
+    expect(screen.getByText("Cài đặt")).toHaveAttribute("aria-current", "page");
+  });
+
   it("falls back to a plain generic label, not breadcrumb navigation, for an unmatched route", () => {
     navigation.pathname = "/somewhere-unknown";
     render(<HeaderBreadcrumb />);

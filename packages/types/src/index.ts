@@ -19,6 +19,7 @@ export interface User {
   isActive: boolean;
   isDeleted: boolean;
   roles: string[];
+  timeZone: string;
   permissions?: string[];
   createdAt: string;
   updatedAt?: string;
