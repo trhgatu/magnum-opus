@@ -15,6 +15,11 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["**/*.test.{ts,tsx}"],
+    // `pnpm test` cho turbo chạy jest server + vitest admin + vitest client
+    // song song; lúc đó test component (bình thường vài trăm ms) từng mất
+    // 6–13s vì thiếu CPU và vượt mức 5s mặc định. Test treo thật vẫn fail.
+    testTimeout: 15_000,
+    setupFiles: ["./test/setup.ts"],
     env: {
       SESSION_SECRET: "vitest-session-secret-vitest-session-secret",
     },

@@ -8,7 +8,15 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  onTestFinished,
+  vi,
+} from "vitest";
 
 const {
   changeMemoryState,
@@ -47,6 +55,8 @@ const redirectError = (url: string) =>
   Object.assign(new Error("NEXT_REDIRECT"), {
     digest: `NEXT_REDIRECT;replace;${url};307;`,
   });
+
+import { listenForNextRedirect } from "@/test/next-redirect";
 
 import { MemoryLifecycleControls } from "./memory-lifecycle-controls";
 
@@ -156,40 +166,10 @@ describe("MemoryLifecycleControls", () => {
     // throw một lỗi có digest NEXT_REDIRECT. Mock đúng hành vi thật thay vì
     // một status:"success" không có thật trong runtime.
     //
-    // Component cố ý re-throw lỗi đó sau khi xử lý (bắt buộc theo tài liệu
-    // Next.js, để runtime thật của framework tự thực hiện điều hướng) — môi
-    // trường test không có runtime đó để "tiêu thụ" rejection, nên bắt nó ở
-    // đây để xác nhận đúng hành vi thay vì để lọt ra thành unhandled error.
-    // React 19 báo lỗi ném ra từ async transition function qua reportError()
-    // (uncaughtException), không phải theo đường unhandledRejection thông
-    // thường — bắt đúng event đó để xác nhận rồi mới coi test hoàn tất.
-    const redirectRejection = new Promise<void>((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        process.off("uncaughtException", handler);
-        reject(
-          new Error(
-            "Expected a NEXT_REDIRECT uncaughtException, but none occurred",
-          ),
-        );
-      }, 1000);
-
-      const handler = (error: unknown) => {
-        const digest =
-          typeof error === "object" && error !== null && "digest" in error
-            ? (error as { digest?: unknown }).digest
-            : undefined;
-
-        if (typeof digest !== "string" || !digest.startsWith("NEXT_REDIRECT")) {
-          return;
-        }
-
-        clearTimeout(timeout);
-        process.off("uncaughtException", handler);
-        resolve();
-      };
-
-      process.on("uncaughtException", handler);
-    });
+    // Component cố ý re-throw lỗi đó để runtime thật của Next.js điều hướng;
+    // xem test/next-redirect.ts về cách bắt nó trong môi trường test.
+    const redirect = listenForNextRedirect();
+    onTestFinished(() => redirect.dispose());
 
     deleteMemoryPermanently.mockRejectedValue(
       redirectError("/memories?state=TRASHED"),
@@ -244,7 +224,7 @@ describe("MemoryLifecycleControls", () => {
     expect(push).not.toHaveBeenCalled();
     expect(refresh).not.toHaveBeenCalled();
 
-    await redirectRejection;
+    await redirect.waitForRedirect();
   });
 
   it("offers to reload when the revision is stale", async () => {
