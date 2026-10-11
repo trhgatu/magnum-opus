@@ -10,6 +10,9 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     exclude: [...configDefaults.exclude, "e2e/**"],
+    // Cùng lý do với apps/client/vitest.config.ts: khi turbo chạy test của
+    // mọi package song song, test component từng mất 4–7s vì thiếu CPU.
+    testTimeout: 15_000,
     restoreMocks: true,
     setupFiles: ["./src/test/setup.ts"],
     coverage: {

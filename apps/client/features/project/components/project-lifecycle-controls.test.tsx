@@ -8,7 +8,15 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  onTestFinished,
+  vi,
+} from "vitest";
 
 const {
   changeProjectLifecycle,
@@ -39,6 +47,8 @@ const redirectError = (url: string) =>
   Object.assign(new Error("NEXT_REDIRECT"), {
     digest: `NEXT_REDIRECT;push;${url};307;`,
   });
+
+import { listenForNextRedirect } from "@/test/next-redirect";
 
 import { ProjectLifecycleControls } from "./project-lifecycle-controls";
 
@@ -379,35 +389,10 @@ describe("ProjectLifecycleControls", () => {
     // deleteProjectPermanently không bao giờ "return" khi thành công — Server
     // Action tự redirect() trên server, Next.js hiện thực điều đó bằng cách
     // throw một lỗi có digest NEXT_REDIRECT. Mock đúng hành vi thật thay vì
-    // một status:"success" không có thật trong runtime — xem giải thích chi
-    // tiết ở memory-lifecycle-controls.test.tsx (cùng pattern).
-    const redirectRejection = new Promise<void>((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        process.off("uncaughtException", handler);
-        reject(
-          new Error(
-            "Expected a NEXT_REDIRECT uncaughtException, but none occurred",
-          ),
-        );
-      }, 1000);
-
-      const handler = (error: unknown) => {
-        const digest =
-          typeof error === "object" && error !== null && "digest" in error
-            ? (error as { digest?: unknown }).digest
-            : undefined;
-
-        if (typeof digest !== "string" || !digest.startsWith("NEXT_REDIRECT")) {
-          return;
-        }
-
-        clearTimeout(timeout);
-        process.off("uncaughtException", handler);
-        resolve();
-      };
-
-      process.on("uncaughtException", handler);
-    });
+    // một status:"success" không có thật trong runtime — xem
+    // test/next-redirect.ts về cách bắt nó trong môi trường test.
+    const redirect = listenForNextRedirect();
+    onTestFinished(() => redirect.dispose());
 
     deleteProjectPermanently.mockRejectedValue(redirectError("/projects"));
 
@@ -449,7 +434,7 @@ describe("ProjectLifecycleControls", () => {
     expect(push).not.toHaveBeenCalled();
     expect(refresh).not.toHaveBeenCalled();
 
-    await redirectRejection;
+    await redirect.waitForRedirect();
   });
 
   it("shows a dedicated message when the server rejects deletion", async () => {

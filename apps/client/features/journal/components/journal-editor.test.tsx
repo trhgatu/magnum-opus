@@ -48,6 +48,8 @@ vi.mock("@/features/journal/actions/journal", async (importOriginal) => {
 
 vi.mock("@/lib/toast", () => ({ notifySuccess }));
 
+import { listenForNextRedirect } from "@/test/next-redirect";
+
 import { JournalEditor } from "./journal-editor";
 
 const draftEntry: JournalEntryResponse = {
@@ -223,36 +225,7 @@ describe("JournalEditor", () => {
   });
 
   it("notifies success and re-throws the NEXT_REDIRECT signal when permanently deleting", async () => {
-    let timeout: ReturnType<typeof setTimeout>;
-    let handler: (reason: unknown) => void;
-
-    const redirectRejection = new Promise<void>((resolve, reject) => {
-      timeout = setTimeout(() => {
-        reject(
-          new Error(
-            "Expected an unhandled NEXT_REDIRECT rejection, but none occurred",
-          ),
-        );
-      }, 1000);
-
-      handler = (reason: unknown) => {
-        const digest =
-          typeof reason === "object" && reason !== null && "digest" in reason
-            ? (reason as { digest?: unknown }).digest
-            : undefined;
-
-        if (
-          typeof digest !== "string" ||
-          !digest.startsWith("NEXT_REDIRECT;")
-        ) {
-          return;
-        }
-
-        resolve();
-      };
-
-      process.on("unhandledRejection", handler);
-    });
+    const redirect = listenForNextRedirect("unhandledRejection");
 
     try {
       deleteJournalEntryPermanently.mockRejectedValue(
@@ -282,10 +255,9 @@ describe("JournalEditor", () => {
         ),
       );
 
-      await redirectRejection;
+      await redirect.waitForRedirect();
     } finally {
-      clearTimeout(timeout!);
-      process.off("unhandledRejection", handler!);
+      redirect.dispose();
     }
   });
 
