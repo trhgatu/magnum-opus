@@ -32,9 +32,13 @@ const routeBudgets = new Map([
   // đã dùng (xem ghi chú "Memory editors include..." ở trên), chỉ khác là
   // habit-editor còn giữ nguyên phần chọn tần suất DAILY/WEEKLY cho BUILD-type
   // nên tổng chunk lớn hơn route memory tương ứng.
-  ["/habits/new", 705 * KIBIBYTE],
-  ["/habits/[id]", 572 * KIBIBYTE],
-  ["/habits/[id]/edit", 705 * KIBIBYTE],
+  // +15 KiB (+4.6 KiB gzip) trên /habits/new, /habits/[id]/edit và +8 KiB
+  // trên /habits/[id]: radix-ui 1.6.2 → 1.7.0 (popover/focus-scope 1.2,
+  // popper, select…). So chunk từng route giữa 2 bản build: phần tăng nằm
+  // trọn trong chunk radix, không có package nào bị cài trùng phiên bản.
+  ["/habits/new", 720 * KIBIBYTE],
+  ["/habits/[id]", 582 * KIBIBYTE],
+  ["/habits/[id]/edit", 720 * KIBIBYTE],
   ["/routines", 568 * KIBIBYTE],
   // Cùng ConflictAlert/reload-on-conflict trên routine-editor: +2 KiB trên
   // /routines/new và /routines/[id]/edit.
