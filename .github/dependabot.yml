@@ -7,10 +7,11 @@ updates:
       day: monday
     open-pull-requests-limit: 10
     ignore:
-      # Mọi package khai báo @types/node ^20 vì runtime là Node 20 ở mọi nơi
-      # (.nvmrc, Dockerfile server/client, CI). Type mới hơn cho gọi API mà
-      # Node 20 không có. Khi nâng Node: đổi .nvmrc + Dockerfile + @types/node
-      # trong cùng 1 PR, và gỡ (hoặc dời) rule này.
+      # Mọi package (kể cả root) khai báo @types/node ^24 vì runtime là
+      # Node 24 ở mọi nơi (.nvmrc, Dockerfile server/client, CI). Type mới
+      # hơn cho gọi API mà Node 24 không có. Khi nâng Node: đổi .nvmrc,
+      # Dockerfile, engines, target tsup/esbuild và @types/node trong cùng
+      # 1 PR — rule này giữ nguyên, nó chỉ chặn dependabot tự đề xuất major.
       - dependency-name: '@types/node'
         update-types: ['version-update:semver-major']
     groups:

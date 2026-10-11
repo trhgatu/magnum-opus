@@ -2,7 +2,7 @@
 # Build from the repository root:
 #   docker build -f apps/server/Dockerfile -t magnum-opus-api .
 
-FROM node:20-alpine AS base
+FROM node:24-alpine AS base
 RUN corepack enable
 ENV HUSKY=0
 WORKDIR /app
@@ -31,7 +31,7 @@ RUN pnpm --filter=@repo/database db:generate \
     --bundle \
     --platform=node \
     --format=cjs \
-    --target=node20 \
+    --target=node24 \
     --packages=external \
     --outfile=dist/seed.cjs
 
@@ -48,7 +48,7 @@ RUN pnpm --filter=server deploy --prod /prod/server
 # phải mang phần đã generate sang.
 RUN cp -r /app/node_modules/.prisma /prod/server/node_modules/.prisma
 
-FROM node:20-alpine AS runner
+FROM node:24-alpine AS runner
 ENV NODE_ENV=production
 # Vá các package hệ điều hành của base image và gỡ npm/corepack —
 # runtime chỉ cần binary node, npm đi kèm kéo theo CVE không liên quan.
