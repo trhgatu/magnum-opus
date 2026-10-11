@@ -91,4 +91,37 @@ describe('RegisterHandler', () => {
     expect(result.getValue().emailVerifiedAt).not.toBeNull();
     expect(verification.schedule).not.toHaveBeenCalled();
   });
+
+  describe('time zone', () => {
+    const register = (timeZone?: string) =>
+      createHandler().handler.execute(
+        new RegisterCommand({
+          email: 'member@example.com',
+          username: 'member',
+          passwordRaw: 'a-strong-password',
+          timeZone,
+        }),
+      );
+
+    it('registers in the time zone the browser sent', async () => {
+      const result = await register('Asia/Ho_Chi_Minh');
+
+      expect(result.getValue().timeZone).toBe('Asia/Ho_Chi_Minh');
+    });
+
+    it('falls back to UTC when no time zone was sent', async () => {
+      const result = await register();
+
+      expect(result.getValue().timeZone).toBe('UTC');
+    });
+
+    it('falls back to UTC instead of failing on an unknown time zone', async () => {
+      // The browser sends this silently; the user never typed it, so it must
+      // not block sign-up.
+      const result = await register('Mars/Base');
+
+      expect(result.isSuccess).toBe(true);
+      expect(result.getValue().timeZone).toBe('UTC');
+    });
+  });
 });

@@ -23,6 +23,7 @@ describe('UserPresenter', () => {
       isActive: true,
       isDeleted: false,
       roles: ['USER'],
+      timeZone: 'UTC',
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
       createdBy: 'admin-id',

@@ -11,6 +11,7 @@ export class UserPresenter {
       isActive: data.isActive,
       isDeleted: data.isDeleted,
       roles: data.roles || [],
+      timeZone: data.timeZone,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
       createdBy: data.createdBy,

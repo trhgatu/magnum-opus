@@ -1,5 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
+
 import { RegisterCommand } from '../register.command';
 import { UserEntity } from '@iam/users/domain/user.entity';
 import { UserAlreadyExistsException } from '@iam/users/domain/exceptions/user-already-exists.exception';
@@ -14,6 +15,7 @@ import {
   PASSWORD_HASHER,
   type PasswordHasher,
 } from '@iam/users/application/ports/password-hasher.port';
+import { TimeZone } from '@iam/users/domain/value-objects';
 import { AUTH_POLICY, type AuthPolicy } from '../../ports/auth-policy.port';
 import { EmailVerificationService } from '../../services/email-verification.service';
 
@@ -34,7 +36,7 @@ export class RegisterHandler implements ICommandHandler<
   async execute(
     command: RegisterCommand,
   ): Promise<Result<UserEntity, DomainException>> {
-    const { email, username, passwordRaw } = command;
+    const { email, username, passwordRaw, timeZone } = command;
 
     const existingUser = await this.userRepository.findByEmail(email);
     if (existingUser) {
@@ -48,6 +50,7 @@ export class RegisterHandler implements ICommandHandler<
       email,
       username,
       passwordHash,
+      timeZone: TimeZone.isValid(timeZone) ? timeZone : undefined,
       emailVerifiedAt: this.authPolicy.isEmailVerificationRequired()
         ? null
         : new Date(),

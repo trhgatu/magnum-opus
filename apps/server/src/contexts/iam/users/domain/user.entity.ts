@@ -1,7 +1,7 @@
 import { UserRegisteredEvent } from './events/user-registered.event';
 import { UserDeactivatedEvent } from './events/user-deactivated.event';
 import { AggregateRoot } from '@shared/domain/aggregate-root';
-import { UserId, Email, Username } from './value-objects';
+import { UserId, Email, Username, TimeZone } from './value-objects';
 import { Password } from './value-objects/password.value-object';
 
 export interface UserProps {
@@ -12,6 +12,7 @@ export interface UserProps {
   isActive: boolean;
   isDeleted: boolean;
   tokenVersion: number;
+  timeZone: TimeZone;
   emailVerifiedAt?: Date | null;
   avatar?: string | null;
   roles: string[];
@@ -29,6 +30,7 @@ export interface UserPrimitives {
   isActive: boolean;
   isDeleted: boolean;
   tokenVersion: number;
+  timeZone: string;
   emailVerifiedAt: Date | null;
   avatar?: string | null;
   roles: string[];
@@ -56,6 +58,7 @@ export class UserEntity extends AggregateRoot {
     roles?: string[];
     createdBy?: string;
     emailVerifiedAt?: Date | null;
+    timeZone?: string;
   }): UserEntity {
     const user = UserEntity.create({
       id: new UserId(props.id),
@@ -66,6 +69,7 @@ export class UserEntity extends AggregateRoot {
       isActive: true,
       isDeleted: false,
       tokenVersion: 0,
+      timeZone: new TimeZone(props.timeZone ?? TimeZone.DEFAULT),
       emailVerifiedAt: props.emailVerifiedAt ?? null,
       roles: props.roles || ['USER'],
       createdAt: new Date(),
@@ -103,6 +107,9 @@ export class UserEntity extends AggregateRoot {
   }
   public get tokenVersion(): number {
     return this.props.tokenVersion;
+  }
+  public get timeZone(): string {
+    return this.props.timeZone.value;
   }
   public get emailVerifiedAt(): Date | null {
     return this.props.emailVerifiedAt ?? null;
@@ -148,6 +155,15 @@ export class UserEntity extends AggregateRoot {
     this.props.avatar = avatar ?? null;
     if (emailChanged) this.props.emailVerifiedAt = null;
     this.trackUpdate(updatedBy);
+  }
+
+  public changeTimeZone(timeZone: string): boolean {
+    const next = new TimeZone(timeZone);
+    if (next.value === this.props.timeZone.value) return false;
+
+    this.props.timeZone = next;
+    this.trackUpdate();
+    return true;
   }
 
   public deactivate(updatedBy?: string): void {
@@ -201,6 +217,7 @@ export class UserEntity extends AggregateRoot {
       isActive: this.props.isActive,
       isDeleted: this.props.isDeleted,
       tokenVersion: this.props.tokenVersion,
+      timeZone: this.props.timeZone.value,
       emailVerifiedAt: this.props.emailVerifiedAt ?? null,
       roles: this.props.roles,
       createdAt: this.props.createdAt,

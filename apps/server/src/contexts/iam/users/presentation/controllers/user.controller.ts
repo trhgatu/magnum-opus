@@ -44,9 +44,15 @@ import {
   DeleteUserCommand,
   DeactivateUserCommand,
   ActivateUserCommand,
+  UpdateMyTimeZoneCommand,
 } from '../../application/commands';
 import { UserPresenter } from '../presenters/user.presenter';
-import { CreateUserDto, GetUsersQueryDto, UpdateUserDto } from '../dtos';
+import {
+  CreateUserDto,
+  GetUsersQueryDto,
+  UpdateUserDto,
+  UpdateTimeZoneDto,
+} from '../dtos';
 import type { AuthenticatedPrincipal } from '@repo/contracts';
 
 @ApiTags('Users')
@@ -238,5 +244,25 @@ export class UserController {
     );
     result.unwrap();
     return;
+  }
+
+  @Patch('me/time-zone')
+  @UseInterceptors(CacheInvalidationInterceptor)
+  @InvalidateCache('users:all', 'users:me:{userId}')
+  @ApiOperation({ summary: 'Update the current user time zone' })
+  @ApiResponse({ status: 200, description: 'Return the stored time zone' })
+  @ApiResponse({ status: 400, description: 'Invalid time zone' })
+  async updateMyTimeZone(
+    @GetUser() currentUser: AuthenticatedPrincipal,
+    @Body() dto: UpdateTimeZoneDto,
+  ) {
+    const result = await this.commandBus.execute(
+      new UpdateMyTimeZoneCommand({
+        userId: currentUser.id,
+        timeZone: dto.timeZone,
+      }),
+    );
+
+    return { timeZone: result.unwrap() };
   }
 }

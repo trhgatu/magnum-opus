@@ -130,6 +130,7 @@ export class AuthController {
         email: dto.email,
         username: dto.username,
         passwordRaw: dto.password,
+        timeZone: dto.timeZone,
       }),
     );
     const user = result.unwrap();

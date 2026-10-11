@@ -107,6 +107,11 @@ export const Errors = {
     translationKey: 'exceptions.invalid.username',
     statusCode: 400,
   },
+  INVALID_TIME_ZONE: {
+    code: 'INVALID_TIME_ZONE',
+    translationKey: 'exceptions.invalid.time.zone',
+    statusCode: 400,
+  },
   INVALID_PASSWORD: {
     code: 'INVALID_PASSWORD',
     translationKey: 'exceptions.invalid.password',
