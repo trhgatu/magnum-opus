@@ -45,6 +45,8 @@ describe("TimeZoneField", () => {
     render(<TimeZoneField timeZone="UTC" />);
 
     expect(trigger().textContent).toContain("UTC");
+    // Câu giải thích được đọc kèm khi focus combobox.
+    expect(trigger().getAttribute("aria-describedby")).toBe("time-zone-hint");
     expect(screen.getByRole("button", { name: "Lưu múi giờ" })).toHaveProperty(
       "disabled",
       true,

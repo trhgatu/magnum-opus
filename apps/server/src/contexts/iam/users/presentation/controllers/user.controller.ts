@@ -252,6 +252,11 @@ export class UserController {
   @ApiOperation({ summary: 'Update the current user time zone' })
   @ApiResponse({ status: 200, description: 'Return the stored time zone' })
   @ApiResponse({ status: 400, description: 'Invalid time zone' })
+  @ApiResponse({ status: 404, description: 'User no longer exists' })
+  @AuditLog(
+    'USER_TIME_ZONE_UPDATE',
+    (req) => `Đổi múi giờ sang: ${String(req.body.timeZone)}`,
+  )
   async updateMyTimeZone(
     @GetUser() currentUser: AuthenticatedPrincipal,
     @Body() dto: UpdateTimeZoneDto,

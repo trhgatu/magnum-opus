@@ -11,7 +11,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import {
-  filterTimeZones,
+  buildTimeZoneIndex,
+  filterTimeZoneIndex,
   formatUtcOffset,
   timeZoneOptions,
 } from "@/features/account/lib/time-zone";
@@ -23,6 +24,8 @@ interface TimeZonePickerProps {
   disabled?: boolean;
   /** id của phần tử làm nhãn — đặt tên truy cập cho combobox. */
   labelId?: string;
+  /** id của phần mô tả — screen reader đọc kèm khi focus combobox. */
+  describedById?: string;
 }
 
 export function TimeZonePicker({
@@ -30,15 +33,21 @@ export function TimeZonePicker({
   onValueChange,
   disabled = false,
   labelId,
+  describedById,
 }: TimeZonePickerProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
 
-  // Chỉ tính khi popover mở — lúc đó chắc chắn đang ở trình duyệt, nên
-  // danh sách lấy từ Intl của trình duyệt, không lệch với server.
-  const zones = useMemo(
-    () => (open ? filterTimeZones(timeZoneOptions(value), query) : []),
-    [open, query, value],
+  // Chỉ dựng khi popover mở — lúc đó chắc chắn đang ở trình duyệt, nên
+  // danh sách lấy từ Intl của trình duyệt, không lệch với server. Phần tốn
+  // (gọi Intl ~420 lần) không phụ thuộc query, nên gõ phím chỉ chạy bước lọc.
+  const index = useMemo(
+    () => (open ? buildTimeZoneIndex(timeZoneOptions(value)) : []),
+    [open, value],
+  );
+  const entries = useMemo(
+    () => filterTimeZoneIndex(index, query),
+    [index, query],
   );
 
   const handleOpenChange = (nextOpen: boolean) => {
@@ -59,6 +68,7 @@ export function TimeZonePicker({
           variant="outline"
           role="combobox"
           aria-labelledby={labelId}
+          aria-describedby={describedById}
           aria-expanded={open}
           disabled={disabled}
           className="h-10 w-full justify-between sm:flex-1"
@@ -94,12 +104,12 @@ export function TimeZonePicker({
           aria-label="Múi giờ"
           className="max-h-64 overflow-y-auto"
         >
-          {zones.length === 0 ? (
+          {entries.length === 0 ? (
             <p className="px-3 py-6 text-center text-sm text-muted-foreground">
               Không tìm thấy múi giờ phù hợp.
             </p>
           ) : (
-            zones.map((zone) => (
+            entries.map(({ zone, offset }) => (
               <Button
                 key={zone}
                 type="button"
@@ -118,7 +128,7 @@ export function TimeZonePicker({
                 />
                 <span className="truncate">{zone}</span>
                 <span className="ml-auto font-mono text-xs text-muted-foreground">
-                  {formatUtcOffset(zone)}
+                  {offset}
                 </span>
               </Button>
             ))

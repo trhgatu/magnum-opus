@@ -83,18 +83,61 @@ function normalizeSearch(text: string): string {
     .trim();
 }
 
-/** Lọc theo tên, tên phụ (SEARCH_ALIASES) và độ lệch "GMT+07:00". */
+/** "GMT+07:00" → "GMT+7", "GMT+05:30" → "GMT+5:30" — cách người ta hay gõ. */
+function shortOffset(offset: string): string {
+  const match = /^GMT([+-])(\d{2}):(\d{2})$/.exec(offset);
+  if (!match) return offset;
+
+  const [, sign, hours, minutes] = match;
+  return `GMT${sign}${Number(hours)}${minutes === "00" ? "" : `:${minutes}`}`;
+}
+
+export interface TimeZoneEntry {
+  zone: string;
+  offset: string;
+  /** Chuỗi đã chuẩn hóa để tìm: tên, tên phụ, "gmt+07:00" và "gmt+7". */
+  search: string;
+}
+
+/**
+ * Tính độ lệch và chuỗi tìm kiếm cho từng múi giờ — việc tốn nhất (gọi Intl
+ * ~420 lần), nên làm một lần rồi lọc nhiều lần khi người dùng gõ.
+ */
+export function buildTimeZoneIndex(
+  zones: string[],
+  at = new Date(),
+): TimeZoneEntry[] {
+  return zones.map((zone) => {
+    const offset = formatUtcOffset(zone, at);
+
+    return {
+      zone,
+      offset,
+      search: normalizeSearch(
+        `${zone} ${SEARCH_ALIASES[zone] ?? ""} ${offset} ${shortOffset(offset)}`,
+      ),
+    };
+  });
+}
+
+/** Lọc chỉ mục theo tên, tên phụ (SEARCH_ALIASES) và độ lệch GMT. */
+export function filterTimeZoneIndex(
+  index: TimeZoneEntry[],
+  query: string,
+): TimeZoneEntry[] {
+  const needle = normalizeSearch(query);
+  if (!needle) return index;
+
+  return index.filter((entry) => entry.search.includes(needle));
+}
+
+/** Tiện dụng khi chỉ lọc một lần: dựng chỉ mục rồi lọc. */
 export function filterTimeZones(
   zones: string[],
   query: string,
   at = new Date(),
 ): string[] {
-  const needle = normalizeSearch(query);
-  if (!needle) return zones;
-
-  return zones.filter((zone) =>
-    normalizeSearch(
-      `${zone} ${SEARCH_ALIASES[zone] ?? ""} ${formatUtcOffset(zone, at)}`,
-    ).includes(needle),
+  return filterTimeZoneIndex(buildTimeZoneIndex(zones, at), query).map(
+    (entry) => entry.zone,
   );
 }

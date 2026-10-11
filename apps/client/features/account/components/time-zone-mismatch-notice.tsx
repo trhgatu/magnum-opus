@@ -10,41 +10,47 @@ import { useBrowserTimeZone } from "@/features/account/hooks/use-browser-time-zo
 import { sameTimeZone } from "@/features/account/lib/time-zone";
 import { notifySuccess } from "@/lib/toast";
 
-// Lưu múi giờ trình duyệt mà người dùng đã chọn "Giữ nguyên" — máy chuyển
-// sang múi giờ khác nữa thì hỏi lại.
-const DISMISSED_KEY = "magnum-opus:time-zone-notice-dismissed";
+// Lưu múi giờ trình duyệt mà người dùng đã chọn "Giữ nguyên", theo từng tài
+// khoản — người khác đăng nhập cùng máy vẫn được hỏi. Máy chuyển sang múi giờ
+// khác nữa thì hỏi lại.
+const dismissedKey = (userId: string) =>
+  `magnum-opus:time-zone-notice-dismissed:${userId}`;
 
-function readDismissed(): string | null {
+function readDismissed(userId: string): string | null {
   try {
-    return window.localStorage.getItem(DISMISSED_KEY);
+    return window.localStorage.getItem(dismissedKey(userId));
   } catch {
     return null;
   }
 }
 
 interface TimeZoneMismatchNoticeProps {
+  userId: string;
   accountTimeZone: string;
 }
 
 export function TimeZoneMismatchNotice({
+  userId,
   accountTimeZone,
 }: TimeZoneMismatchNoticeProps) {
   const browserTimeZone = useBrowserTimeZone();
-  const [dismissed, setDismissed] = useState(readDismissed);
+  const [dismissed, setDismissed] = useState(() => readDismissed(userId));
   const [error, setError] = useState<string>();
   const [isPending, startTransition] = useTransition();
 
   if (
     browserTimeZone === null ||
     sameTimeZone(browserTimeZone, accountTimeZone) ||
-    dismissed === browserTimeZone
+    // So theo múi giờ chứ không theo chuỗi: lần sau trình duyệt có thể báo
+    // cùng múi giờ dưới tên khác (Asia/Saigon / Asia/Ho_Chi_Minh).
+    (dismissed !== null && sameTimeZone(dismissed, browserTimeZone))
   ) {
     return null;
   }
 
   const keep = () => {
     try {
-      window.localStorage.setItem(DISMISSED_KEY, browserTimeZone);
+      window.localStorage.setItem(dismissedKey(userId), browserTimeZone);
     } catch {
       // Không lưu được (chế độ ẩn danh…) thì chỉ ẩn trong lần xem này.
     }

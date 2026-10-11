@@ -67,7 +67,10 @@ describe("TimeZonePicker", () => {
     open();
     search("ho chi minh");
 
-    expect(screen.getByRole("option", { name: /GMT\+07:00/ })).toBeTruthy();
+    // Tên tuỳ ICU của môi trường chạy test: Asia/Saigon hoặc Asia/Ho_Chi_Minh.
+    expect(
+      screen.getByRole("option", { name: /Asia\/(Saigon|Ho_Chi_Minh)/ }),
+    ).toBeTruthy();
   });
 
   it("says so when nothing matches", () => {

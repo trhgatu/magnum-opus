@@ -35,7 +35,7 @@ describe("TimeZoneMismatchNotice", () => {
   it("renders nothing until the browser time zone is known", () => {
     browserTimeZone.value = null;
     const { container } = render(
-      <TimeZoneMismatchNotice accountTimeZone="UTC" />,
+      <TimeZoneMismatchNotice userId="user-a" accountTimeZone="UTC" />,
     );
 
     expect(container.firstChild).toBeNull();
@@ -43,7 +43,10 @@ describe("TimeZoneMismatchNotice", () => {
 
   it("renders nothing when the zones match, even through an alias", () => {
     const { container } = render(
-      <TimeZoneMismatchNotice accountTimeZone="Asia/Ho_Chi_Minh" />,
+      <TimeZoneMismatchNotice
+        userId="user-a"
+        accountTimeZone="Asia/Ho_Chi_Minh"
+      />,
     );
 
     expect(container.firstChild).toBeNull();
@@ -54,7 +57,7 @@ describe("TimeZoneMismatchNotice", () => {
       status: "success",
       timeZone: "Asia/Saigon",
     });
-    render(<TimeZoneMismatchNotice accountTimeZone="UTC" />);
+    render(<TimeZoneMismatchNotice userId="user-a" accountTimeZone="UTC" />);
 
     expect(screen.getByText(/UTC/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Dùng Asia/Saigon" }));
@@ -71,7 +74,7 @@ describe("TimeZoneMismatchNotice", () => {
 
   it("stays hidden after the user keeps the account zone", () => {
     const { container, unmount } = render(
-      <TimeZoneMismatchNotice accountTimeZone="UTC" />,
+      <TimeZoneMismatchNotice userId="user-a" accountTimeZone="UTC" />,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Giữ nguyên" }));
@@ -79,17 +82,21 @@ describe("TimeZoneMismatchNotice", () => {
     expect(updateMyTimeZone).not.toHaveBeenCalled();
 
     unmount();
-    const again = render(<TimeZoneMismatchNotice accountTimeZone="UTC" />);
+    const again = render(
+      <TimeZoneMismatchNotice userId="user-a" accountTimeZone="UTC" />,
+    );
     expect(again.container.firstChild).toBeNull();
   });
 
   it("asks again when the browser moves to yet another zone", () => {
-    const first = render(<TimeZoneMismatchNotice accountTimeZone="UTC" />);
+    const first = render(
+      <TimeZoneMismatchNotice userId="user-a" accountTimeZone="UTC" />,
+    );
     fireEvent.click(screen.getByRole("button", { name: "Giữ nguyên" }));
     first.unmount();
 
     browserTimeZone.value = "Asia/Tokyo";
-    render(<TimeZoneMismatchNotice accountTimeZone="UTC" />);
+    render(<TimeZoneMismatchNotice userId="user-a" accountTimeZone="UTC" />);
 
     expect(
       screen.getByRole("button", { name: "Dùng Asia/Tokyo" }),
@@ -101,7 +108,7 @@ describe("TimeZoneMismatchNotice", () => {
       status: "error",
       message: "Không thể lưu, vui lòng thử lại.",
     });
-    render(<TimeZoneMismatchNotice accountTimeZone="UTC" />);
+    render(<TimeZoneMismatchNotice userId="user-a" accountTimeZone="UTC" />);
 
     fireEvent.click(screen.getByRole("button", { name: "Dùng Asia/Saigon" }));
 
@@ -109,5 +116,35 @@ describe("TimeZoneMismatchNotice", () => {
       await screen.findByText("Không thể lưu, vui lòng thử lại."),
     ).toBeTruthy();
     expect(notifySuccess).not.toHaveBeenCalled();
+  });
+
+  it("keeps one account's dismissal from hiding the notice for another", () => {
+    const first = render(
+      <TimeZoneMismatchNotice userId="user-a" accountTimeZone="UTC" />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Giữ nguyên" }));
+    first.unmount();
+
+    render(<TimeZoneMismatchNotice userId="user-b" accountTimeZone="UTC" />);
+
+    expect(
+      screen.getByRole("button", { name: "Dùng Asia/Saigon" }),
+    ).toBeTruthy();
+  });
+
+  it("honours a dismissal when the browser reports the same zone under another name", () => {
+    browserTimeZone.value = "Asia/Ho_Chi_Minh";
+    const first = render(
+      <TimeZoneMismatchNotice userId="user-a" accountTimeZone="UTC" />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Giữ nguyên" }));
+    first.unmount();
+
+    browserTimeZone.value = "Asia/Saigon";
+    const again = render(
+      <TimeZoneMismatchNotice userId="user-a" accountTimeZone="UTC" />,
+    );
+
+    expect(again.container.firstChild).toBeNull();
   });
 });

@@ -18,7 +18,8 @@ describe('UpdateMyTimeZoneHandler', () => {
   const createRepository = (user: UserEntity | null) =>
     ({
       findById: jest.fn().mockResolvedValue(user),
-      save: jest.fn().mockResolvedValue(undefined),
+      changeTimeZone: jest.fn().mockResolvedValue(true),
+      save: jest.fn(),
     }) as unknown as jest.Mocked<UserRepository>;
 
   it('stores the new time zone and returns it', async () => {
@@ -36,7 +37,14 @@ describe('UpdateMyTimeZoneHandler', () => {
     expect(result.isSuccess).toBe(true);
     expect(result.getValue()).toBe('Asia/Ho_Chi_Minh');
     expect(user.timeZone).toBe('Asia/Ho_Chi_Minh');
-    expect(repository.save).toHaveBeenCalledWith(user);
+    expect(user.updatedBy).toBe('user-id');
+    expect(repository.changeTimeZone).toHaveBeenCalledWith(
+      'user-id',
+      'Asia/Ho_Chi_Minh',
+      'user-id',
+    );
+    // Never the whole snapshot: save() would also rewrite profile and roles.
+    expect(repository.save).not.toHaveBeenCalled();
   });
 
   it('skips the write when the time zone is unchanged', async () => {
@@ -48,7 +56,7 @@ describe('UpdateMyTimeZoneHandler', () => {
     );
 
     expect(result.getValue()).toBe('UTC');
-    expect(repository.save).not.toHaveBeenCalled();
+    expect(repository.changeTimeZone).not.toHaveBeenCalled();
   });
 
   it('rejects an invalid time zone before loading the user', async () => {
@@ -62,7 +70,7 @@ describe('UpdateMyTimeZoneHandler', () => {
     expect(result.isFailure).toBe(true);
     expect(result.getError()).toBeInstanceOf(InvalidTimeZoneException);
     expect(repository.findById).not.toHaveBeenCalled();
-    expect(repository.save).not.toHaveBeenCalled();
+    expect(repository.changeTimeZone).not.toHaveBeenCalled();
   });
 
   it('fails when the user no longer exists', async () => {
@@ -72,6 +80,21 @@ describe('UpdateMyTimeZoneHandler', () => {
     const result = await handler.execute(
       new UpdateMyTimeZoneCommand({
         userId: 'missing-id',
+        timeZone: 'Asia/Ho_Chi_Minh',
+      }),
+    );
+
+    expect(result.getError()).toBeInstanceOf(UserNotFoundException);
+  });
+
+  it('fails when the user is deleted between loading and writing', async () => {
+    const repository = createRepository(createUser());
+    repository.changeTimeZone.mockResolvedValue(false);
+    const handler = new UpdateMyTimeZoneHandler(repository);
+
+    const result = await handler.execute(
+      new UpdateMyTimeZoneCommand({
+        userId: 'user-id',
         timeZone: 'Asia/Ho_Chi_Minh',
       }),
     );

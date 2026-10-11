@@ -7,13 +7,14 @@ import { ContextHero } from "@/components/system/context-hero";
 import { EmptyState } from "@/components/system/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { getCurrentUser } from "@/features/account/api/current-user";
+import { TimeZoneMismatchNotice } from "@/features/account/components/time-zone-mismatch-notice";
 import { getToday } from "@/features/today/api/today";
 import { TodayBoard } from "@/features/today/components/today-board";
 import {
   TodayBoardSkeleton,
   TodayMetaSkeleton,
 } from "@/features/today/components/today-skeletons";
-import { TimeZoneMismatchNotice } from "@/features/account/components/time-zone-mismatch-notice";
 
 export const metadata: Metadata = {
   title: "Hôm nay",
@@ -45,8 +46,12 @@ async function TodayTimeZoneNotice({
 }: {
   todayPromise: ReturnType<typeof getToday>;
 }) {
-  const today = await todayPromise;
-  return <TimeZoneMismatchNotice accountTimeZone={today.timeZone} />;
+  // getCurrentUser() đã được layout gọi trong cùng request (React cache),
+  // nên không thêm round-trip nào.
+  const [today, user] = await Promise.all([todayPromise, getCurrentUser()]);
+  return (
+    <TimeZoneMismatchNotice userId={user.id} accountTimeZone={today.timeZone} />
+  );
 }
 
 async function TodayBody({

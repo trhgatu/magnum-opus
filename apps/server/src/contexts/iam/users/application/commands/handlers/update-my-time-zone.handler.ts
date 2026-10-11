@@ -35,8 +35,17 @@ export class UpdateMyTimeZoneHandler implements ICommandHandler<
       return Result.fail(new UserNotFoundException(userId));
     }
 
-    if (user.changeTimeZone(timeZone)) {
-      await this.userRepository.save(user);
+    // Người tự đổi múi giờ của mình nên cũng là updatedBy. Ghi qua
+    // changeTimeZone (một cột) chứ không save() cả snapshot.
+    if (user.changeTimeZone(timeZone, userId)) {
+      const saved = await this.userRepository.changeTimeZone(
+        userId,
+        user.timeZone,
+        userId,
+      );
+      if (!saved) {
+        return Result.fail(new UserNotFoundException(userId));
+      }
     }
 
     return Result.ok(user.timeZone);

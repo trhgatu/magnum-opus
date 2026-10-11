@@ -89,6 +89,11 @@ describe("filterTimeZones", () => {
     expect(filterTimeZones(zones, "gmt+09", at)).toEqual(["Asia/Tokyo"]);
   });
 
+  it("matches the short offset the placeholder suggests", () => {
+    expect(filterTimeZones(zones, "GMT+7", at)).toEqual(["Asia/Saigon"]);
+    expect(filterTimeZones(zones, "gmt+5:30", at)).toEqual(["Asia/Calcutta"]);
+  });
+
   it("finds renamed zones by their current name and country", () => {
     expect(filterTimeZones(zones, "ho chi minh", at)).toEqual(["Asia/Saigon"]);
     expect(filterTimeZones(zones, "Việt Nam", at)).toEqual(["Asia/Saigon"]);

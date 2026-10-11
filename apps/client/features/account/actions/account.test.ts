@@ -47,6 +47,13 @@ describe("updateMyTimeZone", () => {
     expect(apiFetch).not.toHaveBeenCalled();
   });
 
+  it("rejects a non-string payload instead of throwing", async () => {
+    await expect(
+      updateMyTimeZone(null as unknown as string),
+    ).resolves.toMatchObject({ status: "error" });
+    expect(apiFetch).not.toHaveBeenCalled();
+  });
+
   it("passes the backend error code through", async () => {
     apiFetch.mockRejectedValue(
       new ApiError({

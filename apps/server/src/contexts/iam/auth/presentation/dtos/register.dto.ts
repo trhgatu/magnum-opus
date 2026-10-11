@@ -1,11 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsEmail,
-  IsString,
-  MinLength,
-  IsOptional,
-  MaxLength,
-} from 'class-validator';
+import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
 
 export class RegisterDto {
   @ApiProperty({
@@ -32,8 +26,9 @@ export class RegisterDto {
     description: 'Browser time zone; falls back to UTC when missing or unknown',
     required: false,
   })
+  // Không giới hạn độ dài ở đây: giá trị lạ (kể cả quá dài) phải tới được
+  // RegisterHandler để lùi về UTC, không được chặn cả việc đăng ký.
   @IsOptional()
   @IsString()
-  @MaxLength(64)
   timeZone?: string;
 }

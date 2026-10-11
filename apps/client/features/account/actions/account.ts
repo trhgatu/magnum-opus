@@ -10,6 +10,12 @@ export type TimeZoneMutationResult =
 export async function updateMyTimeZone(
   timeZone: string,
 ): Promise<TimeZoneMutationResult> {
+  // Server Action có thể bị gọi với payload bất kỳ ngoài UI — kiểm tra kiểu
+  // trước khi trim, để lỗi luôn về dạng MutationError.
+  if (typeof timeZone !== "string") {
+    return { status: "error", message: "Múi giờ không hợp lệ." };
+  }
+
   const value = timeZone.trim();
   if (!value || value.length > 64) {
     return { status: "error", message: "Múi giờ không hợp lệ" };

@@ -157,12 +157,12 @@ export class UserEntity extends AggregateRoot {
     this.trackUpdate(updatedBy);
   }
 
-  public changeTimeZone(timeZone: string): boolean {
+  public changeTimeZone(timeZone: string, updatedBy?: string): boolean {
     const next = new TimeZone(timeZone);
     if (next.value === this.props.timeZone.value) return false;
 
     this.props.timeZone = next;
-    this.trackUpdate();
+    this.trackUpdate(updatedBy);
     return true;
   }
 

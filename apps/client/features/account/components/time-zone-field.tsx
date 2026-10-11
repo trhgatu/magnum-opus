@@ -56,6 +56,7 @@ export function TimeZoneField({ timeZone }: TimeZoneFieldProps) {
           onValueChange={setSelected}
           disabled={isPending}
           labelId="time-zone-label"
+          describedById="time-zone-hint"
         />
 
         <Button
