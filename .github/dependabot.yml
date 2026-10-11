@@ -6,6 +6,13 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 10
+    ignore:
+      # Mọi package khai báo @types/node ^20 vì runtime là Node 20 ở mọi nơi
+      # (.nvmrc, Dockerfile server/client, CI). Type mới hơn cho gọi API mà
+      # Node 20 không có. Khi nâng Node: đổi .nvmrc + Dockerfile + @types/node
+      # trong cùng 1 PR, và gỡ (hoặc dời) rule này.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
     groups:
       minor-and-patch:
         update-types:
