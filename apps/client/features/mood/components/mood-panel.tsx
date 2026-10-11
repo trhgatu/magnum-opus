@@ -30,28 +30,9 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { removeMood, setMood } from "@/features/mood/actions/mood";
+import { MOOD_OPTIONS, moodOption } from "@/features/mood/config/mood-labels";
 import { notifySuccess } from "@/lib/toast";
 import { cn } from "@/lib/utils";
-
-const MOOD_OPTIONS: ReadonlyArray<{
-  value: MoodLabel;
-  label: string;
-  symbol: string;
-}> = [
-  { value: "JOYFUL", label: "Vui", symbol: "✦" },
-  { value: "CALM", label: "Bình yên", symbol: "◌" },
-  { value: "HOPEFUL", label: "Hy vọng", symbol: "↗" },
-  { value: "ENERGETIC", label: "Tràn năng lượng", symbol: "ϟ" },
-  { value: "NEUTRAL", label: "Trung tính", symbol: "—" },
-  { value: "TIRED", label: "Mệt", symbol: "◒" },
-  { value: "ANXIOUS", label: "Lo âu", symbol: "≈" },
-  { value: "SAD", label: "Buồn", symbol: "◇" },
-  { value: "ANGRY", label: "Tức giận", symbol: "△" },
-  { value: "OVERWHELMED", label: "Quá tải", symbol: "※" },
-];
-
-const moodOption = (label: MoodLabel) =>
-  MOOD_OPTIONS.find((option) => option.value === label) ?? MOOD_OPTIONS[4];
 
 interface MoodPanelProps {
   journalEntryId: string;

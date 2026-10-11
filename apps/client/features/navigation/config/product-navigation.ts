@@ -7,6 +7,7 @@ import {
   History,
   ListChecks,
   Repeat2,
+  ScrollText,
   Sparkles,
 } from "lucide-react";
 import type { ProductSpace } from "@/features/navigation/types/navigation.types";
@@ -63,6 +64,21 @@ export const productNavigation = [
         label: "Project",
         href: "/projects",
         icon: FolderKanban,
+      },
+    ],
+  },
+  {
+    id: "chronicle",
+    label: "Chronicle",
+    description: "Nhìn lại một tháng đã sống qua mọi không gian.",
+    icon: ScrollText,
+    status: "available",
+    items: [
+      {
+        id: "chronicle",
+        label: "Nhìn lại tháng",
+        href: "/chronicle",
+        icon: ScrollText,
       },
     ],
   },

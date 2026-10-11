@@ -148,7 +148,7 @@ Nhất quán `DomainExceptionFilter` đã dùng toàn hệ thống (xem
 {
   "statusCode": 400,
   "code": "CHRONICLE_MONTH_IN_FUTURE",
-  "translationKey": "exceptions.chronicle.month_in_future",
+  "translationKey": "exceptions.chronicle.month.in.future",
   "message": "Cannot view Chronicle for a future month.",
   "args": { "year": 2027, "month": 3 },
   "error": "ChronicleMonthInFutureException",

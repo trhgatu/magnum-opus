@@ -28,7 +28,7 @@ export function ProjectDetail({ project }: { project: ProjectResponse }) {
 
   return (
     <article
-      className="mx-auto flex w-full max-w-5xl flex-col gap-6"
+      className="flex w-full flex-col gap-6"
       aria-labelledby="project-title"
     >
       <Link

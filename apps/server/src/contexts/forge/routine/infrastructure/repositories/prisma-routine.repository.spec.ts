@@ -4,9 +4,13 @@ import {
 } from '@repo/database';
 
 import { Routine } from '../../domain/routine.aggregate';
-import { RoutineId } from '../../domain/value-objects';
+import { RoutineCalendarDate, RoutineId } from '../../domain/value-objects';
 import { PrismaRoutineWithHabits } from '../mappers/prisma-routine.mapper';
 import { PrismaRoutineRepository } from './prisma-routine.repository';
+
+const TODAY = RoutineCalendarDate.fromPersistenceDate(
+  new Date('2026-10-09T00:00:00.000Z'),
+);
 
 describe('PrismaRoutineRepository', () => {
   const transactionClient = {
@@ -17,6 +21,13 @@ describe('PrismaRoutineRepository', () => {
     routineHabit: {
       deleteMany: jest.fn(),
       createMany: jest.fn(),
+    },
+    routineLifecycleTransition: {
+      createMany: jest.fn(),
+    },
+    routineHabitMembership: {
+      create: jest.fn(),
+      updateMany: jest.fn(),
     },
   };
 
@@ -39,6 +50,9 @@ describe('PrismaRoutineRepository', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    transactionClient.routineHabitMembership.updateMany.mockResolvedValue({
+      count: 1,
+    });
   });
 
   describe('create', () => {
@@ -117,6 +131,172 @@ describe('PrismaRoutineRepository', () => {
       expect(transactionClient.routineHabit.createMany).toHaveBeenCalledWith({
         data: rawMemberships(),
       });
+
+      expect(
+        transactionClient.routineLifecycleTransition.createMany,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('writes the lifecycle transition in the same transaction as the update', async () => {
+      transactionClient.routine.updateMany.mockResolvedValue({
+        count: 1,
+      });
+
+      const routine = createDomainRoutine();
+      routine.archive(TODAY);
+
+      const updated = await repository.update(routine, 4);
+
+      expect(updated).toBe(true);
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+
+      expect(transactionClient.routine.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ isActive: false, revision: 5 }),
+        }),
+      );
+
+      expect(
+        transactionClient.routineLifecycleTransition.createMany,
+      ).toHaveBeenCalledWith({
+        data: [
+          {
+            routineId: 'routine-id',
+            ownerId: 'owner-id',
+            action: 'ARCHIVED',
+            effectiveOn: new Date('2026-10-09T00:00:00.000Z'),
+            occurredAt: expect.any(Date),
+          },
+        ],
+      });
+      expect(
+        transactionClient.routineHabitMembership.create,
+      ).not.toHaveBeenCalled();
+      expect(
+        transactionClient.routineHabitMembership.updateMany,
+      ).not.toHaveBeenCalled();
+      expect(routine.getDomainEvents()).toEqual([]);
+    });
+
+    it('opens a membership row for an added Habit in the same transaction', async () => {
+      transactionClient.routine.updateMany.mockResolvedValue({
+        count: 1,
+      });
+
+      const routine = createDomainRoutine();
+      routine.addHabit('habit-third', TODAY);
+
+      const updated = await repository.update(routine, 4);
+
+      expect(updated).toBe(true);
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+      expect(
+        transactionClient.routineHabitMembership.create,
+      ).toHaveBeenCalledWith({
+        data: {
+          routineId: 'routine-id',
+          habitId: 'habit-third',
+          ownerId: 'owner-id',
+          addedOn: new Date('2026-10-09T00:00:00.000Z'),
+        },
+      });
+      expect(
+        transactionClient.routineHabitMembership.updateMany,
+      ).not.toHaveBeenCalled();
+      expect(routine.getDomainEvents()).toEqual([]);
+    });
+
+    it('closes only the open membership row of a removed Habit', async () => {
+      transactionClient.routine.updateMany.mockResolvedValue({
+        count: 1,
+      });
+
+      const routine = createDomainRoutine();
+      routine.removeHabit('habit-first', TODAY);
+
+      const updated = await repository.update(routine, 4);
+
+      expect(updated).toBe(true);
+      expect(
+        transactionClient.routineHabitMembership.updateMany,
+      ).toHaveBeenCalledWith({
+        where: {
+          routineId: 'routine-id',
+          habitId: 'habit-first',
+          ownerId: 'owner-id',
+          removedOn: null,
+        },
+        data: { removedOn: new Date('2026-10-09T00:00:00.000Z') },
+      });
+      expect(
+        transactionClient.routineHabitMembership.create,
+      ).not.toHaveBeenCalled();
+    });
+
+    it.each([0, 2])(
+      'fails the whole write when removing a Habit closes %p open intervals',
+      async (count) => {
+        transactionClient.routine.updateMany.mockResolvedValue({ count: 1 });
+        transactionClient.routineHabitMembership.updateMany.mockResolvedValue({
+          count,
+        });
+
+        const routine = createDomainRoutine();
+        routine.removeHabit('habit-first', TODAY);
+
+        // Ném trong callback của $transaction → Prisma rollback toàn bộ,
+        // gồm cả việc gỡ Habit khỏi RoutineHabit.
+        await expect(repository.update(routine, 4)).rejects.toThrow(
+          `Expected exactly one open membership for routine routine-id and habit habit-first, closed ${count}`,
+        );
+      },
+    );
+
+    it('writes membership changes in event order', async () => {
+      transactionClient.routine.updateMany.mockResolvedValue({
+        count: 1,
+      });
+
+      // Gỡ rồi thêm lại cùng Habit: phải đóng khoảng cũ trước khi mở khoảng
+      // mới, nếu không partial unique index (1 khoảng mở / cặp) sẽ chặn.
+      const routine = createDomainRoutine();
+      routine.removeHabit('habit-first', TODAY);
+      routine.addHabit('habit-first', TODAY);
+
+      const updated = await repository.update(routine, 4);
+
+      expect(updated).toBe(true);
+
+      const { create, updateMany } = transactionClient.routineHabitMembership;
+      expect(updateMany).toHaveBeenCalledTimes(1);
+      expect(create).toHaveBeenCalledTimes(1);
+      expect(updateMany.mock.invocationCallOrder[0]).toBeLessThan(
+        create.mock.invocationCallOrder[0],
+      );
+      expect(
+        transactionClient.routine.updateMany.mock.invocationCallOrder[0],
+      ).toBeLessThan(updateMany.mock.invocationCallOrder[0]);
+    });
+
+    it('writes no membership history when revision is stale', async () => {
+      transactionClient.routine.updateMany.mockResolvedValue({
+        count: 0,
+      });
+
+      const routine = createDomainRoutine();
+      routine.removeHabit('habit-first', TODAY);
+      routine.addHabit('habit-third', TODAY);
+
+      const updated = await repository.update(routine, 4);
+
+      expect(updated).toBe(false);
+      expect(
+        transactionClient.routineHabitMembership.create,
+      ).not.toHaveBeenCalled();
+      expect(
+        transactionClient.routineHabitMembership.updateMany,
+      ).not.toHaveBeenCalled();
+      expect(transactionClient.routineHabit.deleteMany).not.toHaveBeenCalled();
     });
 
     it('returns false without replacing memberships when revision is stale', async () => {
@@ -124,13 +304,20 @@ describe('PrismaRoutineRepository', () => {
         count: 0,
       });
 
-      const updated = await repository.update(createDomainRoutine(), 3);
+      const routine = createDomainRoutine();
+      routine.archive(TODAY);
+
+      const updated = await repository.update(routine, 3);
 
       expect(updated).toBe(false);
 
       expect(transactionClient.routineHabit.deleteMany).not.toHaveBeenCalled();
 
       expect(transactionClient.routineHabit.createMany).not.toHaveBeenCalled();
+
+      expect(
+        transactionClient.routineLifecycleTransition.createMany,
+      ).not.toHaveBeenCalled();
     });
 
     it('persists the new order after moving a Habit', async () => {
@@ -178,8 +365,8 @@ describe('PrismaRoutineRepository', () => {
       });
 
       const routine = createDomainRoutine();
-      routine.removeHabit('habit-first');
-      routine.removeHabit('habit-second');
+      routine.removeHabit('habit-first', TODAY);
+      routine.removeHabit('habit-second', TODAY);
 
       const updated = await repository.update(routine, 4);
 
@@ -216,6 +403,14 @@ describe('PrismaRoutineRepository', () => {
               order: 'asc',
             },
           },
+          lifecycleTransitions: {
+            select: { effectiveOn: true },
+            orderBy: [{ effectiveOn: 'desc' }, { occurredAt: 'desc' }],
+            take: 1,
+          },
+          membershipHistory: {
+            select: { habitId: true, addedOn: true, removedOn: true },
+          },
         },
       });
 
@@ -227,8 +422,38 @@ describe('PrismaRoutineRepository', () => {
         isActive: true,
         revision: 4,
         createdAt: new Date('2026-08-20T10:00:00.000Z'),
+        createdOn: '2026-08-20',
         updatedAt: new Date('2026-08-21T10:00:00.000Z'),
       });
+    });
+
+    it('loads membership floors so the Routine can add/remove Habits', async () => {
+      routineModel.findFirst.mockResolvedValue({
+        ...rawRoutineWithHabits(),
+        lifecycleTransitions: [],
+        membershipHistory: [
+          {
+            habitId: 'habit-first',
+            addedOn: new Date('2026-10-12T00:00:00.000Z'),
+            removedOn: null,
+          },
+        ],
+      });
+
+      const routine = await repository.findByIdForOwner(
+        'routine-id',
+        'owner-id',
+      );
+      routine?.removeHabit('habit-first', TODAY);
+
+      expect(routine?.getDomainEvents()).toEqual([
+        expect.objectContaining({
+          habitId: 'habit-first',
+          removedOn: RoutineCalendarDate.fromPersistenceDate(
+            new Date('2026-10-12T00:00:00.000Z'),
+          ),
+        }),
+      ]);
     });
 
     it('returns null when no owned Routine exists', async () => {
@@ -252,6 +477,11 @@ function createDomainRoutine(
     isActive: true,
     revision: 4,
     createdAt: new Date('2026-08-20T10:00:00.000Z'),
+    createdOn: RoutineCalendarDate.fromPersistenceDate(
+      new Date('2026-08-20T00:00:00.000Z'),
+    ),
+    latestLifecycleEffectiveOn: null,
+    membershipFloors: new Map(),
     updatedAt: new Date('2026-08-21T10:00:00.000Z'),
   });
 }
@@ -264,6 +494,7 @@ function rawRoutine(): PrismaRoutine {
     isActive: true,
     revision: 4,
     createdAt: new Date('2026-08-20T10:00:00.000Z'),
+    createdOn: new Date('2026-08-20T00:00:00.000Z'),
     updatedAt: new Date('2026-08-21T10:00:00.000Z'),
   };
 }

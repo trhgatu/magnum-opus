@@ -246,7 +246,7 @@ export function JournalEditor({
           : ""
       }
     >
-      <div className="mx-auto flex max-w-5xl flex-col gap-5">
+      <div className="flex flex-col gap-5">
         <JournalEditorToolbar
           state={entry.state}
           saveState={saveState}

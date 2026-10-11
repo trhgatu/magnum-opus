@@ -80,7 +80,7 @@ export function HabitCollectionSkeleton() {
 export function HabitDetailSkeleton() {
   return (
     <section
-      className="mx-auto flex w-full max-w-5xl flex-col gap-6"
+      className="flex w-full flex-col gap-6"
       role="status"
       aria-live="polite"
     >

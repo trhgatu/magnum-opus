@@ -14,7 +14,7 @@ import {
   ROUTINE_HABIT_READER,
   type RoutineHabitReader,
 } from '../../ports/routine-habit-reader.port';
-import { RoutineMutationService } from '../../services';
+import { RoutineMutationService, RoutineTodayService } from '../../services';
 import { AddRoutineHabitCommand } from '../add-routine-habit.command';
 
 @CommandHandler(AddRoutineHabitCommand)
@@ -26,6 +26,7 @@ export class AddRoutineHabitHandler implements ICommandHandler<
     @Inject(ROUTINE_HABIT_READER)
     private readonly routineHabitReader: RoutineHabitReader,
     private readonly mutationService: RoutineMutationService,
+    private readonly todayService: RoutineTodayService,
   ) {}
 
   public async execute(
@@ -56,7 +57,13 @@ export class AddRoutineHabitHandler implements ICommandHandler<
       routineId: command.routineId,
       ownerId: command.ownerId,
       expectedRevision: command.expectedRevision,
-      mutate: (routine) => routine.addHabit(command.habitId),
+      // "Hôm nay" chỉ tính sau khi Routine đã được tìm thấy và đúng revision.
+      mutate: async (routine) => {
+        routine.addHabit(
+          command.habitId,
+          await this.todayService.todayForOwner(command.ownerId),
+        );
+      },
     });
   }
 }

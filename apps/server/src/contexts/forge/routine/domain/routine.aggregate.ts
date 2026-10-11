@@ -1,5 +1,11 @@
 import { AggregateRoot } from '@shared/domain/aggregate-root';
 
+import { RoutineLifecycleAction } from './enums';
+import {
+  RoutineHabitAddedEvent,
+  RoutineHabitRemovedEvent,
+  RoutineLifecycleTransitionedEvent,
+} from './events';
 import {
   InvalidRoutineHabitIdException,
   InvalidRoutineHabitReorderException,
@@ -9,7 +15,7 @@ import {
   RoutineHabitNotFoundException,
 } from './exceptions';
 
-import { RoutineId } from './value-objects';
+import { RoutineCalendarDate, RoutineId } from './value-objects';
 
 const MAX_TITLE_LENGTH = 200;
 
@@ -21,6 +27,18 @@ export interface RoutineProps {
   isActive: boolean;
   revision: number;
   createdAt: Date;
+  createdOn: RoutineCalendarDate;
+  // effectiveOn của lifecycle transition mới nhất đã ghi — mốc sàn để
+  // effectiveOn không bao giờ giảm khi owner đổi múi giờ về phía tây.
+  // null = đã nạp, chưa có transition nào; undefined = không được nạp (vd
+  // aggregate dựng từ reader chỉ để hiển thị) — khi đó cấm archive/restore.
+  latestLifecycleEffectiveOn: RoutineCalendarDate | null | undefined;
+  // Mốc hiệu lực mới nhất đã ghi trong lịch sử thành viên của TỪNG Habit
+  // (max của addedOn/removedOn của cặp routine–habit đó) — mốc sàn để
+  // addedOn/removedOn không bao giờ giảm (DAP-FTH-001). Habit chưa từng có
+  // lịch sử thì không có trong map. undefined = không được nạp (reader) —
+  // khi đó cấm thêm/gỡ Habit.
+  membershipFloors: Map<string, RoutineCalendarDate> | undefined;
   updatedAt: Date;
 }
 
@@ -32,6 +50,7 @@ export interface RoutinePrimitives {
   isActive: boolean;
   revision: number;
   createdAt: Date;
+  createdOn: string;
   updatedAt: Date;
 }
 
@@ -40,7 +59,11 @@ export class Routine extends AggregateRoot {
     super();
   }
 
-  public static create(input: { ownerId: string; title: string }): Routine {
+  public static create(input: {
+    ownerId: string;
+    title: string;
+    today: RoutineCalendarDate;
+  }): Routine {
     const now = new Date();
 
     return new Routine({
@@ -51,6 +74,9 @@ export class Routine extends AggregateRoot {
       isActive: true,
       revision: 1,
       createdAt: now,
+      createdOn: input.today,
+      latestLifecycleEffectiveOn: null,
+      membershipFloors: new Map(),
       updatedAt: now,
     });
   }
@@ -59,6 +85,9 @@ export class Routine extends AggregateRoot {
     return new Routine({
       ...props,
       habitIds: [...props.habitIds],
+      membershipFloors: props.membershipFloors
+        ? new Map(props.membershipFloors)
+        : undefined,
     });
   }
 
@@ -90,6 +119,10 @@ export class Routine extends AggregateRoot {
     return this.props.createdAt;
   }
 
+  public get createdOn(): RoutineCalendarDate {
+    return this.props.createdOn;
+  }
+
   public get updatedAt(): Date {
     return this.props.updatedAt;
   }
@@ -109,21 +142,27 @@ export class Routine extends AggregateRoot {
     this.trackChange();
   }
 
-  public restore(): void {
+  public restore(today: RoutineCalendarDate): void {
+    this.ensureLifecycleFloorLoaded();
+
     if (this.props.isActive) {
       throw new InvalidRoutineTransitionException(true);
     }
 
     this.props.isActive = true;
     this.trackChange();
+    this.recordLifecycleTransition(RoutineLifecycleAction.RESTORED, today);
   }
 
-  public archive(): void {
+  public archive(today: RoutineCalendarDate): void {
+    this.ensureLifecycleFloorLoaded();
+
     if (!this.props.isActive) {
       throw new InvalidRoutineTransitionException(false);
     }
     this.props.isActive = false;
     this.trackChange();
+    this.recordLifecycleTransition(RoutineLifecycleAction.ARCHIVED, today);
   }
 
   public toPrimitives(): RoutinePrimitives {
@@ -135,10 +174,11 @@ export class Routine extends AggregateRoot {
       revision: this.props.revision,
       habitIds: [...this.props.habitIds],
       createdAt: this.props.createdAt,
+      createdOn: this.props.createdOn.value,
       updatedAt: this.props.updatedAt,
     };
   }
-  public addHabit(habitId: string): void {
+  public addHabit(habitId: string, today: RoutineCalendarDate): void {
     this.ensureActive();
 
     const normalizedHabitId = Routine.normalizeHabitId(habitId);
@@ -147,11 +187,21 @@ export class Routine extends AggregateRoot {
       throw new RoutineHabitAlreadyExistsException(normalizedHabitId);
     }
 
+    this.ensureMembershipFloorsLoaded();
+
     this.props.habitIds.push(normalizedHabitId);
     this.trackChange();
+    this.addDomainEvent(
+      new RoutineHabitAddedEvent(
+        this.props.id.value,
+        this.props.ownerId,
+        normalizedHabitId,
+        this.nextMembershipDate(normalizedHabitId, today),
+      ),
+    );
   }
 
-  public removeHabit(habitId: string): void {
+  public removeHabit(habitId: string, today: RoutineCalendarDate): void {
     this.ensureActive();
 
     const normalizedHabitId = Routine.normalizeHabitId(habitId);
@@ -161,14 +211,26 @@ export class Routine extends AggregateRoot {
       throw new RoutineHabitNotFoundException(normalizedHabitId);
     }
 
+    this.ensureMembershipFloorsLoaded();
+
     this.props.habitIds.splice(habitIndex, 1);
     this.trackChange();
+    this.addDomainEvent(
+      new RoutineHabitRemovedEvent(
+        this.props.id.value,
+        this.props.ownerId,
+        normalizedHabitId,
+        this.nextMembershipDate(normalizedHabitId, today),
+      ),
+    );
   }
 
   public reorderHabits(habitIds: string[]): void {
     this.ensureActive();
 
-    const normalizedHabitIds = habitIds.map(Routine.normalizeHabitId);
+    const normalizedHabitIds = habitIds.map((habitId) =>
+      Routine.normalizeHabitId(habitId),
+    );
     const currentHabitIds = this.props.habitIds;
 
     const isSamePermutation =
@@ -227,6 +289,75 @@ export class Routine extends AggregateRoot {
   private trackChange(): void {
     this.props.revision += 1;
     this.props.updatedAt = new Date();
+  }
+
+  // Lỗi lập trình, không phải lỗi nghiệp vụ: archive/restore trên aggregate
+  // không nạp mốc sàn sẽ lặng lẽ bỏ qua quy tắc mốc hiệu lực không giảm.
+  private ensureLifecycleFloorLoaded(): void {
+    if (this.props.latestLifecycleEffectiveOn === undefined) {
+      throw new Error(
+        'Routine lifecycle floor was not loaded; load the Routine through RoutineRepository before archive/restore',
+      );
+    }
+  }
+
+  // Lỗi lập trình, giống ensureLifecycleFloorLoaded: thêm/gỡ Habit trên
+  // aggregate không nạp mốc sàn sẽ bỏ qua quy tắc mốc hiệu lực không giảm.
+  private ensureMembershipFloorsLoaded(): void {
+    if (this.props.membershipFloors === undefined) {
+      throw new Error(
+        'Routine membership floors were not loaded; load the Routine through RoutineRepository before adding/removing Habits',
+      );
+    }
+  }
+
+  // Ngày hiệu lực cho 1 lần thêm/gỡ Habit: không sớm hơn mốc mới nhất của
+  // chính cặp routine–habit đó, cũng không sớm hơn createdOn (DAP-FTH-001).
+  private nextMembershipDate(
+    habitId: string,
+    today: RoutineCalendarDate,
+  ): RoutineCalendarDate {
+    this.ensureMembershipFloorsLoaded();
+
+    // Đã được đảm bảo ở dòng trên — không có nhánh dự phòng nào để một
+    // aggregate chưa nạp mốc sàn lặng lẽ trở thành "đã nạp".
+    const floors = this.props.membershipFloors as Map<
+      string,
+      RoutineCalendarDate
+    >;
+    const floor = RoutineCalendarDate.latest(
+      this.props.createdOn,
+      floors.get(habitId) ?? null,
+    );
+    const effectiveOn = RoutineCalendarDate.latest(today, floor);
+
+    floors.set(habitId, effectiveOn);
+
+    return effectiveOn;
+  }
+
+  // Mốc hiệu lực không bao giờ giảm (DAP-FTH-001): nếu "hôm nay" theo múi
+  // giờ hiện tại sớm hơn mốc đã ghi, transition được kẹp về mốc đó. Chuỗi
+  // lifecycle bắt đầu từ createdOn nên createdOn cũng là mốc sàn.
+  private recordLifecycleTransition(
+    action: RoutineLifecycleAction,
+    today: RoutineCalendarDate,
+  ): void {
+    const floor = RoutineCalendarDate.latest(
+      this.props.createdOn,
+      this.props.latestLifecycleEffectiveOn ?? null,
+    );
+    const effectiveOn = RoutineCalendarDate.latest(today, floor);
+
+    this.props.latestLifecycleEffectiveOn = effectiveOn;
+    this.addDomainEvent(
+      new RoutineLifecycleTransitionedEvent(
+        this.props.id.value,
+        this.props.ownerId,
+        action,
+        effectiveOn,
+      ),
+    );
   }
 
   private moveHabit(habitId: string, offset: -1 | 1): void {

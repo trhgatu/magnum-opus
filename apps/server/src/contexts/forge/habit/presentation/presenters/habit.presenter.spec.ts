@@ -1,6 +1,10 @@
 import { HabitFrequencyType, HabitType } from '../../domain/enums';
 import { Habit } from '../../domain/habit.aggregate';
-import { HabitFrequency, HabitId } from '../../domain/value-objects';
+import {
+  HabitCalendarDate,
+  HabitFrequency,
+  HabitId,
+} from '../../domain/value-objects';
 import { HabitPresenter } from './habit.presenter';
 
 describe('HabitPresenter', () => {
@@ -16,6 +20,13 @@ describe('HabitPresenter', () => {
       isActive: true,
       revision: 3,
       createdAt: new Date('2026-08-20T10:00:00.000Z'),
+      createdOn: HabitCalendarDate.fromPersistenceDate(
+        new Date('2026-08-20T00:00:00.000Z'),
+      ),
+      latestLifecycleEffectiveOn: null,
+      openScheduleEffectiveFrom: HabitCalendarDate.fromPersistenceDate(
+        new Date('2026-08-20T00:00:00.000Z'),
+      ),
       updatedAt: new Date('2026-08-21T10:00:00.000Z'),
     });
 
@@ -46,6 +57,11 @@ describe('HabitPresenter', () => {
       isActive: true,
       revision: 1,
       createdAt: new Date('2026-08-20T10:00:00.000Z'),
+      createdOn: HabitCalendarDate.fromPersistenceDate(
+        new Date('2026-08-20T00:00:00.000Z'),
+      ),
+      latestLifecycleEffectiveOn: null,
+      openScheduleEffectiveFrom: null,
       updatedAt: new Date('2026-08-20T10:00:00.000Z'),
     });
 

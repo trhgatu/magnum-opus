@@ -433,6 +433,18 @@ export const Errors = {
     translationKey: 'exceptions.project.deletion.not.allowed',
     statusCode: 409,
   },
+
+  // Chronicle
+  CHRONICLE_INVALID_MONTH: {
+    code: 'CHRONICLE_INVALID_MONTH',
+    translationKey: 'exceptions.chronicle.month.invalid',
+    statusCode: 400,
+  },
+  CHRONICLE_MONTH_IN_FUTURE: {
+    code: 'CHRONICLE_MONTH_IN_FUTURE',
+    translationKey: 'exceptions.chronicle.month.in.future',
+    statusCode: 400,
+  },
 } as const;
 
 export type ErrorDefinition = (typeof Errors)[keyof typeof Errors];

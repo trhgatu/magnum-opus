@@ -1,0 +1,12 @@
+export enum ChronicleMoodLabel {
+  JOYFUL = 'JOYFUL',
+  CALM = 'CALM',
+  NEUTRAL = 'NEUTRAL',
+  HOPEFUL = 'HOPEFUL',
+  ENERGETIC = 'ENERGETIC',
+  SAD = 'SAD',
+  TIRED = 'TIRED',
+  ANXIOUS = 'ANXIOUS',
+  ANGRY = 'ANGRY',
+  OVERWHELMED = 'OVERWHELMED',
+}

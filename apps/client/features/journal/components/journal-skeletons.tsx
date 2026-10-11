@@ -78,7 +78,7 @@ export function JournalCollectionSkeleton() {
 export function JournalEditorSkeleton() {
   return (
     <article
-      className="mx-auto flex w-full max-w-5xl flex-col gap-5"
+      className="flex w-full flex-col gap-5"
       role="status"
       aria-live="polite"
     >

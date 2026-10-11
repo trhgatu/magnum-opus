@@ -4,7 +4,7 @@ import { DomainException } from '@shared/domain/exceptions/domain.exception';
 import { Result } from '@shared/domain/result';
 
 import { Routine } from '../../../domain/routine.aggregate';
-import { RoutineMutationService } from '../../services';
+import { RoutineMutationService, RoutineTodayService } from '../../services';
 import { RestoreRoutineCommand } from '../restore-routine.command';
 
 @CommandHandler(RestoreRoutineCommand)
@@ -12,7 +12,10 @@ export class RestoreRoutineHandler implements ICommandHandler<
   RestoreRoutineCommand,
   Result<Routine, DomainException>
 > {
-  constructor(private readonly mutationService: RoutineMutationService) {}
+  constructor(
+    private readonly mutationService: RoutineMutationService,
+    private readonly todayService: RoutineTodayService,
+  ) {}
 
   public execute(
     command: RestoreRoutineCommand,
@@ -21,7 +24,9 @@ export class RestoreRoutineHandler implements ICommandHandler<
       routineId: command.routineId,
       ownerId: command.ownerId,
       expectedRevision: command.expectedRevision,
-      mutate: (routine) => routine.restore(),
+      mutate: async (routine) => {
+        routine.restore(await this.todayService.todayForOwner(command.ownerId));
+      },
     });
   }
 }

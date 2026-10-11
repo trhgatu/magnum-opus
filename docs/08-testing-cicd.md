@@ -154,6 +154,20 @@ Seed không nằm trong deploy mặc định. Production seed chỉ chạy chủ
 
 Rollback đổi image tag về SHA trước. Migration rollback không tự động; migration phải forward-compatible trong deployment window hoặc có runbook riêng.
 
+### Deploy hiện tại: Render + Vercel
+
+Luồng Compose/VPS ở trên vẫn được giữ, nhưng production hiện chạy server trên Render (deploy từ image GHCR) và client trên Vercel (tự deploy khi `main` đổi). Với server, job `deploy-server` trong `ci.yml` chạy sau khi image đã push:
+
+```text
+push main → quality + E2E → image push :<sha> + :latest
+→ prisma migrate deploy lên production DB (secret PRODUCTION_DATABASE_URL)
+→ gọi Render Deploy Hook (secret RENDER_DEPLOY_HOOK_SERVER)
+```
+
+`PRODUCTION_DATABASE_URL` phải là connection string **direct** của Neon (host không có `-pooler`): `prisma migrate deploy` cần advisory lock ở mức session, mà pooler chế độ transaction không giữ được. Job kiểm tra đủ cả hai secret trước khi migrate.
+
+Render gói free không có Pre-Deploy Command nên migrate nằm ở CI. Migrate lỗi thì không gọi hook, nên server mới không bao giờ lên trên schema cũ. Server cũ vẫn chạy trên schema mới trong lúc chờ Render kéo image, vì vậy migration phải theo kiểu expand (thêm bảng/cột); xóa hoặc đổi tên cột cần tách thành hai lần deploy. Job dùng concurrency group `deploy-production` không hủy giữa chừng, và run CI trên `main` không bị run sau hủy.
+
 ## Backup
 
 Backup PostgreSQL tạo custom-format dump. Restore verification tạo database tạm `restore_verify_*`, restore dump, kiểm tra tables rồi xóa database tạm; live database không bị sửa.
