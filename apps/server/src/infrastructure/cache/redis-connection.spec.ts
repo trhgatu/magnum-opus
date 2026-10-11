@@ -14,6 +14,8 @@ describe('buildRedisConnection', () => {
       username: 'managed-user',
       password: 'p@ss',
       tls: {},
+      // ioredis 6 mặc định RESP3 — kết nối giữ RESP2 như v5.
+      protocol: 2,
     });
   });
 
@@ -30,6 +32,7 @@ describe('buildRedisConnection', () => {
       port: 6380,
       username: 'default',
       password: undefined,
+      protocol: 2,
     });
   });
 

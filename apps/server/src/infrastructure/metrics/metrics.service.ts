@@ -9,13 +9,14 @@ import type { Job, Queue } from 'bullmq';
 import { USER_QUEUE } from '@iam/users/application/jobs/user-email.jobs';
 
 const OUTBOX_STATUSES = ['PENDING', 'PROCESSING', 'FAILED'] as const;
+// BullMQ 6 bỏ trạng thái 'paused': job trong queue đang tạm dừng được tính
+// vào 'waiting'.
 const QUEUE_STATUSES = [
   'waiting',
   'active',
   'delayed',
   'completed',
   'failed',
-  'paused',
 ] as const;
 
 @Injectable()
