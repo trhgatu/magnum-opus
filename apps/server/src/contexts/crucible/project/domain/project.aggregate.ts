@@ -8,11 +8,17 @@ import {
   ProjectLifecycleAction,
 } from './enums';
 import {
+  InvalidClosingNoteException,
   InvalidProjectTitleException,
   InvalidProjectTransitionException,
   ProjectCycleNotFoundException,
 } from './exceptions';
-import { IntendedOutcome, ProjectId } from './value-objects';
+import {
+  ClosingNote,
+  IntendedOutcome,
+  ProjectId,
+  TargetEndDate,
+} from './value-objects';
 
 const MAX_TITLE_LENGTH = 200;
 
@@ -188,7 +194,7 @@ export class Project extends AggregateRoot {
     );
   }
 
-  public stop(): void {
+  public stop(closingNote?: string | null): void {
     this.ensureState(
       [
         ProjectLifecycleState.NOT_STARTED,
@@ -197,9 +203,14 @@ export class Project extends AggregateRoot {
       ],
       'stop',
     );
-    const fromState = this.props.lifecycleState;
+    const note = ClosingNote.fromInput(closingNote);
     const openCycle = this.getOpenCycle();
-    openCycle?.close(ProjectCycleEndReason.STOPPED);
+    if (!openCycle && note) {
+      throw new InvalidClosingNoteException('no_cycle');
+    }
+
+    const fromState = this.props.lifecycleState;
+    openCycle?.close(ProjectCycleEndReason.STOPPED, note);
 
     this.props.lifecycleState = ProjectLifecycleState.STOPPED;
     this.trackChange();
@@ -215,18 +226,19 @@ export class Project extends AggregateRoot {
     );
   }
 
-  public complete(): void {
+  public complete(closingNote?: string | null): void {
     this.ensureState(
       [ProjectLifecycleState.ACTIVE, ProjectLifecycleState.PAUSED],
       'complete',
     );
+    const note = ClosingNote.fromInput(closingNote);
     const fromState = this.props.lifecycleState;
 
     const openCycle = this.getOpenCycle();
     if (!openCycle) {
       throw new ProjectCycleNotFoundException(this.props.id.value);
     }
-    openCycle.close(ProjectCycleEndReason.COMPLETED);
+    openCycle.close(ProjectCycleEndReason.COMPLETED, note);
 
     this.props.lifecycleState = ProjectLifecycleState.COMPLETED;
     this.trackChange();
@@ -280,8 +292,29 @@ export class Project extends AggregateRoot {
       throw new ProjectCycleNotFoundException(this.props.id.value);
     }
 
-    openCycle.setIntendedOutcome(IntendedOutcome.create(raw));
-    this.trackChange();
+    const changed = openCycle.recordIntendedOutcome(
+      IntendedOutcome.create(raw),
+      new Date(),
+    );
+    if (changed) this.trackChange();
+  }
+
+  public setTargetEndAt(date: string | null): void {
+    this.ensureState(
+      [ProjectLifecycleState.ACTIVE, ProjectLifecycleState.PAUSED],
+      'set target end date for',
+    );
+
+    // Kiểm tra định dạng trước khi đổi gì: chuỗi sai không được lọt xuống
+    // tầng lưu trữ thành Invalid Date.
+    const next = date === null ? null : TargetEndDate.create(date).value;
+
+    const openCycle = this.getOpenCycle();
+    if (!openCycle) {
+      throw new ProjectCycleNotFoundException(this.props.id.value);
+    }
+
+    if (openCycle.setTargetEndAt(next)) this.trackChange();
   }
 
   public canBeDeleted(): boolean {

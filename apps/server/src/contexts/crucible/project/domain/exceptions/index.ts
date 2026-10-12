@@ -7,3 +7,5 @@ export * from './project-cycle-not-found.exception';
 export * from './project-revision-conflict.exception';
 export * from './invalid-project-transition.exception';
 export * from './project-deletion-not-allowed.exception';
+export * from './invalid-closing-note.exception';
+export * from './invalid-target-end-date.exception';

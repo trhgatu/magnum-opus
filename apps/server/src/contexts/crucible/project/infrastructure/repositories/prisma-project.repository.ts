@@ -60,7 +60,16 @@ export class PrismaProjectRepository implements ProjectRepository {
             intendedOutcome: cycle.intendedOutcome,
             endedAt: cycle.endedAt,
             endReason: cycle.endReason,
+            closingNote: cycle.closingNote,
+            targetEndAt: cycle.targetEndAt,
           },
+        });
+      }
+
+      if (raw.outcomeEntries.length > 0) {
+        await transaction.projectCycleOutcomeEntry.createMany({
+          data: raw.outcomeEntries,
+          skipDuplicates: true,
         });
       }
 
@@ -80,11 +89,7 @@ export class PrismaProjectRepository implements ProjectRepository {
   ): Promise<Project | null> {
     const raw = await this.prisma.project.findFirst({
       where: { id, ownerId },
-      include: {
-        cycles: {
-          orderBy: { cycleNumber: 'asc' },
-        },
-      },
+      include: PrismaProjectMapper.include,
     });
 
     return raw ? PrismaProjectMapper.toDomain(raw) : null;

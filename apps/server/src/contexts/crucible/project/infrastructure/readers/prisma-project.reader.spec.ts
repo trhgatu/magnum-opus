@@ -1,7 +1,10 @@
 import type { Project as PrismaProject } from '@repo/database';
 
 import { ProjectLifecycleState } from '../../domain/enums';
-import { PrismaProjectWithCycles } from '../mappers/prisma-project.mapper';
+import {
+  PrismaProjectMapper,
+  PrismaProjectWithCycles,
+} from '../mappers/prisma-project.mapper';
 import { PrismaProjectReader } from './prisma-project.reader';
 
 describe('PrismaProjectReader', () => {
@@ -41,7 +44,7 @@ describe('PrismaProjectReader', () => {
 
     expect(projectModel.findMany).toHaveBeenCalledWith({
       where,
-      include: { cycles: { orderBy: { cycleNumber: 'asc' } } },
+      include: PrismaProjectMapper.include,
       orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
       skip: 20,
       take: 10,
@@ -64,7 +67,7 @@ describe('PrismaProjectReader', () => {
 
     expect(projectModel.findMany).toHaveBeenCalledWith({
       where: { ownerId: 'owner-id' },
-      include: { cycles: { orderBy: { cycleNumber: 'asc' } } },
+      include: PrismaProjectMapper.include,
       orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
       skip: 0,
       take: 10,

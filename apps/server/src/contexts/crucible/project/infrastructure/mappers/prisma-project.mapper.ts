@@ -2,6 +2,7 @@ import {
   Project as PrismaProject,
   ProjectCycle as PrismaProjectCycle,
   ProjectCycleEndReason as PrismaProjectCycleEndReason,
+  ProjectCycleOutcomeEntry as PrismaProjectCycleOutcomeEntry,
   ProjectLifecycleAction as PrismaProjectLifecycleAction,
   ProjectLifecycleState as PrismaProjectLifecycleState,
 } from '@repo/database';
@@ -15,13 +16,19 @@ import {
 import { ProjectLifecycleTransitionedEvent } from '../../domain/events';
 import { Project } from '../../domain/project.aggregate';
 import {
+  ClosingNote,
   IntendedOutcome,
+  IntendedOutcomeEntry,
   ProjectCycleId,
   ProjectId,
 } from '../../domain/value-objects';
 
+export type PrismaProjectCycleWithEntries = PrismaProjectCycle & {
+  outcomeEntries: PrismaProjectCycleOutcomeEntry[];
+};
+
 export type PrismaProjectWithCycles = PrismaProject & {
-  cycles: PrismaProjectCycle[];
+  cycles: PrismaProjectCycleWithEntries[];
 };
 
 export interface ProjectCyclePersistence {
@@ -33,6 +40,15 @@ export interface ProjectCyclePersistence {
   startedAt: Date;
   endedAt: Date | null;
   endReason: PrismaProjectCycleEndReason | null;
+  closingNote: string | null;
+  targetEndAt: Date | null;
+}
+
+export interface ProjectCycleOutcomeEntryPersistence {
+  cycleId: string;
+  sequence: number;
+  outcome: string;
+  setAt: Date;
 }
 
 export interface ProjectLifecycleTransitionPersistence {
@@ -47,6 +63,7 @@ export interface ProjectLifecycleTransitionPersistence {
 export interface ProjectPersistence {
   project: PrismaProject;
   cycles: ProjectCyclePersistence[];
+  outcomeEntries: ProjectCycleOutcomeEntryPersistence[];
 }
 
 const toPrismaAction: Record<
@@ -99,7 +116,22 @@ const toDomainEndReason: Record<
   [PrismaProjectCycleEndReason.COMPLETED]: ProjectCycleEndReason.COMPLETED,
 };
 
+/** @db.Date về từ Prisma là 00:00 UTC — lấy phần ngày, không đổi múi giờ. */
+const dateOnlyToString = (date: Date): string =>
+  date.toISOString().slice(0, 10);
+
+const dateOnlyFromString = (day: string): Date =>
+  new Date(`${day}T00:00:00.000Z`);
+
 export class PrismaProjectMapper {
+  /** Dùng chung cho repository và reader: Cycle + lịch sử, đều có thứ tự. */
+  public static readonly include = {
+    cycles: {
+      orderBy: { cycleNumber: 'asc' as const },
+      include: { outcomeEntries: { orderBy: { sequence: 'asc' as const } } },
+    },
+  };
+
   public static toDomain(raw: PrismaProjectWithCycles): Project {
     const cycles = [...raw.cycles]
       .sort((left, right) => left.cycleNumber - right.cycleNumber)
@@ -135,20 +167,64 @@ export class PrismaProjectMapper {
       cycles: project.cycles.map((cycle) =>
         PrismaProjectMapper.cycleToPersistence(props.id, props.ownerId, cycle),
       ),
+      outcomeEntries: project.cycles.flatMap((cycle) =>
+        cycle.outcomeHistory.map((entry) => ({
+          cycleId: cycle.id,
+          sequence: entry.sequence,
+          outcome: entry.outcome,
+          setAt: entry.setAt,
+        })),
+      ),
     };
   }
 
-  private static cycleToDomain(raw: PrismaProjectCycle): ProjectCycle {
+  private static cycleToDomain(
+    raw: PrismaProjectCycleWithEntries,
+  ): ProjectCycle {
     return ProjectCycle.rehydrate({
       id: new ProjectCycleId(raw.id),
       cycleNumber: raw.cycleNumber,
-      intendedOutcome: raw.intendedOutcome
-        ? IntendedOutcome.create(raw.intendedOutcome)
-        : null,
+      outcomeHistory: PrismaProjectMapper.outcomeHistoryToDomain(raw),
       startedAt: raw.startedAt,
       endedAt: raw.endedAt,
       endReason: raw.endReason ? toDomainEndReason[raw.endReason] : null,
+      closingNote: raw.closingNote
+        ? ClosingNote.rehydrate(raw.closingNote)
+        : null,
+      targetEndAt: raw.targetEndAt ? dateOnlyToString(raw.targetEndAt) : null,
     });
+  }
+
+  private static outcomeHistoryToDomain(
+    raw: PrismaProjectCycleWithEntries,
+  ): IntendedOutcomeEntry[] {
+    const entries = [...raw.outcomeEntries]
+      .sort((left, right) => left.sequence - right.sequence)
+      .map((entry) =>
+        IntendedOutcomeEntry.create(
+          entry.sequence,
+          IntendedOutcome.create(entry.outcome),
+          entry.setAt,
+        ),
+      );
+
+    // Server bản cũ còn chạy trong lúc deploy chỉ ghi cột intended_outcome.
+    // Bản mới luôn ghi đôi nên hai bên khớp nhau; lệch nghĩa là bản cũ đã đặt
+    // outcome mới hơn — coi đó là entry tiếp theo để không mất, cũng không
+    // bị lần lưu sau ghi đè ngược. Bỏ cùng lúc drop cột.
+    const legacy = raw.intendedOutcome?.trim();
+    const latest = entries.at(-1);
+    if (legacy && legacy !== latest?.outcome.value) {
+      entries.push(
+        IntendedOutcomeEntry.create(
+          (latest?.sequence ?? 0) + 1,
+          IntendedOutcome.create(legacy),
+          raw.updatedAt,
+        ),
+      );
+    }
+
+    return entries;
   }
 
   private static cycleToPersistence(
@@ -163,11 +239,16 @@ export class PrismaProjectMapper {
       projectId,
       ownerId,
       cycleNumber: primitives.cycleNumber,
+      // Ghi đôi: entry mới nhất, để server cũ (hoặc rollback) đọc đúng.
       intendedOutcome: primitives.intendedOutcome,
       startedAt: primitives.startedAt,
       endedAt: primitives.endedAt,
       endReason: primitives.endReason
         ? toPrismaEndReason[primitives.endReason]
+        : null,
+      closingNote: primitives.closingNote,
+      targetEndAt: primitives.targetEndAt
+        ? dateOnlyFromString(primitives.targetEndAt)
         : null,
     };
   }

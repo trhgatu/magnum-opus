@@ -52,7 +52,7 @@ export class PrismaProjectReader implements ProjectReader {
     const [rows, total] = await this.prisma.$transaction([
       this.prisma.project.findMany({
         where,
-        include: { cycles: { orderBy: { cycleNumber: 'asc' } } },
+        include: PrismaProjectMapper.include,
         orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
         skip: options.skip,
         take: options.take,

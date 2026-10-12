@@ -1,7 +1,10 @@
 import type { Project as PrismaProject } from '@repo/database';
 
 import { Project } from '../../domain/project.aggregate';
-import { PrismaProjectWithCycles } from '../mappers/prisma-project.mapper';
+import {
+  PrismaProjectMapper,
+  PrismaProjectWithCycles,
+} from '../mappers/prisma-project.mapper';
 import { PrismaProjectRepository } from './prisma-project.repository';
 
 describe('PrismaProjectRepository', () => {
@@ -11,6 +14,9 @@ describe('PrismaProjectRepository', () => {
     },
     projectCycle: {
       upsert: jest.fn(),
+    },
+    projectCycleOutcomeEntry: {
+      createMany: jest.fn(),
     },
     projectLifecycleTransition: {
       createMany: jest.fn(),
@@ -99,13 +105,21 @@ describe('PrismaProjectRepository', () => {
           startedAt: cycle.startedAt,
           endedAt: null,
           endReason: null,
+          closingNote: null,
+          targetEndAt: null,
         },
         update: {
           intendedOutcome: null,
           endedAt: null,
           endReason: null,
+          closingNote: null,
+          targetEndAt: null,
         },
       });
+      // No outcome yet → nothing to append.
+      expect(
+        transactionClient.projectCycleOutcomeEntry.createMany,
+      ).not.toHaveBeenCalled();
 
       expect(
         transactionClient.projectLifecycleTransition.createMany,
@@ -156,6 +170,8 @@ describe('PrismaProjectRepository', () => {
           intendedOutcome: null,
           endedAt: project.cycles[0].endedAt,
           endReason: 'STOPPED',
+          closingNote: null,
+          targetEndAt: null,
         },
       });
 
@@ -182,6 +198,75 @@ describe('PrismaProjectRepository', () => {
         ],
       });
     });
+
+    // V1.1
+    it('appends outcome entries after the Cycles, skipping ones already stored', async () => {
+      const project = createProject();
+      project.start();
+      project.setIntendedOutcome('Đàn Canon in D');
+      project.setIntendedOutcome('Đàn Für Elise rút gọn');
+      project.setTargetEndAt('2026-09-30');
+      const cycleId = project.currentCycle!.id;
+
+      transactionClient.project.updateMany.mockResolvedValue({ count: 1 });
+      transactionClient.projectCycle.upsert.mockResolvedValue({});
+
+      await repository.update(project, 1);
+
+      expect(transactionClient.projectCycle.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          update: expect.objectContaining({
+            intendedOutcome: 'Đàn Für Elise rút gọn',
+            targetEndAt: new Date('2026-09-30T00:00:00.000Z'),
+          }),
+        }),
+      );
+      expect(
+        transactionClient.projectCycleOutcomeEntry.createMany,
+      ).toHaveBeenCalledWith({
+        data: [
+          {
+            cycleId,
+            sequence: 1,
+            outcome: 'Đàn Canon in D',
+            setAt: expect.any(Date),
+          },
+          {
+            cycleId,
+            sequence: 2,
+            outcome: 'Đàn Für Elise rút gọn',
+            setAt: expect.any(Date),
+          },
+        ],
+        // Entries are immutable: existing (cycleId, sequence) rows stay as is.
+        skipDuplicates: true,
+      });
+
+      // The entry FK needs the Cycle row first.
+      const upsertOrder =
+        transactionClient.projectCycle.upsert.mock.invocationCallOrder[0];
+      const entryOrder =
+        transactionClient.projectCycleOutcomeEntry.createMany.mock
+          .invocationCallOrder[0];
+      expect(upsertOrder).toBeLessThan(entryOrder);
+    });
+
+    it('stores the closing note on the Cycle closed by Complete', async () => {
+      const project = createProject();
+      project.start();
+      project.complete('  Xong sớm  ');
+
+      transactionClient.project.updateMany.mockResolvedValue({ count: 1 });
+      transactionClient.projectCycle.upsert.mockResolvedValue({});
+
+      await repository.update(project, 1);
+
+      expect(transactionClient.projectCycle.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          update: expect.objectContaining({ closingNote: 'Xong sớm' }),
+        }),
+      );
+    });
   });
 
   describe('findByIdForOwner', () => {
@@ -195,7 +280,7 @@ describe('PrismaProjectRepository', () => {
 
       expect(projectModel.findFirst).toHaveBeenCalledWith({
         where: { id: 'project-id', ownerId: 'owner-id' },
-        include: { cycles: { orderBy: { cycleNumber: 'asc' } } },
+        include: PrismaProjectMapper.include,
       });
 
       expect(project?.lifecycleState).toBe('ACTIVE');
@@ -261,8 +346,11 @@ function rawProjectWithCycles(): PrismaProjectWithCycles {
         startedAt: new Date('2026-08-20T10:00:00.000Z'),
         endedAt: null,
         endReason: null,
+        closingNote: null,
+        targetEndAt: null,
         createdAt: new Date('2026-08-20T10:00:00.000Z'),
         updatedAt: new Date('2026-08-20T10:00:00.000Z'),
+        outcomeEntries: [],
       },
     ],
   };
