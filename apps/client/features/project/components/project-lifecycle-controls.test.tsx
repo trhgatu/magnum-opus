@@ -438,11 +438,15 @@ describe("ProjectLifecycleControls", () => {
     fireEvent.change(note, { target: { value: "🔥".repeat(2000) } });
     expect(within(dialog).getByText("2000/2000")).toBeTruthy();
     expect(confirm.disabled).toBe(false);
+    expect(within(dialog).queryByRole("alert")).toBeNull();
 
     fireEvent.change(note, { target: { value: "a".repeat(2001) } });
     expect(within(dialog).getByText("2001/2000")).toBeTruthy();
     expect(note.getAttribute("aria-invalid")).toBe("true");
     expect(confirm.disabled).toBe(true);
+    expect(within(dialog).getByRole("alert").textContent).toBe(
+      "Ghi chú dài quá 2000 ký tự — rút gọn để xác nhận.",
+    );
 
     fireEvent.click(confirm);
     expect(changeProjectLifecycle).not.toHaveBeenCalled();

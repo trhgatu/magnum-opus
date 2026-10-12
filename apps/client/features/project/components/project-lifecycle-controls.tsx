@@ -381,6 +381,14 @@ export function ProjectLifecycleControls({
               >
                 {closingNoteLength}/{CLOSING_NOTE_MAX_LENGTH}
               </p>
+              {/* Bộ đếm đổi theo từng phím nên không đọc to; chỉ báo một
+                  lần lúc vượt giới hạn — cũng là lý do nút xác nhận bị khóa. */}
+              {closingNoteTooLong ? (
+                <p role="alert" className="text-xs text-destructive">
+                  Ghi chú dài quá {CLOSING_NOTE_MAX_LENGTH} ký tự — rút gọn để
+                  xác nhận.
+                </p>
+              ) : null}
             </div>
           ) : null}
 
