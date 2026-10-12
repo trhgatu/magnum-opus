@@ -237,7 +237,7 @@ export class ProjectController {
     @Param('id', new ParseUUIDPipe()) projectId: string,
     @Body() body: SetTargetEndDateDto,
   ): Promise<ProjectResponse> {
-    return this.commandBus.execute(
+    return this.executeLifecycle(
       new SetTargetEndDateCommand(
         projectId,
         ownerId,
