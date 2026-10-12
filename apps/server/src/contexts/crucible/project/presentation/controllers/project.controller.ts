@@ -15,7 +15,7 @@ import {
 } from '@nestjs/common';
 import { CommandBus, type ICommand, QueryBus } from '@nestjs/cqrs';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import type { ProjectResponse } from '@repo/contracts';
+import type { ProjectResponse, ProjectCycleResponse } from '@repo/contracts';
 
 import { PaginatedResponsePresenter } from '@presentation/common/presenters/pagination.presenter';
 import { GetUser } from '@presentation/decorators';
@@ -32,6 +32,7 @@ import {
   StartProjectCommand,
   StopProjectCommand,
   UpdateProjectCommand,
+  SetTargetEndDateCommand,
 } from '../../application/commands';
 import { GetProjectQuery, GetProjectsQuery } from '../../application/queries';
 import { ProjectLifecycleState as DomainProjectLifecycleState } from '../../domain/enums';
@@ -41,6 +42,8 @@ import {
   ProjectRevisionDto,
   SetIntendedOutcomeDto,
   UpdateProjectDto,
+  ProjectClosingDto,
+  SetTargetEndDateDto,
 } from '../dtos';
 import { ProjectPresenter } from '../presenters/project.presenter';
 
@@ -169,10 +172,15 @@ export class ProjectController {
   public stop(
     @GetUser('id') ownerId: string,
     @Param('id', new ParseUUIDPipe()) projectId: string,
-    @Body() body: ProjectRevisionDto,
+    @Body() body: ProjectClosingDto,
   ): Promise<ProjectResponse> {
     return this.executeLifecycle(
-      new StopProjectCommand(projectId, ownerId, body.expectedRevision),
+      new StopProjectCommand(
+        projectId,
+        ownerId,
+        body.expectedRevision,
+        body.closingNote,
+      ),
     );
   }
 
@@ -181,10 +189,15 @@ export class ProjectController {
   public complete(
     @GetUser('id') ownerId: string,
     @Param('id', new ParseUUIDPipe()) projectId: string,
-    @Body() body: ProjectRevisionDto,
+    @Body() body: ProjectClosingDto,
   ): Promise<ProjectResponse> {
     return this.executeLifecycle(
-      new CompleteProjectCommand(projectId, ownerId, body.expectedRevision),
+      new CompleteProjectCommand(
+        projectId,
+        ownerId,
+        body.expectedRevision,
+        body.closingNote,
+      ),
     );
   }
 
@@ -215,6 +228,36 @@ export class ProjectController {
         body.intendedOutcome,
       ),
     );
+  }
+
+  @Put(':id/cycle/target-end')
+  @ApiOperation({ summary: 'Set or clear the current Cycle target end date' })
+  public setTargetEndDate(
+    @GetUser('id') ownerId: string,
+    @Param('id', new ParseUUIDPipe()) projectId: string,
+    @Body() body: SetTargetEndDateDto,
+  ): Promise<ProjectResponse> {
+    return this.commandBus.execute(
+      new SetTargetEndDateCommand(
+        projectId,
+        ownerId,
+        body.expectedRevision,
+        body.targetEndAt,
+      ),
+    );
+  }
+
+  @Get(':id/cycles/closed')
+  @ApiOperation({ summary: 'List the closed Cycles of an owned Project' })
+  public async findClosedCycles(
+    @GetUser('id') ownerId: string,
+    @Param('id', new ParseUUIDPipe()) projectId: string,
+  ): Promise<ProjectCycleResponse[]> {
+    const result = await this.queryBus.execute(
+      new GetProjectQuery(projectId, ownerId),
+    );
+
+    return ProjectPresenter.toClosedCycles(result.unwrap());
   }
 
   @Delete(':id')

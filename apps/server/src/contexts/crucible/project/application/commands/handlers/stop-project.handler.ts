@@ -21,7 +21,7 @@ export class StopProjectHandler implements ICommandHandler<
       projectId: command.projectId,
       ownerId: command.ownerId,
       expectedRevision: command.expectedRevision,
-      mutate: (project) => project.stop(),
+      mutate: (project) => project.stop(command.closingNote),
     });
   }
 }
