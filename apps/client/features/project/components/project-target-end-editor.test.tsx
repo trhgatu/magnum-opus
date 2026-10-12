@@ -33,6 +33,9 @@ vi.mock("@/components/ui/calendar", () => ({
       <button type="button" onClick={() => onSelect(new Date(2026, 9, 31))}>
         Chọn 31/10/2026
       </button>
+      <button type="button" onClick={() => onSelect(undefined)}>
+        Bỏ chọn trên lịch
+      </button>
     </div>
   ),
 }));
@@ -125,6 +128,23 @@ describe("ProjectTargetEndEditor", () => {
     );
 
     expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("closes the calendar without saving when the selected day is clicked again", async () => {
+    renderEditor("2026-10-31");
+
+    fireEvent.click(screen.getByRole("button", { name: "Đổi ngày" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Bỏ chọn trên lịch" }),
+    );
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("button", { name: "Bỏ chọn trên lịch" }),
+      ).toBeNull(),
+    );
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.getByText("31/10/2026")).toBeTruthy();
   });
 
   it("clears the target date", async () => {

@@ -21,9 +21,19 @@ export function ProjectClosedCycles({
   cycles,
   timeZone,
 }: {
-  cycles: ProjectCycleResponse[];
+  /** null khi không tải được danh sách — báo lỗi ngay trong mục này thay
+   * vì làm như Project chưa từng có Cycle nào đóng. */
+  cycles: ProjectCycleResponse[] | null;
   timeZone: string;
 }) {
+  if (cycles === null) {
+    return (
+      <p role="status" className="text-sm text-muted-foreground">
+        Chưa tải được các chu kỳ đã đóng. Tải lại trang để thử lại.
+      </p>
+    );
+  }
+
   if (cycles.length === 0) return null;
 
   return (

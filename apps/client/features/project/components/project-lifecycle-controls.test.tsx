@@ -415,11 +415,46 @@ describe("ProjectLifecycleControls", () => {
     ).toBe("");
   });
 
-  it("keeps the closing note and the dialog open when the note is rejected", async () => {
+  it("counts the closing note in characters and blocks confirming past 2000", async () => {
+    render(
+      <ProjectLifecycleControls
+        id={projectId}
+        title={title}
+        lifecycleState="ACTIVE"
+        revision={revision}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Dừng lại" }));
+    const dialog = await screen.findByRole("alertdialog");
+    const note = within(dialog).getByLabelText(
+      "Ghi chú khép lại (không bắt buộc)",
+    ) as HTMLTextAreaElement;
+    const confirm = within(dialog).getByRole("button", {
+      name: "Dừng lại",
+    }) as HTMLButtonElement;
+
+    // 2000 emoji = 4000 UTF-16 code units, nhưng vẫn đúng giới hạn.
+    fireEvent.change(note, { target: { value: "🔥".repeat(2000) } });
+    expect(within(dialog).getByText("2000/2000")).toBeTruthy();
+    expect(confirm.disabled).toBe(false);
+
+    fireEvent.change(note, { target: { value: "a".repeat(2001) } });
+    expect(within(dialog).getByText("2001/2000")).toBeTruthy();
+    expect(note.getAttribute("aria-invalid")).toBe("true");
+    expect(confirm.disabled).toBe(true);
+
+    fireEvent.click(confirm);
+    expect(changeProjectLifecycle).not.toHaveBeenCalled();
+    // Không cắt bớt chữ đã gõ — người dùng tự rút gọn.
+    expect(note.value).toHaveLength(2001);
+  });
+
+  it("keeps the closing note and the dialog open when the server rejects it", async () => {
     changeProjectLifecycle.mockResolvedValue({
       status: "error",
       code: "INVALID_CLOSING_NOTE",
-      message: "Ghi chú khép lại tối đa 2000 ký tự.",
+      message: "Ghi chú khép lại không hợp lệ.",
     });
 
     render(
@@ -436,13 +471,13 @@ describe("ProjectLifecycleControls", () => {
     const note = within(dialog).getByLabelText(
       "Ghi chú khép lại (không bắt buộc)",
     ) as HTMLTextAreaElement;
-    fireEvent.change(note, { target: { value: "a".repeat(2001) } });
+    fireEvent.change(note, { target: { value: "Đổi hướng" } });
     fireEvent.click(within(dialog).getByRole("button", { name: "Dừng lại" }));
 
     expect(
-      await within(dialog).findByText("Ghi chú khép lại tối đa 2000 ký tự."),
+      await within(dialog).findByText("Ghi chú khép lại không hợp lệ."),
     ).toBeTruthy();
-    expect(note.value).toHaveLength(2001);
+    expect(note.value).toBe("Đổi hướng");
     expect(refresh).not.toHaveBeenCalled();
   });
 

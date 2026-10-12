@@ -35,9 +35,12 @@ import {
 } from "@/features/project/actions/project";
 import { isRedirectError } from "@/lib/next-redirect";
 import { notifySuccess } from "@/lib/toast";
+import { cn } from "@/lib/utils";
 
 const PROJECT_REVISION_CONFLICT = "PROJECT_REVISION_CONFLICT";
 const PROJECT_DELETION_NOT_ALLOWED = "PROJECT_DELETION_NOT_ALLOWED";
+
+const CLOSING_NOTE_MAX_LENGTH = 2000;
 
 const isRevisionConflict = (code?: string) =>
   code === PROJECT_REVISION_CONFLICT;
@@ -158,6 +161,12 @@ export function ProjectLifecycleControls({
   // NOT_STARTED không đóng Cycle nào, server sẽ từ chối ghi chú.
   const canAddClosingNote =
     lifecycleState === "ACTIVE" || lifecycleState === "PAUSED";
+  // Đếm theo ký tự (code point) trên bản đã trim — đúng cách server đếm —
+  // để báo vượt giới hạn ngay khi gõ, thay vì đợi bấm xác nhận mới biết.
+  // Không cắt bớt chữ người dùng đã gõ: chỉ chặn nút xác nhận.
+  const closingNoteLength = [...closingNote.trim()].length;
+  const closingNoteTooLong =
+    canAddClosingNote && closingNoteLength > CLOSING_NOTE_MAX_LENGTH;
 
   const anyDialogOpen = deleteOpen || confirmingAction !== null;
 
@@ -358,7 +367,20 @@ export function ProjectLifecycleControls({
                 placeholder="Chu kỳ này đã diễn ra thế nào? Điều gì đáng nhớ?"
                 rows={4}
                 disabled={isPending}
+                aria-invalid={closingNoteTooLong}
+                aria-describedby={`${closingNoteId}-count`}
               />
+              <p
+                id={`${closingNoteId}-count`}
+                className={cn(
+                  "text-right font-mono text-xs tabular-nums",
+                  closingNoteTooLong
+                    ? "text-destructive"
+                    : "text-muted-foreground",
+                )}
+              >
+                {closingNoteLength}/{CLOSING_NOTE_MAX_LENGTH}
+              </p>
             </div>
           ) : null}
 
@@ -367,7 +389,7 @@ export function ProjectLifecycleControls({
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isPending}>Hủy</AlertDialogCancel>
             <AlertDialogAction
-              disabled={isPending}
+              disabled={isPending || closingNoteTooLong}
               onClick={(event) => {
                 event.preventDefault();
                 if (confirmingAction) runLifecycleAction(confirmingAction);

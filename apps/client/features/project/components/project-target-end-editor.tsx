@@ -129,8 +129,12 @@ export function ProjectTargetEndEditor({
                 defaultMonth={selected ?? dateOnlyToCalendarDate(today)}
                 locale={vi}
                 onSelect={(date) => {
-                  if (!date) return;
                   setOpen(false);
+                  // Bấm lại đúng ngày đang chọn: DayPicker bỏ chọn và trả
+                  // `undefined` — coi như giữ nguyên ngày, chỉ đóng lịch. Bỏ
+                  // ngày là việc của nút "Bỏ ngày", không phải một cú bấm
+                  // nhầm trên lịch.
+                  if (!date) return;
 
                   const next = calendarDateToDateOnly(date);
                   if (next !== targetEndAt) submit(next);

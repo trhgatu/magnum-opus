@@ -31,7 +31,8 @@ export function ProjectDetail({
   timeZone,
 }: {
   project: ProjectResponse;
-  closedCycles: ProjectCycleResponse[];
+  /** null khi không tải được — xem page.tsx. */
+  closedCycles: ProjectCycleResponse[] | null;
   timeZone: string;
 }) {
   const hasOpenCycle =

@@ -23,13 +23,17 @@ export default async function ProjectDetailPage({
 }) {
   const { id } = await params;
   let project: ProjectResponse;
-  let closedCycles: ProjectCycleResponse[];
+  let closedCycles: ProjectCycleResponse[] | null;
   let user: User;
 
   try {
     [project, closedCycles, user] = await Promise.all([
       getProject(id),
-      getClosedProjectCycles(id),
+      // Lịch sử chỉ đọc, không phải đường chính của trang: lỗi tạm thời ở
+      // đây (5xx/timeout) chỉ làm mục "Các chu kỳ đã đóng" báo lỗi, không
+      // kéo sập cả trang. Project không tồn tại thì getProject đã 404 song
+      // song nên vẫn ra notFound() như cũ.
+      getClosedProjectCycles(id).catch(() => null),
       getCurrentUser(),
     ]);
   } catch (error) {

@@ -79,7 +79,13 @@ describe("formatDateOnly", () => {
 
 describe("calendar date conversion", () => {
   it("round-trips a date-only value through the local calendar date", () => {
-    for (const day of ["2026-10-31", "2028-02-29", "2027-01-01"]) {
+    for (const day of [
+      "2026-10-31",
+      "2028-02-29",
+      "2027-01-01",
+      // Năm 0–99 không được bị đổi thành 1900–1999.
+      "0099-12-31",
+    ]) {
       expect(calendarDateToDateOnly(dateOnlyToCalendarDate(day))).toBe(day);
     }
   });

@@ -60,8 +60,14 @@ export function formatDateOnly(day: string): string {
  * với giờ local); giữa trưa để không lệch ngày quanh giờ chuyển mùa. */
 export function dateOnlyToCalendarDate(day: string): Date {
   const [year, month, date] = day.split("-").map(Number);
+  // Không dùng `new Date(year, ...)`: constructor đổi năm 0–99 thành
+  // 1900–1999. setFullYear giữ đúng năm.
+  const calendarDate = new Date(0);
 
-  return new Date(year, month - 1, date, 12);
+  calendarDate.setFullYear(year, month - 1, date);
+  calendarDate.setHours(12, 0, 0, 0);
+
+  return calendarDate;
 }
 
 /** Ngày người dùng bấm trên ô lịch (giờ local) → ngày thuần YYYY-MM-DD. */

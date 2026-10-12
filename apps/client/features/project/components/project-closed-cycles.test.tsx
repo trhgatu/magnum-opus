@@ -44,6 +44,15 @@ describe("ProjectClosedCycles", () => {
     expect(container.textContent).toBe("");
   });
 
+  it("says the history could not be loaded instead of hiding it", () => {
+    render(<ProjectClosedCycles cycles={null} timeZone="UTC" />);
+
+    expect(screen.getByRole("status").textContent).toBe(
+      "Chưa tải được các chu kỳ đã đóng. Tải lại trang để thử lại.",
+    );
+    expect(screen.queryByRole("region")).toBeNull();
+  });
+
   it("shows each closed Cycle in the order given, newest first", () => {
     render(
       <ProjectClosedCycles cycles={[completed, stopped]} timeZone="UTC" />,
