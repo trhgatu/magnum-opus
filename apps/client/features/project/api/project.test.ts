@@ -8,7 +8,7 @@ vi.mock("@/lib/api", () => ({
   apiFetch,
 }));
 
-import { getProject, getProjects } from "./project";
+import { getClosedProjectCycles, getProject, getProjects } from "./project";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -64,5 +64,13 @@ describe("Project API adapter", () => {
     await getProject("project-id");
 
     expect(apiFetch).toHaveBeenCalledWith("/projects/project-id");
+  });
+
+  it("loads the closed Cycles of an owned Project", async () => {
+    apiFetch.mockResolvedValue([]);
+
+    await expect(getClosedProjectCycles("project-id")).resolves.toEqual([]);
+
+    expect(apiFetch).toHaveBeenCalledWith("/projects/project-id/cycles/closed");
   });
 });

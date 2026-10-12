@@ -1,8 +1,13 @@
-import type { ProjectResponse } from "@repo/contracts";
+import type { ProjectCycleResponse, ProjectResponse } from "@repo/contracts";
+import type { User } from "@repo/types";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { getProject } from "@/features/project/api/project";
+import { getCurrentUser } from "@/features/account/api/current-user";
+import {
+  getClosedProjectCycles,
+  getProject,
+} from "@/features/project/api/project";
 import { ProjectDetail } from "@/features/project/components/project-detail";
 import { ApiError } from "@/lib/api";
 
@@ -18,9 +23,15 @@ export default async function ProjectDetailPage({
 }) {
   const { id } = await params;
   let project: ProjectResponse;
+  let closedCycles: ProjectCycleResponse[];
+  let user: User;
 
   try {
-    project = await getProject(id);
+    [project, closedCycles, user] = await Promise.all([
+      getProject(id),
+      getClosedProjectCycles(id),
+      getCurrentUser(),
+    ]);
   } catch (error) {
     if (
       error instanceof ApiError &&
@@ -31,5 +42,11 @@ export default async function ProjectDetailPage({
     throw error;
   }
 
-  return <ProjectDetail project={project} />;
+  return (
+    <ProjectDetail
+      project={project}
+      closedCycles={closedCycles}
+      timeZone={user.timeZone}
+    />
+  );
 }

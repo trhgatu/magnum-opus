@@ -10,7 +10,10 @@ import {
   Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { type MouseEvent, useState, useTransition } from "react";
+import { type MouseEvent, useId, useState, useTransition } from "react";
+
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 import { LifecycleErrorAlert } from "@/components/system/lifecycle-error-alert";
 import {
@@ -149,6 +152,12 @@ export function ProjectLifecycleControls({
   const [pendingAction, setPendingAction] =
     useState<ProjectLifecycleAction | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [closingNote, setClosingNote] = useState("");
+  const closingNoteId = useId();
+  // Chỉ ACTIVE/PAUSED có Cycle đang mở để ghi chú (BR-PRJ-034) — Stop từ
+  // NOT_STARTED không đóng Cycle nào, server sẽ từ chối ghi chú.
+  const canAddClosingNote =
+    lifecycleState === "ACTIVE" || lifecycleState === "PAUSED";
 
   const anyDialogOpen = deleteOpen || confirmingAction !== null;
 
@@ -156,6 +165,7 @@ export function ProjectLifecycleControls({
     setError(null);
     setDeleteOpen(false);
     setConfirmingAction(null);
+    setClosingNote("");
     router.refresh();
   };
 
@@ -169,6 +179,7 @@ export function ProjectLifecycleControls({
           id,
           expectedRevision: revision,
           action,
+          ...(canAddClosingNote && closingNote.trim() ? { closingNote } : {}),
         });
 
         if (result.status === "error") {
@@ -182,6 +193,7 @@ export function ProjectLifecycleControls({
         }
 
         setConfirmingAction(null);
+        setClosingNote("");
         void notifySuccess(ACTION_META[action].successMessage(title));
         router.refresh();
       } catch {
@@ -322,6 +334,7 @@ export function ProjectLifecycleControls({
           if (isPending) return;
           if (!open) {
             setConfirmingAction(null);
+            setClosingNote("");
             setError(null);
           }
         }}
@@ -333,6 +346,21 @@ export function ProjectLifecycleControls({
               {confirmMeta?.description}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {canAddClosingNote ? (
+            <div className="grid gap-2">
+              <Label htmlFor={closingNoteId}>
+                Ghi chú khép lại (không bắt buộc)
+              </Label>
+              <Textarea
+                id={closingNoteId}
+                value={closingNote}
+                onChange={(event) => setClosingNote(event.target.value)}
+                placeholder="Chu kỳ này đã diễn ra thế nào? Điều gì đáng nhớ?"
+                rows={4}
+                disabled={isPending}
+              />
+            </div>
+          ) : null}
 
           {confirmingAction !== null ? errorAlert : null}
 

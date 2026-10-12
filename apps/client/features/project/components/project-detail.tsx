@@ -1,4 +1,4 @@
-import type { ProjectResponse } from "@repo/contracts";
+import type { ProjectCycleResponse, ProjectResponse } from "@repo/contracts";
 import { ArrowLeft, FolderKanban, Pencil } from "lucide-react";
 import Link from "next/link";
 
@@ -12,7 +12,10 @@ import {
   ProjectInlineTitle,
   ProjectLifecycleControlsInline,
   ProjectOutcomeEditorInline,
+  ProjectTargetEndEditorInline,
 } from "@/features/project/components/project-inline-fields";
+import { ProjectClosedCycles } from "@/features/project/components/project-closed-cycles";
+import { todayInTimeZone } from "@/features/project/lib/cycle-dates";
 
 const STATE_LABEL: Record<ProjectResponse["lifecycleState"], string> = {
   NOT_STARTED: "Chưa bắt đầu",
@@ -22,7 +25,15 @@ const STATE_LABEL: Record<ProjectResponse["lifecycleState"], string> = {
   COMPLETED: "Hoàn thành",
 };
 
-export function ProjectDetail({ project }: { project: ProjectResponse }) {
+export function ProjectDetail({
+  project,
+  closedCycles,
+  timeZone,
+}: {
+  project: ProjectResponse;
+  closedCycles: ProjectCycleResponse[];
+  timeZone: string;
+}) {
   const hasOpenCycle =
     project.lifecycleState === "ACTIVE" || project.lifecycleState === "PAUSED";
 
@@ -89,11 +100,17 @@ export function ProjectDetail({ project }: { project: ProjectResponse }) {
               </p>
             </CardHeader>
             <CardContent className="px-5 py-6 sm:px-7 sm:py-7">
-              <ProjectOutcomeEditorInline />
+              <ProjectOutcomeEditorInline timeZone={timeZone} />
+              <div className="mt-6 border-t pt-5">
+                <ProjectTargetEndEditorInline
+                  today={todayInTimeZone(timeZone)}
+                />
+              </div>
             </CardContent>
           </Card>
         ) : null}
       </ProjectFieldsProvider>
+      <ProjectClosedCycles cycles={closedCycles} timeZone={timeZone} />
 
       <footer className="flex flex-wrap justify-end gap-2 border-t pt-4 font-mono text-xs text-muted-foreground">
         <time dateTime={project.updatedAt}>

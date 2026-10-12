@@ -27,6 +27,7 @@ import {
   deleteProjectPermanently,
   reloadProject,
   setProjectIntendedOutcome,
+  setProjectTargetEndDate,
   updateProject,
 } from "./project";
 
@@ -324,6 +325,183 @@ describe("Project Server Actions", () => {
     });
 
     expect(apiFetch).not.toHaveBeenCalled();
+  });
+
+  // V1.1 — ghi chú khép lại Cycle (BR-PRJ-034)
+  it.each(["stop", "complete"] as const)(
+    "sends a trimmed closing note with %s",
+    async (action) => {
+      apiFetch.mockResolvedValue({ ...project, revision: 2 });
+
+      await changeProjectLifecycle({
+        id: project.id,
+        action,
+        expectedRevision: 1,
+        closingNote: "  Đổi hướng sang việc khác  ",
+      });
+
+      expect(apiFetch).toHaveBeenCalledWith(
+        `/projects/${project.id}/${action}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            expectedRevision: 1,
+            closingNote: "Đổi hướng sang việc khác",
+          }),
+        },
+      );
+    },
+  );
+
+  it("omits a blank closing note", async () => {
+    apiFetch.mockResolvedValue({ ...project, revision: 2 });
+
+    await changeProjectLifecycle({
+      id: project.id,
+      action: "complete",
+      expectedRevision: 1,
+      closingNote: "   ",
+    });
+
+    expect(apiFetch).toHaveBeenCalledWith(`/projects/${project.id}/complete`, {
+      method: "PATCH",
+      body: JSON.stringify({ expectedRevision: 1 }),
+    });
+  });
+
+  it("never sends a closing note with an action that does not close a Cycle", async () => {
+    apiFetch.mockResolvedValue({ ...project, revision: 2 });
+
+    await changeProjectLifecycle({
+      id: project.id,
+      action: "pause",
+      expectedRevision: 1,
+      closingNote: "Không thuộc về Pause",
+    });
+
+    expect(apiFetch).toHaveBeenCalledWith(`/projects/${project.id}/pause`, {
+      method: "PATCH",
+      body: JSON.stringify({ expectedRevision: 1 }),
+    });
+  });
+
+  it("rejects a closing note over 2000 characters before contacting the API", async () => {
+    await expect(
+      changeProjectLifecycle({
+        id: project.id,
+        action: "stop",
+        expectedRevision: 1,
+        closingNote: "a".repeat(2001),
+      }),
+    ).resolves.toEqual({
+      status: "error",
+      code: "INVALID_CLOSING_NOTE",
+      message: "Ghi chú khép lại tối đa 2000 ký tự.",
+    });
+
+    expect(apiFetch).not.toHaveBeenCalled();
+  });
+
+  it("counts the closing note limit in characters, not UTF-16 units", async () => {
+    apiFetch.mockResolvedValue({ ...project, revision: 2 });
+
+    // 2000 emoji = 4000 UTF-16 code units, nhưng vẫn là 2000 ký tự.
+    await changeProjectLifecycle({
+      id: project.id,
+      action: "stop",
+      expectedRevision: 1,
+      closingNote: "🔥".repeat(2000),
+    });
+
+    expect(apiFetch).toHaveBeenCalledOnce();
+  });
+
+  // V1.1 — ngày kết thúc dự kiến (BR-PRJ-036)
+  it("sets the target end date of the current Cycle", async () => {
+    apiFetch.mockResolvedValue({ ...project, revision: 3 });
+
+    await expect(
+      setProjectTargetEndDate({
+        id: project.id,
+        targetEndAt: "2026-10-31",
+        expectedRevision: 2,
+      }),
+    ).resolves.toEqual({
+      status: "success",
+      project: { ...project, revision: 3 },
+    });
+
+    expect(apiFetch).toHaveBeenCalledWith(
+      `/projects/${project.id}/cycle/target-end`,
+      {
+        method: "PUT",
+        body: JSON.stringify({
+          targetEndAt: "2026-10-31",
+          expectedRevision: 2,
+        }),
+      },
+    );
+    expect(revalidatePath).toHaveBeenCalledWith(`/projects/${project.id}`);
+  });
+
+  it("clears the target end date with an explicit null", async () => {
+    apiFetch.mockResolvedValue({ ...project, revision: 4 });
+
+    await setProjectTargetEndDate({
+      id: project.id,
+      targetEndAt: null,
+      expectedRevision: 3,
+    });
+
+    expect(apiFetch).toHaveBeenCalledWith(
+      `/projects/${project.id}/cycle/target-end`,
+      {
+        method: "PUT",
+        body: JSON.stringify({ targetEndAt: null, expectedRevision: 3 }),
+      },
+    );
+  });
+
+  it.each(["", "31/10/2026", "2026-10-31T00:00:00.000Z"])(
+    "rejects the malformed target end date %j before contacting the API",
+    async (targetEndAt) => {
+      await expect(
+        setProjectTargetEndDate({
+          id: project.id,
+          targetEndAt,
+          expectedRevision: 2,
+        }),
+      ).resolves.toEqual({
+        status: "error",
+        code: "INVALID_TARGET_END_DATE",
+        message: "Ngày dự kiến không hợp lệ.",
+      });
+
+      expect(apiFetch).not.toHaveBeenCalled();
+    },
+  );
+
+  it("preserves the server rejection of a date that does not exist", async () => {
+    apiFetch.mockRejectedValue(
+      new ApiError({
+        kind: "validation",
+        status: 400,
+        code: "INVALID_TARGET_END_DATE",
+        message: "Invalid target end date: 2026-02-30",
+      }),
+    );
+
+    await expect(
+      setProjectTargetEndDate({
+        id: project.id,
+        targetEndAt: "2026-02-30",
+        expectedRevision: 2,
+      }),
+    ).resolves.toMatchObject({
+      status: "error",
+      code: "INVALID_TARGET_END_DATE",
+    });
+    expect(revalidatePath).not.toHaveBeenCalled();
   });
 
   it("permanently deletes a Project and redirects to the list", async () => {

@@ -313,6 +313,139 @@ describe("ProjectLifecycleControls", () => {
     expect(notifySuccess).toHaveBeenCalledWith(`Đã dừng "${title}"`);
   });
 
+  // V1.1 — ghi chú khép lại Cycle (BR-PRJ-034)
+  it.each([
+    ["ACTIVE", "Dừng lại", "stop"],
+    ["PAUSED", "Hoàn thành", "complete"],
+  ] as const)(
+    "sends an optional closing note when a %s Project is closed with %s",
+    async (lifecycleState, label, action) => {
+      changeProjectLifecycle.mockResolvedValue({
+        status: "success",
+        project: {},
+      });
+
+      render(
+        <ProjectLifecycleControls
+          id={projectId}
+          title={title}
+          lifecycleState={lifecycleState}
+          revision={revision}
+        />,
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: label }));
+      const dialog = await screen.findByRole("alertdialog");
+
+      fireEvent.change(
+        within(dialog).getByLabelText("Ghi chú khép lại (không bắt buộc)"),
+        { target: { value: "Đổi hướng sang việc khác" } },
+      );
+      fireEvent.click(within(dialog).getByRole("button", { name: label }));
+
+      await waitFor(() =>
+        expect(changeProjectLifecycle).toHaveBeenCalledWith({
+          id: projectId,
+          expectedRevision: revision,
+          action,
+          closingNote: "Đổi hướng sang việc khác",
+        }),
+      );
+    },
+  );
+
+  it("offers no closing note when stopping a Project that never started", async () => {
+    changeProjectLifecycle.mockResolvedValue({
+      status: "success",
+      project: {},
+    });
+
+    render(
+      <ProjectLifecycleControls
+        id={projectId}
+        title={title}
+        lifecycleState="NOT_STARTED"
+        revision={revision}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Dừng lại" }));
+    const dialog = await screen.findByRole("alertdialog");
+
+    expect(
+      within(dialog).queryByLabelText("Ghi chú khép lại (không bắt buộc)"),
+    ).toBeNull();
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Dừng lại" }));
+
+    await waitFor(() => expect(changeProjectLifecycle).toHaveBeenCalledOnce());
+    expect(changeProjectLifecycle.mock.calls[0][0]).not.toHaveProperty(
+      "closingNote",
+    );
+  });
+
+  it("discards the closing note draft when the confirmation is cancelled", async () => {
+    render(
+      <ProjectLifecycleControls
+        id={projectId}
+        title={title}
+        lifecycleState="ACTIVE"
+        revision={revision}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Hoàn thành" }));
+    let dialog = await screen.findByRole("alertdialog");
+    fireEvent.change(
+      within(dialog).getByLabelText("Ghi chú khép lại (không bắt buộc)"),
+      { target: { value: "Bản nháp" } },
+    );
+    fireEvent.click(within(dialog).getByRole("button", { name: "Hủy" }));
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
+
+    fireEvent.click(screen.getByRole("button", { name: "Dừng lại" }));
+    dialog = await screen.findByRole("alertdialog");
+
+    expect(
+      (
+        within(dialog).getByLabelText(
+          "Ghi chú khép lại (không bắt buộc)",
+        ) as HTMLTextAreaElement
+      ).value,
+    ).toBe("");
+  });
+
+  it("keeps the closing note and the dialog open when the note is rejected", async () => {
+    changeProjectLifecycle.mockResolvedValue({
+      status: "error",
+      code: "INVALID_CLOSING_NOTE",
+      message: "Ghi chú khép lại tối đa 2000 ký tự.",
+    });
+
+    render(
+      <ProjectLifecycleControls
+        id={projectId}
+        title={title}
+        lifecycleState="ACTIVE"
+        revision={revision}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Dừng lại" }));
+    const dialog = await screen.findByRole("alertdialog");
+    const note = within(dialog).getByLabelText(
+      "Ghi chú khép lại (không bắt buộc)",
+    ) as HTMLTextAreaElement;
+    fireEvent.change(note, { target: { value: "a".repeat(2001) } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Dừng lại" }));
+
+    expect(
+      await within(dialog).findByText("Ghi chú khép lại tối đa 2000 ký tự."),
+    ).toBeTruthy();
+    expect(note.value).toHaveLength(2001);
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
   it("does not require confirmation for low-risk actions like Start", () => {
     render(
       <ProjectLifecycleControls

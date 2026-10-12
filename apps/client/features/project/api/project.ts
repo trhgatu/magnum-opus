@@ -1,6 +1,10 @@
 import "server-only";
 
-import type { ProjectLifecycleState, ProjectResponse } from "@repo/contracts";
+import type {
+  ProjectCycleResponse,
+  ProjectLifecycleState,
+  ProjectResponse,
+} from "@repo/contracts";
 import type { PaginatedResult } from "@repo/types";
 
 import { apiFetch } from "@/lib/api";
@@ -32,4 +36,10 @@ export async function getProjects(
 
 export function getProject(id: string): Promise<ProjectResponse> {
   return apiFetch<ProjectResponse>(`/projects/${id}`);
+}
+
+export function getClosedProjectCycles(
+  id: string,
+): Promise<ProjectCycleResponse[]> {
+  return apiFetch<ProjectCycleResponse[]>(`/projects/${id}/cycles/closed`);
 }

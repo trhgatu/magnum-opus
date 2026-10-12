@@ -45,12 +45,7 @@ export interface ProjectRevisionInput {
 }
 
 export type ProjectLifecycleAction =
-  | "start"
-  | "pause"
-  | "resume"
-  | "stop"
-  | "complete"
-  | "reopen";
+  "start" | "pause" | "resume" | "stop" | "complete" | "reopen";
 
 export interface SetProjectIntendedOutcomeInput {
   id: string;
@@ -98,6 +93,20 @@ const normalizeIntendedOutcome = (value: unknown): string | null => {
   const outcome = value.trim();
 
   return outcome || null;
+};
+
+const CLOSING_NOTE_MAX_LENGTH = 2000;
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+
+const closesCycle = (action: ProjectLifecycleAction) =>
+  action === "stop" || action === "complete";
+
+const normalizeClosingNote = (value: unknown): string | null => {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  return value.trim() || null;
 };
 
 const revalidateProject = (id: string) => {
@@ -192,6 +201,7 @@ export async function updateProject(
 export async function changeProjectLifecycle(
   input: ProjectRevisionInput & {
     action: ProjectLifecycleAction;
+    closingNote?: string | null;
   },
 ): Promise<ProjectMutationResult> {
   if (
@@ -204,6 +214,17 @@ export async function changeProjectLifecycle(
       message: "Dữ liệu Project không hợp lệ.",
     };
   }
+  const closingNote = closesCycle(input.action)
+    ? normalizeClosingNote(input.closingNote)
+    : null;
+
+  if (closingNote && [...closingNote].length > CLOSING_NOTE_MAX_LENGTH) {
+    return {
+      status: "error",
+      code: "INVALID_CLOSING_NOTE",
+      message: `Ghi chú khép lại tối đa ${CLOSING_NOTE_MAX_LENGTH} ký tự.`,
+    };
+  }
 
   try {
     const project = await apiFetch<ProjectResponse>(
@@ -212,6 +233,7 @@ export async function changeProjectLifecycle(
         method: "PATCH",
         body: JSON.stringify({
           expectedRevision: input.expectedRevision,
+          ...(closingNote ? { closingNote } : {}),
         }),
       },
     );
@@ -225,6 +247,11 @@ export async function changeProjectLifecycle(
   } catch (error) {
     return toMutationError(error);
   }
+}
+export interface SetProjectTargetEndDateInput {
+  id: string;
+  targetEndAt: string | null;
+  expectedRevision: number;
 }
 
 export async function setProjectIntendedOutcome(
@@ -250,6 +277,50 @@ export async function setProjectIntendedOutcome(
         method: "PUT",
         body: JSON.stringify({
           intendedOutcome,
+          expectedRevision: input.expectedRevision,
+        }),
+      },
+    );
+
+    revalidateProject(input.id);
+
+    return {
+      status: "success",
+      project,
+    };
+  } catch (error) {
+    return toMutationError(error);
+  }
+}
+
+export async function setProjectTargetEndDate(
+  input: SetProjectTargetEndDateInput,
+): Promise<ProjectMutationResult> {
+  if (!validId(input.id) || !validRevision(input.expectedRevision)) {
+    return {
+      status: "error",
+      message: "Dữ liệu Project không hợp lệ.",
+    };
+  }
+
+  if (
+    input.targetEndAt !== null &&
+    (typeof input.targetEndAt !== "string" ||
+      !DATE_ONLY.test(input.targetEndAt))
+  ) {
+    return {
+      status: "error",
+      code: "INVALID_TARGET_END_DATE",
+      message: "Ngày dự kiến không hợp lệ.",
+    };
+  }
+  try {
+    const project = await apiFetch<ProjectResponse>(
+      `/projects/${input.id}/cycle/target-end`,
+      {
+        method: "PUT",
+        body: JSON.stringify({
+          targetEndAt: input.targetEndAt,
           expectedRevision: input.expectedRevision,
         }),
       },
