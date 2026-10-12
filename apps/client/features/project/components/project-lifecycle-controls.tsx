@@ -10,7 +10,10 @@ import {
   Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { type MouseEvent, useState, useTransition } from "react";
+import { type MouseEvent, useId, useState, useTransition } from "react";
+
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 import { LifecycleErrorAlert } from "@/components/system/lifecycle-error-alert";
 import {
@@ -32,9 +35,12 @@ import {
 } from "@/features/project/actions/project";
 import { isRedirectError } from "@/lib/next-redirect";
 import { notifySuccess } from "@/lib/toast";
+import { cn } from "@/lib/utils";
 
 const PROJECT_REVISION_CONFLICT = "PROJECT_REVISION_CONFLICT";
 const PROJECT_DELETION_NOT_ALLOWED = "PROJECT_DELETION_NOT_ALLOWED";
+
+const CLOSING_NOTE_MAX_LENGTH = 2000;
 
 const isRevisionConflict = (code?: string) =>
   code === PROJECT_REVISION_CONFLICT;
@@ -149,6 +155,18 @@ export function ProjectLifecycleControls({
   const [pendingAction, setPendingAction] =
     useState<ProjectLifecycleAction | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [closingNote, setClosingNote] = useState("");
+  const closingNoteId = useId();
+  // Chỉ ACTIVE/PAUSED có Cycle đang mở để ghi chú (BR-PRJ-034) — Stop từ
+  // NOT_STARTED không đóng Cycle nào, server sẽ từ chối ghi chú.
+  const canAddClosingNote =
+    lifecycleState === "ACTIVE" || lifecycleState === "PAUSED";
+  // Đếm theo ký tự (code point) trên bản đã trim — đúng cách server đếm —
+  // để báo vượt giới hạn ngay khi gõ, thay vì đợi bấm xác nhận mới biết.
+  // Không cắt bớt chữ người dùng đã gõ: chỉ chặn nút xác nhận.
+  const closingNoteLength = [...closingNote.trim()].length;
+  const closingNoteTooLong =
+    canAddClosingNote && closingNoteLength > CLOSING_NOTE_MAX_LENGTH;
 
   const anyDialogOpen = deleteOpen || confirmingAction !== null;
 
@@ -156,6 +174,7 @@ export function ProjectLifecycleControls({
     setError(null);
     setDeleteOpen(false);
     setConfirmingAction(null);
+    setClosingNote("");
     router.refresh();
   };
 
@@ -169,6 +188,7 @@ export function ProjectLifecycleControls({
           id,
           expectedRevision: revision,
           action,
+          ...(canAddClosingNote && closingNote.trim() ? { closingNote } : {}),
         });
 
         if (result.status === "error") {
@@ -182,6 +202,7 @@ export function ProjectLifecycleControls({
         }
 
         setConfirmingAction(null);
+        setClosingNote("");
         void notifySuccess(ACTION_META[action].successMessage(title));
         router.refresh();
       } catch {
@@ -322,6 +343,7 @@ export function ProjectLifecycleControls({
           if (isPending) return;
           if (!open) {
             setConfirmingAction(null);
+            setClosingNote("");
             setError(null);
           }
         }}
@@ -333,13 +355,49 @@ export function ProjectLifecycleControls({
               {confirmMeta?.description}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {canAddClosingNote ? (
+            <div className="grid gap-2">
+              <Label htmlFor={closingNoteId}>
+                Ghi chú khép lại (không bắt buộc)
+              </Label>
+              <Textarea
+                id={closingNoteId}
+                value={closingNote}
+                onChange={(event) => setClosingNote(event.target.value)}
+                placeholder="Chu kỳ này đã diễn ra thế nào? Điều gì đáng nhớ?"
+                rows={4}
+                disabled={isPending}
+                aria-invalid={closingNoteTooLong}
+                aria-describedby={`${closingNoteId}-count`}
+              />
+              <p
+                id={`${closingNoteId}-count`}
+                className={cn(
+                  "text-right font-mono text-xs tabular-nums",
+                  closingNoteTooLong
+                    ? "text-destructive"
+                    : "text-muted-foreground",
+                )}
+              >
+                {closingNoteLength}/{CLOSING_NOTE_MAX_LENGTH}
+              </p>
+              {/* Bộ đếm đổi theo từng phím nên không đọc to; chỉ báo một
+                  lần lúc vượt giới hạn — cũng là lý do nút xác nhận bị khóa. */}
+              {closingNoteTooLong ? (
+                <p role="alert" className="text-xs text-destructive">
+                  Ghi chú dài quá {CLOSING_NOTE_MAX_LENGTH} ký tự — rút gọn để
+                  xác nhận.
+                </p>
+              ) : null}
+            </div>
+          ) : null}
 
           {confirmingAction !== null ? errorAlert : null}
 
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isPending}>Hủy</AlertDialogCancel>
             <AlertDialogAction
-              disabled={isPending}
+              disabled={isPending || closingNoteTooLong}
               onClick={(event) => {
                 event.preventDefault();
                 if (confirmingAction) runLifecycleAction(confirmingAction);

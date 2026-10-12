@@ -14,6 +14,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   changeProjectLifecycle,
   setProjectIntendedOutcome,
+  setProjectTargetEndDate,
   updateProject,
 } from "@/features/project/actions/project";
 import {
@@ -22,6 +23,7 @@ import {
   ProjectInlineTitle,
   ProjectLifecycleControlsInline,
   ProjectOutcomeEditorInline,
+  ProjectTargetEndEditorInline,
 } from "./project-inline-fields";
 
 // `fireEvent.blur` chỉ dispatch sự kiện, không thật sự đổi
@@ -39,6 +41,7 @@ vi.mock("@/features/project/actions/project", () => ({
   updateProject: vi.fn(),
   changeProjectLifecycle: vi.fn(),
   setProjectIntendedOutcome: vi.fn(),
+  setProjectTargetEndDate: vi.fn(),
 }));
 
 vi.mock("@/lib/toast", () => ({
@@ -54,6 +57,7 @@ vi.mock("next/navigation", () => ({
 const mutation = vi.mocked(updateProject);
 const lifecycleMutation = vi.mocked(changeProjectLifecycle);
 const outcomeMutation = vi.mocked(setProjectIntendedOutcome);
+const targetEndMutation = vi.mocked(setProjectTargetEndDate);
 
 const baseProject: ProjectResponse = {
   id: "550e8400-e29b-41d4-a716-446655440000",
@@ -746,7 +750,7 @@ describe("ProjectOutcomeEditorInline", () => {
     render(
       <ProjectFieldsProvider initialProject={projectWithCycle}>
         <ProjectInlineTitle />
-        <ProjectOutcomeEditorInline />
+        <ProjectOutcomeEditorInline timeZone="UTC" />
       </ProjectFieldsProvider>,
     );
 
@@ -769,10 +773,60 @@ describe("ProjectOutcomeEditorInline", () => {
     );
   });
 
+  it("shows the outcome history from the shared project, updated by its own save", async () => {
+    const firstSet = {
+      outcome: "Ra mắt bản beta",
+      setAt: "2026-08-02T00:00:00.000Z",
+    };
+    const withOneOutcome: ProjectResponse = {
+      ...projectWithCycle,
+      currentCycle: {
+        ...projectWithCycle.currentCycle!,
+        intendedOutcome: firstSet.outcome,
+        outcomeHistory: [firstSet],
+      },
+    };
+    outcomeMutation.mockResolvedValue({
+      status: "success",
+      project: {
+        ...withOneOutcome,
+        currentCycle: {
+          ...withOneOutcome.currentCycle!,
+          intendedOutcome: "Ra mắt bản chính thức",
+          outcomeHistory: [
+            firstSet,
+            {
+              outcome: "Ra mắt bản chính thức",
+              setAt: "2026-08-10T00:00:00.000Z",
+            },
+          ],
+        },
+        revision: 4,
+      },
+    });
+
+    render(
+      <ProjectFieldsProvider initialProject={withOneOutcome}>
+        <ProjectOutcomeEditorInline timeZone="UTC" />
+      </ProjectFieldsProvider>,
+    );
+
+    // Một outcome duy nhất — chưa có gì để gọi là "lịch sử".
+    expect(screen.queryByText(/Lịch sử outcome/)).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Sửa" }));
+    fireEvent.change(screen.getByPlaceholderText(/Bạn muốn đạt được/), {
+      target: { value: "Ra mắt bản chính thức" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Lưu" }));
+
+    expect(await screen.findByText("Lịch sử outcome (2 lần đặt)")).toBeTruthy();
+  });
+
   it("renders nothing when the project has no current cycle", () => {
     const { container } = render(
       <ProjectFieldsProvider initialProject={baseProject}>
-        <ProjectOutcomeEditorInline />
+        <ProjectOutcomeEditorInline timeZone="UTC" />
       </ProjectFieldsProvider>,
     );
 
@@ -796,7 +850,7 @@ describe("ProjectOutcomeEditorInline", () => {
     render(
       <ProjectFieldsProvider initialProject={projectWithCycle}>
         <ProjectInlineTitle />
-        <ProjectOutcomeEditorInline />
+        <ProjectOutcomeEditorInline timeZone="UTC" />
       </ProjectFieldsProvider>,
     );
 
@@ -841,7 +895,7 @@ describe("ProjectOutcomeEditorInline", () => {
     render(
       <ProjectFieldsProvider initialProject={projectWithCycle}>
         <ProjectInlineTitle />
-        <ProjectOutcomeEditorInline />
+        <ProjectOutcomeEditorInline timeZone="UTC" />
       </ProjectFieldsProvider>,
     );
 
@@ -874,5 +928,115 @@ describe("ProjectOutcomeEditorInline", () => {
     expect(outcomeMutation).toHaveBeenCalledWith(
       expect.objectContaining({ expectedRevision: 4 }),
     );
+  });
+});
+
+describe("ProjectTargetEndEditorInline", () => {
+  beforeEach(() => {
+    mutation.mockReset();
+    targetEndMutation.mockReset();
+    refresh.mockReset();
+  });
+
+  afterEach(cleanup);
+
+  const projectWithTarget: ProjectResponse = {
+    ...baseProject,
+    lifecycleState: "ACTIVE",
+    currentCycle: {
+      id: "cycle-1",
+      cycleNumber: 1,
+      intendedOutcome: null,
+      outcomeHistory: [],
+      targetEndAt: "2026-08-20",
+      closingNote: null,
+      startedAt: "2026-08-01T00:00:00.000Z",
+      endedAt: null,
+      endReason: null,
+    },
+  };
+
+  it("clears the date using the revision from a just-completed inline save", async () => {
+    mutation.mockResolvedValue({
+      status: "success",
+      project: {
+        ...projectWithTarget,
+        title: "Ra mắt sản phẩm mới",
+        revision: 4,
+      },
+    });
+    targetEndMutation.mockResolvedValue({
+      status: "success",
+      project: {
+        ...projectWithTarget,
+        currentCycle: { ...projectWithTarget.currentCycle!, targetEndAt: null },
+        revision: 5,
+      },
+    });
+
+    render(
+      <ProjectFieldsProvider initialProject={projectWithTarget}>
+        <ProjectInlineTitle />
+        <ProjectTargetEndEditorInline today="2026-08-25" />
+      </ProjectFieldsProvider>,
+    );
+
+    expect(screen.getByText("Quá hạn dự kiến 5 ngày")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: /Ra mắt sản phẩm/ }));
+    fireEvent.change(screen.getByLabelText("Tên Project"), {
+      target: { value: "Ra mắt sản phẩm mới" },
+    });
+    blurElement(screen.getByLabelText("Tên Project"));
+    await waitFor(() => expect(mutation).toHaveBeenCalledOnce());
+
+    fireEvent.click(screen.getByRole("button", { name: "Bỏ ngày" }));
+
+    await waitFor(() =>
+      expect(targetEndMutation).toHaveBeenCalledWith({
+        id: projectWithTarget.id,
+        targetEndAt: null,
+        expectedRevision: 4,
+      }),
+    );
+    // Project dùng chung đã nhận kết quả — nhãn quá hạn biến mất ngay.
+    expect(
+      await screen.findByText("Chưa đặt ngày kết thúc dự kiến."),
+    ).toBeTruthy();
+    expect(screen.queryByText(/Quá hạn dự kiến/)).toBeNull();
+    expect(refresh).toHaveBeenCalled();
+  });
+
+  it("maps a revision conflict to the shared conflict message", async () => {
+    targetEndMutation.mockResolvedValue({
+      status: "error",
+      code: "PROJECT_REVISION_CONFLICT",
+      message: "Conflict",
+    });
+
+    render(
+      <ProjectFieldsProvider initialProject={projectWithTarget}>
+        <ProjectTargetEndEditorInline today="2026-08-25" />
+      </ProjectFieldsProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Bỏ ngày" }));
+
+    expect(
+      await screen.findByText("Project đã thay đổi ở một phiên làm việc khác."),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Tải bản mới nhất" }),
+    ).toBeTruthy();
+  });
+
+  it("renders nothing when the project has no current cycle", () => {
+    const { container } = render(
+      <ProjectFieldsProvider initialProject={baseProject}>
+        <ProjectTargetEndEditorInline today="2026-08-25" />
+      </ProjectFieldsProvider>,
+    );
+
+    expect(container.textContent).toBe("");
   });
 });

@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   type ProjectMutationResult,
   setProjectIntendedOutcome,
+  setProjectTargetEndDate,
   updateProject,
 } from "@/features/project/actions/project";
 import { ProjectLifecycleControls } from "@/features/project/components/project-lifecycle-controls";
@@ -27,6 +28,8 @@ import {
   ProjectOutcomeEditor,
   type ProjectOutcomeSubmitResult,
 } from "@/features/project/components/project-outcome-editor";
+import { ProjectOutcomeHistory } from "@/features/project/components/project-outcome-history";
+import { ProjectTargetEndEditor } from "@/features/project/components/project-target-end-editor";
 import { cn } from "@/lib/utils";
 
 const isRevisionConflict = (code?: string) =>
@@ -524,27 +527,19 @@ export function ProjectLifecycleControlsInline() {
   );
 }
 
-/** Cùng lý do với `ProjectLifecycleControlsInline`: việc lưu intended
- * outcome phải đọc `id`/`revision` từ context chia sẻ tại đúng thời điểm
- * gửi đi, không phải prop chụp lúc render — và phải đi qua cùng
- * `runExclusive` với title/description để 2 lần lưu gần nhau (dù không
- * thật sự xung đột) không cùng gửi 1 revision cũ. `ProjectOutcomeEditor`
- * tự nó không biết gì về context; toàn bộ phần này nằm ở `onSubmit`. */
-export function ProjectOutcomeEditorInline() {
+/** Gửi một thay đổi của Cycle đang mở (outcome, ngày dự kiến) qua cùng
+ * hàng đợi `runExclusive` với title/description, đọc `id`/`revision` từ
+ * context tại đúng lúc gửi — cùng lý do với `ProjectLifecycleControlsInline`:
+ * 2 lần lưu gần nhau (dù không thật sự xung đột) không được cùng gửi 1
+ * revision cũ. Các editor thuần UI không biết gì về context; toàn bộ phần
+ * này nằm ở `onSubmit` mà hook trả về. */
+function useCycleFieldSubmit() {
   const router = useRouter();
-  const {
-    project,
-    projectRef,
-    setProject,
-    runExclusive,
-    externalUpdateToken,
-    externalUpdateTokenRef,
-  } = useProjectFields();
+  const { projectRef, setProject, runExclusive, externalUpdateTokenRef } =
+    useProjectFields();
 
-  if (!project.currentCycle) return null;
-
-  const handleSubmit = async (
-    intendedOutcome: string,
+  return async (
+    mutate: (current: ProjectResponse) => Promise<ProjectMutationResult>,
   ): Promise<ProjectOutcomeSubmitResult> => {
     // Xem giải thích ở useInlineProjectField.commit — chụp token TẠI THỜI
     // ĐIỂM bấm Lưu, không phải lúc dispatch thật sự (có thể muộn hơn do
@@ -556,12 +551,7 @@ export function ProjectOutcomeEditorInline() {
       if (externalUpdateTokenRef.current !== tokenAtSubmit) {
         return Promise.resolve({ status: "stale" as const });
       }
-      const current = projectRef.current;
-      return setProjectIntendedOutcome({
-        id: current.id,
-        intendedOutcome,
-        expectedRevision: current.revision,
-      });
+      return mutate(projectRef.current);
     });
 
     if (result.status === "stale") {
@@ -590,12 +580,59 @@ export function ProjectOutcomeEditorInline() {
     router.refresh();
     return { status: "success" };
   };
+}
+
+export function ProjectOutcomeEditorInline({ timeZone }: { timeZone: string }) {
+  const router = useRouter();
+  const { project, externalUpdateToken } = useProjectFields();
+  const submit = useCycleFieldSubmit();
+
+  if (!project.currentCycle) return null;
 
   return (
-    <ProjectOutcomeEditor
-      intendedOutcome={project.currentCycle.intendedOutcome}
-      externalUpdateToken={externalUpdateToken}
-      onSubmit={handleSubmit}
+    <div className="flex flex-col gap-4">
+      <ProjectOutcomeEditor
+        intendedOutcome={project.currentCycle.intendedOutcome}
+        externalUpdateToken={externalUpdateToken}
+        onSubmit={(intendedOutcome) =>
+          submit((current) =>
+            setProjectIntendedOutcome({
+              id: current.id,
+              intendedOutcome,
+              expectedRevision: current.revision,
+            }),
+          )
+        }
+        onReload={() => router.refresh()}
+      />
+      <ProjectOutcomeHistory
+        history={project.currentCycle.outcomeHistory}
+        timeZone={timeZone}
+      />
+    </div>
+  );
+}
+
+export function ProjectTargetEndEditorInline({ today }: { today: string }) {
+  const router = useRouter();
+  const { project } = useProjectFields();
+  const submit = useCycleFieldSubmit();
+
+  if (!project.currentCycle) return null;
+
+  return (
+    <ProjectTargetEndEditor
+      targetEndAt={project.currentCycle.targetEndAt}
+      today={today}
+      onSubmit={(targetEndAt) =>
+        submit((current) =>
+          setProjectTargetEndDate({
+            id: current.id,
+            targetEndAt,
+            expectedRevision: current.revision,
+          }),
+        )
+      }
       onReload={() => router.refresh()}
     />
   );
