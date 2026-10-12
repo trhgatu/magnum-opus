@@ -418,6 +418,11 @@ export const Errors = {
     translationKey: 'exceptions.project.closing.note.invalid',
     statusCode: 400,
   },
+  INVALID_TARGET_END_DATE: {
+    code: 'INVALID_TARGET_END_DATE',
+    translationKey: 'exceptions.project.target.end.date.invalid',
+    statusCode: 400,
+  },
   PROJECT_NOT_FOUND: {
     code: 'PROJECT_NOT_FOUND',
     translationKey: 'exceptions.project.not.found',

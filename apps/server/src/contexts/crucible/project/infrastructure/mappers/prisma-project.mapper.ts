@@ -198,26 +198,33 @@ export class PrismaProjectMapper {
   private static outcomeHistoryToDomain(
     raw: PrismaProjectCycleWithEntries,
   ): IntendedOutcomeEntry[] {
-    if (raw.outcomeEntries.length > 0) {
-      return raw.outcomeEntries.map((entry) =>
+    const entries = [...raw.outcomeEntries]
+      .sort((left, right) => left.sequence - right.sequence)
+      .map((entry) =>
         IntendedOutcomeEntry.create(
           entry.sequence,
           IntendedOutcome.create(entry.outcome),
           entry.setAt,
         ),
       );
-    }
+
     // Server bản cũ còn chạy trong lúc deploy chỉ ghi cột intended_outcome.
-    // Coi nó là entry 1 để không mất outcome đó. Bỏ cùng lúc drop cột.
-    return raw.intendedOutcome
-      ? [
-          IntendedOutcomeEntry.create(
-            1,
-            IntendedOutcome.create(raw.intendedOutcome),
-            raw.updatedAt,
-          ),
-        ]
-      : [];
+    // Bản mới luôn ghi đôi nên hai bên khớp nhau; lệch nghĩa là bản cũ đã đặt
+    // outcome mới hơn — coi đó là entry tiếp theo để không mất, cũng không
+    // bị lần lưu sau ghi đè ngược. Bỏ cùng lúc drop cột.
+    const legacy = raw.intendedOutcome?.trim();
+    const latest = entries.at(-1);
+    if (legacy && legacy !== latest?.outcome.value) {
+      entries.push(
+        IntendedOutcomeEntry.create(
+          (latest?.sequence ?? 0) + 1,
+          IntendedOutcome.create(legacy),
+          raw.updatedAt,
+        ),
+      );
+    }
+
+    return entries;
   }
 
   private static cycleToPersistence(

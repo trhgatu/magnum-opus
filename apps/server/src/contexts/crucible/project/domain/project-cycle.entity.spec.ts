@@ -71,6 +71,20 @@ describe('ProjectCycle', () => {
       ]);
     });
 
+    it('does not let callers rewrite an entry timestamp through the snapshot', () => {
+      const cycle = openCycle();
+      cycle.recordIntendedOutcome(
+        IntendedOutcome.create('A'),
+        new Date('2026-08-02T03:00:00Z'),
+      );
+
+      cycle.outcomeHistory[0].setAt.setFullYear(1999);
+
+      expect(cycle.outcomeHistory[0].setAt.toISOString()).toBe(
+        '2026-08-02T03:00:00.000Z',
+      );
+    });
+
     it('does not let callers mutate the stored history', () => {
       const cycle = openCycle();
       cycle.recordIntendedOutcome(IntendedOutcome.create('A'), firstSet);

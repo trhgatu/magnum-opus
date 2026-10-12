@@ -138,6 +138,28 @@ describe('PrismaProjectMapper', () => {
     ]);
   });
 
+  it('appends a legacy value the old server set after the history existed', () => {
+    // The previous server overwrote intended_outcome during the deploy
+    // window; ignoring it would show a stale outcome and let the next save
+    // write the stale value back.
+    const project = PrismaProjectMapper.toDomain({
+      ...rawProject,
+      cycles: [{ ...openCycle, intendedOutcome: 'Changed by the old server' }],
+    });
+
+    expect(project.currentCycle?.outcomeHistory).toEqual([
+      { sequence: 1, outcome: 'Ship Projects V1', setAt: firstSet },
+      { sequence: 2, outcome: 'Ship Projects V1.1', setAt: secondSet },
+      { sequence: 3, outcome: 'Changed by the old server', setAt: updatedAt },
+    ]);
+  });
+
+  it('adds nothing when the dual-written column matches the latest entry', () => {
+    const project = PrismaProjectMapper.toDomain(raw());
+
+    expect(project.currentCycle?.outcomeHistory).toHaveLength(2);
+  });
+
   it('maps a Project with no Cycles yet', () => {
     const project = PrismaProjectMapper.toDomain({ ...rawProject, cycles: [] });
 

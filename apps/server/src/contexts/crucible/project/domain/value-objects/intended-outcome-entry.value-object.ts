@@ -25,7 +25,9 @@ export class IntendedOutcomeEntry {
     return {
       sequence: this.sequence,
       outcome: this.outcome.value,
-      setAt: this.setAt,
+      // Bản sao: Date là mutable, trả object gốc thì người ngoài sửa được
+      // timestamp của lịch sử (vốn bất biến).
+      setAt: new Date(this.setAt.getTime()),
     };
   }
 }

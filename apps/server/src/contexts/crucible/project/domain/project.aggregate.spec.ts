@@ -1,5 +1,6 @@
 import {
   InvalidClosingNoteException,
+  InvalidTargetEndDateException,
   InvalidProjectTitleException,
   InvalidProjectTransitionException,
 } from './exceptions';
@@ -304,6 +305,15 @@ describe('Project', () => {
       expect(project.lifecycleState).toBe(ProjectLifecycleState.STOPPED);
     });
 
+    it('accepts a note of 1001 emoji (2002 UTF-16 units, 1001 characters)', () => {
+      const project = createProject();
+      project.start();
+
+      project.complete('😀'.repeat(1001));
+
+      expect([...(project.cycles[0].closingNote ?? '')]).toHaveLength(1001);
+    });
+
     it('rejects an oversized note without changing anything', () => {
       const project = createProject();
       project.start();
@@ -360,6 +370,30 @@ describe('Project', () => {
 
       expect(project.lifecycleState).toBe(ProjectLifecycleState.ACTIVE);
       expect(project.pullDomainEvents()).toHaveLength(1); // only the Start
+    });
+
+    it.each(['2026-9-30', '30/09/2026', '2026-02-30', '2026-13-01', 'soon'])(
+      'rejects %p without changing anything',
+      (date) => {
+        const project = createProject();
+        project.start();
+        const revision = project.revision;
+
+        expect(() => project.setTargetEndAt(date)).toThrow(
+          InvalidTargetEndDateException,
+        );
+        expect(project.currentCycle?.targetEndAt).toBeNull();
+        expect(project.revision).toBe(revision);
+      },
+    );
+
+    it('accepts a leap day', () => {
+      const project = createProject();
+      project.start();
+
+      project.setTargetEndAt('2028-02-29');
+
+      expect(project.currentCycle?.targetEndAt).toBe('2028-02-29');
     });
 
     it('is rejected without an open Cycle and preserved after closing', () => {

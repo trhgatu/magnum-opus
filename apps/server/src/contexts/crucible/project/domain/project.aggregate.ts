@@ -13,7 +13,12 @@ import {
   InvalidProjectTransitionException,
   ProjectCycleNotFoundException,
 } from './exceptions';
-import { ClosingNote, IntendedOutcome, ProjectId } from './value-objects';
+import {
+  ClosingNote,
+  IntendedOutcome,
+  ProjectId,
+  TargetEndDate,
+} from './value-objects';
 
 const MAX_TITLE_LENGTH = 200;
 
@@ -300,12 +305,16 @@ export class Project extends AggregateRoot {
       'set target end date for',
     );
 
+    // Kiểm tra định dạng trước khi đổi gì: chuỗi sai không được lọt xuống
+    // tầng lưu trữ thành Invalid Date.
+    const next = date === null ? null : TargetEndDate.create(date).value;
+
     const openCycle = this.getOpenCycle();
     if (!openCycle) {
       throw new ProjectCycleNotFoundException(this.props.id.value);
     }
 
-    if (openCycle.setTargetEndAt(date)) this.trackChange();
+    if (openCycle.setTargetEndAt(next)) this.trackChange();
   }
 
   public canBeDeleted(): boolean {

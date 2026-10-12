@@ -18,6 +18,16 @@ describe('ClosingNote', () => {
     expect(ClosingNote.fromInput(note)?.value).toBe(note);
   });
 
+  it('counts code points, not UTF-16 units, at the 2000 boundary', () => {
+    // 😀 is two UTF-16 units: a `.length` check would reject this note.
+    const note = '😀'.repeat(2000);
+
+    expect(ClosingNote.fromInput(note)?.value).toBe(note);
+    expect(() => ClosingNote.fromInput(`${note}😀`)).toThrow(
+      InvalidClosingNoteException,
+    );
+  });
+
   it('rejects a note longer than 2000 characters after trimming', () => {
     expect(() => ClosingNote.fromInput('a'.repeat(2001))).toThrow(
       InvalidClosingNoteException,
