@@ -271,6 +271,11 @@ describe("Project Server Actions", () => {
         id: "cycle-id",
         cycleNumber: 1,
         intendedOutcome: "Ship Projects V1",
+        outcomeHistory: [
+          { outcome: "Ship Projects V1", setAt: project.createdAt },
+        ],
+        targetEndAt: null,
+        closingNote: null,
         startedAt: project.createdAt,
         endedAt: null,
         endReason: null,

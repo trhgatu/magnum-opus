@@ -14,6 +14,7 @@ import { UpdateProjectHandler } from './application/commands/handlers/update-pro
 import { PROJECT_READER } from './application/ports/project-reader.port';
 import { GetProjectHandler } from './application/queries/handlers/get-project.handler';
 import { GetProjectsHandler } from './application/queries/handlers/get-projects.handler';
+import { SetTargetEndDateHandler } from './application/commands/handlers/set-target-end-date.handler';
 import { ProjectMutationService } from './application/services';
 import { PROJECT_REPOSITORY } from './domain/ports/project.repository';
 import { PrismaProjectReader } from './infrastructure/readers/prisma-project.reader';
@@ -30,6 +31,7 @@ const commandHandlers = [
   CompleteProjectHandler,
   ReopenProjectHandler,
   SetIntendedOutcomeHandler,
+  SetTargetEndDateHandler,
   DeleteProjectHandler,
 ];
 const queryHandlers = [GetProjectHandler, GetProjectsHandler];

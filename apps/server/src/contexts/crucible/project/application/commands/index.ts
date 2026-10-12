@@ -8,3 +8,4 @@ export * from './complete-project.command';
 export * from './reopen-project.command';
 export * from './set-intended-outcome.command';
 export * from './delete-project.command';
+export * from './set-target-end-date.command';

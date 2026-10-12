@@ -21,7 +21,7 @@ export class CompleteProjectHandler implements ICommandHandler<
       projectId: command.projectId,
       ownerId: command.ownerId,
       expectedRevision: command.expectedRevision,
-      mutate: (project) => project.complete(),
+      mutate: (project) => project.complete(command.closingNote),
     });
   }
 }

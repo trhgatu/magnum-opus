@@ -12,10 +12,17 @@ export const PROJECT_CYCLE_END_REASONS = ['STOPPED', 'COMPLETED'] as const;
 
 export type ProjectCycleEndReason = (typeof PROJECT_CYCLE_END_REASONS)[number];
 
+export interface OutcomeEntryResponse {
+  outcome: string;
+  setAt: string;
+}
 export interface ProjectCycleResponse {
   id: string;
   cycleNumber: number;
   intendedOutcome: string | null;
+  outcomeHistory: OutcomeEntryResponse[];
+  targetEndAt: string | null;
+  closingNote: string | null;
   startedAt: string;
   endedAt: string | null;
   endReason: ProjectCycleEndReason | null;
