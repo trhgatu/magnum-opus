@@ -1,4 +1,5 @@
 import {
+  InvalidClosingNoteException,
   InvalidProjectTitleException,
   InvalidProjectTransitionException,
 } from './exceptions';
@@ -212,6 +213,181 @@ describe('Project', () => {
       expect(() => project.setIntendedOutcome('anything')).toThrow(
         InvalidProjectTransitionException,
       );
+    });
+
+    // V1.1 — BR-PRJ-032/033
+    it('keeps every change as an append-only history instead of overwriting', () => {
+      const project = createProject();
+      project.start();
+
+      project.setIntendedOutcome('Đàn Canon in D');
+      project.setIntendedOutcome('Đàn Für Elise rút gọn');
+
+      expect(
+        project.currentCycle?.outcomeHistory.map((entry) => entry.outcome),
+      ).toEqual(['Đàn Canon in D', 'Đàn Für Elise rút gọn']);
+      expect(project.currentCycle?.intendedOutcome).toBe(
+        'Đàn Für Elise rút gọn',
+      );
+    });
+
+    it('does not bump the revision when the outcome is unchanged', () => {
+      const project = createProject();
+      project.start();
+      project.setIntendedOutcome('Ship V1.1');
+      const revision = project.revision;
+
+      project.setIntendedOutcome('  Ship V1.1  ');
+
+      expect(project.revision).toBe(revision);
+      expect(project.currentCycle?.outcomeHistory).toHaveLength(1);
+    });
+
+    it('freezes the history once the Cycle closes', () => {
+      const project = createProject();
+      project.start();
+      project.setIntendedOutcome('A');
+      project.complete();
+
+      expect(() => project.setIntendedOutcome('B')).toThrow(
+        InvalidProjectTransitionException,
+      );
+      expect(
+        project.cycles[0].outcomeHistory.map((entry) => entry.outcome),
+      ).toEqual(['A']);
+    });
+  });
+
+  // V1.1 — BR-PRJ-034/035
+  describe('closing note', () => {
+    it('stores the trimmed note on the Cycle closed by Stop', () => {
+      const project = createProject();
+      project.start();
+
+      project.stop('  Chủ động đổi hướng  ');
+
+      expect(project.cycles[0].closingNote).toBe('Chủ động đổi hướng');
+    });
+
+    it('stores the note on the Cycle closed by Complete', () => {
+      const project = createProject();
+      project.start();
+
+      project.complete('Xong sớm hơn dự kiến');
+
+      expect(project.cycles[0].closingNote).toBe('Xong sớm hơn dự kiến');
+    });
+
+    it('treats a blank note as no note', () => {
+      const project = createProject();
+      project.start();
+
+      project.stop('   ');
+
+      expect(project.cycles[0].closingNote).toBeNull();
+    });
+
+    it('rejects a note when stopping a project that never started', () => {
+      const project = createProject();
+
+      expect(() => project.stop('Không có chu kỳ để gắn')).toThrow(
+        InvalidClosingNoteException,
+      );
+      expect(project.lifecycleState).toBe(ProjectLifecycleState.NOT_STARTED);
+    });
+
+    it('still stops a never-started project when the note is blank', () => {
+      const project = createProject();
+
+      project.stop('  ');
+
+      expect(project.lifecycleState).toBe(ProjectLifecycleState.STOPPED);
+    });
+
+    it('rejects an oversized note without changing anything', () => {
+      const project = createProject();
+      project.start();
+      const revision = project.revision;
+
+      expect(() => project.complete('a'.repeat(2001))).toThrow(
+        InvalidClosingNoteException,
+      );
+      expect(project.lifecycleState).toBe(ProjectLifecycleState.ACTIVE);
+      expect(project.currentCycle?.isOpen).toBe(true);
+      expect(project.revision).toBe(revision);
+    });
+  });
+
+  // V1.1 — BR-PRJ-036/037
+  describe('setTargetEndAt', () => {
+    it('sets and clears the target end date of the open Cycle', () => {
+      const project = createProject();
+      project.start();
+
+      project.setTargetEndAt('2026-08-31');
+      expect(project.currentCycle?.targetEndAt).toBe('2026-08-31');
+
+      project.setTargetEndAt(null);
+      expect(project.currentCycle?.targetEndAt).toBeNull();
+    });
+
+    it('works while PAUSED and accepts a date in the past', () => {
+      const project = createProject();
+      project.start();
+      project.pause();
+
+      project.setTargetEndAt('2020-01-01');
+
+      expect(project.currentCycle?.targetEndAt).toBe('2020-01-01');
+    });
+
+    it('does not bump the revision for the same value', () => {
+      const project = createProject();
+      project.start();
+      project.setTargetEndAt('2026-08-31');
+      const revision = project.revision;
+
+      project.setTargetEndAt('2026-08-31');
+
+      expect(project.revision).toBe(revision);
+    });
+
+    it('never changes the lifecycle state', () => {
+      const project = createProject();
+      project.start();
+
+      project.setTargetEndAt('2020-01-01');
+
+      expect(project.lifecycleState).toBe(ProjectLifecycleState.ACTIVE);
+      expect(project.pullDomainEvents()).toHaveLength(1); // only the Start
+    });
+
+    it('is rejected without an open Cycle and preserved after closing', () => {
+      const project = createProject();
+      expect(() => project.setTargetEndAt('2026-08-31')).toThrow(
+        InvalidProjectTransitionException,
+      );
+
+      project.start();
+      project.setTargetEndAt('2026-08-31');
+      project.stop();
+
+      expect(project.cycles[0].targetEndAt).toBe('2026-08-31');
+      expect(() => project.setTargetEndAt(null)).toThrow(
+        InvalidProjectTransitionException,
+      );
+    });
+
+    it('starts empty on a reopened Cycle', () => {
+      const project = createProject();
+      project.start();
+      project.setTargetEndAt('2026-08-31');
+      project.complete();
+
+      project.reopen();
+
+      expect(project.currentCycle?.targetEndAt).toBeNull();
+      expect(project.currentCycle?.outcomeHistory).toEqual([]);
     });
   });
 

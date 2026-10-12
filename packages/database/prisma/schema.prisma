@@ -532,18 +532,37 @@ model ProjectCycle {
   projectId String @map("project_id")
   ownerId String @map("owner_id")
   cycleNumber Int @map("cycle_number")
+  // V1.1: chỉ còn để ghi đôi trong lúc chuyển đổi — SOT
+  // outcomeEntries. Bị drop ở PR dọn dẹp sau khi V1.1 chạy ổn trên production.
   intendedOutcome String? @map("intended_outcome") @db.Text
   startedAt DateTime @map("started_at")
   endedAt DateTime? @map("ended_at")
   endReason ProjectCycleEndReason? @map("end_reason")
+  closingNote String? @map("closing_note") @db.VarChar(2000)
+  targetEndAt DateTime? @map("target_end_at") @db.Date
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   transitions ProjectLifecycleTransition[]
+  outcomeEntries ProjectCycleOutcomeEntry[]
 
   @@unique([projectId, cycleNumber])
   @@index([projectId, endedAt])
   @@map("project_cycles")
+}
+
+model ProjectCycleOutcomeEntry {
+  id String @id @default(uuid())
+  cycleId String @map("cycle_id")
+  sequence Int
+  outcome String @db.Text
+  setAt DateTime @map("set_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  cycle ProjectCycle @relation(fields: [cycleId], references: [id], onDelete: Restrict)
+  
+  @@unique([cycleId, sequence])
+  @@map("project_cycle_outcome_entries")
 }
 
 model ProjectLifecycleTransition {
