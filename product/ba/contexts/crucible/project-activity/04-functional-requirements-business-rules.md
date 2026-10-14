@@ -462,7 +462,10 @@ Một feed được chép:
 
 - khi người dùng xem hoạt động của Project và lần chép gần nhất đã cách hơn 10 phút;
 - khi một Cycle của Project dùng feed khép lại (lần chép cuối, giới hạn thời gian);
-- khi feed được gắn vào Project và khoảng đã chép chưa phủ tới thời điểm cần (lúc Cycle đang mở bắt đầu, hoặc lúc gắn).
+- khi feed được gắn vào Project và khoảng đã chép chưa phủ tới thời điểm cần:
+  - Project có Cycle mở: lúc Cycle đó bắt đầu;
+  - Project `STOPPED`/`COMPLETED` sau khi đã có ít nhất một Cycle: lúc Cycle cuối cùng khép (để D3 thấy được hoạt động sau khi khép, kể cả trước lúc gắn);
+  - Project `NOT_STARTED`: lúc gắn (D4 chỉ xét hoạt động sau lúc gắn).
 
 Mỗi lần chép lùi lại một khoảng đệm so với `syncedUntil` để bắt event đến trễ.
 
@@ -532,7 +535,9 @@ Xuất hiện khi Project `PAUSED` và trong lần tạm dừng hiện tại có
 
 ### BR-PAC-024 — D3: Closed, Still Active
 
-Xuất hiện khi Project `STOPPED` hoặc `COMPLETED` và có ít nhất một event sau khi Cycle cuối cùng khép lại. Hiển thị số event và thời điểm gần nhất.
+Xuất hiện khi Project `STOPPED` hoặc `COMPLETED`, Project **đã từng có ít nhất một Cycle khép lại**, và có ít nhất một event sau khi Cycle cuối cùng khép. Mốc là thời điểm Cycle cuối khép, không phụ thuộc thời điểm nguồn được gắn.
+
+Project `STOPPED` mà chưa từng bắt đầu (Stop từ `NOT_STARTED`) không có Cycle nào khép, nên không có D3 — và cũng không có divergence nào khác. Hiển thị số event và thời điểm gần nhất.
 
 ### BR-PAC-025 — D4: Not Started, Already Active
 

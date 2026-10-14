@@ -397,7 +397,7 @@ Người dùng muốn Project hiển thị hoạt động của một repository
 ## Alternative Flow B — Project Has No Open Cycle
 
 5a. Project đang `NOT_STARTED`, `STOPPED` hoặc `COMPLETED`.
-5b. Hệ thống không cần chép bù cho Cycle; hoạt động sau thời điểm gắn được dùng cho D4 (NOT_STARTED) hoặc D3 (đã khép).
+5b. Không có Cycle đang mở để chép bù. Hệ thống chép theo mốc cần cho divergence (BR-PAC-016): - `NOT_STARTED`: hoạt động sau lúc gắn → D4; - `STOPPED`/`COMPLETED` sau ít nhất một Cycle: hoạt động sau lúc Cycle cuối khép, kể cả trước lúc gắn → D3; - `STOPPED` chưa từng bắt đầu: không có divergence nào.
 
 ## Exception Flow A — Not Connected or Connection Not Active
 
@@ -407,7 +407,7 @@ Người dùng muốn Project hiển thị hoạt động của một repository
 ## Exception Flow B — Initial Sync Fails
 
 5a. Chép hoạt động thất bại (GitHub lỗi, giới hạn request).
-5b. Nguồn vẫn được gắn; hệ thống hiển thị nguồn chưa có dữ liệu cho Cycle hiện tại và sẽ thử lại khi người dùng xem lại.
+5b. Nguồn vẫn được gắn. Nếu feed đã có dữ liệu từ trước (vd repository đang được Project khác dùng), dữ liệu đó vẫn được hiển thị; chỉ những khoảng **chưa được chép** mới hiển thị là chưa có dữ liệu. Hệ thống thử lại khi người dùng xem lại.
 
 ## Postconditions
 
@@ -481,10 +481,19 @@ And người dùng được mời kết nối hoặc thay token
 
 ```gherkin
 Given GitHub đang lỗi
+And repository chưa từng được chép
 When người dùng gắn repository vào Project đang có Cycle mở
 Then nguồn vẫn được gắn
 And phần hoạt động cho biết nguồn chưa có dữ liệu
 And phần hoạt động không hiển thị "không có hoạt động" cho Cycle
+```
+
+```gherkin
+Given repository R đã được chép đầy đủ từ 01/10 vì đang là nguồn của Project A
+And GitHub đang lỗi
+When người dùng gắn R vào Project B có Cycle mở từ 05/10
+Then hoạt động của R từ 05/10 được hiển thị cho Project B từ dữ liệu đã có
+And chỉ khoảng sau lần chép cuối của R được hiển thị là chưa có dữ liệu
 ```
 
 ---
@@ -611,7 +620,7 @@ Người dùng mở trang Project.
 ## Alternative Flow A — Project Has No Open Cycle
 
 4a. Project `NOT_STARTED`, `STOPPED` hoặc `COMPLETED`.
-4b. Không có Cycle Activity. Hệ thống chỉ hiển thị dòng thông tin D4 (NOT_STARTED) hoặc D3 (đã khép) nếu có.
+4b. Không có Cycle Activity. Hệ thống chỉ hiển thị dòng thông tin D4 (`NOT_STARTED`) hoặc D3 (`STOPPED`/`COMPLETED` sau khi ít nhất một Cycle đã khép) nếu có. Project `STOPPED` chưa từng bắt đầu không hiển thị divergence nào.
 
 ## Alternative Flow B — No Source
 
@@ -825,6 +834,38 @@ When người dùng mở lại trang Project
 Then hoạt động được hiển thị từ sổ hiện có mà không chép lại
 ```
 
+### AC-PAC-006-17 — Source List Shows Name, Status and Last Update
+
+```gherkin
+Given Project có nguồn "trhgatu/magnum-opus" ở trạng thái ACTIVE, lần cập nhật gần nhất lúc 14:32
+And nguồn "trhgatu/old-repo" ở trạng thái ERROR vì không đọc được repository
+When người dùng xem danh sách nguồn của Project
+Then "trhgatu/magnum-opus" hiển thị trạng thái đang cập nhật và thời điểm 14:32
+And "trhgatu/old-repo" hiển thị trạng thái lỗi kèm lý do và cách khắc phục
+```
+
+```gherkin
+Given người dùng đã kết nối một tài khoản GitHub khác tài khoản đã gắn nguồn "trhgatu/magnum-opus"
+When người dùng xem danh sách nguồn của Project
+Then "trhgatu/magnum-opus" hiển thị trạng thái ngừng cập nhật
+```
+
+### AC-PAC-006-18 — No Divergence for a Project Stopped Before Start
+
+```gherkin
+Given Project được Stop từ NOT_STARTED, chưa từng có Cycle
+And repository nguồn có commit sau thời điểm Stop
+When người dùng mở trang Project
+Then không có dòng D3 hay divergence nào khác
+```
+
+```gherkin
+Given Project COMPLETED, Cycle cuối khép ngày 12/10
+And repository có commit ngày 14/10
+When người dùng gắn repository vào Project ngày 20/10
+Then người dùng thấy dòng D3 về commit ngày 14/10
+```
+
 ---
 
 # 10. UC-PAC-007 — Resume from a Paused-but-Active Notice
@@ -1018,9 +1059,12 @@ Then người dùng thấy dữ liệu đầy đủ tới 14:30 ngày khép
 Capture Activity Snapshot (FR-PAC-012) không có Use Case riêng. Nó mở rộng **postcondition** của UC-PRJ-008 (Stop) và UC-PRJ-009 (Complete):
 
 ```text
-Khi Stop/Complete khép một Cycle và Project có nguồn tại thời điểm khép:
+Khi Stop/Complete khép một Cycle và Project có nguồn tại thời điểm khép
+và ít nhất một trong các nguồn đó vẫn còn gắn khi snapshot được chụp:
   → Cycle đó có đúng một Activity Snapshot
 ```
+
+Ngoại lệ được chấp nhận (BR-PAC-029): nếu người dùng gỡ **mọi** nguồn trong khoảng ngắn giữa lúc khép và lúc chụp, Cycle không có snapshot; gỡ một phần nguồn thì snapshot không gồm các nguồn đã gỡ.
 
 ## Acceptance Criteria
 

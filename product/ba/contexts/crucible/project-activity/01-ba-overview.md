@@ -30,7 +30,7 @@ Tài liệu này **không** thay đổi lifecycle, Cycle hay bất kỳ business
 | `04-functional-requirements-business-rules.md` | Functional Requirements (FR-PAC) và Business Rules (BR-PAC) của Phase 1 | Candidate Baseline |
 | `05-use-cases-acceptance-criteria.md`          | Use Cases (UC-PAC) và Acceptance Criteria của Phase 1                   | Candidate Baseline |
 
-Use Cases, Product Specification và API Contract sẽ được xây tiếp theo.
+Product Specification và API Contract sẽ được xây tiếp theo.
 
 ---
 
