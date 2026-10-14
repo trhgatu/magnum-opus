@@ -397,7 +397,11 @@ Người dùng muốn Project hiển thị hoạt động của một repository
 ## Alternative Flow B — Project Has No Open Cycle
 
 5a. Project đang `NOT_STARTED`, `STOPPED` hoặc `COMPLETED`.
-5b. Không có Cycle đang mở để chép bù. Hệ thống chép theo mốc cần cho divergence (BR-PAC-016): - `NOT_STARTED`: hoạt động sau lúc gắn → D4; - `STOPPED`/`COMPLETED` sau ít nhất một Cycle: hoạt động sau lúc Cycle cuối khép, kể cả trước lúc gắn → D3; - `STOPPED` chưa từng bắt đầu: không có divergence nào.
+5b. Không có Cycle đang mở để chép bù. Hệ thống chép theo mốc cần cho divergence (BR-PAC-016):
+
+- `NOT_STARTED`: hoạt động sau lúc gắn → D4.
+- `STOPPED`/`COMPLETED` sau ít nhất một Cycle: hoạt động sau lúc Cycle cuối khép, kể cả trước lúc gắn → D3.
+- `STOPPED` chưa từng bắt đầu: không có divergence nào.
 
 ## Exception Flow A — Not Connected or Connection Not Active
 
@@ -861,7 +865,7 @@ Then không có dòng D3 hay divergence nào khác
 
 ```gherkin
 Given Project COMPLETED, Cycle cuối khép ngày 12/10
-And repository có commit ngày 14/10
+And repository có một commit do chính người dùng viết ngày 14/10, không phải merge commit
 When người dùng gắn repository vào Project ngày 20/10
 Then người dùng thấy dòng D3 về commit ngày 14/10
 ```

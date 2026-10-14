@@ -371,7 +371,7 @@ model IntegrationConnection {
   ownerId           String              @map("owner_id")
   provider          IntegrationProvider
   externalAccountId String              @map("external_account_id")
-  externalAccountNodeId String          @map("external_account_node_id")
+  externalAccountNodeId String?         @map("external_account_node_id") // chỉ GitHub
   displayName       String              @map("display_name")
   credentials       String              @db.Text
   status            ConnectionStatus    @default(ACTIVE)
@@ -387,16 +387,16 @@ model IntegrationConnection {
 }
 ```
 
-| Cột                     | Ý nghĩa                                                                                                                                                                       |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `provider`              | Bên nào. Tên chung — thêm WakaTime là thêm một giá trị enum, không thêm bảng                                                                                                  |
-| `externalAccountId`     | Id số của tài khoản bên ngoài (GitHub `databaseId`, không đổi). Dùng để so khớp tác giả commit và PR (`author.user.databaseId`)                                               |
-| `externalAccountNodeId` | Id node GraphQL của tài khoản (vd `U_kgDO...`), lấy lúc kết nối. Dùng cho bộ lọc phía GitHub `history(author: { id })` — bộ lọc này nhận node id, **không** nhận `databaseId` |
-| `displayName`           | Tên hiển thị (vd `trhgatu`)                                                                                                                                                   |
-| `credentials`           | Thông tin xác thực **đã mã hóa** (AES-256-GCM). Cấu trúc bên trong do adapter của provider định nghĩa                                                                         |
-| `status`                | `ACTIVE` · `EXPIRED` · `REVOKED`                                                                                                                                              |
-| `expiresAt`             | Ngày token hết hạn (lấy từ provider khi kiểm tra) — để báo trước                                                                                                              |
-| `lastVerifiedAt`        | Lần cuối xác nhận thông tin xác thực còn dùng được                                                                                                                            |
+| Cột                     | Ý nghĩa                                                                                                                                                                                                                                      |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `provider`              | Bên nào. Tên chung — thêm WakaTime là thêm một giá trị enum, không thêm bảng                                                                                                                                                                 |
+| `externalAccountId`     | Id số của tài khoản bên ngoài (GitHub `databaseId`, không đổi). Dùng để so khớp tác giả commit và PR (`author.user.databaseId`)                                                                                                              |
+| `externalAccountNodeId` | **Chỉ GitHub, nullable** (WakaTime và provider khác không có). Id node GraphQL của tài khoản (vd `U_kgDO...`), lấy lúc kết nối. Dùng cho bộ lọc phía GitHub `history(author: { id })` — bộ lọc này nhận node id, **không** nhận `databaseId` |
+| `displayName`           | Tên hiển thị (vd `trhgatu`)                                                                                                                                                                                                                  |
+| `credentials`           | Thông tin xác thực **đã mã hóa** (AES-256-GCM). Cấu trúc bên trong do adapter của provider định nghĩa                                                                                                                                        |
+| `status`                | `ACTIVE` · `EXPIRED` · `REVOKED`                                                                                                                                                                                                             |
+| `expiresAt`             | Ngày token hết hạn (lấy từ provider khi kiểm tra) — để báo trước                                                                                                                                                                             |
+| `lastVerifiedAt`        | Lần cuối xác nhận thông tin xác thực còn dùng được                                                                                                                                                                                           |
 
 - Phase 1 giới hạn **một tài khoản bên ngoài cho mỗi provider** của mỗi người dùng (`@@unique([ownerId, provider])`). Kết nối một tài khoản GitHub khác nghĩa là thay thế kết nối cũ. Nhiều tài khoản cùng provider không thuộc Phase 1; nếu cần, ràng buộc sẽ thành `[ownerId, provider, externalAccountId]`.
 - Ngắt kết nối xóa dòng này; **không** xóa feed hay sổ.
