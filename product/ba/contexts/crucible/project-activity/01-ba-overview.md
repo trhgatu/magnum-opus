@@ -22,13 +22,15 @@ Tài liệu này **không** thay đổi lifecycle, Cycle hay bất kỳ business
 
 ### Tài liệu trong bộ này
 
-| File                                           | Nội dung                                                                | Trạng thái         |
-| ---------------------------------------------- | ----------------------------------------------------------------------- | ------------------ |
-| `01-ba-overview.md`                            | Problem, needs, scope, khái niệm, quyết định                            | Draft              |
-| `02-evidence-behavior-analysis.md`             | Gắn hoạt động vào Cycle, chỗ lệch, đóng băng, các ca biên               | Draft              |
-| `03-integration-architecture.md`               | Kiến trúc tích hợp nhiều nguồn, cấu trúc module, thiết kế DB            | Draft              |
-| `04-functional-requirements-business-rules.md` | Functional Requirements (FR-PAC) và Business Rules (BR-PAC) của Phase 1 | Candidate Baseline |
-| `05-use-cases-acceptance-criteria.md`          | Use Cases (UC-PAC) và Acceptance Criteria của Phase 1                   | Candidate Baseline |
+| File                                           | Nội dung                                                                | Trạng thái                 |
+| ---------------------------------------------- | ----------------------------------------------------------------------- | -------------------------- |
+| `01-ba-overview.md`                            | Problem, needs, scope, khái niệm, quyết định                            | Draft                      |
+| `02-evidence-behavior-analysis.md`             | Gắn hoạt động vào Cycle, chỗ lệch, đóng băng, các ca biên               | Draft                      |
+| `03-integration-architecture.md`               | Kiến trúc tích hợp nhiều nguồn, cấu trúc module, thiết kế DB            | Draft                      |
+| `04-functional-requirements-business-rules.md` | Functional Requirements (FR-PAC) và Business Rules (BR-PAC) của Phase 1 | Candidate Baseline         |
+| `05-use-cases-acceptance-criteria.md`          | Use Cases (UC-PAC) và Acceptance Criteria của Phase 1                   | Candidate Baseline         |
+| `06-product-specification.md`                  | Baseline sản phẩm: bề mặt, trạng thái hiển thị, câu chữ                 | Product Baseline Candidate |
+| `07-api-contract.md`                           | Endpoint, request/response, mã lỗi                                      | Contract Candidate         |
 
 Product Specification và API Contract sẽ được xây tiếp theo.
 
@@ -357,6 +359,6 @@ Discovery gồm `02-evidence-behavior-analysis.md` (hành vi chi tiết) và `03
 ```text
 04 — Functional Requirements & Business Rules   ✅
 05 — Use Cases & Acceptance Criteria            ✅
-06 — Product Specification
-07 — API Contract
+06 — Product Specification                    ✅
+07 — API Contract                             ✅
 ```
