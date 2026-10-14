@@ -119,7 +119,8 @@ apps/server/src/
     │       │   └── ports/      token-cipher.port.ts, github-api.port.ts
     │       ├── infrastructure/
     │       │   ├── aes-gcm-token.cipher.ts             mã hóa token
-    │       │   ├── github-rest.client.ts               repo, nhánh, commit, PR, phân trang
+    │       │   ├── github-graphql.client.ts            nhánh + lịch sử commit, pull request (đường chính, §10)
+    │       │   ├── github-rest.client.ts               kiểm tra token, liệt kê repository
     │       │   ├── github-activity.provider.ts         implements ActivityProviderPort
     │       │   ├── mappers/ · repositories/
     │       ├── presentation/   controller /integrations/github, dtos, presenter
@@ -370,6 +371,7 @@ model IntegrationConnection {
   ownerId           String              @map("owner_id")
   provider          IntegrationProvider
   externalAccountId String              @map("external_account_id")
+  externalAccountNodeId String?         @map("external_account_node_id") // chỉ GitHub
   displayName       String              @map("display_name")
   credentials       String              @db.Text
   status            ConnectionStatus    @default(ACTIVE)
@@ -385,15 +387,16 @@ model IntegrationConnection {
 }
 ```
 
-| Cột                 | Ý nghĩa                                                                                               |
-| ------------------- | ----------------------------------------------------------------------------------------------------- |
-| `provider`          | Bên nào. Tên chung — thêm WakaTime là thêm một giá trị enum, không thêm bảng                          |
-| `externalAccountId` | Id tài khoản bên ngoài (số, không đổi). Dùng để nhận ra commit của người dùng                         |
-| `displayName`       | Tên hiển thị (vd `trhgatu`)                                                                           |
-| `credentials`       | Thông tin xác thực **đã mã hóa** (AES-256-GCM). Cấu trúc bên trong do adapter của provider định nghĩa |
-| `status`            | `ACTIVE` · `EXPIRED` · `REVOKED`                                                                      |
-| `expiresAt`         | Ngày token hết hạn (lấy từ provider khi kiểm tra) — để báo trước                                      |
-| `lastVerifiedAt`    | Lần cuối xác nhận thông tin xác thực còn dùng được                                                    |
+| Cột                     | Ý nghĩa                                                                                                                                                                                                                                      |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `provider`              | Bên nào. Tên chung — thêm WakaTime là thêm một giá trị enum, không thêm bảng                                                                                                                                                                 |
+| `externalAccountId`     | Id số của tài khoản bên ngoài (GitHub `databaseId`, không đổi). Dùng để so khớp tác giả commit và PR (`author.user.databaseId`)                                                                                                              |
+| `externalAccountNodeId` | **Chỉ GitHub, nullable** (WakaTime và provider khác không có). Id node GraphQL của tài khoản (vd `U_kgDO...`), lấy lúc kết nối. Dùng cho bộ lọc phía GitHub `history(author: { id })` — bộ lọc này nhận node id, **không** nhận `databaseId` |
+| `displayName`           | Tên hiển thị (vd `trhgatu`)                                                                                                                                                                                                                  |
+| `credentials`           | Thông tin xác thực **đã mã hóa** (AES-256-GCM). Cấu trúc bên trong do adapter của provider định nghĩa                                                                                                                                        |
+| `status`                | `ACTIVE` · `EXPIRED` · `REVOKED`                                                                                                                                                                                                             |
+| `expiresAt`             | Ngày token hết hạn (lấy từ provider khi kiểm tra) — để báo trước                                                                                                                                                                             |
+| `lastVerifiedAt`        | Lần cuối xác nhận thông tin xác thực còn dùng được                                                                                                                                                                                           |
 
 - Phase 1 giới hạn **một tài khoản bên ngoài cho mỗi provider** của mỗi người dùng (`@@unique([ownerId, provider])`). Kết nối một tài khoản GitHub khác nghĩa là thay thế kết nối cũ. Nhiều tài khoản cùng provider không thuộc Phase 1; nếu cần, ràng buộc sẽ thành `[ownerId, provider, externalAccountId]`.
 - Ngắt kết nối xóa dòng này; **không** xóa feed hay sổ.
@@ -639,12 +642,22 @@ Thêm bảng nối riêng (vd `GoalActivitySource`) trỏ vào cùng feed. Sổ 
 
 ---
 
-## 10. Technical Questions to Verify
+## 10. Technical Questions — Spike Results
 
-| ID        | Câu hỏi                                                                                                                     |
-| --------- | --------------------------------------------------------------------------------------------------------------------------- |
-| TQ-PAC-01 | Bộ lọc `since`/`until` của GitHub "List commits" dựa trên committer date hay author date? (`02` §6.14)                      |
-| TQ-PAC-02 | Cách hiệu quả nhất để đọc commit trên mọi nhánh trong giới hạn request (liệt kê nhánh + commit theo nhánh, hay cách khác)?  |
-| TQ-PAC-03 | Fine-grained token: quyền tối thiểu cần cho commit + pull request trên repository private; cách đọc ngày hết hạn của token. |
-| TQ-PAC-04 | Nhận diện tác giả commit bằng id tài khoản GitHub có đủ không, hay cần thêm danh sách email đã xác minh?                    |
-| TQ-PAC-05 | Thời gian tối đa cho lần chép cuối khi khép Cycle (§4.2) để không giữ outbox handler quá lâu.                               |
+Kiểm chứng ngày 2026-10-14 bằng GitHub API thật trên repository `trhgatu/magnum-opus` (chỉ đọc).
+
+| ID         | Câu hỏi                                                  | Kết quả                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ---------- | -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| TQ-PAC-01  | `since`/`until` lọc theo committer date hay author date? | **Committer date** — cả REST `List commits` lẫn GraphQL `history(since, until)`. Commit `4c7ac75` (author 04:38:41Z, committer 04:49:28Z) có trong khoảng 04:40–04:55 và **không** có trong khoảng 04:30–04:45. Cách làm của `02` §6.14 (truy vấn theo khoảng, lọc lại theo author date) là đúng.                                                                                                                                                                                                     |
+| TQ-PAC-02  | Đọc commit trên mọi nhánh hiệu quả thế nào?              | **GraphQL**: một truy vấn `refs(refPrefix: "refs/heads/")` + `history(since, author: { id })` trên từng nhánh trả về mọi nhánh kèm lịch sử, tốn **1 điểm** rate limit cho 19 nhánh. Bộ lọc `author: { id }` chỉ trả commit của người dùng (121/123 trong thử nghiệm, 2 commit còn lại là của Dependabot). Nhiều nhánh chia chung lịch sử với nhánh mặc định → bắt buộc loại trùng theo commit id trước khi tính khóa chống trùng. Chỉ cần đọc lịch sử của nhánh có commit đầu nhánh mới hơn mốc chép. |
+| TQ-PAC-02b | Pull request đọc thế nào?                                | GraphQL `pullRequests(states: [OPEN, CLOSED, MERGED], orderBy: { field: UPDATED_AT, direction: DESC })` trả `number`, `createdAt`, `mergedAt`, `updatedAt`, `author { ... on User { databaseId } }` — 1 điểm. Thử nghiệm không truyền `states` vẫn trả PR đã merge (#157), nhưng adapter **luôn** truyền `states` tường minh để không phụ thuộc mặc định. Chép tăng dần bằng cách dừng khi `updatedAt` cũ hơn mốc chép. PR của bot có `author` không phải `User` → tự loại.                           |
+| TQ-PAC-03  | Quyền tối thiểu và ngày hết hạn của token                | Quyền theo tài liệu GitHub: _Contents: read_ (commit, nhánh), _Pull requests: read_, _Metadata: read_ (tự có). Ngày hết hạn đọc từ header `GitHub-Authentication-Token-Expiration` của response. **Chưa kiểm chứng** bằng fine-grained token thật — token dùng trong spike là OAuth token của `gh` CLI, không có header này. Kiểm chứng khi implement `connect-github`.                                                                                                                               |
+| TQ-PAC-04  | Nhận diện tác giả bằng id tài khoản có đủ không?         | **Đủ.** Mỗi commit có `author.user.databaseId` khi GitHub liên kết được email với tài khoản; commit không liên kết được có `user = null` và bị loại (`02` §6.6). Bộ lọc `author: { id }` của GraphQL dùng đúng cơ chế này. Merge commit do người dùng bấm trên GitHub vẫn mang tác giả là người dùng → vẫn phải loại theo `parents.totalCount > 1`.                                                                                                                                                   |
+| TQ-PAC-05  | Giới hạn thời gian của lần chép cuối khi khép Cycle      | Đề xuất **10 giây** cho toàn bộ các feed của Project: lần chép tăng dần chỉ cần 1–2 truy vấn GraphQL mỗi feed. Quá thời gian thì dùng sổ hiện có (`02` §5.1).                                                                                                                                                                                                                                                                                                                                         |
+
+### Hệ quả cho thiết kế
+
+- Adapter GitHub dùng **GraphQL** làm đường chính (commit trên mọi nhánh, pull request); REST chỉ dùng để kiểm tra token và liệt kê repository.
+- **Phân trang là bắt buộc.** `refs`, `history` và `pullRequests` đều là connection có phân trang (tối đa 100 mục mỗi trang). "Một truy vấn" ở TQ-PAC-02 là trang đầu cho mọi nhánh; adapter phải đi hết các trang của mọi nhánh có commit trong khoảng chép, và của `pullRequests` cho tới khi `updatedAt` cũ hơn mốc. `syncedUntil`/`coveredFrom` **chỉ** được dời sau khi mọi trang của khoảng đó đã được ghi vào sổ; dừng giữa chừng (lỗi, hết thời gian) thì mốc giữ nguyên và lần sau chép lại khoảng đó.
+- Bộ lọc tác giả phía GitHub dùng `externalAccountNodeId`; việc so khớp tác giả ở phía Magnum Opus dùng `externalAccountId` (`databaseId`) (§7.2).
+- Thứ tự xử lý commit: lọc theo tác giả (phía GitHub) → loại trùng theo commit id → loại merge commit → lọc lại theo author date trong khoảng chép → tính khóa chống trùng (`02` §2.5).
