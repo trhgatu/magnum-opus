@@ -55,10 +55,11 @@ Ngày push và ngày merge không phải thời điểm của commit.
 
 ### 2.3. Whose Activity
 
-Chỉ event do **chính người dùng** tạo được tính (DEC-PAC-007):
+Chỉ event thuộc về **công việc của chính người dùng** được tính (DEC-PAC-007):
 
 - Commit: tác giả là tài khoản GitHub của Connection.
-- Pull request: người mở là tài khoản GitHub của Connection. `PR_MERGED` được tính khi PR do người dùng mở được merge, bất kể ai bấm merge.
+- Pull request: người mở là tài khoản GitHub của Connection.
+- `PR_MERGED` là **kết quả của PR do người dùng mở** — được tính khi PR đó được merge, bất kể ai bấm merge. Nó đánh dấu lúc công việc của người dùng được đưa vào sản phẩm, không phải hành động của người bấm merge.
 
 Không được tính:
 
@@ -98,6 +99,8 @@ Sổ được chép đi chép lại (mỗi lần mở trang, mỗi lần khép C
 
 Hệ quả có chủ đích: một dòng sổ không bao giờ bị sửa. Sổ chỉ được thêm dòng.
 
+**Va chạm khóa commit (chấp nhận):** hai commit khác nhau có cùng author date (độ chính xác tới giây) **và** cùng message sẽ bị gộp thành một dòng. Điều này chỉ xảy ra khi commit được tạo hàng loạt bằng script hoặc message trống/lặp trong cùng một giây. Hệ quả là đếm thiếu commit; ngày hoạt động không bị ảnh hưởng (cùng ngày). Đánh đổi này được chọn vì khóa dựa trên SHA đếm trùng mọi commit bị rebase — sai số lớn và thường gặp hơn nhiều. Khóa dựa trên nội dung thay đổi (patch-id) tránh được cả hai nhưng đòi hỏi tải diff của từng commit; để lại cho thiết kế kỹ thuật nếu va chạm trở thành vấn đề thực tế.
+
 ---
 
 ## 3. Attribution
@@ -123,6 +126,8 @@ Timeline:  ───────┼────────────┼──
 ```
 
 Mỗi khoảng là **nửa mở** `[bắt đầu, kết thúc)`: một event xảy ra đúng thời điểm Pause thuộc về khoảng PAUSED.
+
+**Ranh giới Cycle 1:** BA Project (`../project/02` §8) mô tả Cycle 1 bắt đầu khi tạo Project, ở trạng thái NOT_STARTED; implementation chỉ tạo bản ghi Cycle khi Start. Capability này **không phụ thuộc** vào cách hiểu nào: hoạt động lúc NOT_STARTED luôn được coi là chưa có vòng theo đuổi nào đang diễn ra — nằm ngoài Cycle và chỉ dùng cho D4 (DEC-PAC-014). Việc thống nhất câu chữ BA Project được theo dõi ở OQ-PAC-005.
 
 ### 3.2. Attribution Rule
 
@@ -239,31 +244,39 @@ Nút [Tiếp tục] **chính là** lifecycle action Resume hiện có, đi qua �
 
 ### 5.1. When and How
 
-Khi Cycle khép lại (Stop hoặc Complete), module Project phát event "Cycle đã khép" qua outbox (`03` §6). Module Project Activity nhận event và:
+Khi một Cycle **thực sự** khép lại (Stop hoặc Complete từ ACTIVE/PAUSED — không phải Stop từ NOT_STARTED, vốn không có Cycle), module Project phát event "Cycle đã khép" qua outbox (`03` §6). Module Project Activity nhận event và:
 
 ```text
-1. Thử chép lần cuối các feed của Project (giới hạn thời gian ngắn)
-      ├── thành công → sổ đầy đủ tới bây giờ
+0. Đã có snapshot cho Cycle này? → dừng (event có thể được gửi lại)
+1. Xác định nguồn của Cycle: các Project Source được gắn trước thời điểm khép
+      └── không có nguồn nào → không tạo snapshot, dừng
+2. Thử chép lần cuối các feed đó (giới hạn thời gian ngắn)
+      ├── thành công → sổ của feed đầy đủ tới bây giờ
       └── thất bại   → bỏ qua, dùng sổ như hiện có
-2. Tính Cycle Activity từ sổ (§3)
-3. Lưu Activity Snapshot, kèm "sổ đầy đủ tới thời điểm nào" (dataUntil)
+3. Tính Cycle Activity từ sổ (§3)
+4. Lưu Activity Snapshot, kèm mức đầy đủ của sổ cho từng nguồn
 ```
 
 Lifecycle action **không chờ** bước này: người dùng bấm Hoàn thành và Cycle khép ngay như hiện tại.
 
-Snapshot luôn được tạo, vì nó chỉ đọc sổ của Magnum Opus. Nếu lần chép cuối thất bại, `dataUntil` ghi rõ sổ đầy đủ tới đâu — thường chỉ cách vài phút đến vài giờ, vì sổ được chép mỗi khi người dùng mở trang Project.
+Quy tắc:
+
+- **Chỉ Cycle có nguồn mới có snapshot.** Project không có nguồn (vd "Học piano") không bao giờ nhận một snapshot "0 hoạt động" — thiếu bằng chứng không được trình bày như không hoạt động (`01` §6).
+- **Nguồn của snapshot là nguồn đang gắn lúc khép.** Nguồn gắn sau thời điểm khép không được tính. Việc gỡ nguồn trong vài giây giữa lúc khép và lúc event được xử lý là trường hợp chấp nhận được (nguồn bị gỡ không được tính).
+- **Mức đầy đủ được ghi theo từng nguồn.** Mỗi nguồn trong snapshot mang `dataUntil` của chính nó; `dataUntil` chung của snapshot là giá trị **nhỏ nhất** trong số đó — tức là mọi nguồn đều đầy đủ ít nhất tới thời điểm này. Nếu lần chép cuối thất bại, khoảng thiếu thường chỉ vài phút đến vài giờ, vì sổ được chép mỗi khi người dùng mở trang Project.
+- **Ghi snapshot là thao tác tạo-nếu-chưa-có.** Outbox có thể gửi lại event; snapshot đã có được giữ nguyên, không bị ghi đè hay báo lỗi.
 
 ### 5.2. Content
 
-| Field          | Ghi chú                                                |
-| -------------- | ------------------------------------------------------ |
-| Phạm vi        | Từ lúc Cycle mở đến lúc Cycle khép                     |
-| Metrics        | Toàn bộ §3.4, bao gồm ngày hoạt động lúc tạm dừng      |
-| Dải ngày       | Trạng thái từng ngày                                   |
-| Nguồn          | Tên các repository đã dùng để tính, tại thời điểm chụp |
-| Múi giờ        | Múi giờ đã dùng để chia ngày                           |
-| `dataUntil`    | Sổ đầy đủ tới thời điểm nào khi chụp                   |
-| Thời điểm chụp |                                                        |
+| Field          | Ghi chú                                                       |
+| -------------- | ------------------------------------------------------------- |
+| Phạm vi        | Từ lúc Cycle mở đến lúc Cycle khép                            |
+| Metrics        | Toàn bộ §3.4, bao gồm ngày hoạt động lúc tạm dừng             |
+| Dải ngày       | Trạng thái từng ngày                                          |
+| Nguồn          | Tên và `dataUntil` của từng nguồn đã dùng, tại thời điểm chụp |
+| Múi giờ        | Múi giờ đã dùng để chia ngày                                  |
+| `dataUntil`    | Nhỏ nhất trong `dataUntil` của các nguồn                      |
+| Thời điểm chụp |                                                               |
 
 ### 5.3. Immutability
 
@@ -346,7 +359,9 @@ Commit viết từ trước nhưng push muộn có author date cũ. Việc chép
 
 ### 6.14. Query Window vs Author Date
 
-Bộ lọc thời gian của API commit dựa trên ngày commit được ghi, không chắc là author date (cần xác minh ở thiết kế kỹ thuật). Vì committer date ≥ author date, truy vấn theo khoảng của lần chép rồi lọc lại theo author date là an toàn. Đây là ràng buộc cho thiết kế, không thay đổi hành vi.
+Bộ lọc thời gian của API commit dựa trên ngày commit được ghi, không chắc là author date (TQ-PAC-01).
+
+Trong luồng làm việc thông thường (commit, rebase, cherry-pick, amend), committer date **không sớm hơn** author date, nên truy vấn theo khoảng của lần chép rồi lọc lại theo author date sẽ không bỏ sót. Tuy nhiên Git cho phép đặt hai ngày này tùy ý: một commit có committer date sớm hơn author date (thường do chỉnh ngày bằng tay) có thể nằm ngoài khoảng truy vấn và bị bỏ sót. Phase 1 chấp nhận giới hạn này; lần chép bù đầu tiên của mỗi feed (`03` §5.3) dùng khoảng đệm rộng để giảm rủi ro. Đây là ràng buộc cho thiết kế, không thay đổi hành vi.
 
 ### 6.15. Volume, Rate Limits and Freshness
 
@@ -367,7 +382,7 @@ Project "Magnum Opus", repository `trhgatu/magnum-opus` gắn ngày 28/09. Múi 
 | 08/10, 09/10 | 3 commit                                                                      | Cycle 1, `PAUSED`                                         | D2: "Có hoạt động trong 2 ngày dù đang tạm dừng." [Tiếp tục] |
 | 10/10        | **Resume** (từ nút của lời nhắc D2)                                           |                                                           | D2 biến mất                                                  |
 | 11/10        | 6 commit; PR #145 mở + merge; PR #146 và #150 mở                              | Cycle 1, `ACTIVE`                                         | Nhãn V1.1 "Quá hạn dự kiến 1 ngày"                           |
-| 12/10 17:00  | PR #146 merge → **Complete**, ghi chú "Lên production, trễ 2 ngày"            | Cycle 1 khép                                              | Snapshot được chụp từ sổ                                     |
+| 12/10        | 16:50 PR #146 merge; 17:00 **Complete**, ghi chú "Lên production, trễ 2 ngày" | Cycle 1 khép                                              | Snapshot được chụp từ sổ                                     |
 | 14/10        | 1 commit sửa chính tả                                                         | Ngoài Cycle (COMPLETED)                                   | D3: "1 commit kể từ khi hoàn thành."                         |
 | 20/10        | **Reopen** — Cycle 2, outcome "Habit insight"                                 |                                                           | D3 biến mất                                                  |
 | 21–23/10     | Code; PR #150 (mở 11/10 ở Cycle 1) được merge 21/10                           | Cycle 2, `ACTIVE`; `PR_MERGED` của #150 thuộc Cycle 2     |                                                              |
@@ -380,7 +395,7 @@ Cycle 1 · 01/10 → 12/10 · Hoàn thành
   Ngày hoạt động: 8 (trong đó 2 ngày lúc tạm dừng)
   Commit: 23 · PR mở: 4 · PR merge: 3
   Hoạt động gần nhất: 12/10
-  Nguồn: trhgatu/magnum-opus · Múi giờ: Asia/Ho_Chi_Minh · Dữ liệu tới: 12/10 17:00
+  Nguồn: trhgatu/magnum-opus · Múi giờ: Asia/Ho_Chi_Minh · Dữ liệu tới: 12/10 17:00 (lần chép cuối thành công)
 ```
 
 PR #150 xuất hiện ở hai Cycle qua hai event khác nhau (`PR_OPENED` ở Cycle 1, `PR_MERGED` ở Cycle 2); không có gì bị đếm hai lần và snapshot Cycle 1 không thay đổi.

@@ -59,7 +59,7 @@ Phụ thuộc chỉ đi **một chiều**, từ trên xuống (DEC-PAC-013):
 
 ### 2.3. Shared Provider Contract
 
-Hợp đồng giữa `activity` và mọi nguồn bên ngoài, đặt ở `shared/application/activity/activity-provider.port.ts` để hai tầng không import lẫn nhau:
+Hợp đồng giữa `activity` và mọi nguồn bên ngoài, đặt ở `shared/application/activity/activity-provider.port.ts` để hai tầng không import lẫn nhau. Các kiểu trung lập mà hợp đồng dùng — `ActivityProvider`, `ActivityKind` — cũng thuộc `shared/application/activity/` (không nằm trong `activity/domain`), để `integrations` không phải import ngược vào module `activity`:
 
 ```ts
 export interface ActivityProviderPort {
@@ -102,7 +102,8 @@ Nguồn nội bộ (Habit...) **không** dùng hợp đồng này: chúng đẩy
 ```text
 apps/server/src/
 ├── shared/application/activity/
-│   └── activity-provider.port.ts           hợp đồng chung (§2.3)
+│   ├── activity-provider.port.ts           hợp đồng chung (§2.3)
+│   └── activity-types.ts                   ActivityProvider, ActivityKind (kiểu trung lập)
 │
 └── contexts/
     ├── integrations/
@@ -128,7 +129,7 @@ apps/server/src/
     │   ├── domain/
     │   │   ├── activity-feed.aggregate.ts              tài nguyên + đã chép từ/tới đâu
     │   │   ├── value-objects/activity-event.value-object.ts
-    │   │   ├── enums/                                  ActivityProvider, ActivityKind, FeedStatus
+    │   │   ├── enums/                                  FeedStatus (ActivityProvider/Kind dùng từ shared)
     │   │   └── ports/  activity-feed.repository.ts, activity-event.repository.ts
     │   ├── application/
     │   │   ├── services/activity-sync.service.ts       chép theo yêu cầu (§5)
@@ -215,9 +216,13 @@ PATCH /projects/:id/complete  (module project, như hiện tại)
   └─ trả kết quả cho người dùng NGAY
 
 OutboxPublisher → ProjectCycleClosedHandler (project-activity)
-  ├─ chép lần cuối các feed của Project (giới hạn thời gian; lỗi thì bỏ qua)
+  ├─ đã có snapshot cho cycleId? → dừng (event có thể được gửi lại)
+  ├─ nguồn của Cycle = Project Source có linkedAt ≤ closedAt
+  │     └─ không có nguồn nào → dừng, không tạo snapshot
+  ├─ chép lần cuối các feed đó (giới hạn thời gian; lỗi thì bỏ qua)
   ├─ tính Cycle Activity từ sổ cho Cycle vừa khép
-  └─ lưu CycleActivitySnapshot (kèm dataUntil)
+  └─ INSERT snapshot ... ON CONFLICT (cycle_id) DO NOTHING
+        (kèm dataUntil từng nguồn; dataUntil chung = nhỏ nhất)
 ```
 
 ### 4.3. Linking a Repository
@@ -257,13 +262,36 @@ Khoảng đệm (vd 2 ngày) bắt các commit viết từ trước nhưng push 
 
 ### 5.3. Backfill
 
-Khi một Project cần dữ liệu từ thời điểm `T` (lúc Cycle hiện tại mở, hoặc lúc nguồn được gắn) mà `coveredFrom > T`, feed được chép thêm khoảng `[T, coveredFrom)` rồi cập nhật `coveredFrom = T`.
+Khi một Project cần dữ liệu từ thời điểm `T` (lúc Cycle hiện tại mở, hoặc lúc nguồn được gắn) mà `coveredFrom > T`, feed được chép thêm phần còn thiếu.
 
-Nguồn có `historyWindowDays` chỉ chép bù được trong giới hạn của nó; phần ngoài giới hạn được coi là không có dữ liệu và được hiển thị như vậy.
+`coveredFrom` chỉ được lùi tới mốc **thực sự lấy được**, không phải tới `T`:
+
+```text
+mốc lấy được = T                                   nếu historyWindowDays = null (GitHub)
+mốc lấy được = max(T, bây giờ − historyWindowDays) nếu nguồn giới hạn lịch sử
+
+chép [mốc lấy được, coveredFrom) → thành công → coveredFrom = mốc lấy được
+```
+
+Phần trước `coveredFrom` là **không có dữ liệu**, không phải "không có hoạt động". Cycle Activity và snapshot dùng `coveredFrom` của từng feed để biết khoảng nào thiếu dữ liệu, và hiển thị như vậy.
+
+Lần chép đầu tiên của một feed GitHub lùi thêm một khoảng đệm rộng trước `T` (`02` §6.14).
 
 ### 5.4. Concurrency
 
-Hai lần chép cùng một feed có thể chạy cùng lúc (hai tab). Không cần khóa: cả hai cùng upsert theo khóa chống trùng, kết quả giống nhau. `syncedUntil` chỉ được dời về phía trước.
+Hai lần chép cùng một feed có thể chạy cùng lúc (hai tab). Không cần khóa cho phần ghi sổ: cả hai cùng upsert theo khóa chống trùng, kết quả giống nhau.
+
+Phần mốc thì phải cập nhật có điều kiện, để lần chép xong sau nhưng bắt đầu trước không kéo mốc lùi lại:
+
+```sql
+UPDATE activity_feeds SET synced_until = :to
+ WHERE id = :feedId AND (synced_until IS NULL OR synced_until < :to);
+
+UPDATE activity_feeds SET covered_from = :from
+ WHERE id = :feedId AND (covered_from IS NULL OR covered_from > :from);
+```
+
+`syncedUntil` chỉ tiến, `coveredFrom` chỉ lùi.
 
 ### 5.5. Failure Handling
 
@@ -280,7 +308,8 @@ Hai lần chép cùng một feed có thể chạy cùng lúc (hai tab). Không c
 
 Thay đổi duy nhất trong module `project`:
 
-- Khi lưu Stop/Complete, repository ghi thêm một `OutboxEvent` loại `ProjectCycleClosed { projectId, cycleId, ownerId, closedAt }` trong **cùng transaction**.
+- Khi lưu một transition **thực sự khép một Cycle** (Stop/Complete từ ACTIVE hoặc PAUSED), repository ghi thêm một `OutboxEvent` loại `ProjectCycleClosed { projectId, cycleId, ownerId, closedAt }` trong **cùng transaction**. `cycleId` luôn có giá trị.
+- Stop từ NOT_STARTED không khép Cycle nào, nên **không** phát event này.
 - `outbox-event.router` chuyển event này tới `ProjectCycleClosedHandler` của `project-activity`.
 
 Module `project` không biết ai nhận event. Cùng cơ chế với Journal (`JournalEntrySealed`) và Memory (`MemoryCreated`) hiện tại.
@@ -366,7 +395,7 @@ model IntegrationConnection {
 | `expiresAt`         | Ngày token hết hạn (lấy từ provider khi kiểm tra) — để báo trước                                      |
 | `lastVerifiedAt`    | Lần cuối xác nhận thông tin xác thực còn dùng được                                                    |
 
-- Một kết nối cho mỗi người mỗi provider (`@@unique([ownerId, provider])`).
+- Phase 1 giới hạn **một tài khoản bên ngoài cho mỗi provider** của mỗi người dùng (`@@unique([ownerId, provider])`). Kết nối một tài khoản GitHub khác nghĩa là thay thế kết nối cũ. Nhiều tài khoản cùng provider không thuộc Phase 1; nếu cần, ràng buộc sẽ thành `[ownerId, provider, externalAccountId]`.
 - Ngắt kết nối xóa dòng này; **không** xóa feed hay sổ.
 - `credentials` không bao giờ được trả về client. Khóa mã hóa ở biến môi trường riêng `INTEGRATION_ENCRYPTION_KEY`, không dùng chung secret khác.
 
@@ -378,6 +407,7 @@ model ActivityFeed {
   ownerId            String           @map("owner_id")
   provider           ActivityProvider
   externalResourceId String           @map("external_resource_id")
+  externalAccountId  String           @map("external_account_id") // "internal" với nguồn nội bộ
   displayName        String           @map("display_name")
   coveredFrom        DateTime?        @map("covered_from")
   syncedUntil        DateTime?        @map("synced_until")
@@ -391,23 +421,25 @@ model ActivityFeed {
   events         ActivityEvent[]
   projectSources ProjectActivitySource[]
 
-  @@unique([ownerId, provider, externalResourceId])
+  @@unique([ownerId, provider, externalAccountId, externalResourceId])
   @@map("activity_feeds")
 }
 ```
 
-| Cột                  | Ý nghĩa                                                                                           |
-| -------------------- | ------------------------------------------------------------------------------------------------- |
-| `externalResourceId` | Định danh **ổn định** của tài nguyên (repository id số, habit id...) — đổi tên không mất liên kết |
-| `displayName`        | Tên hiển thị, cập nhật ở mỗi lần chép (vd `trhgatu/magnum-opus`)                                  |
-| `coveredFrom`        | Sổ đầy đủ **từ** thời điểm này (§5.3)                                                             |
-| `syncedUntil`        | Sổ đầy đủ **tới** thời điểm này (§5.2)                                                            |
-| `lastSyncAt`         | Lần chép gần nhất — quyết định có cần chép lại khi mở trang không                                 |
-| `status`             | `ACTIVE` · `ERROR` · `DISCONNECTED`                                                               |
-| `lastError`          | Lỗi gần nhất, hiển thị cho người dùng                                                             |
+| Cột                  | Ý nghĩa                                                                                                                                                                                                               |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `externalResourceId` | Định danh **ổn định** của tài nguyên (repository id số, habit id...) — đổi tên không mất liên kết                                                                                                                     |
+| `externalAccountId`  | Tài khoản bên ngoài đã dùng để chép feed này. Nguồn nội bộ dùng giá trị cố định `"internal"` (không dùng `NULL`, vì Postgres coi các `NULL` là khác nhau trong ràng buộc unique — feed nội bộ sẽ có thể bị tạo trùng) |
+| `displayName`        | Tên hiển thị, cập nhật ở mỗi lần chép (vd `trhgatu/magnum-opus`)                                                                                                                                                      |
+| `coveredFrom`        | Sổ đầy đủ **từ** thời điểm này (§5.3)                                                                                                                                                                                 |
+| `syncedUntil`        | Sổ đầy đủ **tới** thời điểm này (§5.2)                                                                                                                                                                                |
+| `lastSyncAt`         | Lần chép gần nhất — quyết định có cần chép lại khi mở trang không                                                                                                                                                     |
+| `status`             | `ACTIVE` · `ERROR` · `DISCONNECTED`                                                                                                                                                                                   |
+| `lastError`          | Lỗi gần nhất, hiển thị cho người dùng                                                                                                                                                                                 |
 
-- Một feed cho mỗi tài nguyên (`@@unique([ownerId, provider, externalResourceId])`), dù bao nhiêu Project dùng (DEC-PAC-011).
-- Không có khóa ngoại tới `integration_connections`: feed tìm kết nối theo `ownerId + provider`. Ngắt rồi kết nối lại tạo dòng kết nối mới mà feed không bị đứt.
+- Một feed cho mỗi tài nguyên của mỗi tài khoản (`@@unique([ownerId, provider, externalAccountId, externalResourceId])`), dù bao nhiêu Project dùng (DEC-PAC-011).
+- Không có khóa ngoại tới `integration_connections`: feed tìm kết nối theo `ownerId + provider`. Ngắt rồi kết nối lại **cùng tài khoản** tạo dòng kết nối mới mà feed không bị đứt.
+- Feed ghi lại tài khoản bên ngoài đã được dùng để chép nó (`externalAccountId`). Khi chép, kết nối hiện tại phải là **cùng tài khoản**. Nếu người dùng đã kết nối một tài khoản GitHub khác, feed chuyển `DISCONNECTED` thay vì âm thầm chép bằng tài khoản mới: tài khoản khác có thể không có quyền, và commit "của người dùng" sẽ bị nhận diện theo một người khác. Gắn lại repository dưới tài khoản mới tạo feed mới.
 - Feed không bị xóa khi không còn Project nào dùng: gắn lại là dùng tiếp sổ cũ.
 
 ### 7.4. `activity_events`
@@ -482,7 +514,7 @@ model CycleActivitySnapshot {
   days             Json
   sources          Json
   timeZone         String    @map("time_zone")
-  dataUntil        DateTime  @map("data_until")
+  dataUntil        DateTime  @map("data_until") // nhỏ nhất trong dataUntil của các nguồn
   capturedAt       DateTime  @default(now()) @map("captured_at")
 
   cycle ProjectCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
@@ -491,19 +523,20 @@ model CycleActivitySnapshot {
 }
 ```
 
-| Cột                                 | Ý nghĩa                                                                                 |
-| ----------------------------------- | --------------------------------------------------------------------------------------- |
-| `activeDays`, `pausedActiveDays`    | `02` §3.4                                                                               |
-| `commits`, `prsOpened`, `prsMerged` | Đếm trong Cycle                                                                         |
-| `days`                              | Dải ngày: `[{ "date": "2026-10-08", "state": "PAUSED_ACTIVE" }, ...]` (`02` §3.3)       |
-| `sources`                           | Tên các nguồn tại lúc chụp: `[{ "provider": "GITHUB", "name": "trhgatu/magnum-opus" }]` |
-| `timeZone`                          | Múi giờ đã dùng để chia ngày                                                            |
-| `dataUntil`                         | Sổ đầy đủ tới thời điểm nào khi chụp (`02` §5.1)                                        |
+| Cột                                 | Ý nghĩa                                                                                                                                                      |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `activeDays`, `pausedActiveDays`    | `02` §3.4                                                                                                                                                    |
+| `commits`, `prsOpened`, `prsMerged` | Đếm trong Cycle                                                                                                                                              |
+| `days`                              | Dải ngày: `[{ "date": "2026-10-08", "state": "PAUSED_ACTIVE" }, ...]` (`02` §3.3)                                                                            |
+| `sources`                           | Các nguồn tại lúc chụp, kèm mức đầy đủ của từng nguồn: `[{ "provider": "GITHUB", "name": "trhgatu/magnum-opus", "coveredFrom": "...", "dataUntil": "..." }]` |
+| `timeZone`                          | Múi giờ đã dùng để chia ngày                                                                                                                                 |
+| `dataUntil`                         | Giá trị nhỏ nhất trong `dataUntil` của các nguồn: mọi nguồn đầy đủ ít nhất tới đây (`02` §5.1)                                                               |
 
-- Mỗi Cycle tối đa một snapshot (`cycleId` unique). Dòng không bao giờ bị sửa.
+- Mỗi Cycle tối đa một snapshot (`cycleId` unique). Ghi bằng tạo-nếu-chưa-có (`ON CONFLICT DO NOTHING`), nên event outbox gửi lại không gây lỗi và không ghi đè. Dòng không bao giờ bị sửa.
+- Cycle không có nguồn nào lúc khép thì không có snapshot (`02` §5.1).
 - Con số được **chép cứng**, không tính lại từ sổ khi xem — đây là cách snapshot bất biến trước mọi thay đổi về sau (`02` §5.3).
 - `days`, `sources` là JSON vì chỉ dùng để hiển thị, không được truy vấn vào bên trong.
-- Các cột metric gắn với các loại sự kiện Phase 1. Khi thêm loại sự kiện có metric riêng (vd giờ code), thêm cột tương ứng; snapshot cũ giữ giá trị rỗng cho cột mới.
+- Các cột metric của Phase 1 là `NOT NULL`. Khi thêm loại sự kiện có metric riêng (vd giờ code), cột mới được thêm dưới dạng **nullable** (`codingSeconds Int?`): snapshot cũ mang `NULL` nghĩa là "metric này chưa tồn tại lúc chụp", khác với `0` nghĩa là "có đo, không có hoạt động". Migration không điền giá trị cho snapshot cũ.
 
 ### 7.7. Enums
 
