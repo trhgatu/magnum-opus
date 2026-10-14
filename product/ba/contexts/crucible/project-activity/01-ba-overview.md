@@ -22,13 +22,14 @@ Tài liệu này **không** thay đổi lifecycle, Cycle hay bất kỳ business
 
 ### Tài liệu trong bộ này
 
-| File                               | Nội dung                                                     | Trạng thái |
-| ---------------------------------- | ------------------------------------------------------------ | ---------- |
-| `01-ba-overview.md`                | Problem, needs, scope, khái niệm, quyết định                 | Draft      |
-| `02-evidence-behavior-analysis.md` | Gắn hoạt động vào Cycle, chỗ lệch, đóng băng, các ca biên    | Draft      |
-| `03-integration-architecture.md`   | Kiến trúc tích hợp nhiều nguồn, cấu trúc module, thiết kế DB | Draft      |
+| File                                           | Nội dung                                                                | Trạng thái         |
+| ---------------------------------------------- | ----------------------------------------------------------------------- | ------------------ |
+| `01-ba-overview.md`                            | Problem, needs, scope, khái niệm, quyết định                            | Draft              |
+| `02-evidence-behavior-analysis.md`             | Gắn hoạt động vào Cycle, chỗ lệch, đóng băng, các ca biên               | Draft              |
+| `03-integration-architecture.md`               | Kiến trúc tích hợp nhiều nguồn, cấu trúc module, thiết kế DB            | Draft              |
+| `04-functional-requirements-business-rules.md` | Functional Requirements (FR-PAC) và Business Rules (BR-PAC) của Phase 1 | Candidate Baseline |
 
-Functional Requirements, Use Cases, Product Specification và API Contract sẽ được xây sau khi ba tài liệu này được baseline.
+Use Cases, Product Specification và API Contract sẽ được xây tiếp theo.
 
 ---
 
@@ -350,10 +351,10 @@ Open question của phần hành vi: `02-evidence-behavior-analysis.md` §8.
 
 ## 16. Next Step
 
-`02-evidence-behavior-analysis.md` (hành vi chi tiết) và `03-integration-architecture.md` (kiến trúc, thiết kế DB). Sau khi ba tài liệu được baseline:
+Discovery gồm `02-evidence-behavior-analysis.md` (hành vi chi tiết) và `03-integration-architecture.md` (kiến trúc, thiết kế DB). Trình tự các tài liệu tiếp theo:
 
 ```text
-04 — Functional Requirements & Business Rules
+04 — Functional Requirements & Business Rules   ✅
 05 — Use Cases & Acceptance Criteria
 06 — Product Specification
 07 — API Contract
