@@ -351,7 +351,7 @@ Open question của phần hành vi: `02-evidence-behavior-analysis.md` §8.
 
 ## 16. Next Step
 
-`02-evidence-behavior-analysis.md` (hành vi chi tiết) và `03-integration-architecture.md` (kiến trúc, thiết kế DB). Sau khi ba tài liệu được baseline:
+Discovery gồm `02-evidence-behavior-analysis.md` (hành vi chi tiết) và `03-integration-architecture.md` (kiến trúc, thiết kế DB). Trình tự các tài liệu tiếp theo:
 
 ```text
 04 — Functional Requirements & Business Rules   ✅

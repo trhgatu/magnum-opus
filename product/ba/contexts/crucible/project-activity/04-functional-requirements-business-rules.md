@@ -446,7 +446,9 @@ Commit được đọc từ mọi nhánh đang tồn tại của repository, kh�
 
 ### BR-PAC-014 — Minimal Data
 
-Sổ chỉ lưu loại, thời điểm, số lượng và khóa chống trùng. Không lưu message, code, tên nhánh, đường dẫn file hay nội dung PR.
+Về **nội dung hoạt động**, sổ chỉ lưu loại, thời điểm, số lượng và khóa chống trùng. Không lưu message, code, tên nhánh, đường dẫn file hay nội dung PR.
+
+Ngoài nội dung, mỗi dòng sổ mang metadata cần cho vận hành: feed mà nó thuộc về và thời điểm nó được ghi vào sổ (phục vụ chẩn đoán đồng bộ). Metadata này không chứa thông tin nào về nội dung công việc.
 
 ### BR-PAC-015 — Coverage
 
@@ -513,7 +515,12 @@ Không metric nào được trình bày như điểm số, mục tiêu, xếp h�
 
 ### BR-PAC-022 — D1: Declared Active, No Activity
 
-Xuất hiện khi Project `ACTIVE` và không có event trong **7** ngày gần nhất, tính từ thời điểm muộn hơn giữa event gần nhất và lần gần nhất Project vào `ACTIVE`.
+Xuất hiện khi Project `ACTIVE` và đã qua **7** ngày kể từ **mốc tham chiếu** mà không có event nào.
+
+Mốc tham chiếu:
+
+- nếu Cycle đang mở có event: thời điểm muộn hơn giữa event gần nhất và lần gần nhất Project vào `ACTIVE`;
+- nếu Cycle đang mở chưa có event nào: lần gần nhất Project vào `ACTIVE` (Start, Resume hoặc Reopen).
 
 Không được đánh giá khi bất kỳ nguồn nào của Project không ở trạng thái `ACTIVE` hoặc khoảng cần xét chưa được chép đầy đủ (RP-PAC-002).
 
@@ -551,6 +558,7 @@ Snapshot chỉ được chụp khi một Cycle thực sự khép lại: Stop ho�
 ### BR-PAC-029 — Only Cycles with Sources
 
 - Nguồn của snapshot là các nguồn đã được gắn vào Project tại thời điểm Cycle khép.
+- Ngoại lệ được chấp nhận: snapshot được chụp bất đồng bộ ngay sau khi Cycle khép (BR-PAC-030). Nếu người dùng gỡ một nguồn trong khoảng thời gian ngắn giữa lúc khép và lúc snapshot được chụp, nguồn đó không có trong snapshot. Phase 1 không lưu riêng danh sách nguồn tại thời điểm khép (`02` §5.1).
 - Cycle không có nguồn nào tại thời điểm khép không có snapshot.
 
 ### BR-PAC-030 — Snapshot Does Not Block the Lifecycle
@@ -595,22 +603,22 @@ Lỗi của một nguồn chỉ được hiển thị ở phần hoạt động,
 
 # 10. Functional Requirement Traceability
 
-| FR         | User Need       | Decision / Analysis          | Business Rules             |
-| ---------- | --------------- | ---------------------------- | -------------------------- |
-| FR-PAC-001 | UN-PAC-005      | DEC-PAC-009                  | BR-PAC-001 → 004           |
-| FR-PAC-002 | UN-PAC-005      | 01 §6                        | BR-PAC-002, 004            |
-| FR-PAC-003 | UN-PAC-004      | 01 §6                        | BR-PAC-002, 007            |
-| FR-PAC-004 | UN-PAC-001      | DEC-PAC-003                  | BR-PAC-005, 006            |
-| FR-PAC-005 | UN-PAC-001, 005 | DEC-PAC-003, 011             | BR-PAC-005, 006, 009, 016  |
-| FR-PAC-006 | UN-PAC-004      | DEC-PAC-011                  | BR-PAC-007, 031            |
-| FR-PAC-007 | UN-PAC-001      | 02 §6.8                      | BR-PAC-008, 036            |
-| FR-PAC-008 | UN-PAC-005      | DEC-PAC-007, 008, 010, 012   | BR-PAC-010 → 015           |
-| FR-PAC-009 | UN-PAC-001      | ASM-PAC-006                  | BR-PAC-015, 016            |
-| FR-PAC-010 | UN-PAC-001      | DO-PAC-001, DEC-PAC-004      | BR-PAC-017 → 021, 034, 035 |
-| FR-PAC-011 | UN-PAC-003, 004 | DO-PAC-003, DEC-PAC-005      | BR-PAC-022 → 027           |
-| FR-PAC-012 | UN-PAC-002      | DO-PAC-002, DEC-PAC-006, 014 | BR-PAC-028 → 033           |
-| FR-PAC-013 | UN-PAC-002      | FR-PRJ-017                   | BR-PAC-031, 032, 035       |
-| FR-PAC-014 | UN-PAC-004      | 01 §6, Principle 5           | BR-PAC-004, 008, 036       |
+| FR         | User Need       | Decision / Analysis          | Business Rules                 |
+| ---------- | --------------- | ---------------------------- | ------------------------------ |
+| FR-PAC-001 | UN-PAC-005      | DEC-PAC-009                  | BR-PAC-001 → 004               |
+| FR-PAC-002 | UN-PAC-005      | 01 §6                        | BR-PAC-002, 004                |
+| FR-PAC-003 | UN-PAC-004      | 01 §6                        | BR-PAC-002, 007                |
+| FR-PAC-004 | UN-PAC-001      | DEC-PAC-003                  | BR-PAC-005, 006                |
+| FR-PAC-005 | UN-PAC-001, 005 | DEC-PAC-003, 011             | BR-PAC-005, 006, 009, 016      |
+| FR-PAC-006 | UN-PAC-004      | DEC-PAC-011                  | BR-PAC-007, 031                |
+| FR-PAC-007 | UN-PAC-001      | 02 §6.8                      | BR-PAC-008, 036                |
+| FR-PAC-008 | UN-PAC-005      | DEC-PAC-007, 008, 010, 012   | BR-PAC-010 → 015               |
+| FR-PAC-009 | UN-PAC-001      | ASM-PAC-006                  | BR-PAC-015, 016                |
+| FR-PAC-010 | UN-PAC-001      | DO-PAC-001, DEC-PAC-004      | BR-PAC-017 → 021, 034, 035     |
+| FR-PAC-011 | UN-PAC-003, 004 | DO-PAC-003, DEC-PAC-005      | BR-PAC-022 → 027               |
+| FR-PAC-012 | UN-PAC-002      | DO-PAC-002, DEC-PAC-006, 014 | BR-PAC-028 → 033               |
+| FR-PAC-013 | UN-PAC-002      | FR-PRJ-017                   | BR-PAC-029, 031, 032, 033, 035 |
+| FR-PAC-014 | UN-PAC-004      | 01 §6, Principle 5           | BR-PAC-004, 008, 036           |
 
 ---
 
