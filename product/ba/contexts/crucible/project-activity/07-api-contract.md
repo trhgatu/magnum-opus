@@ -346,7 +346,7 @@ ActivitySourceResponse
 #### Behavior
 
 - Lấy hoặc tạo feed cho `(owner, GITHUB, account, externalResourceId)`; tạo mối nối Project ↔ feed.
-- Nếu Project có Cycle mở và feed chưa phủ tới lúc Cycle mở: chép bù trong giới hạn thời gian. Chép thất bại **không** làm thất bại request — nguồn vẫn được gắn, response mang `error` tương ứng (UC-PAC-004 Exception Flow B).
+- Nếu feed chưa phủ tới mốc cần (lúc Cycle đang mở bắt đầu; lúc Cycle cuối khép với Project đã khép; lúc gắn với Project `NOT_STARTED` — BR-PAC-016): chép bù trong giới hạn thời gian. Chép thất bại **không** làm thất bại request — nguồn vẫn được gắn, response mang `error` tương ứng (UC-PAC-004 Exception Flow B).
 - Repository đang là nguồn của Project khác: vẫn gắn được (cảnh báo do client hiển thị từ `usedByProjects`).
 - Không thay đổi Project, lifecycle hay revision.
 

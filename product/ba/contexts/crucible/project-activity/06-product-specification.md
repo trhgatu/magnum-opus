@@ -255,13 +255,15 @@ Metric bằng 0 (vd 0 PR) vẫn được hiển thị khi có hoạt động kh�
 
 # 9. Divergence Presentation
 
-| ID  | Khi                                              | Vị trí                             | Hình thức                       | Câu chữ                                                                      |
-| --- | ------------------------------------------------ | ---------------------------------- | ------------------------------- | ---------------------------------------------------------------------------- |
-| D2  | `PAUSED`, hoạt động ≥ 2 ngày từ lúc tạm dừng     | Đầu phần "Hoạt động của vòng này"  | Lời nhắc (không phải lỗi) + nút | "Có hoạt động trong N ngày dù đang tạm dừng." [**Tiếp tục**]                 |
-| D1  | `ACTIVE`, 7 ngày không hoạt động                 | Cuối phần "Hoạt động của vòng này" | Dòng chữ nhỏ                    | "Đã N ngày chưa có hoạt động."                                               |
-| D3  | `STOPPED`/`COMPLETED`, có hoạt động sau khi khép | Dưới hero                          | Dòng chữ nhỏ                    | "N commit kể từ khi hoàn thành (gần nhất 14/10)." / "... kể từ khi dừng ..." |
-| D4  | `NOT_STARTED`, có hoạt động sau khi gắn nguồn    | Dưới hero                          | Dòng chữ nhỏ                    | "Đã có hoạt động dù Project chưa bắt đầu."                                   |
+| ID  | Khi                                                                               | Vị trí                             | Hình thức                       | Câu chữ                                                                      |
+| --- | --------------------------------------------------------------------------------- | ---------------------------------- | ------------------------------- | ---------------------------------------------------------------------------- |
+| D2  | `PAUSED`, hoạt động ≥ 2 ngày từ lúc tạm dừng                                      | Đầu phần "Hoạt động của vòng này"  | Lời nhắc (không phải lỗi) + nút | "Có hoạt động trong N ngày dù đang tạm dừng." [**Tiếp tục**]                 |
+| D1  | `ACTIVE`, 7 ngày không hoạt động                                                  | Cuối phần "Hoạt động của vòng này" | Dòng chữ nhỏ                    | "Đã N ngày chưa có hoạt động."                                               |
+| D3  | `STOPPED`/`COMPLETED` sau ít nhất một Cycle, có hoạt động sau lúc Cycle cuối khép | Dưới hero                          | Dòng chữ nhỏ                    | "N commit kể từ khi hoàn thành (gần nhất 14/10)." / "... kể từ khi dừng ..." |
+| D4  | `NOT_STARTED`, có hoạt động sau khi gắn nguồn                                     | Dưới hero                          | Dòng chữ nhỏ                    | "Đã có hoạt động dù Project chưa bắt đầu."                                   |
 
+- Project `STOPPED` chưa từng bắt đầu không hiển thị divergence nào.
+- D3 tính từ lúc Cycle cuối khép, kể cả khi nguồn được gắn sau đó.
 - D3 đếm mọi loại hoạt động; câu chữ nêu commit khi chỉ có commit, hoặc "N hoạt động" khi có cả PR.
 - Lời nhắc D2 dùng giọng trung tính: không "cảnh báo", không màu lỗi.
 - Nút **Tiếp tục** của D2 chính là hành động Resume của Project: cùng trạng thái đang xử lý, cùng thông báo thành công "Đã tiếp tục "Tên Project"", cùng xử lý khi Project đã thay đổi ở phiên khác.
