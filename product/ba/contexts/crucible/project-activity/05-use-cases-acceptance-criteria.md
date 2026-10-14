@@ -1129,9 +1129,9 @@ Mọi FR-PAC-001 → 014 đều được ít nhất một Use Case hoặc §12 b
 
 # 15. Next Step
 
-Trước Product Specification và API Contract: kiểm chứng các câu hỏi kỹ thuật TQ-PAC-01 → 05 (`03` §10) bằng GitHub API thật, vì kết quả có thể ảnh hưởng thiết kế việc chép.
+Các câu hỏi kỹ thuật TQ-PAC-01 → 05 đã được kiểm chứng bằng GitHub API thật (`03` §10); thiết kế không phải đổi, adapter GitHub dùng GraphQL làm đường chính. TQ-PAC-03 (ngày hết hạn của fine-grained token) còn phải kiểm chứng khi implement.
 
-Sau đó:
+Tiếp theo:
 
 ```text
 06 — Product Specification   (màn hình, câu chữ, trạng thái hiển thị)
