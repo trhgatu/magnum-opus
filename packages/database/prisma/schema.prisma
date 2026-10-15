@@ -26,6 +26,8 @@ model User {
   routines Routine[]
 
   projects Project[]
+  integrationConnections IntegrationConnection[]
+  activityFeeds ActivityFeed[]
 
   chronicleSnapshots ChronicleSnapshot[]
 
@@ -520,6 +522,7 @@ model Project {
   owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   cycles ProjectCycle[]
   transitions ProjectLifecycleTransition[]
+  activitySources ProjectActivitySource[]
 
   @@unique([id, ownerId])
   @@index([ownerId, lifecycleState])
@@ -545,6 +548,7 @@ model ProjectCycle {
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   transitions ProjectLifecycleTransition[]
   outcomeEntries ProjectCycleOutcomeEntry[]
+  activitySnapshot CycleActivitySnapshot?
 
   @@unique([projectId, cycleNumber])
   @@index([projectId, endedAt])
@@ -623,4 +627,124 @@ model ChronicleSnapshotSection {
 
   @@unique([snapshotId, module])
   @@map("chronicle_snapshot_sections")
+}
+
+enum IntegrationProvider {
+  GITHUB
+}
+
+enum IntegrationConnectionStatus {
+  ACTIVE
+  EXPIRED
+  REVOKED
+}
+
+enum ActivityProvider {
+  GITHUB
+}
+
+enum ActivityFeedStatus {
+  ACTIVE
+  ERROR
+  DISCONNECTED
+}
+
+enum ActivityKind {
+  COMMIT_AUTHORED
+  PR_OPENED
+  PR_MERGED
+}
+
+model IntegrationConnection {
+  id String @id @default(uuid())
+  ownerId String @map("owner_id")
+  provider IntegrationProvider
+  externalAccountId String @map("external_account_id")
+  externalAccountNodeId String? @map("external_account_node_id")
+  displayName String @map("display_name") @db.VarChar(255)
+  credentials String @db.Text
+  status IntegrationConnectionStatus @default(ACTIVE)
+  expiresAt DateTime? @map("expires_at")
+  lastVerifiedAt DateTime @map("last_verified_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@unique([ownerId, provider])
+  @@map("integration_connections")
+}
+
+model ActivityFeed {
+  id String @id @default(uuid())
+  ownerId String @map("owner_id")
+  provider ActivityProvider
+  externalAccountId String @map("external_account_id")
+  externalResourceId String @map("external_resource_id")
+  displayName String @map("display_name") @db.VarChar(255)
+  coveredFrom DateTime? @map("covered_from")
+  syncedUntil DateTime? @map("synced_until")
+  lastSyncAt DateTime? @map("last_sync_at")
+  status ActivityFeedStatus @default(ACTIVE)
+  lastErrorCode String? @map("last_error_code") @db.VarChar(64)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  events ActivityEvent[]
+  projectSources ProjectActivitySource[]
+
+  @@unique([id, ownerId])
+  @@unique([ownerId, provider, externalAccountId, externalResourceId])
+  @@map("activity_feeds")
+}
+
+model ActivityEvent {
+  id String @id @default(uuid())
+  feedId String @map("feed_id")
+  kind ActivityKind
+  occurredAt DateTime @map("occurred_at")
+  quantity Int @default(1)
+  dedupeKey String @map("dedupe_key") @db.VarChar(128)
+  ingestedAt DateTime @default(now()) @map("ingested_at")
+
+  feed ActivityFeed @relation(fields: [feedId], references: [id], onDelete: Cascade)
+
+  @@unique([feedId, kind, dedupeKey])
+  @@index([feedId, occurredAt])
+  @@map("activity_events")
+}
+
+model ProjectActivitySource {
+  projectId String @map("project_id")
+  feedId String @map("feed_id")
+  ownerId String @map("owner_id")
+  linkedAt DateTime @default(now()) @map("linked_at")
+
+  project Project @relation(fields: [projectId, ownerId], references: [id, ownerId], onDelete: Cascade)
+  feed ActivityFeed @relation(fields: [feedId, ownerId], references: [id, ownerId], onDelete: Restrict)
+
+  @@id([projectId, feedId])
+  @@index([feedId])
+  @@map("project_activity_sources")
+}
+
+model CycleActivitySnapshot {
+  id String @id @default(uuid())
+  cycleId String @unique @map("cycle_id")
+  activeDays Int @map("active_days")
+  pausedActiveDays Int @map("paused_active_days")
+  commits Int
+  prsOpened Int @map("prs_opened")
+  prsMerged Int @map("prs_merged")
+  lastActivityAt DateTime? @map("last_activity_at")
+  days Json
+  sources Json
+  timeZone String @map("time_zone") @db.VarChar(64)
+  dataUntil DateTime? @map("data_until")
+  capturedAt DateTime @default(now()) @map("captured_at")
+
+  cycle ProjectCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+
+  @@map("cycle_activity_snapshots")
 }

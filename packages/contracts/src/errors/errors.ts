@@ -460,6 +460,49 @@ export const Errors = {
     translationKey: 'exceptions.chronicle.month.in.future',
     statusCode: 400,
   },
+
+  GITHUB_TOKEN_INVALID: {
+    code: 'GITHUB_TOKEN_INVALID',
+    translationKey: 'exceptions.github.token.invalid',
+    statusCode: 400,
+  },
+  GITHUB_TOKEN_INSUFFICIENT_SCOPE: {
+    code: 'GITHUB_TOKEN_INSUFFICIENT_SCOPE',
+    translationKey: 'exceptions.github.token.insufficient.scope',
+    statusCode: 400,
+  },
+  GITHUB_ACCOUNT_CHANGE_UNCONFIRMED: {
+    code: 'GITHUB_ACCOUNT_CHANGE_UNCONFIRMED',
+    translationKey: 'exceptions.github.account.change.unconfirmed',
+    statusCode: 409,
+  },
+  GITHUB_NOT_CONNECTED: {
+    code: 'GITHUB_NOT_CONNECTED',
+    translationKey: 'exceptions.github.not.connected',
+    statusCode: 409,
+  },
+  GITHUB_REPOSITORY_NOT_ACCESSIBLE: {
+    code: 'GITHUB_REPOSITORY_NOT_ACCESSIBLE',
+    translationKey: 'exceptions.github.repository.not.accessible',
+    statusCode: 404,
+  },
+  GITHUB_RATE_LIMITED: {
+    code: 'GITHUB_RATE_LIMITED',
+    translationKey: 'exceptions.github.rate.limited',
+    statusCode: 429,
+  },
+  GITHUB_UNAVAILABLE: {
+    code: 'GITHUB_UNAVAILABLE',
+    translationKey: 'exceptions.github.unavailable',
+    statusCode: 502,
+  },
+
+  // Project Activity
+  ACTIVITY_SOURCE_NOT_FOUND: {
+    code: 'ACTIVITY_SOURCE_NOT_FOUND',
+    translationKey: 'exceptions.activity.source.not.found',
+    statusCode: 404,
+  },
 } as const;
 
 export type ErrorDefinition = (typeof Errors)[keyof typeof Errors];
