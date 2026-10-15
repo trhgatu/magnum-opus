@@ -32,7 +32,7 @@ Tài liệu này **không** thay đổi lifecycle, Cycle hay bất kỳ business
 | `06-product-specification.md`                  | Baseline sản phẩm: bề mặt, trạng thái hiển thị, câu chữ                 | Product Baseline Candidate |
 | `07-api-contract.md`                           | Endpoint, request/response, mã lỗi                                      | Contract Candidate         |
 
-Product Specification và API Contract sẽ được xây tiếp theo.
+Bộ tài liệu BA của Phase 1 đã đủ (01 → 07); bước tiếp theo là implementation theo thứ tự PR ở `07` §11.
 
 ---
 
