@@ -174,7 +174,7 @@ packages/contracts/src/
 ├── integration/github.ts            GitHubConnectionResponse, GitHubRepositoryListResponse,
 │                                    GitHubRepositoryResponse
 └── project-activity/activity.ts     ProjectActivityResponse, ActivitySourceResponse,
-                                     DivergenceResponse, CycleActivitySnapshotResponse
+                                     Divergence, CycleActivitySnapshotResponse
 
 apps/client/
 ├── app/(protected)/settings/page.tsx            thêm mục "Kết nối GitHub"
