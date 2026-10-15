@@ -171,7 +171,8 @@ Ba file trong `crucible/project-activity/domain/services/` là phần logic chí
 
 ```text
 packages/contracts/src/
-├── integration/github.ts            GitHubConnectionResponse, GitHubRepoResponse
+├── integration/github.ts            GitHubConnectionResponse, GitHubRepositoryListResponse,
+│                                    GitHubRepositoryResponse
 └── project-activity/activity.ts     ProjectActivityResponse, ActivitySourceResponse,
                                      DivergenceResponse, CycleActivitySnapshotResponse
 
