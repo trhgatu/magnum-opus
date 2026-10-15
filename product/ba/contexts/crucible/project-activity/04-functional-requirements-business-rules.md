@@ -594,7 +594,9 @@ Cycle đã khép trước khi có nguồn không được tính bù snapshot ở
 
 ### BR-PAC-034 — No Source, No Activity Frame
 
-Project không có nguồn không hiển thị bất kỳ phần hoạt động, khung trống hay lời mời kết nối nào trên trang Project.
+Project hiện không có nguồn không hiển thị phần hoạt động của Cycle đang mở, khung trống hay lời mời kết nối nào trên trang Project.
+
+Snapshot của các Cycle đã đóng **vẫn được hiển thị** trong lịch sử, kể cả khi mọi nguồn đã bị gỡ hoặc GitHub đã bị ngắt kết nối — chúng là lịch sử, không phụ thuộc nguồn hiện tại (BR-PAC-031).
 
 ### BR-PAC-035 — Declaration Before Evidence
 

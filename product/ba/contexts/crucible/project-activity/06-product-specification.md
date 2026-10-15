@@ -94,12 +94,12 @@ Một card mới trong `/settings`, đặt sau card múi giờ.
 
 ## 6.1. States
 
-| Trạng thái              | Hiển thị                                                                                             | Hành động                        |
-| ----------------------- | ---------------------------------------------------------------------------------------------------- | -------------------------------- |
-| Chưa kết nối            | Mô tả ngắn + hướng dẫn tạo token (§6.2) + ô dán token                                                | **Kết nối**                      |
-| Đang hoạt động          | "Đã kết nối: **trhgatu**" · "Token hết hạn 14/10/2027"                                               | **Thay token**, **Ngắt kết nối** |
-| Sắp hết hạn (≤ 14 ngày) | Như trên + nhắc: "Token hết hạn sau 9 ngày. Tạo token mới và thay trước ngày đó để không gián đoạn." | **Thay token**, **Ngắt kết nối** |
-| Đã hết hạn / bị thu hồi | "Kết nối không còn dùng được: token đã hết hạn." / "...: GitHub đã thu hồi token."                   | **Thay token**, **Ngắt kết nối** |
+| Trạng thái              | Hiển thị                                                                                                                           | Hành động                        |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| Chưa kết nối            | Mô tả ngắn + hướng dẫn tạo token (§6.2) + ô dán token                                                                              | **Kết nối**                      |
+| Đang hoạt động          | "Đã kết nối: **trhgatu**" · "Token hết hạn 14/10/2027" — hoặc "Token không có ngày hết hạn" khi GitHub không cho biết ngày hết hạn | **Thay token**, **Ngắt kết nối** |
+| Sắp hết hạn (≤ 14 ngày) | Như trên + nhắc: "Token hết hạn sau 9 ngày. Tạo token mới và thay trước ngày đó để không gián đoạn."                               | **Thay token**, **Ngắt kết nối** |
+| Đã hết hạn / bị thu hồi | "Kết nối không còn dùng được: token đã hết hạn." / "...: GitHub đã thu hồi token."                                                 | **Thay token**, **Ngắt kết nối** |
 
 Không có trạng thái nào hiển thị token, kể cả một phần.
 
@@ -177,10 +177,12 @@ trhgatu/old-repo                            [Lỗi]             Không đọc đ
 | `ERROR`          | Lỗi            | Lý do + cách khắc phục (§12)                              |
 | `DISCONNECTED`   | Ngừng cập nhật | "Đã gắn bằng tài khoản khác hoặc đã ngắt kết nối GitHub." |
 
+**Thứ tự hiển thị:** nếu nguồn có `error`, dòng phụ luôn là câu chữ của mã lỗi (§12), bất kể trạng thái — vd một nguồn vẫn `ACTIVE` nhưng lần chép gần nhất bị giới hạn request hiển thị câu "giới hạn truy cập" kèm thời điểm cập nhật gần nhất. Chỉ khi không có `error` mới dùng dòng phụ mặc định của trạng thái ở bảng trên.
+
 ## 7.3. Link Repository
 
 1. **Gắn repository** mở một ô chọn có tìm kiếm (cùng kiểu với ô chọn múi giờ / habit của hệ thống).
-2. Danh sách gồm repository mà token đọc được, sắp theo lần cập nhật gần nhất trên GitHub.
+2. Danh sách gồm repository mà token đọc được, sắp theo lần cập nhật gần nhất trên GitHub. Khi có hơn 100 repository phù hợp, cuối danh sách hiển thị "Gõ tên repository để thu hẹp danh sách"; tìm kiếm luôn quét toàn bộ repository, không chỉ 100 cái đang hiện.
 3. Repository đang là nguồn của Project khác có nhãn phụ "Đang dùng cho: Tên Project".
 4. Repository đã là nguồn của chính Project này không xuất hiện.
 5. Chọn → gắn ngay; toast "Đã gắn trhgatu/magnum-opus".
@@ -255,12 +257,12 @@ Metric bằng 0 (vd 0 PR) vẫn được hiển thị khi có hoạt động kh�
 
 # 9. Divergence Presentation
 
-| ID  | Khi                                                                               | Vị trí                             | Hình thức                       | Câu chữ                                                                      |
-| --- | --------------------------------------------------------------------------------- | ---------------------------------- | ------------------------------- | ---------------------------------------------------------------------------- |
-| D2  | `PAUSED`, hoạt động ≥ 2 ngày từ lúc tạm dừng                                      | Đầu phần "Hoạt động của vòng này"  | Lời nhắc (không phải lỗi) + nút | "Có hoạt động trong N ngày dù đang tạm dừng." [**Tiếp tục**]                 |
-| D1  | `ACTIVE`, 7 ngày không hoạt động                                                  | Cuối phần "Hoạt động của vòng này" | Dòng chữ nhỏ                    | "Đã N ngày chưa có hoạt động."                                               |
-| D3  | `STOPPED`/`COMPLETED` sau ít nhất một Cycle, có hoạt động sau lúc Cycle cuối khép | Dưới hero                          | Dòng chữ nhỏ                    | "N commit kể từ khi hoàn thành (gần nhất 14/10)." / "... kể từ khi dừng ..." |
-| D4  | `NOT_STARTED`, có hoạt động sau khi gắn nguồn                                     | Dưới hero                          | Dòng chữ nhỏ                    | "Đã có hoạt động dù Project chưa bắt đầu."                                   |
+| ID  | Khi                                                                                                                 | Vị trí                             | Hình thức                       | Câu chữ                                                                      |
+| --- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------- | ------------------------------- | ---------------------------------------------------------------------------- |
+| D2  | `PAUSED`, hoạt động ≥ 2 ngày từ lúc tạm dừng                                                                        | Đầu phần "Hoạt động của vòng này"  | Lời nhắc (không phải lỗi) + nút | "Có hoạt động trong N ngày dù đang tạm dừng." [**Tiếp tục**]                 |
+| D1  | `ACTIVE`, 7 ngày không hoạt động — chỉ khi mọi nguồn đang `ACTIVE`, không có lỗi và đã chép đầy đủ khoảng 7 ngày đó | Cuối phần "Hoạt động của vòng này" | Dòng chữ nhỏ                    | "Đã N ngày chưa có hoạt động."                                               |
+| D3  | `STOPPED`/`COMPLETED` sau ít nhất một Cycle, có hoạt động sau lúc Cycle cuối khép                                   | Dưới hero                          | Dòng chữ nhỏ                    | "N commit kể từ khi hoàn thành (gần nhất 14/10)." / "... kể từ khi dừng ..." |
+| D4  | `NOT_STARTED`, có hoạt động sau khi gắn nguồn                                                                       | Dưới hero                          | Dòng chữ nhỏ                    | "Đã có hoạt động dù Project chưa bắt đầu."                                   |
 
 - Project `STOPPED` chưa từng bắt đầu không hiển thị divergence nào.
 - D3 tính từ lúc Cycle cuối khép, kể cả khi nguồn được gắn sau đó.
@@ -312,7 +314,7 @@ Cycle 1 · 01/10/2026 → 12/10/2026 · Hoàn thành
 | Token bị thu hồi                 | "GitHub đã thu hồi token — cập nhật ở Cài đặt."                         |
 | Mất quyền / repository không còn | "không đọc được repository — kiểm tra quyền của token hoặc repository." |
 | Đổi tài khoản / ngắt kết nối     | "ngừng cập nhật — đã gắn bằng tài khoản GitHub khác."                   |
-| Giới hạn request                 | "GitHub tạm giới hạn truy cập — sẽ tự cập nhật lại sau."                |
+| Giới hạn request                 | "GitHub tạm giới hạn truy cập — sẽ thử lại khi bạn mở lại trang."       |
 | GitHub lỗi / mạng                | "chưa cập nhật được — sẽ thử lại khi bạn mở lại trang."                 |
 
 Lỗi nguồn không bao giờ dùng hộp thoại hay chặn trang; không bao giờ thay thế phần hoạt động đã có.
@@ -330,16 +332,16 @@ Lỗi nguồn không bao giờ dùng hộp thoại hay chặn trang; không bao 
 
 # 14. Product Invariants
 
-| ID          | Invariant                                                                                         |
-| ----------- | ------------------------------------------------------------------------------------------------- |
-| INV-PAC-P01 | Không bề mặt nào của Activity Evidence thay đổi lifecycle trừ nút Tiếp tục của D2, vốn là Resume. |
-| INV-PAC-P02 | Trang chi tiết của Project không có nguồn không hiển thị bất kỳ phần nào của Activity Evidence.   |
-| INV-PAC-P03 | Lời tuyên bố luôn được hiển thị trước hoạt động.                                                  |
-| INV-PAC-P04 | "Chưa có dữ liệu" và "không có hoạt động" luôn có câu chữ và thể hiện khác nhau.                  |
-| INV-PAC-P05 | Snapshot hiển thị đúng như lúc chụp, kể cả tên nguồn và múi giờ.                                  |
-| INV-PAC-P06 | Token không xuất hiện ở bất kỳ đâu trong sản phẩm.                                                |
-| INV-PAC-P07 | Lỗi của một nguồn chỉ hiển thị cạnh nguồn đó; trang luôn tải được.                                |
-| INV-PAC-P08 | Không có số liệu nào được so sánh giữa các vòng hay giữa các Project.                             |
+| ID          | Invariant                                                                                                                                                                                                 |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| INV-PAC-P01 | Không bề mặt nào của Activity Evidence thay đổi lifecycle trừ nút Tiếp tục của D2, vốn là Resume.                                                                                                         |
+| INV-PAC-P02 | Trang chi tiết của Project hiện không có nguồn không hiển thị phần hoạt động của Cycle đang mở, khung trống hay lời mời kết nối. Snapshot của Cycle đã đóng vẫn được hiển thị trong lịch sử (BR-PAC-034). |
+| INV-PAC-P03 | Lời tuyên bố luôn được hiển thị trước hoạt động.                                                                                                                                                          |
+| INV-PAC-P04 | "Chưa có dữ liệu" và "không có hoạt động" luôn có câu chữ và thể hiện khác nhau.                                                                                                                          |
+| INV-PAC-P05 | Snapshot hiển thị đúng như lúc chụp, kể cả tên nguồn và múi giờ.                                                                                                                                          |
+| INV-PAC-P06 | Token không xuất hiện ở bất kỳ đâu trong sản phẩm.                                                                                                                                                        |
+| INV-PAC-P07 | Lỗi của một nguồn chỉ hiển thị cạnh nguồn đó; trang luôn tải được.                                                                                                                                        |
+| INV-PAC-P08 | Không có số liệu nào được so sánh giữa các vòng hay giữa các Project.                                                                                                                                     |
 
 ---
 
@@ -381,7 +383,8 @@ And khác với ngày "không có hoạt động"
 ```
 
 ```gherkin
-Given Project chưa có nguồn
+Given người dùng có kết nối GitHub ACTIVE
+And Project chưa có nguồn
 When người dùng mở trang chi tiết Project
 Then không có phần nào nhắc tới hoạt động, GitHub hay nguồn
 And người dùng vẫn gắn được nguồn từ trang Chỉnh sửa

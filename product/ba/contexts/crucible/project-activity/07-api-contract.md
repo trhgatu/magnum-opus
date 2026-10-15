@@ -167,7 +167,7 @@ interface CycleActivitySnapshotResponse {
   days: ActivityDay[]; // theo timeZone của snapshot
   sources: SnapshotSource[];
   timeZone: string; // múi giờ lúc chụp
-  dataUntil: string; // nhỏ nhất trong dataUntil của các nguồn
+  dataUntil: string | null; // nhỏ nhất trong dataUntil của các nguồn; null nếu có nguồn chưa từng được chép
   capturedAt: string;
 }
 ```
@@ -232,7 +232,7 @@ GitHubConnectionResponse
 #### Behavior
 
 - Token được kiểm tra với GitHub trước; lỗi → không lưu gì, kết nối cũ (nếu có) giữ nguyên.
-- Cùng tài khoản: token được thay; trạng thái về `ACTIVE`; feed của tài khoản tiếp tục được chép.
+- Cùng tài khoản: token được thay; trạng thái về `ACTIVE`; mọi feed của tài khoản này đang `DISCONNECTED` vì `GITHUB_NOT_CONNECTED` trở về `ACTIVE` và tiếp tục được chép.
 - Khác tài khoản, đã xác nhận: kết nối mới thay kết nối cũ; feed của tài khoản cũ chuyển `DISCONNECTED` (BR-PAC-008).
 - Token không bao giờ được ghi log hay trả về.
 
@@ -253,6 +253,8 @@ DELETE /integrations/github
 #### Behavior
 
 - Xóa thông tin xác thực. Feed, sổ, snapshot giữ nguyên (BR-PAC-007).
+- Mọi feed GitHub của tài khoản này chuyển `DISCONNECTED` với `error.code = GITHUB_NOT_CONNECTED`, trong cùng thao tác. Danh sách nguồn không bao giờ hiển thị `ACTIVE` cho một feed không còn kết nối.
+- Kết nối lại **cùng tài khoản** (§4.2) đưa các feed này về `ACTIVE`.
 - Idempotent: chưa kết nối vẫn trả 204.
 
 ---
@@ -273,8 +275,19 @@ search: string, optional — lọc theo tên, không phân biệt hoa thường
 
 ```
 200 OK
-GitHubRepositoryResponse[]   — sắp theo pushedAt giảm dần; tối đa 100
+GitHubRepositoryListResponse
 ```
+
+```typescript
+interface GitHubRepositoryListResponse {
+  repositories: GitHubRepositoryResponse[]; // sắp theo pushedAt giảm dần, tối đa 100
+  truncated: boolean; // true khi còn repository phù hợp nhưng không được trả về
+}
+```
+
+- `search` được áp dụng **phía server** trên **toàn bộ** repository mà token đọc được (server tự đi hết các trang của GitHub), rồi mới cắt còn 100 kết quả. Repository nào cũng tìm được bằng cách gõ thêm tên.
+- `truncated: true` → client hiển thị "Gõ tên repository để thu hẹp danh sách".
+- Không có phân trang phía client: danh sách chỉ phục vụ ô chọn có tìm kiếm.
 
 #### Error Cases
 
@@ -328,7 +341,8 @@ interface LinkActivitySourceDto {
 #### Response
 
 ```
-201 Created
+201 Created   — nguồn mới được gắn
+200 OK        — repository đã là nguồn của Project này (không tạo gì thêm)
 ActivitySourceResponse
 ```
 
@@ -340,7 +354,6 @@ ActivitySourceResponse
 | 404    | `PROJECT_NOT_FOUND`                | Project không tồn tại hoặc không thuộc người dùng |
 | 409    | `GITHUB_NOT_CONNECTED`             | Chưa kết nối hoặc kết nối không `ACTIVE`          |
 | 404    | `GITHUB_REPOSITORY_NOT_ACCESSIBLE` | Kết nối không đọc được repository                 |
-| 409    | `ACTIVITY_SOURCE_ALREADY_LINKED`   | Repository đã là nguồn của chính Project này      |
 | 401    | —                                  | Unauthorized                                      |
 
 #### Behavior
@@ -348,6 +361,7 @@ ActivitySourceResponse
 - Lấy hoặc tạo feed cho `(owner, GITHUB, account, externalResourceId)`; tạo mối nối Project ↔ feed.
 - Nếu feed chưa phủ tới mốc cần (lúc Cycle đang mở bắt đầu; lúc Cycle cuối khép với Project đã khép; lúc gắn với Project `NOT_STARTED` — BR-PAC-016): chép bù trong giới hạn thời gian. Chép thất bại **không** làm thất bại request — nguồn vẫn được gắn, response mang `error` tương ứng (UC-PAC-004 Exception Flow B).
 - Repository đang là nguồn của Project khác: vẫn gắn được (cảnh báo do client hiển thị từ `usedByProjects`).
+- **Idempotent:** gửi lại cùng request (vd retry sau lỗi mạng) trả `200` với nguồn đã có, không báo lỗi và không tạo mối nối thứ hai.
 - Không thay đổi Project, lifecycle hay revision.
 
 ---
@@ -478,7 +492,6 @@ interface ProjectCycleClosedPayload {
 | `GITHUB_REPOSITORY_NOT_ACCESSIBLE`  | 404    | `project-activity`                        | Kết nối không đọc được repository                 |
 | `GITHUB_RATE_LIMITED`               | 429    | `integrations/github`                     | GitHub đang giới hạn request                      |
 | `GITHUB_UNAVAILABLE`                | 502    | `integrations/github`                     | GitHub lỗi / không liên lạc được                  |
-| `ACTIVITY_SOURCE_ALREADY_LINKED`    | 409    | `project-activity`                        | Repository đã là nguồn của Project này            |
 | `ACTIVITY_SOURCE_NOT_FOUND`         | 404    | `project-activity`                        | Feed không phải nguồn của Project                 |
 | `PROJECT_NOT_FOUND`                 | 404    | (dùng lại)                                | Project không tồn tại hoặc không thuộc người dùng |
 
@@ -505,14 +518,14 @@ Mã trong `ActivitySourceResponse.error.code` (§3.3) là trạng thái của ng
 
 ## 9. Contract Decisions
 
-| ID         | Quyết định                                                                                                               |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------ |
-| CD-PAC-001 | Không endpoint hay response nào của module `project` thay đổi; snapshot có endpoint riêng và client ghép theo `cycleId`. |
-| CD-PAC-002 | Nguồn và kết nối không dùng `expectedRevision`; thao tác idempotent thay cho optimistic concurrency.                     |
-| CD-PAC-003 | Lỗi của nguồn nằm trong dữ liệu (`sources[].error`), không phải lỗi HTTP, khi người dùng chỉ xem hoạt động.              |
-| CD-PAC-004 | Đổi tài khoản GitHub cần xác nhận tường minh (`confirmAccountChange`) để không âm thầm ngắt các nguồn cũ.                |
-| CD-PAC-005 | Repository được nhận diện bằng id số dạng chuỗi, không bằng tên.                                                         |
-| CD-PAC-006 | `GET /projects/:id/activity` được phép chép vào sổ; nó idempotent và không thay đổi tài nguyên nào khác.                 |
+| ID         | Quyết định                                                                                                                                                                 |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CD-PAC-001 | Không endpoint hay response nào của module `project` thay đổi; snapshot có endpoint riêng và client ghép theo `cycleId`.                                                   |
+| CD-PAC-002 | Nguồn và kết nối không dùng `expectedRevision`; thao tác idempotent thay cho optimistic concurrency: gắn lại nguồn đã gắn trả `200`, gỡ và ngắt kết nối lặp lại trả `204`. |
+| CD-PAC-003 | Lỗi của nguồn nằm trong dữ liệu (`sources[].error`), không phải lỗi HTTP, khi người dùng chỉ xem hoạt động.                                                                |
+| CD-PAC-004 | Đổi tài khoản GitHub cần xác nhận tường minh (`confirmAccountChange`) để không âm thầm ngắt các nguồn cũ.                                                                  |
+| CD-PAC-005 | Repository được nhận diện bằng id số dạng chuỗi, không bằng tên.                                                                                                           |
+| CD-PAC-006 | `GET /projects/:id/activity` được phép chép vào sổ; nó idempotent và không thay đổi tài nguyên nào khác.                                                                   |
 
 ---
 
