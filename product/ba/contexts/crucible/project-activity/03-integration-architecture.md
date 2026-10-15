@@ -171,9 +171,10 @@ Ba file trong `crucible/project-activity/domain/services/` là phần logic chí
 
 ```text
 packages/contracts/src/
-├── integration/github.ts            GitHubConnectionResponse, GitHubRepoResponse
+├── integration/github.ts            GitHubConnectionResponse, GitHubRepositoryListResponse,
+│                                    GitHubRepositoryResponse
 └── project-activity/activity.ts     ProjectActivityResponse, ActivitySourceResponse,
-                                     DivergenceResponse, CycleActivitySnapshotResponse
+                                     Divergence, CycleActivitySnapshotResponse
 
 apps/client/
 ├── app/(protected)/settings/page.tsx            thêm mục "Kết nối GitHub"
@@ -229,7 +230,7 @@ OutboxPublisher → ProjectCycleClosedHandler (project-activity)
 ### 4.3. Linking a Repository
 
 ```text
-PUT /projects/:id/activity/sources  { provider: GITHUB, externalResourceId }
+POST /projects/:id/activity/sources  { provider: GITHUB, externalResourceId }   (idempotent — `07` §5.2)
   ├─ activity: lấy hoặc tạo feed cho (owner, GITHUB, repoId)
   ├─ project-activity: tạo Project Source (Project ↔ feed)
   └─ chép bù nếu sổ của feed chưa phủ tới lúc Cycle hiện tại mở (§5.3)
@@ -517,7 +518,7 @@ model CycleActivitySnapshot {
   days             Json
   sources          Json
   timeZone         String    @map("time_zone")
-  dataUntil        DateTime  @map("data_until") // nhỏ nhất trong dataUntil của các nguồn
+  dataUntil        DateTime? @map("data_until") // nhỏ nhất trong dataUntil của các nguồn; null nếu có nguồn chưa từng được chép
   capturedAt       DateTime  @default(now()) @map("captured_at")
 
   cycle ProjectCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
