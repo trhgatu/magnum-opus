@@ -144,6 +144,31 @@ describe('PrismaGitHubConnectionRepository', () => {
     });
   });
 
+  describe('revokeIfTokenUnchanged', () => {
+    it('revokes only while the stored token is still the one that failed', async () => {
+      integrationConnection.updateMany.mockResolvedValue({ count: 1 });
+
+      await repository.revokeIfTokenUnchanged('owner-id', 'v1.encrypted');
+
+      expect(integrationConnection.updateMany).toHaveBeenCalledWith({
+        where: {
+          ownerId: 'owner-id',
+          provider: 'GITHUB',
+          credentials: 'v1.encrypted',
+        },
+        data: { status: 'REVOKED' },
+      });
+    });
+
+    it('leaves a connection whose token was replaced meanwhile', async () => {
+      integrationConnection.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        repository.revokeIfTokenUnchanged('owner-id', 'v1.old'),
+      ).resolves.toBeUndefined();
+    });
+  });
+
   describe('deleteByOwner', () => {
     it('deletes only the GitHub connection of the owner', async () => {
       await repository.deleteByOwner('owner-id');

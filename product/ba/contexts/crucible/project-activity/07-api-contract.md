@@ -287,7 +287,8 @@ interface GitHubRepositoryListResponse {
 }
 ```
 
-- `search` được áp dụng **phía server** trên **toàn bộ** repository mà token đọc được (server tự đi hết các trang của GitHub), rồi mới cắt còn 100 kết quả. Repository nào cũng tìm được bằng cách gõ thêm tên.
+- `search` được áp dụng **phía server** trên tối đa **1000 repository push gần nhất** mà token đọc được (server tự đi 10 trang đầu của GitHub), rồi mới cắt còn 100 kết quả. Trong phạm vi đó, repository nào cũng tìm được bằng cách gõ thêm tên; tài khoản có hơn 1000 repository thì `truncated` luôn là `true`.
+- GitHub trả 401 (token bị thu hồi sau khi kết nối) → kết nối chuyển `REVOKED` và trả `GITHUB_NOT_CONNECTED`. Chỉ ghi `REVOKED` khi token đã lưu vẫn là token vừa thất bại, để một lần kết nối lại xen giữa không bị ghi đè.
 - `truncated: true` → client hiển thị "Gõ tên repository để thu hẹp danh sách".
 - Không có phân trang phía client: danh sách chỉ phục vụ ô chọn có tìm kiếm.
 

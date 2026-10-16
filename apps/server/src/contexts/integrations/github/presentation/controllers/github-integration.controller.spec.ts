@@ -6,8 +6,14 @@ import {
   ConnectGitHubCommand,
   DisconnectGitHubCommand,
 } from '../../application/commands';
-import { GetGitHubConnectionQuery } from '../../application/queries';
-import { GitHubTokenInvalidException } from '../../domain/exceptions';
+import {
+  GetGitHubConnectionQuery,
+  ListGitHubRepositoriesQuery,
+} from '../../application/queries';
+import {
+  GitHubNotConnectedException,
+  GitHubTokenInvalidException,
+} from '../../domain/exceptions';
 import { GitHubConnection } from '../../domain/github-connection.entity';
 import { GitHubIntegrationController } from './github-integration.controller';
 
@@ -95,6 +101,56 @@ describe('GitHubIntegrationController', () => {
       await expect(
         controller.connect('owner-id', { token: 'bad' }),
       ).rejects.toBe(failure);
+    });
+  });
+
+  describe('GET /repositories', () => {
+    const selection = {
+      repositories: [
+        {
+          id: '1067270000',
+          fullName: 'trhgatu/magnum-opus',
+          isPrivate: false,
+          pushedAt: null,
+        },
+      ],
+      truncated: false,
+    };
+
+    it('lists repositories of the authenticated owner, filtered by search', async () => {
+      queryBus.execute.mockResolvedValue(Result.ok(selection));
+
+      const body = await controller.listRepositories('owner-id', {
+        search: 'opus',
+      });
+
+      expect(queryBus.execute).toHaveBeenCalledWith(
+        new ListGitHubRepositoriesQuery({
+          ownerId: 'owner-id',
+          search: 'opus',
+        }),
+      );
+      expect(body.repositories[0].externalResourceId).toBe('1067270000');
+      expect(body.truncated).toBe(false);
+    });
+
+    it('lists without a filter when no search is given', async () => {
+      queryBus.execute.mockResolvedValue(Result.ok(selection));
+
+      await controller.listRepositories('owner-id', {});
+
+      expect(queryBus.execute).toHaveBeenCalledWith(
+        new ListGitHubRepositoriesQuery({ ownerId: 'owner-id' }),
+      );
+    });
+
+    it('surfaces a domain failure instead of returning it', async () => {
+      const failure = new GitHubNotConnectedException();
+      queryBus.execute.mockResolvedValue(Result.fail(failure));
+
+      await expect(controller.listRepositories('owner-id', {})).rejects.toBe(
+        failure,
+      );
     });
   });
 

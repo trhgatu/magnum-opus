@@ -16,6 +16,14 @@ describe('GitHubConnection', () => {
       now,
     });
 
+  // REVOKED chỉ được ghi ở repository (revokeIfTokenUnchanged); entity
+  // đọc lại nó qua rehydrate.
+  const revoked = (expiresAt: Date | null = null) =>
+    GitHubConnection.rehydrate({
+      ...connect(expiresAt).toSnapshot(),
+      status: 'REVOKED',
+    });
+
   it('starts ACTIVE, verified now, for the account that owns the token', () => {
     const connection = connect(new Date('2027-10-16T00:00:00.000Z'));
 
@@ -44,9 +52,7 @@ describe('GitHubConnection', () => {
     });
 
     it('reports REVOKED after GitHub rejected the token, even before expiry', () => {
-      const connection = connect(new Date('2027-01-01T00:00:00.000Z'));
-
-      connection.markRevoked();
+      const connection = revoked(new Date('2027-01-01T00:00:00.000Z'));
 
       expect(connection.statusAt(now)).toBe('REVOKED');
       expect(connection.isUsableAt(now)).toBe(false);
@@ -64,8 +70,7 @@ describe('GitHubConnection', () => {
     const later = new Date('2026-11-01T00:00:00.000Z');
 
     it('replaces the token of the same account and becomes ACTIVE again', () => {
-      const connection = connect(new Date('2026-10-01T00:00:00.000Z'));
-      connection.markRevoked();
+      const connection = revoked(new Date('2026-10-01T00:00:00.000Z'));
 
       const outcome = connection.replaceToken({
         account,

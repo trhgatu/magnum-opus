@@ -8,6 +8,7 @@ import { CLOCK } from './application/ports/clock.port';
 import { GITHUB_API } from './application/ports/github-api.port';
 import { TOKEN_CIPHER } from './application/ports/token-cipher.port';
 import { GetGitHubConnectionHandler } from './application/queries/handlers/get-github-connection.handler';
+import { ListGitHubRepositoriesHandler } from './application/queries/handlers/list-github-repositories.handler';
 import { GITHUB_CONNECTION_REPOSITORY } from './domain/ports/github-connection.repository';
 import { AesGcmTokenCipher } from './infrastructure/aes-gcm-token.cipher';
 import { SystemClock } from './infrastructure/clock/system-clock';
@@ -37,6 +38,7 @@ import { GitHubIntegrationController } from './presentation/controllers/github-i
     ConnectGitHubHandler,
     DisconnectGitHubHandler,
     GetGitHubConnectionHandler,
+    ListGitHubRepositoriesHandler,
   ],
   // TOKEN_CIPHER không export: chỉ code bên trong module này giải mã token.
   exports: [GITHUB_CONNECTION_REPOSITORY],

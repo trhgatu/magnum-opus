@@ -86,10 +86,6 @@ export class GitHubConnection {
     return this.statusAt(now) === 'ACTIVE';
   }
 
-  markRevoked(): void {
-    this.props.status = 'REVOKED';
-  }
-
   replaceToken(input: {
     account: GitHubAccount;
     encryptedToken: string;

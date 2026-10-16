@@ -7,6 +7,7 @@ import {
   HttpStatus,
   Inject,
   Put,
+  Query,
   Res,
   UseGuards,
 } from '@nestjs/common';
@@ -18,7 +19,10 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
-import type { GitHubConnectionResponse } from '@repo/contracts';
+import type {
+  GitHubConnectionResponse,
+  GitHubRepositoryListResponse,
+} from '@repo/contracts';
 import type { Response } from 'express';
 
 import { GetUser } from '@presentation/decorators';
@@ -29,9 +33,14 @@ import {
   DisconnectGitHubCommand,
 } from '../../application/commands';
 import { CLOCK, type Clock } from '../../application/ports/clock.port';
-import { GetGitHubConnectionQuery } from '../../application/queries';
+import {
+  GetGitHubConnectionQuery,
+  ListGitHubRepositoriesQuery,
+} from '../../application/queries';
 import { ConnectGitHubDto } from '../dtos/connect-github.dto';
+import { ListGitHubRepositoriesDto } from '../dtos/list-github-repositories.dto';
 import { GitHubConnectionPresenter } from '../presenters/github-connection.presenter';
+import { GitHubRepositoryPresenter } from '../presenters/github-repository.presenter';
 
 @ApiTags('Integrations')
 @ApiBearerAuth()
@@ -66,6 +75,25 @@ export class GitHubIntegrationController {
     }
 
     return GitHubConnectionPresenter.toResponse(connection, this.clock.now());
+  }
+
+  @Get('repositories')
+  @ApiOperation({
+    summary: 'List repositories the GitHub token can read',
+    description:
+      'Most recently pushed first, at most 100. Search covers the 1,000 ' +
+      'most recently pushed repositories, applied before the limit.',
+  })
+  @ApiOkResponse({ description: 'GitHubRepositoryListResponse' })
+  async listRepositories(
+    @GetUser('id') ownerId: string,
+    @Query() query: ListGitHubRepositoriesDto,
+  ): Promise<GitHubRepositoryListResponse> {
+    const result = await this.queryBus.execute(
+      new ListGitHubRepositoriesQuery({ ownerId, search: query.search }),
+    );
+
+    return GitHubRepositoryPresenter.toListResponse(result.unwrap());
   }
 
   @Put()

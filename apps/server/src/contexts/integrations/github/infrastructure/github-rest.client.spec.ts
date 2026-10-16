@@ -265,3 +265,141 @@ describe('GitHubRestClient.verifyToken', () => {
     }
   });
 });
+
+describe('GitHubRestClient.listRepositories', () => {
+  const BASE = 'https://api.github.test';
+
+  const setup = (...responses: Array<Response | Error>) => {
+    const fetchFn = jest.fn<Promise<Response>, Parameters<typeof fetch>>();
+    for (const response of responses) {
+      if (response instanceof Error) fetchFn.mockRejectedValueOnce(response);
+      else fetchFn.mockResolvedValueOnce(response);
+    }
+    const client = new GitHubRestClient({
+      fetchFn: fetchFn as unknown as typeof fetch,
+      baseUrl: BASE,
+      now: () => NOW,
+    });
+    return { client, fetchFn };
+  };
+
+  const repo = (id: number, pushedAt: string | null = null) => ({
+    id,
+    full_name: `trhgatu/repo-${id}`,
+    private: id % 2 === 0,
+    pushed_at: pushedAt,
+  });
+
+  const nextLink = (page: number) => ({
+    link: `<${BASE}/user/repos?per_page=100&sort=pushed&page=${page}>; rel="next", <${BASE}/user/repos?per_page=100&sort=pushed&page=99>; rel="last"`,
+  });
+
+  it('reads every page GitHub reports and maps each repository', async () => {
+    const { client, fetchFn } = setup(
+      json(200, [repo(1, '2026-10-15T08:00:00Z')], nextLink(2)),
+      json(200, [repo(2)]),
+    );
+
+    await expect(client.listRepositories(TOKEN)).resolves.toEqual({
+      repositories: [
+        {
+          id: '1',
+          fullName: 'trhgatu/repo-1',
+          isPrivate: false,
+          pushedAt: new Date('2026-10-15T08:00:00.000Z'),
+        },
+        {
+          id: '2',
+          fullName: 'trhgatu/repo-2',
+          isPrivate: true,
+          pushedAt: null,
+        },
+      ],
+      complete: true,
+    });
+
+    expect(fetchFn.mock.calls.map(([url]) => url)).toEqual([
+      `${BASE}/user/repos?per_page=100&sort=pushed`,
+      `${BASE}/user/repos?per_page=100&sort=pushed&page=2`,
+    ]);
+    for (const [, init] of fetchFn.mock.calls) {
+      expect(new Headers(init?.headers).get('authorization')).toBe(
+        `Bearer ${TOKEN}`,
+      );
+    }
+  });
+
+  it('stops after the page limit and says the list is incomplete', async () => {
+    const pages = Array.from({ length: 10 }, (_, i) =>
+      json(200, [repo(i + 1)], nextLink(i + 2)),
+    );
+    const { client, fetchFn } = setup(...pages);
+
+    const result = await client.listRepositories(TOKEN);
+
+    expect(fetchFn).toHaveBeenCalledTimes(10);
+    expect(result.repositories).toHaveLength(10);
+    expect(result.complete).toBe(false);
+  });
+
+  it('never sends the token to a next link on another host', async () => {
+    const { client, fetchFn } = setup(
+      json(200, [repo(1)], {
+        link: '<https://evil.test/user/repos?page=2>; rel="next"',
+      }),
+    );
+
+    await expect(client.listRepositories(TOKEN)).rejects.toBeInstanceOf(
+      GitHubUnavailableException,
+    );
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects a token GitHub no longer accepts', async () => {
+    const { client } = setup(json(401, { message: 'Bad credentials' }));
+
+    await expect(client.listRepositories(TOKEN)).rejects.toBeInstanceOf(
+      GitHubTokenInvalidException,
+    );
+  });
+
+  it('reports a rate limit on any page as a rate limit', async () => {
+    const { client } = setup(
+      json(200, [repo(1)], nextLink(2)),
+      json(403, {}, { 'x-ratelimit-remaining': '0', 'retry-after': '30' }),
+    );
+
+    const error = await client.listRepositories(TOKEN).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(GitHubRateLimitedException);
+    expect((error as GitHubRateLimitedException).args).toEqual({
+      retryAfter: 30,
+    });
+  });
+
+  it.each([
+    ['malformed JSON', new Response('{not json', { status: 200 })],
+    ['a non-array body', json(200, { message: 'unexpected' })],
+    ['an item of the wrong shape', json(200, [{ id: '1', full_name: 7 }])],
+    [
+      'an unparseable push date',
+      json(200, [
+        { id: 1, full_name: 'a/b', private: false, pushed_at: 'yesterday' },
+      ]),
+    ],
+  ])('reports GitHub as unavailable on %s', async (_label, response) => {
+    const { client } = setup(response);
+
+    await expect(client.listRepositories(TOKEN)).rejects.toBeInstanceOf(
+      GitHubUnavailableException,
+    );
+  });
+
+  it('reports GitHub as unavailable on a server error', async () => {
+    const { client } = setup(json(502, {}));
+
+    await expect(client.listRepositories(TOKEN)).rejects.toBeInstanceOf(
+      GitHubUnavailableException,
+    );
+  });
+});
