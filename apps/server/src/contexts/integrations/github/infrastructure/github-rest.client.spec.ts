@@ -381,6 +381,12 @@ describe('GitHubRestClient.listRepositories', () => {
     ['malformed JSON', new Response('{not json', { status: 200 })],
     ['a non-array body', json(200, { message: 'unexpected' })],
     ['an item of the wrong shape', json(200, [{ id: '1', full_name: 7 }])],
+    [
+      'an unparseable push date',
+      json(200, [
+        { id: 1, full_name: 'a/b', private: false, pushed_at: 'yesterday' },
+      ]),
+    ],
   ])('reports GitHub as unavailable on %s', async (_label, response) => {
     const { client } = setup(response);
 

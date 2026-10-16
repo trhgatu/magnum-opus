@@ -216,9 +216,12 @@ function isRepoPayload(value: unknown): value is GitHubRepoPayload {
     typeof repo.id === 'number' &&
     typeof repo.full_name === 'string' &&
     typeof repo.private === 'boolean' &&
-    (repo.pushed_at === null || typeof repo.pushed_at === 'string')
+    (repo.pushed_at === null || isValidDate(repo.pushed_at))
   );
 }
+
+const isValidDate = (value: unknown): boolean =>
+  typeof value === 'string' && !Number.isNaN(new Date(value).getTime());
 
 const toRepository = (repo: GitHubRepoPayload): GitHubRepository => ({
   id: String(repo.id),
