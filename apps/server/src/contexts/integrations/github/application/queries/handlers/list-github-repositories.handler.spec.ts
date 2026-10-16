@@ -38,6 +38,7 @@ describe('ListGitHubRepositoriesHandler', () => {
     findByOwner: jest.fn(),
     insert: jest.fn(),
     update: jest.fn(),
+    revokeIfTokenUnchanged: jest.fn(),
     deleteByOwner: jest.fn(),
   };
   const clock: Clock = { now: () => NOW };
@@ -171,8 +172,11 @@ describe('ListGitHubRepositoriesHandler', () => {
     const result = await handler.execute(query());
 
     expect(result.getError()).toBeInstanceOf(GitHubNotConnectedException);
-    const saved = connections.update.mock.calls[0][0];
-    expect(saved.statusAt(NOW)).toBe('REVOKED');
+    expect(connections.revokeIfTokenUnchanged).toHaveBeenCalledWith(
+      'owner-id',
+      'enc-token',
+    );
+    expect(connections.update).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -184,7 +188,7 @@ describe('ListGitHubRepositoriesHandler', () => {
     const result = await handler.execute(query());
 
     expect(result.getError()).toBe(error);
-    expect(connections.update).not.toHaveBeenCalled();
+    expect(connections.revokeIfTokenUnchanged).not.toHaveBeenCalled();
   });
 
   it('lets unexpected errors surface instead of turning them into a result', async () => {

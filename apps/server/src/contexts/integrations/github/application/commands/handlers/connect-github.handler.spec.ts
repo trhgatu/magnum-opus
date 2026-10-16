@@ -28,6 +28,7 @@ describe('ConnectGitHubHandler', () => {
     findByOwner: jest.fn(),
     insert: jest.fn(),
     update: jest.fn(),
+    revokeIfTokenUnchanged: jest.fn(),
     deleteByOwner: jest.fn(),
   };
   const clock: Clock = { now: () => NOW };

@@ -50,6 +50,20 @@ export class PrismaGitHubConnectionRepository implements GitHubConnectionReposit
     return result.count === 1;
   }
 
+  async revokeIfTokenUnchanged(
+    ownerId: string,
+    encryptedToken: string,
+  ): Promise<void> {
+    await this.prisma.integrationConnection.updateMany({
+      where: {
+        ownerId,
+        provider: GITHUB_PROVIDER,
+        credentials: encryptedToken,
+      },
+      data: { status: 'REVOKED' },
+    });
+  }
+
   async deleteByOwner(ownerId: string): Promise<void> {
     await this.prisma.integrationConnection.deleteMany({
       where: { ownerId, provider: GITHUB_PROVIDER },

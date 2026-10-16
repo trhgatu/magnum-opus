@@ -90,8 +90,7 @@ export class GitHubRestClient implements GitHubApi {
       if (response.status === 401) throw new GitHubTokenInvalidException();
       await this.throwIfNotOk(response);
 
-      const payload = (await response.json()) as GitHubRepoPayload[];
-      repositories.push(...payload.map(toRepository));
+      repositories.push(...(await readRepositories(response)));
       url = this.nextPageUrl(response);
     }
 
@@ -192,6 +191,33 @@ function parseExpiration(value: string | null): Date | null {
   const offset = zone === 'UTC' ? 'Z' : `${zone.slice(0, 3)}:${zone.slice(3)}`;
   const date = new Date(`${day}T${time}${offset}`);
   return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/** JSON hỏng hoặc sai hình dạng là lỗi phía GitHub, không phải lỗi của mình. */
+async function readRepositories(
+  response: Response,
+): Promise<GitHubRepository[]> {
+  let payload: unknown;
+  try {
+    payload = await response.json();
+  } catch {
+    throw new GitHubUnavailableException();
+  }
+  if (!Array.isArray(payload) || !payload.every(isRepoPayload)) {
+    throw new GitHubUnavailableException();
+  }
+  return payload.map(toRepository);
+}
+
+function isRepoPayload(value: unknown): value is GitHubRepoPayload {
+  if (typeof value !== 'object' || value === null) return false;
+  const repo = value as Record<string, unknown>;
+  return (
+    typeof repo.id === 'number' &&
+    typeof repo.full_name === 'string' &&
+    typeof repo.private === 'boolean' &&
+    (repo.pushed_at === null || typeof repo.pushed_at === 'string')
+  );
 }
 
 const toRepository = (repo: GitHubRepoPayload): GitHubRepository => ({

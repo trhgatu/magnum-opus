@@ -68,9 +68,12 @@ export class ListGitHubRepositoriesHandler implements IQueryHandler<
     } catch (error) {
       if (error instanceof GitHubTokenInvalidException) {
         // Token bị thu hồi bên GitHub sau khi kết nối: ghi nhận để client
-        // hiện "Kết nối lại" thay vì lỗi mãi.
-        connection.markRevoked();
-        await this.repository.update(connection);
+        // hiện "Kết nối lại" thay vì lỗi mãi. Có điều kiện: một lần kết nối
+        // lại xen giữa request này không bị ghi đè.
+        await this.repository.revokeIfTokenUnchanged(
+          ownerId,
+          connection.encryptedToken,
+        );
         return Result.fail(new GitHubNotConnectedException());
       }
       if (error instanceof DomainException) return Result.fail(error);

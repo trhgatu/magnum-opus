@@ -81,8 +81,8 @@ export class GitHubIntegrationController {
   @ApiOperation({
     summary: 'List repositories the GitHub token can read',
     description:
-      'Most recently pushed first, at most 100. Search is applied across ' +
-      'every repository before the limit.',
+      'Most recently pushed first, at most 100. Search covers the 1,000 ' +
+      'most recently pushed repositories, applied before the limit.',
   })
   @ApiOkResponse({ description: 'GitHubRepositoryListResponse' })
   async listRepositories(

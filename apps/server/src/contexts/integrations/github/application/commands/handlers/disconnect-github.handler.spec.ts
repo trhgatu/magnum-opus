@@ -7,6 +7,7 @@ describe('DisconnectGitHubHandler', () => {
     findByOwner: jest.fn(),
     insert: jest.fn(),
     update: jest.fn(),
+    revokeIfTokenUnchanged: jest.fn(),
     deleteByOwner: jest.fn(),
   };
   const handler = new DisconnectGitHubHandler(repository);

@@ -16,6 +16,14 @@ export interface GitHubConnectionRepository {
    * kết nối không còn — vd một disconnect vừa xóa nó.
    */
   update(connection: GitHubConnection): Promise<boolean>;
+  /**
+   * Đánh dấu REVOKED, chỉ khi kết nối vẫn mang đúng token đã bị GitHub từ
+   * chối — một lần kết nối lại xen giữa đã thay token thì giữ nguyên.
+   */
+  revokeIfTokenUnchanged(
+    ownerId: string,
+    encryptedToken: string,
+  ): Promise<void>;
   /** Không có gì để xóa cũng không lỗi. */
   deleteByOwner(ownerId: string): Promise<void>;
 }
