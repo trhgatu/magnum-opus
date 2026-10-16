@@ -75,14 +75,20 @@ describe('GitHub integration (E2E)', () => {
     await authed('put', '/integrations/github')
       .send({ token: 'x'.repeat(256) })
       .expect(HttpStatus.BAD_REQUEST);
+    await authed('put', '/integrations/github')
+      .send({ token: '   ' })
+      .expect(HttpStatus.BAD_REQUEST);
+    await authed('put', '/integrations/github')
+      .send({ token: 'fake token' })
+      .expect(HttpStatus.BAD_REQUEST);
   });
 
   it('rejects unknown fields and a non-boolean confirmation', async () => {
     await authed('put', '/integrations/github')
-      .send({ token: 'github_pat_x', provider: 'GITHUB' })
+      .send({ token: 'fake-token', provider: 'GITHUB' })
       .expect(HttpStatus.BAD_REQUEST);
     await authed('put', '/integrations/github')
-      .send({ token: 'github_pat_x', confirmAccountChange: 'yes' })
+      .send({ token: 'fake-token', confirmAccountChange: 'yes' })
       .expect(HttpStatus.BAD_REQUEST);
   });
 

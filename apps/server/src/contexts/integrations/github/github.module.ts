@@ -38,6 +38,7 @@ import { GitHubIntegrationController } from './presentation/controllers/github-i
     DisconnectGitHubHandler,
     GetGitHubConnectionHandler,
   ],
-  exports: [GITHUB_CONNECTION_REPOSITORY, TOKEN_CIPHER],
+  // TOKEN_CIPHER không export: chỉ code bên trong module này giải mã token.
+  exports: [GITHUB_CONNECTION_REPOSITORY],
 })
 export class GitHubModule {}

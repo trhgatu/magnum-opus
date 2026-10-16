@@ -110,10 +110,27 @@ describe('environment configuration', () => {
     );
   });
 
-  it('falls back to a development-only integration key outside production', () => {
+  it('falls back to a test-only integration key only in tests', () => {
     const environment = validateEnvironment(validConfig);
 
     expect(environment.INTEGRATION_ENCRYPTION_KEY).toBeTruthy();
+  });
+
+  it('requires an integration encryption key in development too', () => {
+    // Development có thể lưu token GitHub thật; khóa mặc định công khai
+    // trong repo không được dùng để mã hóa chúng.
+    expect(() =>
+      validateEnvironment({ ...validConfig, NODE_ENV: 'development' }),
+    ).toThrow('INTEGRATION_ENCRYPTION_KEY must contain at least 32 characters');
+    expect(
+      validateEnvironment({
+        ...validConfig,
+        NODE_ENV: 'development',
+        INTEGRATION_ENCRYPTION_KEY: 'd'.repeat(32),
+      }),
+    ).toEqual(
+      expect.objectContaining({ INTEGRATION_ENCRYPTION_KEY: 'd'.repeat(32) }),
+    );
   });
 
   it('rejects an unsupported refresh cookie policy', () => {

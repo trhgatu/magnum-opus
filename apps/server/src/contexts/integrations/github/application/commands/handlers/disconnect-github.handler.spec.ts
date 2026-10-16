@@ -5,7 +5,8 @@ import { DisconnectGitHubHandler } from './disconnect-github.handler';
 describe('DisconnectGitHubHandler', () => {
   const repository: jest.Mocked<GitHubConnectionRepository> = {
     findByOwner: jest.fn(),
-    save: jest.fn(),
+    insert: jest.fn(),
+    update: jest.fn(),
     deleteByOwner: jest.fn(),
   };
   const handler = new DisconnectGitHubHandler(repository);

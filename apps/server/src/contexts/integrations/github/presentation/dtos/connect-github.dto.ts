@@ -4,6 +4,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  Matches,
   MaxLength,
 } from 'class-validator';
 
@@ -15,6 +16,8 @@ export class ConnectGitHubDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(255)
+  // Token không bao giờ chứa khoảng trắng; chặn ở đây thay vì để GitHub trả 401.
+  @Matches(/^\S+$/, { message: 'token must not contain whitespace' })
   token!: string;
 
   @ApiPropertyOptional({

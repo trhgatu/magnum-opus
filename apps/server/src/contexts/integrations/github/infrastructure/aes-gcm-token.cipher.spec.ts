@@ -2,7 +2,7 @@ import { AesGcmTokenCipher } from './aes-gcm-token.cipher';
 
 describe('AesGcmTokenCipher', () => {
   const secret = 'a-test-secret-that-is-long-enough-123456';
-  const token = 'github_pat_11ABCDEFG0123456789_abcdefghijklmnopqrstuvwxyz';
+  const token = 'fake-token-for-cipher-tests-not-a-real-credential';
 
   it('decrypts what it encrypted', () => {
     const cipher = new AesGcmTokenCipher(secret);
@@ -15,7 +15,7 @@ describe('AesGcmTokenCipher', () => {
 
     expect(encrypted.startsWith('v1.')).toBe(true);
     expect(encrypted).not.toContain(token);
-    expect(encrypted).not.toContain('github_pat_');
+    expect(encrypted).not.toContain('fake-token');
   });
 
   it('uses a fresh IV each time, so the same token encrypts differently', () => {
@@ -27,8 +27,12 @@ describe('AesGcmTokenCipher', () => {
   it('rejects a tampered ciphertext instead of returning garbage', () => {
     const cipher = new AesGcmTokenCipher(secret);
     const encrypted = cipher.encrypt(token);
-    const last = encrypted.at(-1) === 'A' ? 'B' : 'A';
-    const tampered = encrypted.slice(0, -1) + last;
+    // Đổi một ký tự ở đầu payload (ngay sau "v1."): luôn đổi bit thật của IV,
+    // không rơi vào các bit đệm cuối chuỗi base64url.
+    const index = 4;
+    const swapped = encrypted[index] === 'A' ? 'B' : 'A';
+    const tampered =
+      encrypted.slice(0, index) + swapped + encrypted.slice(index + 1);
 
     expect(() => cipher.decrypt(tampered)).toThrow();
   });

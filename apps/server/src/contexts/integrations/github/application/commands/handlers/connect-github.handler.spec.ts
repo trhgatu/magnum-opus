@@ -10,7 +10,7 @@ import {
 import { ConnectGitHubCommand } from '../connect-github.command';
 import { ConnectGitHubHandler } from './connect-github.handler';
 
-const TOKEN = 'github_pat_plain_token';
+const TOKEN = 'fake-plain-token';
 const NOW = new Date('2026-10-16T10:00:00.000Z');
 const account = { id: '127409189', nodeId: 'U_kgDOB5gcJQ', login: 'trhgatu' };
 const otherAccount = { id: '555', nodeId: 'U_other', login: 'other-account' };
@@ -23,7 +23,8 @@ describe('ConnectGitHubHandler', () => {
   };
   const repository: jest.Mocked<GitHubConnectionRepository> = {
     findByOwner: jest.fn(),
-    save: jest.fn(),
+    insert: jest.fn(),
+    update: jest.fn(),
     deleteByOwner: jest.fn(),
   };
   const clock: Clock = { now: () => NOW };
@@ -53,6 +54,7 @@ describe('ConnectGitHubHandler', () => {
       expiresAt: new Date('2027-10-14T00:00:00.000Z'),
     });
     repository.findByOwner.mockResolvedValue(null);
+    repository.insert.mockResolvedValue(true);
   });
 
   it('creates a connection for a first-time owner and stores only the encrypted token', async () => {
@@ -60,9 +62,10 @@ describe('ConnectGitHubHandler', () => {
 
     expect(result.isSuccess).toBe(true);
     expect(api.verifyToken).toHaveBeenCalledWith(TOKEN);
-    expect(repository.save).toHaveBeenCalledTimes(1);
+    expect(repository.insert).toHaveBeenCalledTimes(1);
+    expect(repository.update).not.toHaveBeenCalled();
 
-    const saved = repository.save.mock.calls[0][0];
+    const saved = repository.insert.mock.calls[0][0];
     expect(saved.ownerId).toBe('owner-id');
     expect(saved.account).toEqual(account);
     expect(saved.encryptedToken).toBe(`enc(${TOKEN})`);
@@ -79,7 +82,8 @@ describe('ConnectGitHubHandler', () => {
     const result = await handler.execute(command());
 
     expect(result.isSuccess).toBe(true);
-    const saved = repository.save.mock.calls[0][0];
+    expect(repository.insert).not.toHaveBeenCalled();
+    const saved = repository.update.mock.calls[0][0];
     expect(saved.id).toBe('existing-id');
     expect(saved.createdAt).toEqual(new Date('2026-09-01T00:00:00.000Z'));
     expect(saved.encryptedToken).toBe(`enc(${TOKEN})`);
@@ -99,7 +103,8 @@ describe('ConnectGitHubHandler', () => {
     expect(result.getError()).toBeInstanceOf(
       GitHubAccountChangeUnconfirmedException,
     );
-    expect(repository.save).not.toHaveBeenCalled();
+    expect(repository.insert).not.toHaveBeenCalled();
+    expect(repository.update).not.toHaveBeenCalled();
   });
 
   it('switches to another account when confirmed', async () => {
@@ -112,7 +117,7 @@ describe('ConnectGitHubHandler', () => {
     const result = await handler.execute(command(true));
 
     expect(result.isSuccess).toBe(true);
-    expect(repository.save.mock.calls[0][0].account).toEqual(otherAccount);
+    expect(repository.update.mock.calls[0][0].account).toEqual(otherAccount);
   });
 
   it('fails without touching storage when GitHub rejects the token', async () => {
@@ -123,7 +128,8 @@ describe('ConnectGitHubHandler', () => {
     expect(result.isFailure).toBe(true);
     expect(result.getError()).toBeInstanceOf(GitHubTokenInvalidException);
     expect(cipher.encrypt).not.toHaveBeenCalled();
-    expect(repository.save).not.toHaveBeenCalled();
+    expect(repository.insert).not.toHaveBeenCalled();
+    expect(repository.update).not.toHaveBeenCalled();
   });
 
   it('keeps an existing connection untouched when the new token is rejected', async () => {
@@ -132,7 +138,48 @@ describe('ConnectGitHubHandler', () => {
 
     await handler.execute(command());
 
-    expect(repository.save).not.toHaveBeenCalled();
+    expect(repository.insert).not.toHaveBeenCalled();
+    expect(repository.update).not.toHaveBeenCalled();
+  });
+
+  describe('two first-time connections at once', () => {
+    it('treats a lost insert race as a token replacement, not an overwrite', async () => {
+      // Lần đọc đầu: chưa có. Insert thua race. Lần đọc sau: kết nối do
+      // request kia vừa tạo, cùng tài khoản.
+      repository.findByOwner
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(existingConnection());
+      repository.insert.mockResolvedValue(false);
+
+      const result = await handler.execute(command());
+
+      expect(result.isSuccess).toBe(true);
+      expect(repository.update).toHaveBeenCalledTimes(1);
+      expect(repository.update.mock.calls[0][0].id).toBe('existing-id');
+    });
+
+    it('still requires confirmation when the other request connected another account', async () => {
+      const concurrent = GitHubConnection.connect({
+        id: 'concurrent-id',
+        ownerId: 'owner-id',
+        account: otherAccount,
+        encryptedToken: 'enc(other)',
+        expiresAt: null,
+        now: NOW,
+      });
+      repository.findByOwner
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(concurrent);
+      repository.insert.mockResolvedValue(false);
+
+      const result = await handler.execute(command(false));
+
+      expect(result.isFailure).toBe(true);
+      expect(result.getError()).toBeInstanceOf(
+        GitHubAccountChangeUnconfirmedException,
+      );
+      expect(repository.update).not.toHaveBeenCalled();
+    });
   });
 
   it('lets unexpected errors surface instead of turning them into a result', async () => {

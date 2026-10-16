@@ -31,9 +31,8 @@ export interface EnvironmentVariables extends Record<string, unknown> {
   INTEGRATION_ENCRYPTION_KEY: string;
 }
 
-/** Chỉ dùng ngoài production. Production bắt buộc tự đặt khóa riêng. */
-const DEVELOPMENT_INTEGRATION_ENCRYPTION_KEY =
-  'development-only-integration-encryption-key';
+/** Chỉ dùng cho test tự động: DB test không bao giờ chứa token thật. */
+const TEST_INTEGRATION_ENCRYPTION_KEY = 'test-only-integration-encryption-key';
 
 const requireString = (
   config: Record<string, unknown>,
@@ -162,12 +161,11 @@ export const validateEnvironment = (
     );
   }
 
-  if (
-    nodeEnvironment === 'production' &&
-    integrationEncryptionKey.length < 32
-  ) {
+  // Khóa công khai trong repo chỉ an toàn khi DB không bao giờ chứa token
+  // thật — tức chỉ ở test. Development cũng có thể lưu token thật.
+  if (nodeEnvironment !== 'test' && integrationEncryptionKey.length < 32) {
     throw new Error(
-      'Environment variable INTEGRATION_ENCRYPTION_KEY must contain at least 32 characters in production',
+      'Environment variable INTEGRATION_ENCRYPTION_KEY must contain at least 32 characters outside tests',
     );
   }
 
@@ -180,7 +178,7 @@ export const validateEnvironment = (
     JWT_REFRESH_SECRET: refreshSecret,
     METRICS_TOKEN: metricsToken || undefined,
     INTEGRATION_ENCRYPTION_KEY:
-      integrationEncryptionKey || DEVELOPMENT_INTEGRATION_ENCRYPTION_KEY,
+      integrationEncryptionKey || TEST_INTEGRATION_ENCRYPTION_KEY,
     BACKUP_STATUS_FILE: backupStatusFile || undefined,
     AUDIT_RETENTION_DAYS: parseNonNegativeInteger(
       config.AUDIT_RETENTION_DAYS,

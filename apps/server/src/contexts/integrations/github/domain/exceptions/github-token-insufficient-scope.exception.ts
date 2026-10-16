@@ -3,6 +3,9 @@ import { DomainException } from '@shared/domain/exceptions/domain.exception';
 
 export class GitHubTokenInsufficientScopeException extends DomainException {
   constructor() {
-    super('GitHub rejected the token', Errors.GITHUB_TOKEN_INVALID);
+    super(
+      'GitHub token cannot read repositories',
+      Errors.GITHUB_TOKEN_INSUFFICIENT_SCOPE,
+    );
   }
 }

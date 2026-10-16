@@ -6,7 +6,7 @@ import {
 } from '../domain/exceptions';
 import { GitHubRestClient } from './github-rest.client';
 
-const TOKEN = 'github_pat_secret_value_never_logged';
+const TOKEN = 'fake-secret-token-never-logged';
 const NOW = new Date('2026-10-16T10:00:00.000Z');
 
 const json = (
@@ -61,6 +61,19 @@ describe('GitHubRestClient.verifyToken', () => {
     );
   });
 
+  it('reads an expiry header with a numeric UTC offset', async () => {
+    const { client } = setup(
+      json(200, user, {
+        'github-authentication-token-expiration': '2027-10-14 07:00:00 +0700',
+      }),
+      json(200, []),
+    );
+
+    await expect(client.verifyToken(TOKEN)).resolves.toMatchObject({
+      expiresAt: new Date('2027-10-14T00:00:00.000Z'),
+    });
+  });
+
   it('reports no expiry when GitHub sends none', async () => {
     const { client } = setup(json(200, user), json(200, []));
 
@@ -102,6 +115,40 @@ describe('GitHubRestClient.verifyToken', () => {
     await expect(client.verifyToken(TOKEN)).rejects.toBeInstanceOf(
       GitHubTokenInsufficientScopeException,
     );
+  });
+
+  it('reports each failure with its own stable error code', async () => {
+    const cases: Array<[Array<Response | Error>, string]> = [
+      [[json(401, {})], 'GITHUB_TOKEN_INVALID'],
+      [[json(200, user), json(403, {})], 'GITHUB_TOKEN_INSUFFICIENT_SCOPE'],
+      [[json(429, {}, { 'retry-after': '5' })], 'GITHUB_RATE_LIMITED'],
+      [[json(503, {})], 'GITHUB_UNAVAILABLE'],
+    ];
+
+    for (const [responses, code] of cases) {
+      const { client } = setup(...responses);
+      const error = (await client
+        .verifyToken(TOKEN)
+        .catch((e: unknown) => e)) as { error: { code: string } };
+
+      expect(error.error.code).toBe(code);
+    }
+  });
+
+  it('recognises a secondary rate limit that carries no rate-limit headers', async () => {
+    const { client } = setup(
+      json(200, user),
+      json(403, {
+        message: 'You have exceeded a secondary rate limit. Please wait.',
+      }),
+    );
+
+    const error = await client.verifyToken(TOKEN).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(GitHubRateLimitedException);
+    expect((error as GitHubRateLimitedException).args).toEqual({
+      retryAfter: 60,
+    });
   });
 
   it('reports a primary rate limit with the seconds until reset', async () => {
@@ -175,12 +222,29 @@ describe('GitHubRestClient.verifyToken', () => {
     );
   });
 
-  it('passes an abort signal so a hung request cannot block forever', async () => {
-    const { client, fetchFn } = setup(json(200, user), json(200, []));
+  it('aborts a request that hangs past the timeout', async () => {
+    // fetch giả chỉ kết thúc khi signal bị hủy — như một request bị treo.
+    const fetchFn = jest.fn(
+      (_url: string | URL | Request, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => {
+            const timeout = new Error('The operation was aborted');
+            timeout.name = 'TimeoutError';
+            reject(timeout);
+          });
+        }),
+    );
+    const client = new GitHubRestClient({
+      fetchFn: fetchFn as unknown as typeof fetch,
+      baseUrl: 'https://api.github.test',
+      now: () => NOW,
+      timeoutMs: 20,
+    });
 
-    await client.verifyToken(TOKEN);
-
-    expect(fetchFn.mock.calls[0][1]?.signal).toBeInstanceOf(AbortSignal);
+    await expect(client.verifyToken(TOKEN)).rejects.toBeInstanceOf(
+      GitHubUnavailableException,
+    );
+    expect(fetchFn.mock.calls[0][1]?.signal?.aborted).toBe(true);
   });
 
   it('never puts the token into an error message', async () => {

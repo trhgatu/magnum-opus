@@ -10,7 +10,7 @@ import {
 } from '../domain/exceptions';
 
 const API_VERSION = '2022-11-28';
-const TIMEOUT_MS = 10_000;
+const DEFAULT_TIMEOUT_MS = 10_000;
 const DEFAULT_RETRY_AFTER_SECONDS = 60;
 
 interface GitHubUser {
@@ -23,33 +23,36 @@ export interface GitHubRestClientOptions {
   fetchFn?: typeof fetch;
   baseUrl?: string;
   now?: () => Date;
+  timeoutMs?: number;
 }
 
 export class GitHubRestClient implements GitHubApi {
   private readonly fetchFn: typeof fetch;
   private readonly baseUrl: string;
   private readonly now: () => Date;
+  private readonly timeoutMs: number;
 
   constructor(options: GitHubRestClientOptions = {}) {
     this.fetchFn = options.fetchFn ?? fetch;
     this.baseUrl = options.baseUrl ?? 'https://api.github.com';
     this.now = options.now ?? (() => new Date());
+    this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   }
 
   async verifyToken(token: string): Promise<VerifiedGitHubToken> {
     const userResponse = await this.request('/user', token);
     if (userResponse.status === 401) throw new GitHubTokenInvalidException();
-    this.throwIfNotOk(userResponse);
+    await this.throwIfNotOk(userResponse);
     const user = (await userResponse.json()) as GitHubUser;
 
     // Token đọc được /user nhưng chưa chắc đọc được repository.
     const reposResponse = await this.request('/user/repos?per_page=1', token);
     if (reposResponse.status === 401) throw new GitHubTokenInvalidException();
-    this.throwIfRateLimited(reposResponse);
+    await this.throwIfRateLimited(reposResponse);
     if (reposResponse.status === 403 || reposResponse.status === 404) {
       throw new GitHubTokenInsufficientScopeException();
     }
-    this.throwIfNotOk(reposResponse);
+    await this.throwIfNotOk(reposResponse);
 
     return {
       account: {
@@ -72,7 +75,7 @@ export class GitHubRestClient implements GitHubApi {
           'X-GitHub-Api-Version': API_VERSION,
           'User-Agent': 'magnum-opus',
         },
-        signal: AbortSignal.timeout(TIMEOUT_MS),
+        signal: AbortSignal.timeout(this.timeoutMs),
       });
     } catch {
       // Lỗi mạng hoặc quá thời gian. Không giữ lỗi gốc: thông điệp của nó
@@ -81,21 +84,27 @@ export class GitHubRestClient implements GitHubApi {
     }
   }
 
-  private throwIfRateLimited(response: Response): void {
+  /**
+   * Giới hạn chính: 429, hoặc 403 kèm `x-ratelimit-remaining: 0` / `retry-after`.
+   * Giới hạn phụ (secondary rate limit) có thể là 403 không kèm header nào —
+   * chỉ nhận ra được qua nội dung "rate limit" trong thông báo lỗi.
+   */
+  private async throwIfRateLimited(response: Response): Promise<void> {
     if (response.status !== 403 && response.status !== 429) return;
 
     const isRateLimited =
       response.status === 429 ||
       response.headers.get('retry-after') !== null ||
-      response.headers.get('x-ratelimit-remaining') === '0';
+      response.headers.get('x-ratelimit-remaining') === '0' ||
+      (await mentionsRateLimit(response));
 
     if (isRateLimited) {
       throw new GitHubRateLimitedException(this.secondsUntilRetry(response));
     }
   }
 
-  private throwIfNotOk(response: Response): void {
-    this.throwIfRateLimited(response);
+  private async throwIfNotOk(response: Response): Promise<void> {
+    await this.throwIfRateLimited(response);
     if (!response.ok) throw new GitHubUnavailableException();
   }
 
@@ -111,9 +120,32 @@ export class GitHubRestClient implements GitHubApi {
     return DEFAULT_RETRY_AFTER_SECONDS;
   }
 }
-/** "2027-10-14 00:00:00 UTC" → Date. Định dạng lạ → null, không làm hỏng kết nối. */
+
+/** Đọc thông báo lỗi trên một bản sao, để body gốc vẫn còn nguyên. */
+async function mentionsRateLimit(response: Response): Promise<boolean> {
+  try {
+    const body = (await response.clone().json()) as { message?: unknown };
+    return typeof body.message === 'string' && /rate limit/i.test(body.message);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * GitHub gửi "2027-10-14 00:00:00 UTC" hoặc "2027-10-14 00:00:00 +0700".
+ * Định dạng lạ → null: không làm hỏng việc kết nối.
+ */
 function parseExpiration(value: string | null): Date | null {
   if (!value) return null;
-  const date = new Date(value.replace(' UTC', 'Z').replace(' ', 'T'));
+
+  const match =
+    /^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}) (UTC|[+-]\d{4})$/.exec(
+      value.trim(),
+    );
+  if (!match) return null;
+
+  const [, day, time, zone] = match;
+  const offset = zone === 'UTC' ? 'Z' : `${zone.slice(0, 3)}:${zone.slice(3)}`;
+  const date = new Date(`${day}T${time}${offset}`);
   return Number.isNaN(date.getTime()) ? null : date;
 }

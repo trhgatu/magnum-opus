@@ -9,6 +9,9 @@ export interface VerifiedGitHubToken {
 }
 
 export interface GitHubApi {
-  /** Ném GitHubTokenInvalid / InsufficientScope / RateLimited / Unavailable. */
+  /**
+   * Ném GitHubTokenInvalidException, GitHubTokenInsufficientScopeException,
+   * GitHubRateLimitedException hoặc GitHubUnavailableException.
+   */
   verifyToken(token: string): Promise<VerifiedGitHubToken>;
 }

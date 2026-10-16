@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@repo/database';
 
 import { PrismaService } from '@infrastructure/database/prisma.service';
 
@@ -20,24 +21,34 @@ export class PrismaGitHubConnectionRepository implements GitHubConnectionReposit
     return raw ? PrismaGitHubConnectionMapper.toDomain(raw) : null;
   }
 
-  async save(connection: GitHubConnection): Promise<void> {
-    const data = PrismaGitHubConnectionMapper.toMutableData(connection);
+  async insert(connection: GitHubConnection): Promise<boolean> {
+    try {
+      await this.prisma.integrationConnection.create({
+        data: {
+          id: connection.id,
+          ownerId: connection.ownerId,
+          provider: GITHUB_PROVIDER,
+          createdAt: connection.createdAt,
+          ...PrismaGitHubConnectionMapper.toMutableData(connection),
+        },
+      });
+      return true;
+    } catch (error) {
+      // Unique (owner_id, provider): một request khác đã tạo kết nối trước.
+      if (isUniqueConflict(error)) return false;
+      throw error;
+    }
+  }
 
-    await this.prisma.integrationConnection.upsert({
+  async update(connection: GitHubConnection): Promise<void> {
+    await this.prisma.integrationConnection.update({
       where: {
         ownerId_provider: {
           ownerId: connection.ownerId,
           provider: GITHUB_PROVIDER,
         },
       },
-      create: {
-        id: connection.id,
-        ownerId: connection.ownerId,
-        provider: GITHUB_PROVIDER,
-        createdAt: connection.createdAt,
-        ...data,
-      },
-      update: data,
+      data: PrismaGitHubConnectionMapper.toMutableData(connection),
     });
   }
 
@@ -47,3 +58,7 @@ export class PrismaGitHubConnectionRepository implements GitHubConnectionReposit
     });
   }
 }
+
+const isUniqueConflict = (error: unknown): boolean =>
+  error instanceof Prisma.PrismaClientKnownRequestError &&
+  error.code === 'P2002';

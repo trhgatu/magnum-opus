@@ -11,7 +11,13 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiNoContentResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import type { GitHubConnectionResponse } from '@repo/contracts';
 import type { Response } from 'express';
 
@@ -43,6 +49,8 @@ export class GitHubIntegrationController {
     summary: 'Get the GitHub connection of the current user',
     description: '204 No Content when GitHub is not connected.',
   })
+  @ApiOkResponse({ description: 'GitHubConnectionResponse — connected' })
+  @ApiNoContentResponse({ description: 'GitHub is not connected' })
   async getConnection(
     @GetUser('id') ownerId: string,
     @Res({ passthrough: true }) response: Response,

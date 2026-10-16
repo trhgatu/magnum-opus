@@ -64,14 +64,14 @@ describe('GitHubIntegrationController', () => {
       commandBus.execute.mockResolvedValue(Result.ok(connection));
 
       const body = await controller.connect('owner-id', {
-        token: 'github_pat_x',
+        token: 'fake-token',
         confirmAccountChange: true,
       });
 
       expect(commandBus.execute).toHaveBeenCalledWith(
         new ConnectGitHubCommand({
           ownerId: 'owner-id',
-          token: 'github_pat_x',
+          token: 'fake-token',
           confirmAccountChange: true,
         }),
       );
@@ -81,7 +81,7 @@ describe('GitHubIntegrationController', () => {
     it('treats a missing confirmation as not confirmed', async () => {
       commandBus.execute.mockResolvedValue(Result.ok(connection));
 
-      await controller.connect('owner-id', { token: 'github_pat_x' });
+      await controller.connect('owner-id', { token: 'fake-token' });
 
       expect(commandBus.execute).toHaveBeenCalledWith(
         expect.objectContaining({ confirmAccountChange: false }),

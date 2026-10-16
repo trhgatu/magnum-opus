@@ -38,17 +38,14 @@ export class GitHubConnection {
       account: { ...input.account },
       encryptedToken: input.encryptedToken,
       status: 'ACTIVE',
-      expiresAt: input.expiresAt,
-      lastVerifiedAt: input.now,
-      createdAt: input.now,
+      expiresAt: cloneDate(input.expiresAt),
+      lastVerifiedAt: new Date(input.now),
+      createdAt: new Date(input.now),
     });
   }
 
   static rehydrate(snapshot: GitHubConnectionSnapshot): GitHubConnection {
-    return new GitHubConnection({
-      ...snapshot,
-      account: { ...snapshot.account },
-    });
+    return new GitHubConnection(copySnapshot(snapshot));
   }
 
   get id(): string {
@@ -68,15 +65,15 @@ export class GitHubConnection {
   }
 
   get expiresAt(): Date | null {
-    return this.props.expiresAt;
+    return cloneDate(this.props.expiresAt);
   }
 
   get lastVerifiedAt(): Date {
-    return this.props.lastVerifiedAt;
+    return new Date(this.props.lastVerifiedAt);
   }
 
   get createdAt(): Date {
-    return this.props.createdAt;
+    return new Date(this.props.createdAt);
   }
 
   statusAt(now: Date): GitHubConnectionStatus {
@@ -113,17 +110,28 @@ export class GitHubConnection {
       account: { ...input.account },
       encryptedToken: input.encryptedToken,
       status: 'ACTIVE',
-      expiresAt: input.expiresAt,
-      lastVerifiedAt: input.now,
+      expiresAt: cloneDate(input.expiresAt),
+      lastVerifiedAt: new Date(input.now),
     };
 
     return { accountChanged };
   }
 
   toSnapshot(): GitHubConnectionSnapshot {
-    return {
-      ...this.props,
-      account: { ...this.props.account },
-    };
+    return copySnapshot(this.props);
   }
 }
+
+const cloneDate = (date: Date | null): Date | null =>
+  date ? new Date(date) : null;
+
+/** Bản sao sâu: Date là mutable, không được chia sẻ với bên ngoài entity. */
+const copySnapshot = (
+  snapshot: GitHubConnectionSnapshot,
+): GitHubConnectionSnapshot => ({
+  ...snapshot,
+  account: { ...snapshot.account },
+  expiresAt: cloneDate(snapshot.expiresAt),
+  lastVerifiedAt: new Date(snapshot.lastVerifiedAt),
+  createdAt: new Date(snapshot.createdAt),
+});

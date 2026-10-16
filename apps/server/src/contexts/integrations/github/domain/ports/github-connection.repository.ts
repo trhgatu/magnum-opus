@@ -6,8 +6,13 @@ export const GITHUB_CONNECTION_REPOSITORY = Symbol(
 
 export interface GitHubConnectionRepository {
   findByOwner(ownerId: string): Promise<GitHubConnection | null>;
-  /** Tạo mới hoặc cập nhật — mỗi người dùng có tối đa một kết nối GitHub. */
-  save(connection: GitHubConnection): Promise<void>;
+  /**
+   * Tạo kết nối đầu tiên của owner. Trả false nếu owner đã có kết nối —
+   * vd một request khác vừa tạo xong — thay vì ghi đè kết nối đó.
+   */
+  insert(connection: GitHubConnection): Promise<boolean>;
+  /** Cập nhật kết nối đã có (token, tài khoản, trạng thái). */
+  update(connection: GitHubConnection): Promise<void>;
   /** Không có gì để xóa cũng không lỗi. */
   deleteByOwner(ownerId: string): Promise<void>;
 }

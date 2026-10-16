@@ -1,10 +1,13 @@
+import { Prisma } from '@repo/database';
+
 import { GitHubConnection } from '../../domain/github-connection.entity';
 import { PrismaGitHubConnectionRepository } from './prisma-github-connection.repository';
 
 describe('PrismaGitHubConnectionRepository', () => {
   const integrationConnection = {
     findUnique: jest.fn(),
-    upsert: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
     deleteMany: jest.fn(),
   };
   const repository = new PrismaGitHubConnectionRepository({
@@ -71,42 +74,66 @@ describe('PrismaGitHubConnectionRepository', () => {
     });
   });
 
-  describe('save', () => {
-    it('upserts by owner and provider, never changing identity on update', async () => {
-      const connection = GitHubConnection.rehydrate({
-        id: 'connection-id',
-        ownerId: 'owner-id',
-        account: { id: '127409189', nodeId: 'U_kgDOB5gcJQ', login: 'trhgatu' },
-        encryptedToken: 'v1.encrypted',
-        status: 'ACTIVE',
-        expiresAt: null,
-        lastVerifiedAt: new Date('2026-10-16T10:00:00.000Z'),
-        createdAt: new Date('2026-09-01T00:00:00.000Z'),
-      });
+  describe('insert and update', () => {
+    const connection = GitHubConnection.rehydrate({
+      id: 'connection-id',
+      ownerId: 'owner-id',
+      account: { id: '127409189', nodeId: 'U_kgDOB5gcJQ', login: 'trhgatu' },
+      encryptedToken: 'v1.encrypted',
+      status: 'ACTIVE',
+      expiresAt: null,
+      lastVerifiedAt: new Date('2026-10-16T10:00:00.000Z'),
+      createdAt: new Date('2026-09-01T00:00:00.000Z'),
+    });
+    const data = {
+      externalAccountId: '127409189',
+      externalAccountNodeId: 'U_kgDOB5gcJQ',
+      displayName: 'trhgatu',
+      credentials: 'v1.encrypted',
+      status: 'ACTIVE',
+      expiresAt: null,
+      lastVerifiedAt: new Date('2026-10-16T10:00:00.000Z'),
+    };
 
-      await repository.save(connection);
+    it('creates a first connection with its identity', async () => {
+      await expect(repository.insert(connection)).resolves.toBe(true);
 
-      const data = {
-        externalAccountId: '127409189',
-        externalAccountNodeId: 'U_kgDOB5gcJQ',
-        displayName: 'trhgatu',
-        credentials: 'v1.encrypted',
-        status: 'ACTIVE',
-        expiresAt: null,
-        lastVerifiedAt: new Date('2026-10-16T10:00:00.000Z'),
-      };
-      expect(integrationConnection.upsert).toHaveBeenCalledWith({
-        where: {
-          ownerId_provider: { ownerId: 'owner-id', provider: 'GITHUB' },
-        },
-        create: {
+      expect(integrationConnection.create).toHaveBeenCalledWith({
+        data: {
           id: 'connection-id',
           ownerId: 'owner-id',
           provider: 'GITHUB',
           createdAt: new Date('2026-09-01T00:00:00.000Z'),
           ...data,
         },
-        update: data,
+      });
+    });
+
+    it('reports a lost race instead of overwriting the other connection', async () => {
+      integrationConnection.create.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+          code: 'P2002',
+          clientVersion: 'test',
+        }),
+      );
+
+      await expect(repository.insert(connection)).resolves.toBe(false);
+    });
+
+    it('lets other database errors surface', async () => {
+      integrationConnection.create.mockRejectedValue(new Error('db down'));
+
+      await expect(repository.insert(connection)).rejects.toThrow('db down');
+    });
+
+    it('updates only the mutable columns, never identity', async () => {
+      await repository.update(connection);
+
+      expect(integrationConnection.update).toHaveBeenCalledWith({
+        where: {
+          ownerId_provider: { ownerId: 'owner-id', provider: 'GITHUB' },
+        },
+        data,
       });
     });
   });

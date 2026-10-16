@@ -151,6 +151,21 @@ describe('GitHubConnection', () => {
     });
   });
 
+  it('never lets a caller change its dates from outside', () => {
+    const expiresAt = new Date('2027-10-16T00:00:00.000Z');
+    const connection = connect(expiresAt);
+
+    // Sửa Date đã truyền vào, và Date đọc ra, không được ảnh hưởng entity.
+    expiresAt.setTime(0);
+    connection.expiresAt?.setTime(0);
+    connection.toSnapshot().expiresAt?.setTime(0);
+    connection.createdAt.setTime(0);
+
+    expect(connection.expiresAt).toEqual(new Date('2027-10-16T00:00:00.000Z'));
+    expect(connection.statusAt(now)).toBe('ACTIVE');
+    expect(connection.createdAt).toEqual(now);
+  });
+
   it('round-trips through rehydrate', () => {
     const original = connect(new Date('2027-10-16T00:00:00.000Z'));
 
