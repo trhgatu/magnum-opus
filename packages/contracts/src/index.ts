@@ -18,3 +18,5 @@ export * from './routine/routine.js';
 export * from './today/today.js';
 export * from './project/project.js';
 export * from './chronicle/chronicle.js';
+export * from './integration/github.js';
+export * from './project-activity/activity.js';
