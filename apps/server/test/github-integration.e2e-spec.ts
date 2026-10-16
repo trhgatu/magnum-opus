@@ -92,6 +92,37 @@ describe('GitHub integration (E2E)', () => {
       .expect(HttpStatus.BAD_REQUEST);
   });
 
+  describe('GET /integrations/github/repositories', () => {
+    it('requires authentication', async () => {
+      await request(app.getHttpServer())
+        .get('/integrations/github/repositories')
+        .expect(HttpStatus.UNAUTHORIZED);
+    });
+
+    it('answers 409 GITHUB_NOT_CONNECTED before GitHub is connected', async () => {
+      const response = await authed(
+        'get',
+        '/integrations/github/repositories?search=opus',
+      ).expect(HttpStatus.CONFLICT);
+
+      expect(response.body.code).toBe('GITHUB_NOT_CONNECTED');
+    });
+
+    it('rejects a search that is not a single short string', async () => {
+      await authed(
+        'get',
+        '/integrations/github/repositories?search=a&search=b',
+      ).expect(HttpStatus.BAD_REQUEST);
+      await authed(
+        'get',
+        `/integrations/github/repositories?search=${'a'.repeat(141)}`,
+      ).expect(HttpStatus.BAD_REQUEST);
+      await authed('get', '/integrations/github/repositories?page=2').expect(
+        HttpStatus.BAD_REQUEST,
+      );
+    });
+  });
+
   async function registerAndLogin(): Promise<string> {
     const suffix = `${Date.now()}${Math.random().toString(16).slice(2)}`;
     const email = `github.${suffix}@example.com`;

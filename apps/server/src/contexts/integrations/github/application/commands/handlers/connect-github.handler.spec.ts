@@ -16,7 +16,10 @@ const account = { id: '127409189', nodeId: 'U_kgDOB5gcJQ', login: 'trhgatu' };
 const otherAccount = { id: '555', nodeId: 'U_other', login: 'other-account' };
 
 describe('ConnectGitHubHandler', () => {
-  const api: jest.Mocked<GitHubApi> = { verifyToken: jest.fn() };
+  const api: jest.Mocked<GitHubApi> = {
+    verifyToken: jest.fn(),
+    listRepositories: jest.fn(),
+  };
   const cipher: jest.Mocked<TokenCipher> = {
     encrypt: jest.fn((plain: string) => `enc(${plain})`),
     decrypt: jest.fn(),
