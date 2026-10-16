@@ -27,7 +27,13 @@ export interface EnvironmentVariables extends Record<string, unknown> {
   MAIL_FROM?: string;
   CLIENT_URL: string;
   EMAIL_VERIFICATION_REQUIRED: boolean;
+  /** Khóa mã hóa thông tin xác thực của các tích hợp (vd token GitHub). */
+  INTEGRATION_ENCRYPTION_KEY: string;
 }
+
+/** Chỉ dùng ngoài production. Production bắt buộc tự đặt khóa riêng. */
+const DEVELOPMENT_INTEGRATION_ENCRYPTION_KEY =
+  'development-only-integration-encryption-key';
 
 const requireString = (
   config: Record<string, unknown>,
@@ -99,6 +105,10 @@ export const validateEnvironment = (
     typeof config.REFRESH_COOKIE_SAME_SITE === 'string'
       ? config.REFRESH_COOKIE_SAME_SITE.trim().toLowerCase()
       : 'lax';
+  const integrationEncryptionKey =
+    typeof config.INTEGRATION_ENCRYPTION_KEY === 'string'
+      ? config.INTEGRATION_ENCRYPTION_KEY.trim()
+      : '';
   const metricsToken =
     typeof config.METRICS_TOKEN === 'string' ? config.METRICS_TOKEN.trim() : '';
   const backupStatusFile =
@@ -152,6 +162,15 @@ export const validateEnvironment = (
     );
   }
 
+  if (
+    nodeEnvironment === 'production' &&
+    integrationEncryptionKey.length < 32
+  ) {
+    throw new Error(
+      'Environment variable INTEGRATION_ENCRYPTION_KEY must contain at least 32 characters in production',
+    );
+  }
+
   return {
     ...config,
     NODE_ENV: nodeEnvironment as NodeEnvironment,
@@ -160,6 +179,8 @@ export const validateEnvironment = (
     JWT_ACCESS_SECRET: accessSecret,
     JWT_REFRESH_SECRET: refreshSecret,
     METRICS_TOKEN: metricsToken || undefined,
+    INTEGRATION_ENCRYPTION_KEY:
+      integrationEncryptionKey || DEVELOPMENT_INTEGRATION_ENCRYPTION_KEY,
     BACKUP_STATUS_FILE: backupStatusFile || undefined,
     AUDIT_RETENTION_DAYS: parseNonNegativeInteger(
       config.AUDIT_RETENTION_DAYS,

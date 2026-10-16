@@ -185,9 +185,11 @@ GET /integrations/github
 #### Response
 
 ```
-200 OK
-GitHubConnectionResponse | null      — null khi chưa kết nối
+200 OK           GitHubConnectionResponse   — đã kết nối
+204 No Content                              — chưa kết nối
 ```
+
+_Không trả `200` + `null`_: NestJS gửi body rỗng cho giá trị `null`, và client (`apiFetch`) coi `200` có body rỗng là dữ liệu không hợp lệ; `204` được client xử lý sẵn (trả `undefined`).
 
 #### Behavior
 

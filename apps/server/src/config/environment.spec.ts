@@ -76,8 +76,44 @@ describe('environment configuration', () => {
         JWT_ACCESS_SECRET: 'a'.repeat(32),
         JWT_REFRESH_SECRET: 'b'.repeat(32),
         METRICS_TOKEN: 'c'.repeat(32),
+        INTEGRATION_ENCRYPTION_KEY: 'd'.repeat(32),
       }),
     ).toEqual(expect.objectContaining({ METRICS_TOKEN: 'c'.repeat(32) }));
+  });
+
+  it('requires an integration encryption key in production', () => {
+    const production = {
+      ...validConfig,
+      NODE_ENV: 'production',
+      JWT_ACCESS_SECRET: 'a'.repeat(32),
+      JWT_REFRESH_SECRET: 'b'.repeat(32),
+      METRICS_TOKEN: 'c'.repeat(32),
+      CLIENT_URL: 'https://client.example.com',
+    };
+
+    expect(() => validateEnvironment(production)).toThrow(
+      'INTEGRATION_ENCRYPTION_KEY must contain at least 32 characters',
+    );
+    expect(() =>
+      validateEnvironment({
+        ...production,
+        INTEGRATION_ENCRYPTION_KEY: 'too-short',
+      }),
+    ).toThrow('INTEGRATION_ENCRYPTION_KEY must contain at least 32 characters');
+    expect(
+      validateEnvironment({
+        ...production,
+        INTEGRATION_ENCRYPTION_KEY: '  ' + 'd'.repeat(32) + '  ',
+      }),
+    ).toEqual(
+      expect.objectContaining({ INTEGRATION_ENCRYPTION_KEY: 'd'.repeat(32) }),
+    );
+  });
+
+  it('falls back to a development-only integration key outside production', () => {
+    const environment = validateEnvironment(validConfig);
+
+    expect(environment.INTEGRATION_ENCRYPTION_KEY).toBeTruthy();
   });
 
   it('rejects an unsupported refresh cookie policy', () => {
@@ -132,6 +168,7 @@ describe('environment configuration', () => {
       JWT_ACCESS_SECRET: 'a'.repeat(32),
       JWT_REFRESH_SECRET: 'b'.repeat(32),
       METRICS_TOKEN: 'c'.repeat(32),
+      INTEGRATION_ENCRYPTION_KEY: 'd'.repeat(32),
     };
     expect(() =>
       validateEnvironment({
