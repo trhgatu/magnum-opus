@@ -7,7 +7,7 @@ describe('PrismaGitHubConnectionRepository', () => {
   const integrationConnection = {
     findUnique: jest.fn(),
     create: jest.fn(),
-    update: jest.fn(),
+    updateMany: jest.fn(),
     deleteMany: jest.fn(),
   };
   const repository = new PrismaGitHubConnectionRepository({
@@ -127,14 +127,20 @@ describe('PrismaGitHubConnectionRepository', () => {
     });
 
     it('updates only the mutable columns, never identity', async () => {
-      await repository.update(connection);
+      integrationConnection.updateMany.mockResolvedValue({ count: 1 });
 
-      expect(integrationConnection.update).toHaveBeenCalledWith({
-        where: {
-          ownerId_provider: { ownerId: 'owner-id', provider: 'GITHUB' },
-        },
+      await expect(repository.update(connection)).resolves.toBe(true);
+
+      expect(integrationConnection.updateMany).toHaveBeenCalledWith({
+        where: { ownerId: 'owner-id', provider: 'GITHUB' },
         data,
       });
+    });
+
+    it('reports a connection that was deleted meanwhile instead of throwing', async () => {
+      integrationConnection.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(repository.update(connection)).resolves.toBe(false);
     });
   });
 

@@ -40,16 +40,14 @@ export class PrismaGitHubConnectionRepository implements GitHubConnectionReposit
     }
   }
 
-  async update(connection: GitHubConnection): Promise<void> {
-    await this.prisma.integrationConnection.update({
-      where: {
-        ownerId_provider: {
-          ownerId: connection.ownerId,
-          provider: GITHUB_PROVIDER,
-        },
-      },
+  async update(connection: GitHubConnection): Promise<boolean> {
+    // updateMany thay cho update: dòng đã bị xóa thì trả count 0 thay vì
+    // ném P2025.
+    const result = await this.prisma.integrationConnection.updateMany({
+      where: { ownerId: connection.ownerId, provider: GITHUB_PROVIDER },
       data: PrismaGitHubConnectionMapper.toMutableData(connection),
     });
+    return result.count === 1;
   }
 
   async deleteByOwner(ownerId: string): Promise<void> {

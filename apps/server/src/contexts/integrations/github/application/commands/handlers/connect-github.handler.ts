@@ -19,6 +19,13 @@ import {
 import { TOKEN_CIPHER, type TokenCipher } from '../../ports/token-cipher.port';
 import { ConnectGitHubCommand } from '../connect-github.command';
 
+/**
+ * Số lần thử khi đụng độ với một request đồng thời của cùng owner (một
+ * connect khác vừa tạo kết nối, hoặc một disconnect vừa xóa nó). Mỗi lần
+ * thử đọc lại trạng thái mới nhất; hai lần đụng độ liên tiếp đã hiếm.
+ */
+const MAX_ATTEMPTS = 3;
+
 @CommandHandler(ConnectGitHubCommand)
 export class ConnectGitHubHandler implements ICommandHandler<
   ConnectGitHubCommand,
@@ -40,16 +47,35 @@ export class ConnectGitHubHandler implements ICommandHandler<
     try {
       // Kiểm tra với GitHub trước: token sai thì không đụng gì tới DB.
       const verified = await this.gitHubApi.verifyToken(token);
-      const now = this.clock.now();
       const encryptedToken = this.cipher.encrypt(token);
 
-      const existing = await this.repository.findByOwner(ownerId);
-      if (existing) {
-        return await this.replace(existing, verified, encryptedToken, now, {
+      for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+        const saved = await this.trySave(ownerId, verified, encryptedToken, {
           confirmAccountChange,
         });
+        if (saved) return Result.ok(saved);
       }
 
+      throw new Error(
+        'GitHub connection kept changing concurrently while connecting',
+      );
+    } catch (error) {
+      if (error instanceof DomainException) return Result.fail(error);
+      throw error;
+    }
+  }
+
+  /** Một lần thử. null nghĩa là đụng độ với request khác — thử lại. */
+  private async trySave(
+    ownerId: string,
+    verified: VerifiedGitHubToken,
+    encryptedToken: string,
+    { confirmAccountChange }: { confirmAccountChange: boolean },
+  ): Promise<GitHubConnection | null> {
+    const now = this.clock.now();
+    const existing = await this.repository.findByOwner(ownerId);
+
+    if (!existing) {
       const created = GitHubConnection.connect({
         id: randomUUID(),
         ownerId,
@@ -58,39 +84,20 @@ export class ConnectGitHubHandler implements ICommandHandler<
         expiresAt: verified.expiresAt,
         now,
       });
-      if (await this.repository.insert(created)) return Result.ok(created);
-
-      // Một request khác vừa tạo kết nối cho owner này. Xử lý như thay
-      // token — kể cả bước xác nhận đổi tài khoản — thay vì ghi đè nó.
-      const concurrent = await this.repository.findByOwner(ownerId);
-      if (!concurrent) {
-        throw new Error('GitHub connection disappeared while connecting');
-      }
-      return await this.replace(concurrent, verified, encryptedToken, now, {
-        confirmAccountChange,
-      });
-    } catch (error) {
-      if (error instanceof DomainException) return Result.fail(error);
-      throw error;
+      // false: một request khác vừa tạo kết nối — lần sau đi luồng thay
+      // token, kể cả bước xác nhận đổi tài khoản, thay vì ghi đè nó.
+      return (await this.repository.insert(created)) ? created : null;
     }
-  }
 
-  /** Ném GitHubAccountChangeUnconfirmedException trước khi ghi gì vào DB. */
-  private async replace(
-    connection: GitHubConnection,
-    verified: VerifiedGitHubToken,
-    encryptedToken: string,
-    now: Date,
-    { confirmAccountChange }: { confirmAccountChange: boolean },
-  ): Promise<Result<GitHubConnection, DomainException>> {
-    connection.replaceToken({
+    // Ném GitHubAccountChangeUnconfirmedException trước khi ghi gì vào DB.
+    existing.replaceToken({
       account: verified.account,
       encryptedToken,
       expiresAt: verified.expiresAt,
       now,
       confirmAccountChange,
     });
-    await this.repository.update(connection);
-    return Result.ok(connection);
+    // false: kết nối vừa bị ngắt — lần sau đi luồng tạo mới.
+    return (await this.repository.update(existing)) ? existing : null;
   }
 }

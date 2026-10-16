@@ -11,8 +11,11 @@ export interface GitHubConnectionRepository {
    * vd một request khác vừa tạo xong — thay vì ghi đè kết nối đó.
    */
   insert(connection: GitHubConnection): Promise<boolean>;
-  /** Cập nhật kết nối đã có (token, tài khoản, trạng thái). */
-  update(connection: GitHubConnection): Promise<void>;
+  /**
+   * Cập nhật kết nối đã có (token, tài khoản, trạng thái). Trả false nếu
+   * kết nối không còn — vd một disconnect vừa xóa nó.
+   */
+  update(connection: GitHubConnection): Promise<boolean>;
   /** Không có gì để xóa cũng không lỗi. */
   deleteByOwner(ownerId: string): Promise<void>;
 }

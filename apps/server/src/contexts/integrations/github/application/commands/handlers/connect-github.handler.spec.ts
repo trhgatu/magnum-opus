@@ -55,6 +55,7 @@ describe('ConnectGitHubHandler', () => {
     });
     repository.findByOwner.mockResolvedValue(null);
     repository.insert.mockResolvedValue(true);
+    repository.update.mockResolvedValue(true);
   });
 
   it('creates a connection for a first-time owner and stores only the encrypted token', async () => {
@@ -179,6 +180,45 @@ describe('ConnectGitHubHandler', () => {
         GitHubAccountChangeUnconfirmedException,
       );
       expect(repository.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('a disconnect racing with the connect', () => {
+    it('creates the connection again when it vanished before the update', async () => {
+      // Đọc thấy kết nối, nhưng một disconnect xóa nó trước khi update.
+      repository.findByOwner
+        .mockResolvedValueOnce(existingConnection())
+        .mockResolvedValueOnce(null);
+      repository.update.mockResolvedValueOnce(false);
+
+      const result = await handler.execute(command());
+
+      expect(result.isSuccess).toBe(true);
+      expect(repository.insert).toHaveBeenCalledTimes(1);
+    });
+
+    it('retries when the winner of an insert race was disconnected meanwhile', async () => {
+      // Không có → insert thua race → đọc lại cũng không có (đã bị ngắt)
+      // → thử lại → insert thành công.
+      repository.findByOwner.mockResolvedValue(null);
+      repository.insert
+        .mockResolvedValueOnce(false)
+        .mockResolvedValueOnce(true);
+
+      const result = await handler.execute(command());
+
+      expect(result.isSuccess).toBe(true);
+      expect(repository.insert).toHaveBeenCalledTimes(2);
+    });
+
+    it('gives up after repeated conflicts instead of looping forever', async () => {
+      repository.findByOwner.mockResolvedValue(null);
+      repository.insert.mockResolvedValue(false);
+
+      await expect(handler.execute(command())).rejects.toThrow(
+        'kept changing concurrently',
+      );
+      expect(repository.insert).toHaveBeenCalledTimes(3);
     });
   });
 
