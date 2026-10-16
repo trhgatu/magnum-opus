@@ -21,6 +21,9 @@ describe('logger configuration', () => {
         '*.accessToken',
         '*.refreshToken',
         '*.email',
+        'req.body.token',
+        '*.token',
+        '*.credentials',
       ]),
     );
     expect(options.redact.censor).toBe('[Redacted]');

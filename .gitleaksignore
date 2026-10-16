@@ -8,3 +8,8 @@
 # comment nên bị scanner flag chính nó; chuỗi đã được xóa, fingerprint dưới đây
 # baseline commit lịch sử đó.
 886f25a56a0aab9f7e0911e2540111ff57458081:.gitleaksignore:generic-api-key:4
+
+# Khóa giả của test AES-GCM cipher (PR #162): `const secret = 'a-test-secret-…'`
+# ở dòng 4 của commit đầu tiên của module GitHub — chuỗi cố định chỉ dùng
+# trong test, không phải secret thật.
+26429fdbe2fd0d2455e998c799f26482bd251bd9:apps/server/src/contexts/integrations/github/infrastructure/aes-gcm-token.cipher.spec.ts:generic-api-key:4

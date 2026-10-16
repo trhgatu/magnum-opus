@@ -10,6 +10,12 @@ const REDACTED_LOG_PATHS = [
   '*.refreshToken',
   'email',
   '*.email',
+  // Thông tin xác thực của tích hợp (vd PUT /integrations/github { token }).
+  'req.body.token',
+  'token',
+  '*.token',
+  'credentials',
+  '*.credentials',
 ] as const;
 
 export const createPinoHttpOptions = (
