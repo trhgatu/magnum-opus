@@ -136,3 +136,18 @@ ALTER TABLE "project_activity_sources" ADD CONSTRAINT "project_activity_sources_
 -- AddForeignKey
 ALTER TABLE "cycle_activity_snapshots" ADD CONSTRAINT "cycle_activity_snapshots_cycle_id_fkey" FOREIGN KEY ("cycle_id") REFERENCES "project_cycles"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
+-- AddCheckConstraints — Prisma không biểu diễn được CHECK; ghi chú ở schema.prisma.
+ALTER TABLE "activity_events"
+ADD CONSTRAINT "activity_events_quantity_check"
+CHECK ("quantity" > 0);
+
+ALTER TABLE "cycle_activity_snapshots"
+ADD CONSTRAINT "cycle_activity_snapshots_counts_check"
+CHECK (
+  "active_days" >= 0
+  AND "paused_active_days" >= 0
+  AND "paused_active_days" <= "active_days"
+  AND "commits" >= 0
+  AND "prs_opened" >= 0
+  AND "prs_merged" >= 0
+);

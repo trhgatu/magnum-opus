@@ -712,6 +712,8 @@ model ActivityEvent {
 
   @@unique([feedId, kind, dedupeKey])
   @@index([feedId, occurredAt])
+  // CHECK "activity_events_quantity_check" (quantity > 0) chỉ có trong
+  // migration SQL — Prisma không biểu diễn được.
   @@map("activity_events")
 }
 
@@ -746,5 +748,7 @@ model CycleActivitySnapshot {
 
   cycle ProjectCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
 
+  // CHECK "cycle_activity_snapshots_counts_check" (mọi số đếm >= 0,
+  // paused_active_days <= active_days) chỉ có trong migration SQL.
   @@map("cycle_activity_snapshots")
 }
