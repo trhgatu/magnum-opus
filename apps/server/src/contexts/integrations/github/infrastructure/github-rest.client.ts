@@ -3,17 +3,16 @@ import type {
   VerifiedGitHubToken,
   GitHubRepositoryList,
   GitHubRepository,
+  GitHubRepositoryRef,
 } from '../application/ports/github-api.port';
 import {
-  GitHubRateLimitedException,
   GitHubTokenInsufficientScopeException,
   GitHubTokenInvalidException,
   GitHubUnavailableException,
+  GitHubRepositoryNotAccessibleException,
 } from '../domain/exceptions';
+import { GitHubHttp, type GitHubHttpOptions } from './github-http';
 
-const API_VERSION = '2022-11-28';
-const DEFAULT_TIMEOUT_MS = 10_000;
-const DEFAULT_RETRY_AFTER_SECONDS = 60;
 const MAX_REPOSITORY_PAGES = 10;
 
 interface GitHubRepoPayload {
@@ -29,44 +28,37 @@ interface GitHubUser {
   login: string;
 }
 
-export interface GitHubRestClientOptions {
-  fetchFn?: typeof fetch;
-  baseUrl?: string;
-  now?: () => Date;
-  timeoutMs?: number;
-}
+export type GitHubRestClientOptions = GitHubHttpOptions;
 
 export class GitHubRestClient implements GitHubApi {
-  private readonly fetchFn: typeof fetch;
-  private readonly baseUrl: string;
-  private readonly now: () => Date;
-  private readonly timeoutMs: number;
+  private readonly http: GitHubHttp;
 
   constructor(options: GitHubRestClientOptions = {}) {
-    this.fetchFn = options.fetchFn ?? fetch;
-    this.baseUrl = options.baseUrl ?? 'https://api.github.com';
-    this.now = options.now ?? (() => new Date());
-    this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    this.http = new GitHubHttp(options);
+  }
+
+  private get baseUrl(): string {
+    return this.http.baseUrl;
   }
 
   async verifyToken(token: string): Promise<VerifiedGitHubToken> {
-    const userResponse = await this.request(`${this.baseUrl}/user`, token);
+    const userResponse = await this.http.request(`${this.baseUrl}/user`, token);
     if (userResponse.status === 401) throw new GitHubTokenInvalidException();
-    await this.throwIfNotOk(userResponse);
+    await this.http.throwIfNotOk(userResponse);
     const user = (await userResponse.json()) as GitHubUser;
 
     // Token đọc được /user nhưng chưa chắc đọc được repository.
-    const reposResponse = await this.request(
+    const reposResponse = await this.http.request(
       `${this.baseUrl}/user/repos?per_page=1`,
       token,
     );
 
     if (reposResponse.status === 401) throw new GitHubTokenInvalidException();
-    await this.throwIfRateLimited(reposResponse);
+    await this.http.throwIfRateLimited(reposResponse);
     if (reposResponse.status === 403 || reposResponse.status === 404) {
       throw new GitHubTokenInsufficientScopeException();
     }
-    await this.throwIfNotOk(reposResponse);
+    await this.http.throwIfNotOk(reposResponse);
 
     return {
       account: {
@@ -86,9 +78,9 @@ export class GitHubRestClient implements GitHubApi {
       `${this.baseUrl}/user/repos?per_page=100&sort=pushed`;
 
     for (let page = 0; page < MAX_REPOSITORY_PAGES && url; page++) {
-      const response = await this.request(url, token);
+      const response = await this.http.request(url, token);
       if (response.status === 401) throw new GitHubTokenInvalidException();
-      await this.throwIfNotOk(response);
+      await this.http.throwIfNotOk(response);
 
       repositories.push(...(await readRepositories(response)));
       url = this.nextPageUrl(response);
@@ -97,58 +89,33 @@ export class GitHubRestClient implements GitHubApi {
     return { repositories, complete: url === null };
   }
 
-  private async request(url: string, token: string): Promise<Response> {
-    try {
-      return await this.fetchFn(url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/vnd.github+json',
-          'X-GitHub-Api-Version': API_VERSION,
-          'User-Agent': 'magnum-opus',
-        },
-        signal: AbortSignal.timeout(this.timeoutMs),
-      });
-    } catch {
-      // Lỗi mạng hoặc quá thời gian. Không giữ lỗi gốc: thông điệp của nó
-      // có thể chứa URL hoặc header của request.
+  async findRepository(
+    token: string,
+    repositoryId: string,
+  ): Promise<GitHubRepositoryRef> {
+    // Id đi thẳng vào URL: chỉ nhận chữ số, để không chèn được đường dẫn khác.
+    if (!/^\d+$/.test(repositoryId)) {
+      throw new GitHubRepositoryNotAccessibleException();
+    }
+
+    const response = await this.http.request(
+      `${this.baseUrl}/repositories/${repositoryId}`,
+      token,
+    );
+    if (response.status === 401) throw new GitHubTokenInvalidException();
+    // Trước khi xét 403: 403 có thể là rate limit, không phải mất quyền.
+    await this.http.throwIfRateLimited(response);
+    if (response.status === 403 || response.status === 404) {
+      throw new GitHubRepositoryNotAccessibleException();
+    }
+    await this.http.throwIfNotOk(response);
+
+    const payload = await readJson(response);
+    if (!isRepositoryRefPayload(payload)) {
       throw new GitHubUnavailableException();
     }
-  }
 
-  /**
-   * Giới hạn chính: 429, hoặc 403 kèm `x-ratelimit-remaining: 0` / `retry-after`.
-   * Giới hạn phụ (secondary rate limit) có thể là 403 không kèm header nào —
-   * chỉ nhận ra được qua nội dung "rate limit" trong thông báo lỗi.
-   */
-  private async throwIfRateLimited(response: Response): Promise<void> {
-    if (response.status !== 403 && response.status !== 429) return;
-
-    const isRateLimited =
-      response.status === 429 ||
-      response.headers.get('retry-after') !== null ||
-      response.headers.get('x-ratelimit-remaining') === '0' ||
-      (await mentionsRateLimit(response));
-
-    if (isRateLimited) {
-      throw new GitHubRateLimitedException(this.secondsUntilRetry(response));
-    }
-  }
-
-  private async throwIfNotOk(response: Response): Promise<void> {
-    await this.throwIfRateLimited(response);
-    if (!response.ok) throw new GitHubUnavailableException();
-  }
-
-  private secondsUntilRetry(response: Response): number {
-    const retryAfter = Number(response.headers.get('retry-after'));
-    if (Number.isFinite(retryAfter) && retryAfter > 0) return retryAfter;
-
-    const reset = Number(response.headers.get('x-ratelimit-reset'));
-    if (Number.isFinite(reset) && reset > 0) {
-      return Math.max(0, Math.ceil(reset - this.now().getTime() / 1000));
-    }
-
-    return DEFAULT_RETRY_AFTER_SECONDS;
+    return { nodeId: payload.node_id, fullName: payload.full_name };
   }
 
   /** Link rel="next", chỉ khi cùng origin với baseUrl — không gửi token đi nơi khác. */
@@ -161,16 +128,6 @@ export class GitHubRestClient implements GitHubApi {
       throw new GitHubUnavailableException();
     }
     return match[1];
-  }
-}
-
-/** Đọc thông báo lỗi trên một bản sao, để body gốc vẫn còn nguyên. */
-async function mentionsRateLimit(response: Response): Promise<boolean> {
-  try {
-    const body = (await response.clone().json()) as { message?: unknown };
-    return typeof body.message === 'string' && /rate limit/i.test(body.message);
-  } catch {
-    return false;
   }
 }
 
@@ -197,16 +154,19 @@ function parseExpiration(value: string | null): Date | null {
 async function readRepositories(
   response: Response,
 ): Promise<GitHubRepository[]> {
-  let payload: unknown;
-  try {
-    payload = await response.json();
-  } catch {
-    throw new GitHubUnavailableException();
-  }
+  const payload = await readJson(response);
   if (!Array.isArray(payload) || !payload.every(isRepoPayload)) {
     throw new GitHubUnavailableException();
   }
   return payload.map(toRepository);
+}
+
+function isRepositoryRefPayload(
+  value: unknown,
+): value is { node_id: string; full_name: string } {
+  if (typeof value !== 'object' || value === null) return false;
+  const repo = value as Record<string, unknown>;
+  return typeof repo.node_id === 'string' && typeof repo.full_name === 'string';
 }
 
 function isRepoPayload(value: unknown): value is GitHubRepoPayload {
@@ -229,3 +189,12 @@ const toRepository = (repo: GitHubRepoPayload): GitHubRepository => ({
   isPrivate: repo.private,
   pushedAt: repo.pushed_at ? new Date(repo.pushed_at) : null,
 });
+
+/** JSON hỏng là lỗi phía GitHub, không phải lỗi của mình. */
+async function readJson(response: Response): Promise<unknown> {
+  try {
+    return await response.json();
+  } catch {
+    throw new GitHubUnavailableException();
+  }
+}

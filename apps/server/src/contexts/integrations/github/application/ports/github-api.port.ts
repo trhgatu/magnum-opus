@@ -16,6 +16,14 @@ export interface GitHubApi {
   verifyToken(token: string): Promise<VerifiedGitHubToken>;
   /** Ném GitHubTokenInvalidException, GitHubRateLimitedException hoặc GitHubUnavailableException. */
   listRepositories(token: string): Promise<GitHubRepositoryList>;
+  /**
+   * Ném GitHubRepositoryNotAccessibleException, GitHubTokenInvalidException,
+   * GitHubRateLimitedException hoặc GitHubUnavailableException.
+   */
+  findRepository(
+    token: string,
+    repositoryId: string,
+  ): Promise<GitHubRepositoryRef>;
 }
 
 export interface GitHubRepository {
@@ -30,4 +38,11 @@ export interface GitHubRepositoryList {
   repositories: GitHubRepository[];
   /** false: dừng ở giới hạn số trang, còn repository chưa đọc. */
   complete: boolean;
+}
+
+export interface GitHubRepositoryRef {
+  /** Node id GraphQL (R_kgDO...) — GraphQL không tra được theo id số. */
+  nodeId: string;
+  /** Tên hiện tại, đã theo đổi tên/chuyển owner. */
+  fullName: string;
 }

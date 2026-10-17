@@ -19,6 +19,7 @@ describe('ConnectGitHubHandler', () => {
   const api: jest.Mocked<GitHubApi> = {
     verifyToken: jest.fn(),
     listRepositories: jest.fn(),
+    findRepository: jest.fn(),
   };
   const cipher: jest.Mocked<TokenCipher> = {
     encrypt: jest.fn((plain: string) => `enc(${plain})`),

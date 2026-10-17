@@ -1,5 +1,6 @@
 import {
   GitHubRateLimitedException,
+  GitHubRepositoryNotAccessibleException,
   GitHubTokenInsufficientScopeException,
   GitHubTokenInvalidException,
   GitHubUnavailableException,
@@ -401,5 +402,82 @@ describe('GitHubRestClient.listRepositories', () => {
     await expect(client.listRepositories(TOKEN)).rejects.toBeInstanceOf(
       GitHubUnavailableException,
     );
+  });
+});
+
+describe('GitHubRestClient.findRepository', () => {
+  const BASE = 'https://api.github.test';
+
+  const setup = (...responses: Response[]) => {
+    const fetchFn = jest.fn<Promise<Response>, Parameters<typeof fetch>>();
+    for (const response of responses) fetchFn.mockResolvedValueOnce(response);
+    const client = new GitHubRestClient({
+      fetchFn: fetchFn as unknown as typeof fetch,
+      baseUrl: BASE,
+      now: () => NOW,
+    });
+    return { client, fetchFn };
+  };
+
+  it('looks the repository up by its stable id, following renames', async () => {
+    const { client, fetchFn } = setup(
+      json(200, {
+        id: 1067270000,
+        node_id: 'R_kgDOPeQ8cA',
+        full_name: 'trhgatu/magnum-opus-renamed',
+      }),
+    );
+
+    await expect(client.findRepository(TOKEN, '1067270000')).resolves.toEqual({
+      nodeId: 'R_kgDOPeQ8cA',
+      fullName: 'trhgatu/magnum-opus-renamed',
+    });
+    expect(fetchFn.mock.calls[0][0]).toBe(`${BASE}/repositories/1067270000`);
+  });
+
+  it.each([404, 403])(
+    'reports a repository the token cannot read (%i) as not accessible',
+    async (status) => {
+      const { client } = setup(json(status, { message: 'Not Found' }));
+
+      await expect(
+        client.findRepository(TOKEN, '1067270000'),
+      ).rejects.toBeInstanceOf(GitHubRepositoryNotAccessibleException);
+    },
+  );
+
+  it('never builds a URL from an id that is not a number', async () => {
+    const { client, fetchFn } = setup();
+
+    await expect(
+      client.findRepository(TOKEN, '../user'),
+    ).rejects.toBeInstanceOf(GitHubRepositoryNotAccessibleException);
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it('rejects a token GitHub no longer accepts', async () => {
+    const { client } = setup(json(401, {}));
+
+    await expect(
+      client.findRepository(TOKEN, '1067270000'),
+    ).rejects.toBeInstanceOf(GitHubTokenInvalidException);
+  });
+
+  it('treats a rate-limited 403 as a rate limit, not missing access', async () => {
+    const { client } = setup(
+      json(403, {}, { 'x-ratelimit-remaining': '0', 'retry-after': '30' }),
+    );
+
+    await expect(
+      client.findRepository(TOKEN, '1067270000'),
+    ).rejects.toBeInstanceOf(GitHubRateLimitedException);
+  });
+
+  it('reports a malformed body as GitHub being unavailable', async () => {
+    const { client } = setup(json(200, { id: 1 }));
+
+    await expect(
+      client.findRepository(TOKEN, '1067270000'),
+    ).rejects.toBeInstanceOf(GitHubUnavailableException);
   });
 });
