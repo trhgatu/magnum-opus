@@ -17,6 +17,7 @@ import { ReflectionModule } from './contexts/reflection/reflection.module';
 import { ForgeModule } from './contexts/forge/forge.module';
 import { CrucibleModule } from './contexts/crucible/crucible.module';
 import { IntegrationsModule } from './contexts/integrations/integrations.module';
+import { ActivityModule } from './contexts/activity/activity.module';
 import { ChronicleModule } from './contexts/chronicle/chronicle.module';
 
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
@@ -61,6 +62,7 @@ import { createPinoHttpOptions } from '@infrastructure/observability/logger.conf
     HealthModule,
     CrucibleModule,
     IntegrationsModule,
+    ActivityModule,
     ChronicleModule,
   ],
   providers: [
