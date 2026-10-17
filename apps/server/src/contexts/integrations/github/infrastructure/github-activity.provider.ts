@@ -138,7 +138,7 @@ function commitEvents(
     // Merge commit là thao tác merge — đã có PR_MERGED đại diện.
     if (commit.parentCount > 1) continue;
     // Không lọc lại theo author date: khoảng đọc theo committer date (lúc
-    // commit tới repository). Commit viết từ trước rồi mới amend/rebase/push
+    // commit tới repository). Commit viết từ trước rồi mới amend/rebase
     // mang author date cũ hơn khoảng — vẫn là công sức thật, phải vào sổ
     // (02 §6.13). Chép chồng lên nhau không tạo trùng nhờ khóa.
 
