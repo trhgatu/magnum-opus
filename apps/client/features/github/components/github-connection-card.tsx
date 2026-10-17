@@ -4,7 +4,6 @@ import type { GitHubConnectionResponse } from "@repo/contracts";
 import {
   type FormEvent,
   type MouseEvent,
-  useEffect,
   useId,
   useState,
   useTransition,
@@ -33,8 +32,8 @@ import {
   accountChangeOf,
   connectErrorMessage,
   connectionHealth,
-  nextHealthChangeAt,
 } from "@/features/github/lib/github-connection";
+import { useConnectionNow } from "@/features/github/hooks/use-connection-now";
 import { formatInstantDay } from "@/features/project/lib/cycle-dates";
 import { notifySuccess } from "@/lib/toast";
 
@@ -265,7 +264,7 @@ function ConnectionStatus({
   connection: GitHubConnectionResponse;
   timeZone: string;
 }) {
-  const now = useNow(connection);
+  const now = useConnectionNow(connection);
   const health = connectionHealth(connection, now);
 
   if (health.kind === "expired" || health.kind === "revoked") {
@@ -302,29 +301,6 @@ function ConnectionStatus({
       ) : null}
     </div>
   );
-}
-
-/** setTimeout tối đa ~24,8 ngày; mốc xa hơn thì hẹn lại giữa chừng. */
-const MAX_TIMEOUT_MS = 2_147_483_647;
-
-/**
- * "Bây giờ", cập nhật đúng lúc trạng thái hiển thị đổi (bắt đầu nhắc, hết
- * hạn) — trang Cài đặt mở lâu không giữ trạng thái cũ.
- */
-function useNow(connection: GitHubConnectionResponse): Date {
-  const [now, setNow] = useState(() => new Date());
-
-  useEffect(() => {
-    const next = nextHealthChangeAt(connection, now);
-    if (!next) return;
-    const timer = setTimeout(
-      () => setNow(new Date()),
-      Math.min(next.getTime() - Date.now() + 1, MAX_TIMEOUT_MS),
-    );
-    return () => clearTimeout(timer);
-  }, [connection, now]);
-
-  return now;
 }
 
 function TokenGuidance({ id }: { id: string }) {
