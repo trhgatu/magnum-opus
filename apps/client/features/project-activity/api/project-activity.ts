@@ -1,6 +1,9 @@
 import "server-only";
 
-import type { ActivitySourceResponse } from "@repo/contracts";
+import type {
+  ActivitySourceResponse,
+  ProjectActivityResponse,
+} from "@repo/contracts";
 
 import { apiFetch } from "@/lib/api";
 
@@ -11,4 +14,14 @@ export function getActivitySources(
   return apiFetch<ActivitySourceResponse[]>(
     `/projects/${projectId}/activity/sources`,
   );
+}
+
+/**
+ * Hoạt động của vòng đang mở và các chỗ lệch. Server có thể đồng bộ tới
+ * 10 giây trước khi trả lời (07 §5.4) — đọc trong Suspense riêng.
+ */
+export function getProjectActivity(
+  projectId: string,
+): Promise<ProjectActivityResponse> {
+  return apiFetch<ProjectActivityResponse>(`/projects/${projectId}/activity`);
 }

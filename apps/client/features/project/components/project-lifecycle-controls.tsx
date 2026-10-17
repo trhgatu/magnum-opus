@@ -10,7 +10,13 @@ import {
   Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { type MouseEvent, useId, useState, useTransition } from "react";
+import {
+  type MouseEvent,
+  type TransitionStartFunction,
+  useId,
+  useState,
+  useTransition,
+} from "react";
 
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -42,8 +48,18 @@ const PROJECT_DELETION_NOT_ALLOWED = "PROJECT_DELETION_NOT_ALLOWED";
 
 const CLOSING_NOTE_MAX_LENGTH = 2000;
 
+const REVISION_CONFLICT_MESSAGE =
+  "Project đã thay đổi ở một phiên làm việc khác.";
+
 const isRevisionConflict = (code?: string) =>
   code === PROJECT_REVISION_CONFLICT;
+
+/**
+ * Một transition dùng chung cho mọi nút đổi lifecycle trên cùng trang: nút
+ * này đang chạy thì nút kia cũng chờ — như nút Tiếp tục của Activity (D2)
+ * và thanh hành động (06 §9).
+ */
+export type LifecycleTransition = readonly [boolean, TransitionStartFunction];
 
 const AVAILABLE_ACTIONS: Record<
   ProjectLifecycleState,
@@ -131,6 +147,7 @@ type ProjectLifecycleControlsProps = {
   title: string;
   lifecycleState: ProjectLifecycleState;
   revision: number;
+  transition?: LifecycleTransition;
 };
 
 type LifecycleError = {
@@ -143,6 +160,7 @@ export function ProjectLifecycleControls({
   title,
   lifecycleState,
   revision,
+  transition,
 }: ProjectLifecycleControlsProps) {
   const router = useRouter();
 
@@ -154,7 +172,8 @@ export function ProjectLifecycleControls({
     useState<ProjectLifecycleAction | null>(null);
   const [pendingAction, setPendingAction] =
     useState<ProjectLifecycleAction | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const ownTransition = useTransition();
+  const [isPending, startTransition] = transition ?? ownTransition;
   const [closingNote, setClosingNote] = useState("");
   const closingNoteId = useId();
   // Chỉ ACTIVE/PAUSED có Cycle đang mở để ghi chú (BR-PRJ-034) — Stop từ
@@ -195,7 +214,7 @@ export function ProjectLifecycleControls({
           setError({
             code: result.code,
             message: isRevisionConflict(result.code)
-              ? "Project đã thay đổi ở một phiên làm việc khác."
+              ? REVISION_CONFLICT_MESSAGE
               : result.message,
           });
           return;
@@ -232,7 +251,7 @@ export function ProjectLifecycleControls({
               result.code === PROJECT_DELETION_NOT_ALLOWED
                 ? "Project đã từng có Project Cycle nên không thể xóa vĩnh viễn."
                 : isRevisionConflict(result.code)
-                  ? "Project đã thay đổi ở một phiên làm việc khác."
+                  ? REVISION_CONFLICT_MESSAGE
                   : result.message,
           });
         }
@@ -412,6 +431,86 @@ export function ProjectLifecycleControls({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </div>
+  );
+}
+
+/**
+ * Nút Tiếp tục đứng ngoài thanh hành động (lời nhắc D2 của Activity, 06 §9).
+ * Chính là Resume: cùng transition, cùng thông báo, cùng xử lý xung đột.
+ */
+export function ProjectResumeButton({
+  id,
+  title,
+  revision,
+  transition,
+}: {
+  id: string;
+  title: string;
+  revision: number;
+  transition?: LifecycleTransition;
+}) {
+  const router = useRouter();
+  const ownTransition = useTransition();
+  const [isPending, startTransition] = transition ?? ownTransition;
+  const [running, setRunning] = useState(false);
+  const [error, setError] = useState<LifecycleError | null>(null);
+  const { label, icon: Icon } = ACTION_META.resume;
+
+  const resume = () => {
+    setError(null);
+    setRunning(true);
+
+    startTransition(async () => {
+      try {
+        const result = await changeProjectLifecycle({
+          id,
+          expectedRevision: revision,
+          action: "resume",
+        });
+
+        if (result.status === "error") {
+          setRunning(false);
+          setError({
+            code: result.code,
+            message: isRevisionConflict(result.code)
+              ? REVISION_CONFLICT_MESSAGE
+              : result.message,
+          });
+          return;
+        }
+
+        void notifySuccess(ACTION_META.resume.successMessage(title));
+        router.refresh();
+      } catch {
+        setRunning(false);
+        setError({ message: "Không thể cập nhật Project. Vui lòng thử lại." });
+      }
+    });
+  };
+
+  return (
+    <div className="flex flex-col items-end gap-2">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        disabled={isPending}
+        onClick={resume}
+      >
+        <Icon aria-hidden="true" />
+        {isPending && running ? "Đang cập nhật…" : label}
+      </Button>
+      {error ? (
+        <LifecycleErrorAlert
+          message={error.message}
+          hasConflict={isRevisionConflict(error.code)}
+          onReload={() => {
+            setError(null);
+            router.refresh();
+          }}
+        />
+      ) : null}
     </div>
   );
 }

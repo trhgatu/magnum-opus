@@ -23,7 +23,11 @@ import {
   setProjectTargetEndDate,
   updateProject,
 } from "@/features/project/actions/project";
-import { ProjectLifecycleControls } from "@/features/project/components/project-lifecycle-controls";
+import {
+  type LifecycleTransition,
+  ProjectLifecycleControls,
+  ProjectResumeButton,
+} from "@/features/project/components/project-lifecycle-controls";
 import {
   ProjectOutcomeEditor,
   type ProjectOutcomeSubmitResult,
@@ -64,6 +68,8 @@ const ProjectFieldsContext = createContext<{
    * là có cập nhật từ bên ngoài xen vào giữa chừng, phải bỏ request đó
    * thay vì gửi đè draft đã bị hủy lên dữ liệu vừa tải về. */
   externalUpdateTokenRef: React.RefObject<number>;
+  /** Mọi nút đổi lifecycle trong Provider chờ chung một transition. */
+  lifecycleTransition: LifecycleTransition;
 } | null>(null);
 
 function useProjectFields() {
@@ -88,6 +94,7 @@ export function ProjectFieldsProvider({
   const queueRef = useRef<Promise<unknown>>(Promise.resolve());
   const [externalUpdateToken, setExternalUpdateTokenState] = useState(0);
   const externalUpdateTokenRef = useRef(externalUpdateToken);
+  const lifecycleTransition = useTransition();
 
   const setProject = (next: ProjectResponse) => {
     projectRef.current = next;
@@ -137,6 +144,7 @@ export function ProjectFieldsProvider({
         runExclusive,
         externalUpdateToken,
         externalUpdateTokenRef,
+        lifecycleTransition,
       }}
     >
       {children}
@@ -516,13 +524,28 @@ export function ProjectInlineDescription({
  * router.refresh() kịp round-trip) sẽ gửi `expectedRevision` cũ và bị 409
  * dù lần lưu title/description trước đó đã thành công. */
 export function ProjectLifecycleControlsInline() {
-  const { project } = useProjectFields();
+  const { project, lifecycleTransition } = useProjectFields();
   return (
     <ProjectLifecycleControls
       id={project.id}
       title={project.title}
       lifecycleState={project.lifecycleState}
       revision={project.revision}
+      transition={lifecycleTransition}
+    />
+  );
+}
+
+/** Nút Tiếp tục của lời nhắc D2 — chỉ còn ý nghĩa khi Project vẫn tạm dừng. */
+export function ProjectResumeInline() {
+  const { project, lifecycleTransition } = useProjectFields();
+  if (project.lifecycleState !== "PAUSED") return null;
+  return (
+    <ProjectResumeButton
+      id={project.id}
+      title={project.title}
+      revision={project.revision}
+      transition={lifecycleTransition}
     />
   );
 }
