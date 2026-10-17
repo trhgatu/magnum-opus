@@ -70,17 +70,24 @@ export interface ActivityProviderPort {
     historyWindowDays: number | null;
   };
 
-  /** Tài nguyên người dùng có thể gắn (repo, WakaTime project...). */
-  listResources(ownerId: string): Promise<ActivityResource[]>;
-
   /** Sự kiện của một tài nguyên trong khoảng [from, to). Đã lọc: chỉ của người dùng,
-   *  bỏ bot, bỏ merge commit; đã tính khóa chống trùng. */
+   *  bỏ bot, bỏ merge commit; đã tính khóa chống trùng. Ném ActivitySourceError. */
   fetchEvents(
-    ownerId: string,
-    externalResourceId: string,
+    resource: ActivityResourceRef,
     from: Date,
     to: Date,
-  ): Promise<ActivityEventInput[]>;
+  ): Promise<FetchedActivity>;
+}
+
+export interface ActivityResourceRef {
+  ownerId: string;
+  externalAccountId: string; // tài khoản mà feed thuộc về
+  externalResourceId: string;
+}
+
+export interface FetchedActivity {
+  displayName: string; // tên hiện tại — feed cập nhật khi tài nguyên đổi tên (02 §6.7)
+  events: ActivityEventInput[];
 }
 
 export interface ActivityEventInput {
@@ -89,7 +96,22 @@ export interface ActivityEventInput {
   quantity: number; // 1, hoặc số giây với CODING_TIME
   dedupeKey: string;
 }
+
+export class ActivitySourceError extends Error {
+  constructor(
+    readonly code: ActivitySourceErrorCode, // ghi vào activity_feeds.last_error_code
+    readonly retryAfterSeconds: number | null = null, // khi bị giới hạn request
+  ) {
+    super(`Activity source failed: ${code}`);
+    this.name = 'ActivitySourceError';
+  }
+}
 ```
+
+- `[from, to)` là khoảng **tới nguồn** (với GitHub: committer date). `occurredAt` là thời điểm làm việc (author date) và có thể sớm hơn `from` — commit viết trước, push sau vẫn vào sổ (`02` §6.13); chép chồng không tạo trùng nhờ khóa.
+- `externalAccountId`: tài khoản đang kết nối khác tài khoản của feed → `GITHUB_ACCOUNT_CHANGED`, để không chép hoạt động của tài khoản mới vào sổ của feed cũ.
+- Không có `listResources`: danh sách tài nguyên để gắn đã có endpoint riêng của từng provider (`07` §4.4).
+- Mỗi integration đăng ký provider của mình dưới một token riêng (GitHub: `GITHUB_ACTIVITY_PROVIDER`); `activity` gom các token đó thành `ACTIVITY_PROVIDER_PORTS`.
 
 Nguồn nội bộ (Habit...) **không** dùng hợp đồng này: chúng đẩy event qua outbox (§8.2).
 
