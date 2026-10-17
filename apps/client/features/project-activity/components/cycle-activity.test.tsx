@@ -104,7 +104,7 @@ describe("CycleActivity", () => {
 
   it("wraps long cycles into weekly rows", () => {
     const days: ActivityDay[] = Array.from({ length: 71 }, (_, index) => ({
-      date: `2026-08-${String(index + 1).padStart(2, "0")}`,
+      date: new Date(Date.UTC(2026, 7, 1 + index)).toISOString().slice(0, 10),
       state: "IDLE",
     }));
     render(

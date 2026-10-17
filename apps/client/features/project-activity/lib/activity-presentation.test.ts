@@ -105,6 +105,12 @@ describe("summaryLine", () => {
     ).toBe("Chưa có dữ liệu hoạt động cho vòng này.");
   });
 
+  it("flags missing data reported by a stale source", () => {
+    expect(summaryLine(cycle({ hasMissingData: true }))).toBe(
+      "8 ngày có hoạt động · 23 commit · 4 PR mở · 3 PR merge (một số ngày chưa có dữ liệu)",
+    );
+  });
+
   it("flags days without data next to a normal line", () => {
     expect(
       summaryLine(
@@ -122,6 +128,14 @@ describe("summaryLine", () => {
 });
 
 describe("formatRecent", () => {
+  it("finds yesterday by calendar day across a daylight-saving change", () => {
+    // New York lùi giờ 01/11/2026: ngày đó dài 25 giờ.
+    const now = new Date("2026-11-02T04:30:00.000Z"); // 23:30 ngày 01/11
+    expect(
+      formatRecent("2026-10-31T14:00:00.000Z", "America/New_York", now),
+    ).toBe("hôm qua, 10:00");
+  });
+
   it("says today, yesterday, or the date — in the account time zone", () => {
     expect(formatRecent("2026-10-18T07:20:00.000Z", TZ, NOW)).toBe(
       "hôm nay, 14:20",

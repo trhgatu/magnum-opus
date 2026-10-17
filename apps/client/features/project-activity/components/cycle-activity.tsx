@@ -23,7 +23,8 @@ const CELL_CLASS: Record<ActivityDayState, string> = {
   ACTIVE: "bg-primary",
   PAUSED_ACTIVE:
     "bg-[repeating-linear-gradient(135deg,var(--primary)_0_2px,transparent_2px_4px)] ring-1 ring-inset ring-primary/60",
-  PAUSED_IDLE: "bg-muted-foreground/25",
+  PAUSED_IDLE:
+    "bg-[repeating-linear-gradient(135deg,color-mix(in_oklab,var(--muted-foreground)_35%,transparent)_0_2px,transparent_2px_4px)] ring-1 ring-inset ring-border",
   IDLE: "bg-muted ring-1 ring-inset ring-border",
   NO_DATA: "border border-dashed border-muted-foreground/60",
 };

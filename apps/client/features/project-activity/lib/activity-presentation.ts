@@ -20,7 +20,11 @@ export function summaryLine(cycle: CycleActivityResponse): string {
   if (days.length > 0 && missingDays === days.length) {
     return "Chưa có dữ liệu hoạt động cho vòng này.";
   }
-  const partial = missingDays > 0 ? " (một số ngày chưa có dữ liệu)" : "";
+  // hasMissingData còn tính cả nguồn lỗi/cũ dù ô ngày đã có từ trước.
+  const partial =
+    cycle.hasMissingData || missingDays > 0
+      ? " (một số ngày chưa có dữ liệu)"
+      : "";
 
   const hasActivity =
     metrics.activeDays > 0 ||
@@ -67,7 +71,12 @@ const shortDay = (date: Date, timeZone: string) => {
 export function formatRecent(iso: string, timeZone: string, now: Date): string {
   const at = new Date(iso);
   const today = dayKey(now, timeZone);
-  const yesterday = dayKey(new Date(now.getTime() - 86_400_000), timeZone);
+  // Lùi một ngày lịch trên chuỗi ngày, không lùi 24 giờ: ngày đổi giờ dài
+  // 23 hoặc 25 giờ.
+  const [year, month, date] = today.split("-").map(Number);
+  const yesterday = new Date(Date.UTC(year!, month! - 1, date! - 1))
+    .toISOString()
+    .slice(0, 10);
   const day = dayKey(at, timeZone);
   const prefix =
     day === today
