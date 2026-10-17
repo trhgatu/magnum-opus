@@ -70,12 +70,28 @@ describe("GitHubConnectionCard", () => {
       confirmAccountChange: false,
     });
     expect(notifySuccess).toHaveBeenCalledWith("Đã kết nối GitHub");
+    // Token không còn ở đâu trên trang.
+    expect(document.body.textContent).not.toContain("fake-token");
+    expect(document.body.innerHTML).not.toContain("fake-token");
     expect(
       screen.queryByLabelText("Fine-grained personal access token"),
     ).toBeNull();
   });
 
-  it("shows the account and expiry, never the token", () => {
+  it("shows the account and its expiry date in the account time zone", () => {
+    render(
+      <GitHubConnectionCard
+        connection={connection({ expiresAt: "2099-10-13T18:00:00.000Z" })}
+        timeZone="Asia/Ho_Chi_Minh"
+      />,
+    );
+
+    expect(screen.getByText("trhgatu")).toBeTruthy();
+    // 13/10 18:00Z là 14/10 ở Việt Nam.
+    expect(screen.getByText("Token hết hạn 14/10/2099")).toBeTruthy();
+  });
+
+  it("says when GitHub gives no expiry", () => {
     render(
       <GitHubConnectionCard
         connection={connection({ expiresAt: null })}
@@ -87,6 +103,26 @@ describe("GitHubConnectionCard", () => {
     expect(screen.getByText("Token không có ngày hết hạn")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Thay token" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Ngắt kết nối" })).toBeTruthy();
+  });
+
+  it("switches to the expired notice when the expiry passes while open", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const expiresAt = new Date(Date.now() + 60_000).toISOString();
+      render(
+        <GitHubConnectionCard
+          connection={connection({ expiresAt })}
+          timeZone="UTC"
+        />,
+      );
+      expect(screen.getByText(/Token hết hạn sau 1 ngày/)).toBeTruthy();
+
+      await vi.advanceTimersByTimeAsync(61_000);
+
+      expect(await screen.findByText(/token đã hết hạn\./)).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("says when the connection is no longer usable", () => {
@@ -140,7 +176,9 @@ describe("GitHubConnectionCard", () => {
     await waitFor(() =>
       expect(screen.getByText("Đổi sang tài khoản GitHub khác?")).toBeTruthy(),
     );
-    expect(screen.getAllByText("other-account").length).toBeGreaterThan(0);
+    const dialog = screen.getByRole("alertdialog");
+    expect(dialog.textContent).toContain("other-account");
+    expect(dialog.textContent).toContain("trhgatu");
 
     fireEvent.click(
       await screen.findByRole("button", { name: "Đổi tài khoản" }),
@@ -161,6 +199,8 @@ describe("GitHubConnectionCard", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Ngắt kết nối" }));
     expect(screen.getByText("Ngắt kết nối GitHub?")).toBeTruthy();
+    // Mở hộp xác nhận chưa ngắt gì.
+    expect(disconnectGitHub).not.toHaveBeenCalled();
     fireEvent.click(
       screen.getAllByRole("button", { name: "Ngắt kết nối" }).at(-1)!,
     );

@@ -5,6 +5,7 @@ import {
   accountChangeOf,
   connectErrorMessage,
   connectionHealth,
+  nextHealthChangeAt,
 } from "./github-connection";
 
 const NOW = new Date("2026-10-18T10:00:00.000Z");
@@ -64,6 +65,32 @@ describe("connectionHealth", () => {
         NOW,
       ),
     ).toEqual({ kind: "expired" });
+  });
+});
+
+describe("nextHealthChangeAt", () => {
+  it("is when the reminder starts, then when the token expires", () => {
+    const expiring = connection({ expiresAt: "2026-11-10T00:00:00.000Z" });
+
+    expect(nextHealthChangeAt(expiring, NOW)).toEqual(
+      new Date("2026-10-27T00:00:00.000Z"),
+    );
+    expect(
+      nextHealthChangeAt(expiring, new Date("2026-10-30T00:00:00.000Z")),
+    ).toEqual(new Date("2026-11-10T00:00:00.000Z"));
+  });
+
+  it("has nothing ahead without an expiry or once unusable", () => {
+    expect(nextHealthChangeAt(connection({ expiresAt: null }), NOW)).toBeNull();
+    expect(
+      nextHealthChangeAt(connection({ status: "REVOKED" }), NOW),
+    ).toBeNull();
+    expect(
+      nextHealthChangeAt(
+        connection({ expiresAt: "2026-10-01T00:00:00.000Z" }),
+        NOW,
+      ),
+    ).toBeNull();
   });
 });
 

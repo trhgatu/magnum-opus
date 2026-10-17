@@ -33,6 +33,23 @@ export function connectionHealth(
     : { kind: "active", expiresAt };
 }
 
+/**
+ * Lúc trạng thái hiển thị đổi tiếp (bắt đầu nhắc, hoặc hết hạn) — để trang
+ * mở lâu tự cập nhật. null khi không còn mốc nào phía trước.
+ */
+export function nextHealthChangeAt(
+  connection: GitHubConnectionResponse,
+  now: Date,
+): Date | null {
+  if (connection.status !== "ACTIVE" || connection.expiresAt === null) {
+    return null;
+  }
+  const expiry = Date.parse(connection.expiresAt);
+  const remindFrom = expiry - EXPIRY_REMINDER_DAYS * DAY_MS;
+  const next = [remindFrom, expiry].find((time) => time > now.getTime());
+  return next === undefined ? null : new Date(next);
+}
+
 const CONNECT_ERROR_COPY: Record<string, string> = {
   GITHUB_TOKEN_INVALID:
     "GitHub không chấp nhận token này. Kiểm tra lại token rồi thử lại.",

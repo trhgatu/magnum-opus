@@ -44,6 +44,8 @@ interface ApiErrorOptions extends PublicApiError {
  *
  * `message` luôn an toàn để hiển thị. Chi tiết backend không được sao chép vào
  * Error vì error có thể đi tới error boundary hoặc Server Action response.
+ * Ngoại lệ có chủ đích: `args` của lỗi nghiệp vụ (vd tên tài khoản), và chỉ
+ * giá trị nguyên thủy — object lồng từ API bị bỏ ở `readErrorArgs`.
  */
 export class ApiError extends Error {
   readonly kind: ApiErrorKind;
