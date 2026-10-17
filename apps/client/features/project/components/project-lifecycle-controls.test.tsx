@@ -50,7 +50,12 @@ const redirectError = (url: string) =>
 
 import { listenForNextRedirect } from "@/test/next-redirect";
 
-import { ProjectLifecycleControls } from "./project-lifecycle-controls";
+import { useTransition } from "react";
+
+import {
+  ProjectLifecycleControls,
+  ProjectResumeButton,
+} from "./project-lifecycle-controls";
 
 const projectId = "72b45d9d-7ac6-4ec8-b3bc-5d67134b9676";
 const title = "Xây dựng Crucible V1";
@@ -641,5 +646,103 @@ describe("ProjectLifecycleControls", () => {
 
     expect(screen.getByRole("alertdialog")).toBeTruthy();
     expect(push).not.toHaveBeenCalled();
+  });
+});
+
+describe("ProjectResumeButton", () => {
+  it("resumes the project like the action bar does", async () => {
+    changeProjectLifecycle.mockResolvedValue({
+      status: "success",
+      project: {},
+    });
+
+    render(
+      <ProjectResumeButton id={projectId} title={title} revision={revision} />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Tiếp tục" }));
+
+    await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
+    expect(changeProjectLifecycle).toHaveBeenCalledWith({
+      id: projectId,
+      expectedRevision: revision,
+      action: "resume",
+    });
+    expect(notifySuccess).toHaveBeenCalledWith(`Đã tiếp tục "${title}"`);
+  });
+
+  it("explains a conflict and reloads the latest revision", async () => {
+    changeProjectLifecycle.mockResolvedValue({
+      status: "error",
+      code: "PROJECT_REVISION_CONFLICT",
+      message: "conflict",
+    });
+
+    render(
+      <ProjectResumeButton id={projectId} title={title} revision={revision} />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Tiếp tục" }));
+
+    expect(
+      await screen.findByText("Project đã thay đổi ở một phiên làm việc khác."),
+    ).toBeTruthy();
+    expect(notifySuccess).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Tải bản mới nhất" }));
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(
+      screen.queryByText("Project đã thay đổi ở một phiên làm việc khác."),
+    ).toBeNull();
+  });
+
+  it("shares the pending state with the action bar", async () => {
+    let finish: (value: unknown) => void = () => {};
+    changeProjectLifecycle.mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+    );
+
+    function Page() {
+      const transition = useTransition();
+      return (
+        <>
+          <ProjectLifecycleControls
+            id={projectId}
+            title={title}
+            lifecycleState="PAUSED"
+            revision={revision}
+            transition={transition}
+          />
+          <div data-testid="reminder">
+            <ProjectResumeButton
+              id={projectId}
+              title={title}
+              revision={revision}
+              transition={transition}
+            />
+          </div>
+        </>
+      );
+    }
+
+    render(<Page />);
+    const reminder = within(screen.getByTestId("reminder"));
+    fireEvent.click(reminder.getByRole("button", { name: "Tiếp tục" }));
+
+    expect(
+      await reminder.findByRole("button", { name: "Đang cập nhật…" }),
+    ).toHaveProperty("disabled", true);
+    const bar = within(
+      screen.getByRole("group", { name: "Thao tác vòng đời Project" }),
+    );
+    for (const name of ["Tiếp tục", "Dừng lại", "Hoàn thành"]) {
+      expect(bar.getByRole("button", { name })).toHaveProperty(
+        "disabled",
+        true,
+      );
+    }
+
+    finish({ status: "success", project: {} });
+    await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
   });
 });

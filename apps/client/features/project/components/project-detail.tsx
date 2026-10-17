@@ -1,6 +1,7 @@
 import type { ProjectCycleResponse, ProjectResponse } from "@repo/contracts";
 import { ArrowLeft, FolderKanban, Pencil } from "lucide-react";
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 import { ContextHero } from "@/components/system/context-hero";
 import { Badge } from "@/components/ui/badge";
@@ -29,11 +30,17 @@ export function ProjectDetail({
   project,
   closedCycles,
   timeZone,
+  activity,
+  activityNotes,
 }: {
   project: ProjectResponse;
   /** null khi không tải được — xem page.tsx. */
   closedCycles: ProjectCycleResponse[] | null;
   timeZone: string;
+  /** "Hoạt động của vòng này" — trong thẻ Cycle đang mở, sau ngày dự kiến. */
+  activity?: ReactNode;
+  /** Chỗ lệch D3/D4 — ngay dưới phần đầu trang. */
+  activityNotes?: ReactNode;
 }) {
   const hasOpenCycle =
     project.lifecycleState === "ACTIVE" || project.lifecycleState === "PAUSED";
@@ -92,6 +99,7 @@ export function ProjectDetail({
             </>
           }
         />
+        {activityNotes}
 
         {hasOpenCycle && project.currentCycle ? (
           <Card className="gap-0 rounded-3xl bg-card/65 py-0 shadow-sm">
@@ -107,6 +115,7 @@ export function ProjectDetail({
                   today={todayInTimeZone(timeZone)}
                 />
               </div>
+              {activity}
             </CardContent>
           </Card>
         ) : null}
