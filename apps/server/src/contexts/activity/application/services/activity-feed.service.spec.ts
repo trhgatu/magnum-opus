@@ -66,6 +66,7 @@ describe('ActivityFeedService', () => {
     await expect(
       service.connectedAccountId({ ownerId: 'owner-id', provider: 'GITHUB' }),
     ).resolves.toBe('127409189');
+    expect(github.connectedAccountId).toHaveBeenCalledWith('owner-id');
   });
 
   it('creates nothing when the connection cannot read the resource', async () => {

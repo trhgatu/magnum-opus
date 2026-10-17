@@ -64,8 +64,9 @@ export interface ActivityProviderPort {
   ): Promise<ResolvedResource>;
 
   /**
-   * Tài khoản bên ngoài đang kết nối (kể cả khi token đã hết hạn); null khi
-   * chưa kết nối. Không gọi nguồn bên ngoài.
+   * Tài khoản bên ngoài của kết nối đang lưu — kể cả khi token đã hết hạn
+   * hay bị thu hồi, nên khác null không có nghĩa là kết nối còn dùng được.
+   * null khi chưa kết nối. Không gọi nguồn bên ngoài.
    */
   connectedAccountId(ownerId: string): Promise<string | null>;
 }
