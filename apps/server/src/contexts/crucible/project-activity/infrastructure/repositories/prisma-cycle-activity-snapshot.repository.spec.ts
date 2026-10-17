@@ -102,15 +102,23 @@ describe('PrismaCycleActivitySnapshotRepository', () => {
     cycleActivitySnapshot.findMany.mockResolvedValue([
       {
         ...row,
-        days: [{ date: '2026-10-02', state: 'BUSY' }, 'nonsense'],
-        sources: { not: 'an array' },
+        days: [
+          { date: '2026-10-02', state: 'BUSY' },
+          'nonsense',
+          { date: 'yesterday', state: 'ACTIVE' },
+          { date: '2026-10-03', state: 'ACTIVE' },
+        ],
+        sources: [
+          { ...row.sources[0], coveredFrom: 'not a date' },
+          row.sources[0],
+        ],
       },
     ]);
 
     const [read] = await repository.listByProject('owner-id', 'project-id');
 
-    expect(read.days).toEqual([]);
-    expect(read.sources).toEqual([]);
+    expect(read.days).toEqual([{ date: '2026-10-03', state: 'ACTIVE' }]);
+    expect(read.sources).toEqual(snapshot.sources);
   });
 
   it('knows whether a cycle has a snapshot', async () => {

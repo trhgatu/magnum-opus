@@ -167,6 +167,23 @@ describe('CaptureCycleSnapshotService', () => {
     expect(snapshots.createIfAbsent).not.toHaveBeenCalled();
   });
 
+  it('still captures once the time limit passes on a copy that hangs', async () => {
+    jest.useFakeTimers();
+    try {
+      sync.syncFeed.mockReturnValue(new Promise(() => undefined));
+
+      const capturing = capture();
+      await jest.advanceTimersByTimeAsync(10_000);
+      await capturing;
+
+      expect(snapshots.createIfAbsent).toHaveBeenCalledWith(
+        expect.objectContaining({ cycleId: 'cycle-1' }),
+      );
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it('still captures from the ledger it has when the last copy fails', async () => {
     sync.syncFeed.mockRejectedValue(new Error('GitHub down'));
 

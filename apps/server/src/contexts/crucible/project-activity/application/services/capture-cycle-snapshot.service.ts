@@ -87,6 +87,14 @@ export class CaptureCycleSnapshotService {
         feedIds.map((feedId) =>
           this.sync.syncFeed({ ownerId, feedId, neededFrom: cycleStart }),
         ),
+      ).then((results) =>
+        results.forEach((result, index) => {
+          if (result.status === 'rejected') {
+            this.logger.warn(
+              `Final copy of feed ${feedIds[index]} before the snapshot of cycle ${cycleId} failed: ${String(result.reason)}`,
+            );
+          }
+        }),
       ),
       SYNC_TIME_LIMIT_MS,
     );

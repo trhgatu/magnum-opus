@@ -85,8 +85,15 @@ function toSnapshot(row: PrismaSnapshot): CycleActivitySnapshot {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
-const dateOrNull = (value: unknown): Date | null =>
-  typeof value === 'string' ? new Date(value) : null;
+const DAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+/** null giữ nguyên là null; chuỗi không phải ngày hợp lệ → undefined (bỏ dòng). */
+function readDate(value: unknown): Date | null | undefined {
+  if (value === null) return null;
+  if (typeof value !== 'string') return undefined;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? undefined : date;
+}
 
 /** JSON do chính mình ghi; dòng nào sai hình dạng thì bỏ, không làm hỏng cả trang. */
 function readDays(json: unknown): CycleActivitySnapshot['days'] {
@@ -94,6 +101,7 @@ function readDays(json: unknown): CycleActivitySnapshot['days'] {
   return json.flatMap((day) =>
     isRecord(day) &&
     typeof day.date === 'string' &&
+    DAY_PATTERN.test(day.date) &&
     (ACTIVITY_DAY_STATES as readonly unknown[]).includes(day.state)
       ? [{ date: day.date, state: day.state as ActivityDayState }]
       : [],
@@ -102,18 +110,24 @@ function readDays(json: unknown): CycleActivitySnapshot['days'] {
 
 function readSources(json: unknown): SnapshotSource[] {
   if (!Array.isArray(json)) return [];
-  return json.flatMap((source) =>
-    isRecord(source) &&
-    typeof source.displayName === 'string' &&
-    (ACTIVITY_PROVIDERS as readonly unknown[]).includes(source.provider)
-      ? [
-          {
-            provider: source.provider as ActivityProvider,
-            displayName: source.displayName,
-            coveredFrom: dateOrNull(source.coveredFrom),
-            dataUntil: dateOrNull(source.dataUntil),
-          },
-        ]
-      : [],
-  );
+  return json.flatMap((source) => {
+    if (
+      !isRecord(source) ||
+      typeof source.displayName !== 'string' ||
+      !(ACTIVITY_PROVIDERS as readonly unknown[]).includes(source.provider)
+    ) {
+      return [];
+    }
+    const coveredFrom = readDate(source.coveredFrom);
+    const dataUntil = readDate(source.dataUntil);
+    if (coveredFrom === undefined || dataUntil === undefined) return [];
+    return [
+      {
+        provider: source.provider as ActivityProvider,
+        displayName: source.displayName,
+        coveredFrom,
+        dataUntil,
+      },
+    ];
+  });
 }

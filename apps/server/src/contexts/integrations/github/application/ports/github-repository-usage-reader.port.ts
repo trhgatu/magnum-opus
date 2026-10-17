@@ -12,7 +12,11 @@ export interface ProjectRef {
  * trước khi gắn (07 §4.4). Chỉ đọc; integrations không gọi lên tầng trên.
  */
 export interface GitHubRepositoryUsageReader {
-  /** Theo id repository; repository không ai dùng thì không có trong kết quả. */
+  /**
+   * Theo id repository; repository không ai dùng thì không có trong kết quả.
+   * Mỗi Project xuất hiện tối đa một lần cho một repository, kể cả khi nó
+   * gắn feed của repository đó dưới nhiều tài khoản.
+   */
   usedByProjects(
     ownerId: string,
     repositoryIds: readonly string[],

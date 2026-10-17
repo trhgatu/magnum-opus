@@ -133,9 +133,15 @@ describe('Project', () => {
 
       const paused = createProject();
       paused.start();
+      const pausedCycleId = paused.currentCycle!.id;
       paused.pause();
       paused.stop();
-      expect(closedEvents(paused)).toHaveLength(1);
+      expect(closedEvents(paused)).toEqual([
+        expect.objectContaining({
+          cycleId: pausedCycleId,
+          endReason: ProjectCycleEndReason.STOPPED,
+        }),
+      ]);
     });
 
     it('announces nothing for a Stop before the project started', () => {
