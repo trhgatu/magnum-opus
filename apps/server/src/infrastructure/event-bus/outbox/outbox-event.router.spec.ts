@@ -8,6 +8,9 @@ import { UserDeactivatedEvent } from '@iam/users/domain/events/user-deactivated.
 import { NotificationCreatedEvent } from '@/contexts/notifications/domain/events/notification-created.event';
 import { JournalEntrySealedEvent } from '@/contexts/reflection/journal/domain/events/journal-entry-sealed.event';
 import { MemoryCreatedEvent } from '@/contexts/reflection/memory/domain/events/memory-created.event';
+import { ProjectCycleClosedEvent } from '@/contexts/crucible/project/domain/events/project-cycle-closed.event';
+import { ProjectCycleEndReason } from '@/contexts/crucible/project/domain/enums';
+import type { CaptureCycleSnapshotService } from '@/contexts/crucible/project-activity/application/services/capture-cycle-snapshot.service';
 
 import {
   USER_JOBS,
@@ -32,6 +35,9 @@ describe('OutboxEventRouter', () => {
     recordJournalSealed: jest.fn().mockResolvedValue(undefined),
     recordMemoryCreated: jest.fn().mockResolvedValue(undefined),
   } as unknown as jest.Mocked<TimelineWriter>;
+  const cycleSnapshots = {
+    capture: jest.fn().mockResolvedValue(undefined),
+  } as unknown as jest.Mocked<CaptureCycleSnapshotService>;
 
   const router = new OutboxEventRouter(
     cache,
@@ -39,10 +45,32 @@ describe('OutboxEventRouter', () => {
     realtime,
     notifications,
     timelineWriter,
+    cycleSnapshots,
   );
 
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  it('captures the activity snapshot of a closed cycle', async () => {
+    const closedAt = new Date('2026-10-12T17:00:00.000Z');
+
+    await router.dispatch(
+      new ProjectCycleClosedEvent(
+        'project-id',
+        'owner-id',
+        'cycle-id',
+        ProjectCycleEndReason.COMPLETED,
+        closedAt,
+      ),
+    );
+
+    expect(cycleSnapshots.capture).toHaveBeenCalledWith({
+      ownerId: 'owner-id',
+      projectId: 'project-id',
+      cycleId: 'cycle-id',
+      closedAt,
+    });
   });
 
   it('awaits idempotent registration deliveries', async () => {

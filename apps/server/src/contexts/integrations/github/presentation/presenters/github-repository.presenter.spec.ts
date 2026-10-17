@@ -18,6 +18,9 @@ describe('GitHubRepositoryPresenter', () => {
         },
       ],
       truncated: true,
+      usedByProjects: {
+        '1067270000': [{ id: 'project-id', title: 'Magnum Opus' }],
+      },
     });
 
     expect(response).toEqual({
@@ -27,8 +30,7 @@ describe('GitHubRepositoryPresenter', () => {
           fullName: 'trhgatu/magnum-opus',
           isPrivate: true,
           pushedAt: '2026-10-15T08:00:00.000Z',
-          // Điền ở PR5, khi đã có liên kết Project ↔ nguồn.
-          usedByProjects: [],
+          usedByProjects: [{ id: 'project-id', title: 'Magnum Opus' }],
         },
         {
           externalResourceId: '42',

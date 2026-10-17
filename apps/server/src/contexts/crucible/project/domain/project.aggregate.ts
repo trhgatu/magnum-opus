@@ -1,6 +1,9 @@
 import { AggregateRoot } from '@shared/domain/aggregate-root';
 
-import { ProjectLifecycleTransitionedEvent } from './events';
+import {
+  ProjectCycleClosedEvent,
+  ProjectLifecycleTransitionedEvent,
+} from './events';
 import { ProjectCycle } from './project-cycle.entity';
 import {
   ProjectCycleEndReason,
@@ -215,15 +218,22 @@ export class Project extends AggregateRoot {
     this.props.lifecycleState = ProjectLifecycleState.STOPPED;
     this.trackChange();
 
-    this.addDomainEvent(
-      new ProjectLifecycleTransitionedEvent(
-        this.props.id.value,
-        openCycle?.id ?? null,
-        ProjectLifecycleAction.STOP,
-        fromState,
-        this.props.lifecycleState,
-      ),
+    const transitioned = new ProjectLifecycleTransitionedEvent(
+      this.props.id.value,
+      openCycle?.id ?? null,
+      ProjectLifecycleAction.STOP,
+      fromState,
+      this.props.lifecycleState,
     );
+    this.addDomainEvent(transitioned);
+    // Stop từ NOT_STARTED không khép Cycle nào: không có snapshot.
+    if (openCycle) {
+      this.recordCycleClosed(
+        openCycle.id,
+        ProjectCycleEndReason.STOPPED,
+        transitioned,
+      );
+    }
   }
 
   public complete(closingNote?: string | null): void {
@@ -243,13 +253,34 @@ export class Project extends AggregateRoot {
     this.props.lifecycleState = ProjectLifecycleState.COMPLETED;
     this.trackChange();
 
+    const transitioned = new ProjectLifecycleTransitionedEvent(
+      this.props.id.value,
+      openCycle.id,
+      ProjectLifecycleAction.COMPLETE,
+      fromState,
+      this.props.lifecycleState,
+    );
+    this.addDomainEvent(transitioned);
+    this.recordCycleClosed(
+      openCycle.id,
+      ProjectCycleEndReason.COMPLETED,
+      transitioned,
+    );
+  }
+
+  /** Cycle khép đúng lúc lần chuyển trạng thái được ghi. */
+  private recordCycleClosed(
+    cycleId: string,
+    endReason: ProjectCycleEndReason,
+    transitioned: ProjectLifecycleTransitionedEvent,
+  ): void {
     this.addDomainEvent(
-      new ProjectLifecycleTransitionedEvent(
+      new ProjectCycleClosedEvent(
         this.props.id.value,
-        openCycle.id,
-        ProjectLifecycleAction.COMPLETE,
-        fromState,
-        this.props.lifecycleState,
+        this.props.ownerId,
+        cycleId,
+        endReason,
+        transitioned.occurredOn,
       ),
     );
   }

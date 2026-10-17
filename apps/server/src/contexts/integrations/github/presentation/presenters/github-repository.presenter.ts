@@ -12,9 +12,10 @@ export class GitHubRepositoryPresenter {
         fullName: repository.fullName,
         isPrivate: repository.isPrivate,
         pushedAt: repository.pushedAt?.toISOString() ?? null,
-        // Liên kết Project ↔ nguồn thuộc tầng project-activity (PR5) — tầng
-        // integrations không đọc ngược lên được. PR5 điền qua một reader port.
-        usedByProjects: [],
+        // Client cảnh báo trước khi gắn một repository Project khác đang dùng.
+        usedByProjects: (selection.usedByProjects[repository.id] ?? []).map(
+          (project) => ({ ...project }),
+        ),
       })),
       truncated: selection.truncated,
     };

@@ -302,6 +302,48 @@ describe('Project activity (E2E)', () => {
     }
   });
 
+  it('freezes the cycle activity into a snapshot when the cycle closes', async () => {
+    const id = await startedProject();
+    await as(token)
+      .post(`/projects/${id}/activity/sources`)
+      .send({ provider: 'GITHUB', externalResourceId: repository() })
+      .expect(HttpStatus.CREATED);
+    await as(token)
+      .patch(`/projects/${id}/complete`)
+      .send({ expectedRevision: 2 })
+      .expect(HttpStatus.OK);
+
+    // Snapshot đi qua outbox (bất đồng bộ): đợi tối đa vài giây.
+    let snapshots: Array<Record<string, unknown>> = [];
+    for (let attempt = 0; attempt < 50 && snapshots.length === 0; attempt++) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      const response = await as(token)
+        .get(`/projects/${id}/activity/snapshots`)
+        .expect(HttpStatus.OK);
+      snapshots = response.body;
+    }
+
+    expect(snapshots).toHaveLength(1);
+    expect(snapshots[0]).toMatchObject({
+      cycleId: expect.any(String),
+      metrics: { commits: 1 },
+      sources: [
+        expect.objectContaining({
+          provider: 'GITHUB',
+          displayName: 'trhgatu/magnum-opus',
+        }),
+      ],
+    });
+  });
+
+  it('lists no snapshots for another owner', async () => {
+    const id = await startedProject();
+
+    await as(otherToken)
+      .get(`/projects/${id}/activity/snapshots`)
+      .expect(HttpStatus.NOT_FOUND);
+  });
+
   it('requires authentication', async () => {
     await request(app.getHttpServer())
       .get(`/projects/${crypto.randomUUID()}/activity`)

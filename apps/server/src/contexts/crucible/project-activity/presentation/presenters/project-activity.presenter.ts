@@ -1,6 +1,7 @@
 import type {
   ActivitySourceResponse,
   CycleActivityResponse,
+  CycleActivitySnapshotResponse,
   Divergence as DivergenceResponse,
   ProjectActivityResponse,
 } from '@repo/contracts';
@@ -10,6 +11,7 @@ import type {
   CycleActivityView,
   ProjectActivityView,
 } from '../../application/views';
+import type { CycleActivitySnapshot } from '../../domain/ports/cycle-activity-snapshot.repository';
 import type { Divergence } from '../../domain/services/detect-divergences';
 
 const iso = (date: Date | null): string | null =>
@@ -41,6 +43,26 @@ export class ProjectActivityPresenter {
       ),
       currentCycle: view.currentCycle ? toCycle(view.currentCycle) : null,
       divergences: view.divergences.map(toDivergence),
+    };
+  }
+
+  static toSnapshotResponse(
+    snapshot: CycleActivitySnapshot,
+  ): CycleActivitySnapshotResponse {
+    return {
+      cycleId: snapshot.cycleId,
+      metrics: { ...snapshot.metrics },
+      lastActivityAt: iso(snapshot.lastActivityAt),
+      days: snapshot.days.map((day) => ({ ...day })),
+      sources: snapshot.sources.map((source) => ({
+        provider: source.provider,
+        displayName: source.displayName,
+        coveredFrom: iso(source.coveredFrom),
+        dataUntil: iso(source.dataUntil),
+      })),
+      timeZone: snapshot.timeZone,
+      dataUntil: iso(snapshot.dataUntil),
+      capturedAt: snapshot.capturedAt.toISOString(),
     };
   }
 }

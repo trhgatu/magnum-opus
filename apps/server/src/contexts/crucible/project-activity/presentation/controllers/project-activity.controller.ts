@@ -22,6 +22,7 @@ import {
 } from '@nestjs/swagger';
 import type {
   ActivitySourceResponse,
+  CycleActivitySnapshotResponse,
   ProjectActivityResponse,
 } from '@repo/contracts';
 import type { Response } from 'express';
@@ -36,6 +37,7 @@ import {
 import {
   GetProjectActivityQuery,
   ListActivitySourcesQuery,
+  ListCycleSnapshotsQuery,
 } from '../../application/queries';
 import { LinkActivitySourceDto } from '../dtos/link-activity-source.dto';
 import { ProjectActivityPresenter } from '../presenters/project-activity.presenter';
@@ -66,6 +68,25 @@ export class ProjectActivityController {
       new GetProjectActivityQuery({ ownerId, projectId }),
     );
     return ProjectActivityPresenter.toResponse(result.unwrap());
+  }
+
+  @Get('snapshots')
+  @ApiOperation({
+    summary: 'Activity snapshots of closed cycles, newest first',
+    description:
+      'Exactly as captured when each cycle closed; never recomputed.',
+  })
+  @ApiOkResponse({ description: 'CycleActivitySnapshotResponse[]' })
+  async listSnapshots(
+    @GetUser('id') ownerId: string,
+    @Param('id', new ParseUUIDPipe()) projectId: string,
+  ): Promise<CycleActivitySnapshotResponse[]> {
+    const result = await this.queryBus.execute(
+      new ListCycleSnapshotsQuery({ ownerId, projectId }),
+    );
+    return result
+      .unwrap()
+      .map((snapshot) => ProjectActivityPresenter.toSnapshotResponse(snapshot));
   }
 
   @Get('sources')

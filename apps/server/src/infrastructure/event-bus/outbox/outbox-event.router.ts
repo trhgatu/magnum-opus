@@ -31,6 +31,8 @@ import {
 } from '@iam/users/application/jobs/user-email.jobs';
 import { NotificationCreatedEvent } from '@/contexts/notifications/domain/events/notification-created.event';
 import { CreateNotificationService } from '@/contexts/notifications/application/services/create-notification.service';
+import { ProjectCycleClosedEvent } from '@/contexts/crucible/project/domain/events/project-cycle-closed.event';
+import { CaptureCycleSnapshotService } from '@/contexts/crucible/project-activity/application/services/capture-cycle-snapshot.service';
 
 @Injectable()
 export class OutboxEventRouter {
@@ -44,6 +46,7 @@ export class OutboxEventRouter {
     private readonly notifications: CreateNotificationService,
     @Inject(TIMELINE_WRITER)
     private readonly timelineWriter: TimelineWriter,
+    private readonly cycleSnapshots: CaptureCycleSnapshotService,
   ) {}
 
   async dispatch(event: DomainEvent): Promise<void> {
@@ -122,6 +125,17 @@ export class OutboxEventRouter {
         event.memoryId,
         event.memoryOccurredOn,
       );
+      return;
+    }
+
+    if (event instanceof ProjectCycleClosedEvent) {
+      // Tạo-nếu-chưa-có: outbox gửi lại an toàn.
+      await this.cycleSnapshots.capture({
+        ownerId: event.ownerId,
+        projectId: event.projectId,
+        cycleId: event.cycleId,
+        closedAt: event.closedAt,
+      });
       return;
     }
 

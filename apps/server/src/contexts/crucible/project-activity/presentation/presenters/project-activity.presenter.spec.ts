@@ -112,4 +112,54 @@ describe('ProjectActivityPresenter', () => {
     ]);
     expect(response.timeZone).toBe('Asia/Ho_Chi_Minh');
   });
+
+  it('presents a snapshot exactly as captured, with ISO dates', () => {
+    expect(
+      ProjectActivityPresenter.toSnapshotResponse({
+        cycleId: 'cycle-1',
+        metrics: {
+          activeDays: 2,
+          pausedActiveDays: 1,
+          commits: 5,
+          prsOpened: 1,
+          prsMerged: 1,
+        },
+        lastActivityAt: at('2026-10-02T12:00:00Z'),
+        days: [{ date: '2026-10-02', state: 'ACTIVE' }],
+        sources: [
+          {
+            provider: 'GITHUB',
+            displayName: 'trhgatu/magnum-opus',
+            coveredFrom: at('2026-09-24T09:00:00Z'),
+            dataUntil: null,
+          },
+        ],
+        timeZone: 'Asia/Ho_Chi_Minh',
+        dataUntil: null,
+        capturedAt: at('2026-10-03T17:00:06Z'),
+      }),
+    ).toEqual({
+      cycleId: 'cycle-1',
+      metrics: {
+        activeDays: 2,
+        pausedActiveDays: 1,
+        commits: 5,
+        prsOpened: 1,
+        prsMerged: 1,
+      },
+      lastActivityAt: '2026-10-02T12:00:00.000Z',
+      days: [{ date: '2026-10-02', state: 'ACTIVE' }],
+      sources: [
+        {
+          provider: 'GITHUB',
+          displayName: 'trhgatu/magnum-opus',
+          coveredFrom: '2026-09-24T09:00:00.000Z',
+          dataUntil: null,
+        },
+      ],
+      timeZone: 'Asia/Ho_Chi_Minh',
+      dataUntil: null,
+      capturedAt: '2026-10-03T17:00:06.000Z',
+    });
+  });
 });
