@@ -29,6 +29,7 @@
       "@iam/*": ["./src/contexts/iam/*"],
       "@reflection/*": ["./src/contexts/reflection/*"],
       "@integrations/*": ["./src/contexts/integrations/*"],
+      "@activity/*": ["./src/contexts/activity/*"],
       "@/*": ["./src/*"]
     }
   }
