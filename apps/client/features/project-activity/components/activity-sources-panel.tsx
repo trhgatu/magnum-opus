@@ -21,6 +21,11 @@ export async function ActivitySourcesPanel({
 }: {
   projectId: string;
 }) {
+  // Chạy song song với nguồn, nhưng lỗi của nó chỉ thành "unavailable".
+  const connectionRead: Promise<
+    GitHubConnectionResponse | null | "unavailable"
+  > = getGitHubConnection().catch(() => "unavailable" as const);
+
   let sources: ActivitySourceResponse[];
   let timeZone: string;
   try {
@@ -41,12 +46,7 @@ export async function ActivitySourcesPanel({
     );
   }
 
-  let connection: GitHubConnectionResponse | null | "unavailable";
-  try {
-    connection = await getGitHubConnection();
-  } catch {
-    connection = "unavailable";
-  }
+  const connection = await connectionRead;
 
   return (
     <ActivitySourcesSection

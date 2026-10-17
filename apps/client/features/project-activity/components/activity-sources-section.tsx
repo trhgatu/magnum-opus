@@ -6,7 +6,13 @@ import type {
   GitHubRepositoryResponse,
 } from "@repo/contracts";
 import Link from "next/link";
-import { type MouseEvent, useMemo, useState, useTransition } from "react";
+import {
+  type MouseEvent,
+  useEffect,
+  useMemo,
+  useState,
+  useTransition,
+} from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -81,6 +87,8 @@ export function ActivitySourcesSection({
     connection === "unavailable" ? null : connection,
   );
   const state = connectionState(connection, now);
+  // Dòng "Cập nhật lúc…" cần biết hôm nay là ngày nào, kể cả qua nửa đêm.
+  const clock = useMinuteClock();
   const linkedIds = useMemo(
     () => new Set(sources.map((source) => source.externalResourceId)),
     [sources],
@@ -175,7 +183,7 @@ export function ActivitySourcesSection({
       {sources.length > 0 ? (
         <ul className="flex flex-col divide-y rounded-lg border">
           {sources.map((source) => {
-            const line = sourceLine(source, timeZone, now);
+            const line = sourceLine(source, timeZone, clock);
             return (
               <li
                 key={source.feedId}
@@ -256,4 +264,14 @@ export function ActivitySourcesSection({
       </AlertDialog>
     </div>
   );
+}
+
+/** Giờ hiện tại, cập nhật mỗi phút — đủ để "hôm nay" đổi đúng lúc. */
+function useMinuteClock(): Date {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
+  return now;
 }

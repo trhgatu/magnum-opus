@@ -184,6 +184,24 @@ describe("ActivitySourcesSection", () => {
     ).toBeTruthy();
   });
 
+  it("moves an update time to its date once midnight passes", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-10-18T23:59:30.000Z"));
+    try {
+      renderSection({
+        connection: connection({ expiresAt: null }),
+        sources: [source({ lastSyncAt: "2026-10-18T23:50:00.000Z" })],
+      });
+      expect(screen.getByText("Cập nhật lúc 23:50")).toBeTruthy();
+
+      await vi.advanceTimersByTimeAsync(61_000);
+
+      expect(await screen.findByText("Cập nhật lúc 18/10/2026")).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("shows each source with its status and error copy", () => {
     renderSection({
       sources: [

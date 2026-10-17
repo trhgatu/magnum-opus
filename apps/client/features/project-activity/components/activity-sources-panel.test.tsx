@@ -107,6 +107,30 @@ describe("ActivitySourcesPanel", () => {
     ).toBeTruthy();
   });
 
+  it("reads the connection alongside the sources, not after them", async () => {
+    let sourcesSettled = false;
+    let calledBeforeSourcesSettled = false;
+    getActivitySources.mockImplementation(
+      () =>
+        new Promise((resolve) =>
+          setTimeout(() => {
+            sourcesSettled = true;
+            resolve([source]);
+          }, 20),
+        ),
+    );
+    getGitHubConnection.mockImplementation(async () => {
+      // Ghi lại rồi kiểm bên ngoài: lỗi trong mock sẽ bị panel bắt mất.
+      calledBeforeSourcesSettled = !sourcesSettled;
+      return null;
+    });
+
+    await renderPanel();
+
+    expect(getGitHubConnection).toHaveBeenCalledTimes(1);
+    expect(calledBeforeSourcesSettled).toBe(true);
+  });
+
   it("shows its own error when the sources cannot be read", async () => {
     getActivitySources.mockRejectedValue(new Error("down"));
 
