@@ -78,6 +78,61 @@ describe('ActivityFeed', () => {
     });
   });
 
+  describe('needsSyncAt', () => {
+    const neededFrom = new Date('2026-10-01T00:00:00.000Z');
+    const at = (minutesLater: number) =>
+      new Date(now.getTime() + minutes(minutesLater));
+
+    it('needs a copy when the last one is older than 10 minutes', () => {
+      const feed = synced({ coveredFrom: neededFrom, syncedUntil: now });
+
+      expect(
+        feed.needsSyncAt({ neededFrom, now: at(5), historyWindowDays: null }),
+      ).toBe(false);
+      expect(
+        feed.needsSyncAt({ neededFrom, now: at(10), historyWindowDays: null }),
+      ).toBe(true);
+    });
+
+    it('needs a copy right away when a project needs history the feed lacks', () => {
+      // Vừa chép xong, nhưng một Project mới cần từ 01/09.
+      const feed = synced({ coveredFrom: neededFrom, syncedUntil: now });
+
+      expect(
+        feed.needsSyncAt({
+          neededFrom: new Date('2026-09-01T00:00:00.000Z'),
+          now: at(1),
+          historyWindowDays: null,
+        }),
+      ).toBe(true);
+    });
+
+    it('does not chase history a limited source no longer keeps', () => {
+      const feed = synced({
+        coveredFrom: new Date(now.getTime() - days(7)),
+        syncedUntil: now,
+      });
+
+      expect(
+        feed.needsSyncAt({
+          neededFrom: new Date('2026-09-01T00:00:00.000Z'),
+          now: at(1),
+          historyWindowDays: 7,
+        }),
+      ).toBe(false);
+    });
+
+    it('waits out the 10 minutes after a failure, even when history is missing', () => {
+      // Lần chép đầu vừa lỗi: không gọi lại nguồn ở mỗi lần mở trang.
+      const feed = create();
+      feed.recordFailure({ code: 'GITHUB_UNAVAILABLE', now });
+
+      expect(
+        feed.needsSyncAt({ neededFrom, now: at(1), historyWindowDays: null }),
+      ).toBe(false);
+    });
+  });
+
   describe('planSync', () => {
     const neededFrom = new Date('2026-10-01T00:00:00.000Z');
 
