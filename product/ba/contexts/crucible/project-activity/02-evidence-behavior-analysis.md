@@ -361,7 +361,7 @@ Commit viết từ trước nhưng push muộn có author date cũ. Việc chép
 
 Bộ lọc thời gian của API commit (cả REST lẫn GraphQL) dựa trên **committer date**, không phải author date — đã kiểm chứng (`03` §10, TQ-PAC-01).
 
-Trong luồng làm việc thông thường (commit, rebase, cherry-pick, amend), committer date **không sớm hơn** author date, nên truy vấn theo khoảng của lần chép rồi lọc lại theo author date sẽ không bỏ sót. Tuy nhiên Git cho phép đặt hai ngày này tùy ý: một commit có committer date sớm hơn author date (thường do chỉnh ngày bằng tay) có thể nằm ngoài khoảng truy vấn và bị bỏ sót. Phase 1 chấp nhận giới hạn này; lần chép bù đầu tiên của mỗi feed (`03` §5.3) dùng khoảng đệm rộng để giảm rủi ro. Đây là ràng buộc cho thiết kế, không thay đổi hành vi.
+Trong luồng làm việc thông thường (commit, rebase, cherry-pick, amend), committer date **không sớm hơn** author date, nên truy vấn theo khoảng của lần chép (theo committer date) sẽ không bỏ sót. Kết quả **không** bị lọc lại theo author date: một commit viết trước rồi mới amend/rebase/push nằm trong khoảng theo committer date nhưng mang author date cũ hơn — nó vẫn được ghi vào sổ ở đúng author date của nó (§6.13), và các lần chép chồng lên nhau không tạo trùng nhờ khóa (§2.5). Tuy nhiên Git cho phép đặt hai ngày này tùy ý: một commit có committer date sớm hơn author date (thường do chỉnh ngày bằng tay) có thể nằm ngoài khoảng truy vấn và bị bỏ sót. Phase 1 chấp nhận giới hạn này; lần chép bù đầu tiên của mỗi feed (`03` §5.3) dùng khoảng đệm rộng để giảm rủi ro. Đây là ràng buộc cho thiết kế, không thay đổi hành vi.
 
 ### 6.15. Volume, Rate Limits and Freshness
 

@@ -192,21 +192,18 @@ describe('GitHubActivityProvider', () => {
       expect((await fetch()).events).toEqual([]);
     });
 
-    it('keeps only commits authored inside [from, to)', async () => {
-      // GitHub lọc theo committer date: một commit rebase hôm nay vẫn mang
-      // author date cũ.
+    it('keeps a late commit at its own author date, even before the window', async () => {
+      // Viết 30/09, amend rồi push 02/10: GitHub trả nó cho khoảng theo
+      // committer date, nhưng sự kiện vẫn mang author date 30/09.
+      const late = new Date('2026-09-30T23:59:59Z');
       activityApi.listCommits.mockResolvedValue([
-        commit({
-          message: 'before',
-          authoredAt: new Date('2026-09-30T23:59:59Z'),
-        }),
-        commit({ message: 'at from', authoredAt: FROM }),
-        commit({ message: 'at to', authoredAt: TO }),
+        commit({ message: 'late', authoredAt: late }),
+        commit({ message: 'on time', authoredAt: FROM }),
       ]);
 
       const { events } = await fetch();
 
-      expect(events.map((event) => event.occurredAt)).toEqual([FROM]);
+      expect(events.map((event) => event.occurredAt)).toEqual([late, FROM]);
     });
   });
 

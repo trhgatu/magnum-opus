@@ -4,7 +4,8 @@ import { Test } from '@nestjs/testing';
 
 import { PrismaService } from '@infrastructure/database/prisma.service';
 
-import { GITHUB_ACTIVITY_PROVIDER, GitHubModule } from './github.module';
+import { GITHUB_ACTIVITY_PROVIDER } from './application/ports/github-activity-provider.port';
+import { GitHubModule } from './github.module';
 import { GitHubActivityProvider } from './infrastructure/github-activity.provider';
 
 /** Thay cho các module global của AppModule (database, config). */

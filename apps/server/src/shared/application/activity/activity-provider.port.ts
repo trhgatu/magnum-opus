@@ -36,8 +36,9 @@ export interface ActivityProviderPort {
   };
 
   /**
-   * Sự kiện trong [from, to), đã lọc (chỉ của người dùng, bỏ bot, bỏ merge
-   * commit) và đã tính khóa chống trùng. Ném ActivitySourceError khi không
+   * Sự kiện tới nguồn trong [from, to), đã lọc (chỉ của người dùng, bỏ bot,
+   * bỏ merge commit) và đã tính khóa chống trùng. occurredAt có thể sớm hơn
+   * from (vd commit viết trước, push sau) — sổ chống trùng bằng khóa. Ném ActivitySourceError khi không
    * đọc được nguồn.
    */
   fetchEvents(

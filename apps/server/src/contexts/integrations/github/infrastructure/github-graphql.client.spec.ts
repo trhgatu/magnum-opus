@@ -183,7 +183,18 @@ describe('GitHubGraphqlClient.listCommits', () => {
     await expect(
       client.listCommits(TOKEN, commitsInput),
     ).rejects.toBeInstanceOf(GitHubUnavailableException);
-    expect(fetchFn.mock.calls.length).toBeLessThanOrEqual(101);
+    expect(fetchFn).toHaveBeenCalledTimes(100);
+  });
+
+  it('reports a branch deleted between two history pages instead of returning less', async () => {
+    const { client } = setup(
+      refsResponse([branch('main', [commitNode('a1')], page(true, 'HIST1'))]),
+      json(200, { data: { node: { ref: null } } }),
+    );
+
+    await expect(
+      client.listCommits(TOKEN, commitsInput),
+    ).rejects.toBeInstanceOf(GitHubUnavailableException);
   });
 
   it('reports a repository the token cannot see as not accessible', async () => {
@@ -228,6 +239,29 @@ describe('GitHubGraphqlClient.listCommits', () => {
     expect(error).toBeInstanceOf(GitHubRateLimitedException);
     expect((error as GitHubRateLimitedException).args).toEqual({
       retryAfter: 120,
+    });
+  });
+
+  it('waits the default time when the reset is already in the past', async () => {
+    const reset = String(NOW.getTime() / 1000 - 5);
+    const { client } = setup(
+      json(
+        200,
+        {
+          errors: [
+            { type: 'RATE_LIMITED', message: 'API rate limit exceeded' },
+          ],
+        },
+        { 'x-ratelimit-reset': reset },
+      ),
+    );
+
+    const error = await client
+      .listCommits(TOKEN, commitsInput)
+      .catch((e: unknown) => e);
+
+    expect((error as GitHubRateLimitedException).args).toEqual({
+      retryAfter: 60,
     });
   });
 

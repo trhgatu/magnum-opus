@@ -43,6 +43,6 @@ export interface GitHubRepositoryList {
 export interface GitHubRepositoryRef {
   /** Node id GraphQL (R_kgDO...) — GraphQL không tra được theo id số. */
   nodeId: string;
-  /** Tên hiện tại, đã theo đổi tên/chuyển owner. */
+  /** Tên hiện tại — phản ánh cả đổi tên và chuyển owner. */
   fullName: string;
 }

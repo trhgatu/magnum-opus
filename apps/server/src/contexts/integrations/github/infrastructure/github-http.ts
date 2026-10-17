@@ -90,9 +90,9 @@ export class GitHubHttp {
     if (Number.isFinite(retryAfter) && retryAfter > 0) return retryAfter;
 
     const reset = Number(response.headers.get('x-ratelimit-reset'));
-    if (Number.isFinite(reset) && reset > 0) {
-      return Math.max(0, Math.ceil(reset - this.now().getTime() / 1000));
-    }
+    const untilReset = Math.ceil(reset - this.now().getTime() / 1000);
+    // Mốc đã qua (đồng hồ lệch): đợi mặc định, không mời thử lại ngay.
+    if (Number.isFinite(untilReset) && untilReset > 0) return untilReset;
 
     return DEFAULT_RETRY_AFTER_SECONDS;
   }

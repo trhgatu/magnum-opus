@@ -121,7 +121,7 @@ export class GitHubActivityProvider implements ActivityProviderPort {
     return {
       displayName: repository.fullName,
       events: [
-        ...commitEvents(commits, accountId, within),
+        ...commitEvents(commits, accountId),
         ...pullRequestEvents(pullRequests, accountId, within),
       ],
     };
@@ -130,7 +130,6 @@ export class GitHubActivityProvider implements ActivityProviderPort {
 function commitEvents(
   commits: GitHubCommit[],
   accountId: string,
-  within: (date: Date) => boolean,
 ): ActivityEventInput[] {
   const events = new Map<string, ActivityEventInput>();
 
@@ -138,8 +137,10 @@ function commitEvents(
     if (commit.authorAccountId !== accountId) continue;
     // Merge commit là thao tác merge — đã có PR_MERGED đại diện.
     if (commit.parentCount > 1) continue;
-    // GitHub lọc theo committer date; sự kiện tính theo author date.
-    if (!within(commit.authoredAt)) continue;
+    // Không lọc lại theo author date: khoảng đọc theo committer date (lúc
+    // commit tới repository). Commit viết từ trước rồi mới amend/rebase/push
+    // mang author date cũ hơn khoảng — vẫn là công sức thật, phải vào sổ
+    // (02 §6.13). Chép chồng lên nhau không tạo trùng nhờ khóa.
 
     const dedupeKey = commitKey(commit);
     // Rebase/cherry-pick: SHA khác, cùng khóa — chỉ một sự kiện.

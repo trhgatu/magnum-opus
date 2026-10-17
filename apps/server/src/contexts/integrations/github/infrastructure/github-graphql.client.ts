@@ -175,6 +175,9 @@ export class GitHubGraphqlClient implements GitHubActivityApi {
             historyCursor: history.pageInfo.endCursor,
           });
           history = next.ref?.target?.history;
+          // Nhánh bị xóa giữa hai trang: báo lỗi để lần chép sau đọc lại,
+          // thay vì trả kết quả thiếu trông như đầy đủ.
+          if (!history) throw new GitHubUnavailableException();
           add(history);
         }
       }

@@ -9,6 +9,7 @@ import {
   GITHUB_ACTIVITY_API,
   type GitHubActivityApi,
 } from './application/ports/github-activity-api.port';
+import { GITHUB_ACTIVITY_PROVIDER } from './application/ports/github-activity-provider.port';
 import {
   GITHUB_API,
   type GitHubApi,
@@ -30,12 +31,6 @@ import { GitHubGraphqlClient } from './infrastructure/github-graphql.client';
 import { GitHubRestClient } from './infrastructure/github-rest.client';
 import { PrismaGitHubConnectionRepository } from './infrastructure/repositories/prisma-github-connection.repository';
 import { GitHubIntegrationController } from './presentation/controllers/github-integration.controller';
-
-/**
- * ActivityProviderPort của GitHub, cho tầng activity (PR3) gom vào
- * ACTIVITY_PROVIDER_PORTS. Chỉ token này rời module — token và cipher thì không.
- */
-export const GITHUB_ACTIVITY_PROVIDER = Symbol('GITHUB_ACTIVITY_PROVIDER');
 
 @Module({
   imports: [CqrsModule],
@@ -89,7 +84,8 @@ export const GITHUB_ACTIVITY_PROVIDER = Symbol('GITHUB_ACTIVITY_PROVIDER');
     GetGitHubConnectionHandler,
     ListGitHubRepositoriesHandler,
   ],
-  // TOKEN_CIPHER không export: chỉ code bên trong module này giải mã token.
-  exports: [GITHUB_CONNECTION_REPOSITORY, GITHUB_ACTIVITY_PROVIDER],
+  // Chỉ provider rời module: token, cipher và repository kết nối ở lại bên
+  // trong, để không ai ngoài module chạm được thông tin xác thực.
+  exports: [GITHUB_ACTIVITY_PROVIDER],
 })
 export class GitHubModule {}
