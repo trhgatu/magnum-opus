@@ -8,6 +8,7 @@ import {
   type ActivityResourceRef,
   ActivitySourceError,
   type FetchedActivity,
+  type ResolvedResource,
 } from '@shared/application/activity';
 
 import type { Clock } from '../application/ports/clock.port';
@@ -48,36 +49,72 @@ export class GitHubActivityProvider implements ActivityProviderPort {
     from: Date,
     to: Date,
   ): Promise<FetchedActivity> {
-    const connection = await this.usableConnection(resource);
+    const connection = await this.usableConnection(resource.ownerId);
+    // Feed thuộc tài khoản cũ: không chép commit của tài khoản mới vào sổ cũ.
+    if (connection.account.id !== resource.externalAccountId) {
+      throw new ActivitySourceError('GITHUB_ACCOUNT_CHANGED');
+    }
 
     try {
       return await this.read(connection, resource.externalResourceId, from, to);
     } catch (error) {
-      if (error instanceof GitHubTokenInvalidException) {
-        await this.connections.revokeIfTokenUnchanged(
-          connection.ownerId,
-          connection.encryptedToken,
-        );
-        throw new ActivitySourceError('GITHUB_TOKEN_REVOKED');
-      }
-      if (error instanceof GitHubRateLimitedException) {
-        const { retryAfter } = error.args as { retryAfter: number };
-        throw new ActivitySourceError('GITHUB_RATE_LIMITED', retryAfter);
-      }
-      if (error instanceof GitHubRepositoryNotAccessibleException) {
-        throw new ActivitySourceError('GITHUB_REPOSITORY_NOT_ACCESSIBLE');
-      }
-      if (error instanceof GitHubUnavailableException) {
-        throw new ActivitySourceError('GITHUB_UNAVAILABLE');
-      }
-      throw error;
+      throw await this.sourceError(error, connection);
     }
   }
-  /** Kết nối còn dùng được, đúng tài khoản của feed — chưa gọi GitHub. */
-  private async usableConnection(
-    resource: ActivityResourceRef,
-  ): Promise<GitHubConnection> {
-    const connection = await this.connections.findByOwner(resource.ownerId);
+
+  async resolveResource(
+    ownerId: string,
+    externalResourceId: string,
+  ): Promise<ResolvedResource> {
+    const connection = await this.usableConnection(ownerId);
+
+    try {
+      const repository = await this.gitHubApi.findRepository(
+        this.cipher.decrypt(connection.encryptedToken),
+        externalResourceId,
+      );
+      return {
+        externalAccountId: connection.account.id,
+        displayName: repository.fullName,
+      };
+    } catch (error) {
+      throw await this.sourceError(error, connection);
+    }
+  }
+
+  async connectedAccountId(ownerId: string): Promise<string | null> {
+    const connection = await this.connections.findByOwner(ownerId);
+    return connection?.account.id ?? null;
+  }
+
+  /** Lỗi GitHub → mã của nguồn; token bị từ chối thì thu hồi có điều kiện. */
+  private async sourceError(
+    error: unknown,
+    connection: GitHubConnection,
+  ): Promise<unknown> {
+    if (error instanceof GitHubTokenInvalidException) {
+      await this.connections.revokeIfTokenUnchanged(
+        connection.ownerId,
+        connection.encryptedToken,
+      );
+      return new ActivitySourceError('GITHUB_TOKEN_REVOKED');
+    }
+    if (error instanceof GitHubRateLimitedException) {
+      const { retryAfter } = error.args as { retryAfter: number };
+      return new ActivitySourceError('GITHUB_RATE_LIMITED', retryAfter);
+    }
+    if (error instanceof GitHubRepositoryNotAccessibleException) {
+      return new ActivitySourceError('GITHUB_REPOSITORY_NOT_ACCESSIBLE');
+    }
+    if (error instanceof GitHubUnavailableException) {
+      return new ActivitySourceError('GITHUB_UNAVAILABLE');
+    }
+    return error;
+  }
+
+  /** Kết nối còn dùng được — chưa gọi GitHub. */
+  private async usableConnection(ownerId: string): Promise<GitHubConnection> {
+    const connection = await this.connections.findByOwner(ownerId);
     if (!connection) throw new ActivitySourceError('GITHUB_NOT_CONNECTED');
 
     const status = connection.statusAt(this.clock.now());
@@ -86,11 +123,6 @@ export class GitHubActivityProvider implements ActivityProviderPort {
       const code: ActivitySourceErrorCode =
         status === 'EXPIRED' ? 'GITHUB_TOKEN_EXPIRED' : 'GITHUB_TOKEN_REVOKED';
       throw new ActivitySourceError(code);
-    }
-
-    // Feed thuộc tài khoản cũ: không chép commit của tài khoản mới vào sổ cũ.
-    if (connection.account.id !== resource.externalAccountId) {
-      throw new ActivitySourceError('GITHUB_ACCOUNT_CHANGED');
     }
     return connection;
   }

@@ -420,7 +420,7 @@ Lỗi của nguồn **không bao giờ** làm request thất bại; chúng nằm
 #### Behavior
 
 1. Project không có nguồn → `sources: []`, `currentCycle: null`, `divergences: []`. Không chép, không đọc sổ.
-2. Với mỗi nguồn có `lastSyncAt` cũ hơn 10 phút (hoặc chưa từng chép): chép tăng dần, song song giữa các nguồn, trong giới hạn thời gian chung. Quá thời gian hoặc lỗi → dùng sổ hiện có và ghi `error`.
+2. Với mỗi nguồn có `lastSyncAt` cũ hơn 10 phút (hoặc chưa từng chép): chép tăng dần, song song giữa các nguồn, trong giới hạn thời gian chung (10 giây). Lỗi do nguồn báo (mã trong `ActivitySourceErrorCode`) → dùng sổ hiện có và ghi `error` lên nguồn. Lỗi khác (vd lỗi hệ thống) → dùng sổ hiện có, ghi log; nguồn giữ trạng thái của lần chép trước. Quá thời gian → dùng sổ hiện có; lần chép vẫn chạy tiếp ở nền và tự ghi kết quả của nó theo đúng các quy tắc trên — response không bịa một mã lỗi cho việc chưa xong. Độ tươi của dữ liệu thể hiện qua `lastSyncAt`, `syncedUntil` và `dataUntil`.
 3. Dựng dòng thời gian tuyên bố; gắn event vào Cycle; tổng hợp theo ngày trong `timeZone` hiện tại của tài khoản.
 4. Xác định divergence theo BR-PAC-022 → 025. `ACTIVE_WITHOUT_ACTIVITY` không được trả khi có nguồn không `ACTIVE` hoặc khoảng cần xét chưa được chép đầy đủ.
 5. Không thay đổi Project, lifecycle hay revision.

@@ -257,6 +257,79 @@ describe('GitHubActivityProvider', () => {
     });
   });
 
+  describe('connectedAccountId', () => {
+    it('reads the connected account without calling GitHub', async () => {
+      await expect(provider.connectedAccountId('owner-id')).resolves.toBe(
+        ME.id,
+      );
+      expect(gitHubApi.findRepository).not.toHaveBeenCalled();
+    });
+
+    it('is null without a connection', async () => {
+      connections.findByOwner.mockResolvedValue(null);
+
+      await expect(provider.connectedAccountId('owner-id')).resolves.toBeNull();
+    });
+  });
+
+  describe('resolveResource', () => {
+    const resolve = () => provider.resolveResource('owner-id', '1067270000');
+
+    it('resolves a repository under the connected account with its current name', async () => {
+      await expect(resolve()).resolves.toEqual({
+        externalAccountId: ME.id,
+        displayName: 'trhgatu/magnum-opus',
+      });
+      expect(gitHubApi.findRepository).toHaveBeenCalledWith(
+        'plain(enc-token)',
+        '1067270000',
+      );
+    });
+
+    it('reports GITHUB_NOT_CONNECTED without a connection', async () => {
+      connections.findByOwner.mockResolvedValue(null);
+
+      await expect(resolve()).rejects.toMatchObject({
+        code: 'GITHUB_NOT_CONNECTED',
+      });
+    });
+
+    it('reports an expired token without calling GitHub', async () => {
+      connections.findByOwner.mockResolvedValue(
+        connection(new Date('2026-10-15T00:00:00.000Z')),
+      );
+
+      await expect(resolve()).rejects.toMatchObject({
+        code: 'GITHUB_TOKEN_EXPIRED',
+      });
+      expect(gitHubApi.findRepository).not.toHaveBeenCalled();
+    });
+
+    it('reports a repository the token cannot read', async () => {
+      gitHubApi.findRepository.mockRejectedValue(
+        new GitHubRepositoryNotAccessibleException(),
+      );
+
+      await expect(resolve()).rejects.toMatchObject({
+        code: 'GITHUB_REPOSITORY_NOT_ACCESSIBLE',
+      });
+    });
+
+    it('revokes the connection when GitHub no longer accepts the token', async () => {
+      gitHubApi.findRepository.mockRejectedValue(
+        new GitHubTokenInvalidException(),
+      );
+
+      await expect(resolve()).rejects.toMatchObject({
+        code: 'GITHUB_TOKEN_REVOKED',
+      });
+      expect(connections.revokeIfTokenUnchanged).toHaveBeenCalledWith(
+        'owner-id',
+        'enc-token',
+      );
+    });
+  });
+
   describe('when the source cannot be read', () => {
     it('reports GITHUB_NOT_CONNECTED without a connection', async () => {
       connections.findByOwner.mockResolvedValue(null);

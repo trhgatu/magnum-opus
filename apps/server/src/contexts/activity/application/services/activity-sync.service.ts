@@ -16,6 +16,7 @@ import {
   type ActivityEventWriter,
 } from '../ports/activity-event-writer.port';
 import { CLOCK, type Clock } from '../ports/clock.port';
+import { providerFor } from './provider-for';
 
 /**
  * Chép một feed theo yêu cầu (03 §5): hỏi nguồn khoảng còn thiếu, ghi vào
@@ -46,7 +47,7 @@ export class ActivitySyncService {
     const feed = await this.feeds.findById(input.ownerId, input.feedId);
     if (!feed) return null;
 
-    const provider = this.providerFor(feed);
+    const provider = providerFor(this.providers, feed.provider);
     // Lúc bắt đầu chép: lastSyncAt và thứ tự giữa các lần chép dựa vào nó.
     const now = this.clock.now();
     const plan = {
@@ -78,15 +79,5 @@ export class ActivitySyncService {
 
     await this.feeds.saveSyncResult(feed);
     return feed;
-  }
-
-  private providerFor(feed: ActivityFeed): ActivityProviderPort {
-    const provider = this.providers.find(
-      (candidate) => candidate.provider === feed.provider,
-    );
-    if (!provider) {
-      throw new Error(`No activity provider registered for ${feed.provider}`);
-    }
-    return provider;
   }
 }

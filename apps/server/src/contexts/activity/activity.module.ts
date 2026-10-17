@@ -12,6 +12,7 @@ import { EnsureActivityFeedHandler } from './application/commands/handlers/ensur
 import { ACTIVITY_EVENT_WRITER } from './application/ports/activity-event-writer.port';
 import { ACTIVITY_LEDGER_READER } from './application/ports/activity-ledger-reader.port';
 import { CLOCK } from './application/ports/clock.port';
+import { ActivityFeedService } from './application/services/activity-feed.service';
 import { ActivitySyncService } from './application/services/activity-sync.service';
 import { ACTIVITY_FEED_REPOSITORY } from './domain/ports/activity-feed.repository';
 import { SystemClock } from './infrastructure/clock/system-clock';
@@ -41,10 +42,12 @@ import { PrismaActivityFeedRepository } from './infrastructure/repositories/pris
         github,
       ],
     },
+    ActivityFeedService,
     ActivitySyncService,
     EnsureActivityFeedHandler,
   ],
-  // Tầng project-activity chép qua service và đọc sổ qua reader.
-  exports: [ActivitySyncService, ACTIVITY_LEDGER_READER],
+  // Tầng project-activity lấy feed, chép và đọc sổ qua đây — không chạm
+  // provider hay repository.
+  exports: [ActivityFeedService, ActivitySyncService, ACTIVITY_LEDGER_READER],
 })
 export class ActivityModule {}
