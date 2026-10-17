@@ -129,24 +129,48 @@ describe('Activity sync (E2E, database)', () => {
     expect(provider.fetchEvents).toHaveBeenCalledTimes(1);
   });
 
-  it('records a source failure on the feed and keeps the ledger', async () => {
+  it('records a source failure on the feed and keeps the ledger it has', async () => {
     const feed = await createFeed('2003');
-    provider.fetchEvents.mockRejectedValue(
+    provider.fetchEvents.mockResolvedValueOnce({
+      displayName: 'trhgatu/magnum-opus',
+      events: [commit],
+    });
+    await sync.syncFeed({ ownerId, feedId: feed.id, neededFrom });
+    const [before] = await ledger.listFeeds({ ownerId, feedIds: [feed.id] });
+
+    // Cho feed cũ đi để lần chép sau thật sự gọi nguồn — và lần này lỗi.
+    await prisma.activityFeed.update({
+      where: { id: feed.id },
+      data: { lastSyncAt: new Date(Date.now() - 60 * 60_000) },
+    });
+    provider.fetchEvents.mockRejectedValueOnce(
       new ActivitySourceError('GITHUB_TOKEN_REVOKED'),
     );
-
     await sync.syncFeed({ ownerId, feedId: feed.id, neededFrom });
 
-    const [stored] = await ledger.listFeeds({ ownerId, feedIds: [feed.id] });
-    expect(stored).toMatchObject({
+    expect(provider.fetchEvents).toHaveBeenCalledTimes(2);
+    const [after] = await ledger.listFeeds({ ownerId, feedIds: [feed.id] });
+    expect(after).toMatchObject({
       status: 'DISCONNECTED',
       lastErrorCode: 'GITHUB_TOKEN_REVOKED',
-      coveredFrom: null,
-      syncedUntil: null,
+      coveredFrom: before.coveredFrom,
+      syncedUntil: before.syncedUntil,
     });
     await expect(
-      prisma.activityEvent.count({ where: { feedId: feed.id } }),
-    ).resolves.toBe(0);
+      ledger.listEvents({
+        ownerId,
+        feedIds: [feed.id],
+        from: neededFrom,
+        to: new Date('2026-10-16T00:00:00.000Z'),
+      }),
+    ).resolves.toEqual([
+      {
+        feedId: feed.id,
+        kind: 'COMMIT_AUTHORED',
+        occurredAt: commit.occurredAt,
+        quantity: 1,
+      },
+    ]);
   });
 
   it('shows another owner nothing of the ledger', async () => {

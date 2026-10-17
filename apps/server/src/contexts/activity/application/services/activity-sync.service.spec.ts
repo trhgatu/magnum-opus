@@ -91,8 +91,13 @@ describe('ActivitySyncService', () => {
   });
 
   it('writes the ledger before moving the bounds', async () => {
+    const feed = newFeed();
+    feeds.findById.mockResolvedValue(feed);
     const order: string[] = [];
     writer.append.mockImplementation(async () => {
+      // Lúc đang ghi sổ, mốc chưa được nới — kể cả trong bộ nhớ.
+      expect(feed.syncedUntil).toBeNull();
+      expect(feed.coveredFrom).toBeNull();
       order.push('append');
       return 1;
     });

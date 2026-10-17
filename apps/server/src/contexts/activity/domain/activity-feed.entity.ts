@@ -144,7 +144,9 @@ export class ActivityFeed {
   /**
    * Có cần chép bây giờ không: feed đã cũ, hoặc Project cần lịch sử feed
    * chưa có (gắn nguồn mới). Vừa lỗi thì đợi hết 10 phút — không gọi lại
-   * nguồn ở mỗi lần mở trang.
+   * nguồn ở mỗi lần mở trang. Feed DISCONNECTED vẫn được thử lại: kết nối
+   * lại cùng tài khoản đưa nó về ACTIVE (07 §4.3), và provider kiểm kết nối
+   * trước khi gọi nguồn nên lần thử đó không tốn request bên ngoài.
    */
   needsSyncAt(input: {
     neededFrom: Date;
