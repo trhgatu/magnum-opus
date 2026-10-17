@@ -44,7 +44,7 @@ describe('PrismaProjectDeclarationReader', () => {
             occurredAt: true,
             cycleId: true,
           },
-          orderBy: { occurredAt: 'asc' },
+          orderBy: [{ occurredAt: 'asc' }, { createdAt: 'asc' }],
         },
         cycles: {
           select: { id: true, cycleNumber: true, startedAt: true },

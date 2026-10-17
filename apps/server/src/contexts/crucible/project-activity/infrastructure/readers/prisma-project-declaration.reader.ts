@@ -26,7 +26,8 @@ export class PrismaProjectDeclarationReader implements ProjectDeclarationReader 
             occurredAt: true,
             cycleId: true,
           },
-          orderBy: { occurredAt: 'asc' },
+          // Hai lần chuyển cùng thời điểm: thứ tự ghi quyết định.
+          orderBy: [{ occurredAt: 'asc' }, { createdAt: 'asc' }],
         },
         cycles: {
           select: { id: true, cycleNumber: true, startedAt: true },

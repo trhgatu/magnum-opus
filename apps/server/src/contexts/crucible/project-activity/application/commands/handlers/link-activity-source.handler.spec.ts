@@ -70,8 +70,8 @@ describe('LinkActivitySourceHandler', () => {
       cycles: [{ id: 'cycle-1', cycleNumber: 1, startedAt: CYCLE_START }],
     });
     feeds.ensureFeed.mockResolvedValue('feed-id');
-    sources.link.mockResolvedValue(true);
-    sources.findOne.mockResolvedValue(link);
+    sources.listByProject.mockResolvedValue([]);
+    sources.link.mockResolvedValue({ link, created: true });
     sync.syncFeed.mockResolvedValue(null);
     ledger.listFeeds.mockResolvedValue([feed]);
   });
@@ -96,16 +96,34 @@ describe('LinkActivitySourceHandler', () => {
     });
   });
 
-  it('answers an already linked source without linking or copying again', async () => {
+  it('answers an already linked source without asking the provider', async () => {
     const earlier = { ...link, linkedAt: new Date('2026-10-05T00:00:00Z') };
-    sources.link.mockResolvedValue(false);
-    sources.findOne.mockResolvedValue(earlier);
+    sources.listByProject.mockResolvedValue([earlier]);
+    // Token đã hỏng từ lần gắn trước: retry vẫn phải là 200.
+    feeds.ensureFeed.mockRejectedValue(
+      new ActivitySourceError('GITHUB_TOKEN_REVOKED'),
+    );
+
+    const result = await handler.execute(command());
+
+    expect(feeds.ensureFeed).not.toHaveBeenCalled();
+    expect(sources.link).not.toHaveBeenCalled();
+    expect(sync.syncFeed).not.toHaveBeenCalled();
+    expect(result.getValue()).toEqual({
+      source: { ...feed, linkedAt: earlier.linkedAt },
+      created: false,
+    });
+  });
+
+  it('takes the winner’s link when another request linked it first', async () => {
+    const winner = { ...link, linkedAt: new Date('2026-10-16T09:59:59Z') };
+    sources.link.mockResolvedValue({ link: winner, created: false });
 
     const result = await handler.execute(command());
 
     expect(sync.syncFeed).not.toHaveBeenCalled();
     expect(result.getValue()).toEqual({
-      source: { ...feed, linkedAt: earlier.linkedAt },
+      source: { ...feed, linkedAt: winner.linkedAt },
       created: false,
     });
   });

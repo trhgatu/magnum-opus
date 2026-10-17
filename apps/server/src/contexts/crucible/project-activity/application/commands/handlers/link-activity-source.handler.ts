@@ -78,6 +78,16 @@ export class LinkActivitySourceHandler implements ICommandHandler<
       return Result.fail(new ProjectNotFoundException(projectId));
     }
 
+    // Đã là nguồn (vd retry sau lỗi mạng): trả 200 ngay, không hỏi nguồn —
+    // token hỏng hay bị giới hạn không được biến một retry thành lỗi.
+    const existing = await this.existingSource(
+      ownerId,
+      projectId,
+      provider,
+      externalResourceId,
+    );
+    if (existing) return Result.ok({ source: existing, created: false });
+
     let feedId: string;
     try {
       feedId = await this.feeds.ensureFeed({
@@ -92,15 +102,13 @@ export class LinkActivitySourceHandler implements ICommandHandler<
       throw error;
     }
 
-    const created = await this.sources.link({
+    // Hai request gắn cùng lúc: request thua nhận mối nối của request thắng.
+    const { link, created } = await this.sources.link({
       projectId,
       feedId,
       ownerId,
       linkedAt: this.clock.now(),
     });
-    // Gắn lại (vd retry sau lỗi mạng) trả mối nối đã có, kể cả linkedAt cũ.
-    const link = await this.sources.findOne(ownerId, projectId, feedId);
-    if (!link) throw new Error('Activity source vanished right after linking');
 
     if (created) {
       const timeline = DeclarationTimeline.fromTransitions(
@@ -126,6 +134,28 @@ export class LinkActivitySourceHandler implements ICommandHandler<
     const [source] = toSourceViews([link], feeds);
     if (!source) throw new Error(`Activity feed ${feedId} is not readable`);
     return Result.ok({ source, created });
+  }
+
+  private async existingSource(
+    ownerId: string,
+    projectId: string,
+    provider: LinkActivitySourceCommand['provider'],
+    externalResourceId: string,
+  ): Promise<ActivitySourceView | null> {
+    const links = await this.sources.listByProject(ownerId, projectId);
+    if (links.length === 0) return null;
+
+    const feeds = await this.ledger.listFeeds({
+      ownerId,
+      feedIds: links.map((link) => link.feedId),
+    });
+    return (
+      toSourceViews(links, feeds).find(
+        (source) =>
+          source.provider === provider &&
+          source.externalResourceId === externalResourceId,
+      ) ?? null
+    );
   }
 }
 

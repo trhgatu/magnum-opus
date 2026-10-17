@@ -101,10 +101,10 @@ export class GetProjectActivityHandler implements IQueryHandler<
           this.sync.syncFeed({ ownerId, feedId, neededFrom: from }),
         ),
       ).then((results) =>
-        results.forEach((result) => {
+        results.forEach((result, index) => {
           if (result.status === 'rejected') {
             this.logger.warn(
-              `Copying activity failed: ${String(result.reason)}`,
+              `Copying feed ${needed[index].feedId} failed: ${String(result.reason)}`,
             );
           }
         }),

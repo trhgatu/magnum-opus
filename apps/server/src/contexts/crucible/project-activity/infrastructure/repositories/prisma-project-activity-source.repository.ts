@@ -32,15 +32,28 @@ export class PrismaProjectActivitySourceRepository implements ProjectActivitySou
     });
   }
 
-  async link(link: ProjectActivitySourceLink): Promise<boolean> {
-    try {
-      await this.prisma.projectActivitySource.create({ data: link });
-      return true;
-    } catch (error) {
-      // Khóa chính (project, feed): đã gắn — một request khác hoặc retry.
-      if (isUniqueConflict(error)) return false;
-      throw error;
+  async link(
+    link: ProjectActivitySourceLink,
+  ): Promise<{ link: ProjectActivitySourceLink; created: boolean }> {
+    // Lần hai: mối nối vừa thấy bị gỡ ngay sau đó — thử tạo lại.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const stored = await this.prisma.projectActivitySource.create({
+          data: link,
+        });
+        return { link: stored, created: true };
+      } catch (error) {
+        // Khóa chính (project, feed): đã gắn — một request khác hoặc retry.
+        if (!isUniqueConflict(error)) throw error;
+      }
+      const existing = await this.findOne(
+        link.ownerId,
+        link.projectId,
+        link.feedId,
+      );
+      if (existing) return { link: existing, created: false };
     }
+    throw new Error('Activity source link kept changing concurrently');
   }
 
   async unlink(

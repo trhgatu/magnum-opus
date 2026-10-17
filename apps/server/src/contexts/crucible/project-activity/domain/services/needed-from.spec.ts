@@ -43,6 +43,31 @@ describe('neededFrom', () => {
     expect(neededFrom(timeline, linkedAt)).toEqual(at('2026-10-10T00:00:00Z'));
   });
 
+  it('reaches back to the reopened cycle, not the earlier one or its close', () => {
+    const timeline = DeclarationTimeline.fromTransitions([
+      {
+        fromState: 'NOT_STARTED',
+        toState: 'ACTIVE',
+        occurredAt: at('2026-09-01T09:00:00Z'),
+        cycleId: 'cycle-1',
+      },
+      {
+        fromState: 'ACTIVE',
+        toState: 'COMPLETED',
+        occurredAt: at('2026-09-20T00:00:00Z'),
+        cycleId: 'cycle-1',
+      },
+      {
+        fromState: 'COMPLETED',
+        toState: 'ACTIVE',
+        occurredAt: at('2026-10-05T08:00:00Z'),
+        cycleId: 'cycle-2',
+      },
+    ]);
+
+    expect(neededFrom(timeline, linkedAt)).toEqual(at('2026-10-05T08:00:00Z'));
+  });
+
   it('starts at the link time for a project that never had a cycle', () => {
     expect(
       neededFrom(DeclarationTimeline.fromTransitions([]), linkedAt),

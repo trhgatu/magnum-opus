@@ -21,8 +21,13 @@ export interface ProjectActivitySourceRepository {
     projectId: string,
     feedId: string,
   ): Promise<ProjectActivitySourceLink | null>;
-  /** Trả false nếu feed đã là nguồn của Project — không tạo mối nối thứ hai. */
-  link(link: ProjectActivitySourceLink): Promise<boolean>;
+  /**
+   * Gắn feed vào Project và trả mối nối đã lưu. Feed đã là nguồn thì trả
+   * mối nối có sẵn với created = false — không tạo mối nối thứ hai.
+   */
+  link(
+    link: ProjectActivitySourceLink,
+  ): Promise<{ link: ProjectActivitySourceLink; created: boolean }>;
   /** Trả false nếu feed không phải nguồn của Project. */
   unlink(ownerId: string, projectId: string, feedId: string): Promise<boolean>;
 }

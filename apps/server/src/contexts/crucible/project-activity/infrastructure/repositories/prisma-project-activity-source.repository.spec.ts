@@ -48,22 +48,47 @@ describe('PrismaProjectActivitySourceRepository', () => {
     });
   });
 
-  it('links, and reports a link that already exists instead of throwing', async () => {
-    projectActivitySource.create.mockResolvedValueOnce(link);
-    await expect(repository.link(link)).resolves.toBe(true);
-    expect(projectActivitySource.create).toHaveBeenCalledWith({ data: link });
+  const conflict = () =>
+    new Prisma.PrismaClientKnownRequestError('Unique constraint', {
+      code: 'P2002',
+      clientVersion: 'test',
+    });
 
-    projectActivitySource.create.mockRejectedValueOnce(
-      new Prisma.PrismaClientKnownRequestError('Unique constraint', {
-        code: 'P2002',
-        clientVersion: 'test',
-      }),
-    );
-    await expect(repository.link(link)).resolves.toBe(false);
+  it('links and returns the stored link', async () => {
+    projectActivitySource.create.mockResolvedValueOnce(link);
+
+    await expect(repository.link(link)).resolves.toEqual({
+      link,
+      created: true,
+    });
+    expect(projectActivitySource.create).toHaveBeenCalledWith({ data: link });
+  });
+
+  it('returns the existing link, with its own link time, when already linked', async () => {
+    const earlier = { ...link, linkedAt: new Date('2026-09-30T00:00:00Z') };
+    projectActivitySource.create.mockRejectedValueOnce(conflict());
+    projectActivitySource.findFirst.mockResolvedValueOnce(earlier);
+
+    await expect(repository.link(link)).resolves.toEqual({
+      link: earlier,
+      created: false,
+    });
+  });
+
+  it('links again when the existing link was removed in between', async () => {
+    projectActivitySource.create
+      .mockRejectedValueOnce(conflict())
+      .mockResolvedValueOnce(link);
+    projectActivitySource.findFirst.mockResolvedValueOnce(null);
+
+    await expect(repository.link(link)).resolves.toEqual({
+      link,
+      created: true,
+    });
   });
 
   it('lets other database errors surface on link', async () => {
-    projectActivitySource.create.mockRejectedValue(new Error('down'));
+    projectActivitySource.create.mockRejectedValueOnce(new Error('down'));
 
     await expect(repository.link(link)).rejects.toThrow('down');
   });

@@ -12,7 +12,8 @@ export class LinkActivitySourceDto {
     example: '1067270000',
   })
   // Id số của GitHub: chỉ chữ số, không phải tên — đổi tên không làm mất nguồn.
-  @Matches(/^\d{1,20}$/, {
+  // Không có số 0 ở đầu: "0106…" và "106…" không được thành hai nguồn.
+  @Matches(/^[1-9]\d{0,18}$/, {
     message: 'externalResourceId must be a numeric repository id',
   })
   readonly externalResourceId!: string;

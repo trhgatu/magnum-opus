@@ -174,6 +174,15 @@ describe('Project activity (E2E)', () => {
 
     expect(again.body.feedId).toBe(first.body.feedId);
     expect(again.body.linkedAt).toBe(first.body.linkedAt);
+
+    // Kết nối hỏng sau lần gắn đầu: gửi lại vẫn là 200, không hỏi nguồn.
+    provider.resolveResource.mockRejectedValueOnce(
+      new ActivitySourceError('GITHUB_TOKEN_REVOKED'),
+    );
+    await as(token)
+      .post(`/projects/${id}/activity/sources`)
+      .send(body)
+      .expect(HttpStatus.OK);
   });
 
   it('shares one feed between two projects linking the same repository', async () => {
@@ -260,6 +269,7 @@ describe('Project activity (E2E)', () => {
       {},
       { provider: 'GITLAB', externalResourceId: '1' },
       { provider: 'GITHUB', externalResourceId: 'trhgatu/magnum-opus' },
+      { provider: 'GITHUB', externalResourceId: '01067270000' },
     ]) {
       await as(token)
         .post(`/projects/${id}/activity/sources`)
@@ -272,14 +282,16 @@ describe('Project activity (E2E)', () => {
   it('hides another owner’s project behind PROJECT_NOT_FOUND', async () => {
     const id = await startedProject();
 
+    // Mỗi request tạo khi tới lượt: supertest đóng server sau mỗi request.
     for (const call of [
-      as(otherToken).get(`/projects/${id}/activity`),
-      as(otherToken).get(`/projects/${id}/activity/sources`),
-      as(otherToken)
-        .post(`/projects/${id}/activity/sources`)
-        .send({ provider: 'GITHUB', externalResourceId: repository() }),
+      () => as(otherToken).get(`/projects/${id}/activity`),
+      () => as(otherToken).get(`/projects/${id}/activity/sources`),
+      () =>
+        as(otherToken)
+          .post(`/projects/${id}/activity/sources`)
+          .send({ provider: 'GITHUB', externalResourceId: repository() }),
     ]) {
-      await call
+      await call()
         .expect(HttpStatus.NOT_FOUND)
         .expect(({ body }) => expect(body.code).toBe('PROJECT_NOT_FOUND'));
     }
