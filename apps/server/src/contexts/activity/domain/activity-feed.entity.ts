@@ -142,6 +142,28 @@ export class ActivityFeed {
   }
 
   /**
+   * Có cần chép bây giờ không: feed đã cũ, hoặc Project cần lịch sử feed
+   * chưa có (gắn nguồn mới). Vừa lỗi thì đợi hết 10 phút — không gọi lại
+   * nguồn ở mỗi lần mở trang. Feed DISCONNECTED vẫn được thử lại: kết nối
+   * lại cùng tài khoản đưa nó về ACTIVE (07 §4.3), và provider kiểm kết nối
+   * trước khi gọi nguồn nên lần thử đó không tốn request bên ngoài.
+   */
+  needsSyncAt(input: {
+    neededFrom: Date;
+    now: Date;
+    historyWindowDays: number | null;
+  }): boolean {
+    if (this.isStaleAt(input.now)) return true;
+    if (this.props.lastErrorCode !== null) return false;
+
+    const { coveredFrom } = this.props;
+    return (
+      coveredFrom === null ||
+      coveredFrom.getTime() > reachableFrom(input.neededFrom.getTime(), input)
+    );
+  }
+
+  /**
    * Khoảng cần hỏi nguồn để sổ phủ từ neededFrom tới now: tiếp nối lần chép
    * trước (lùi một khoảng đệm), và lùi xa hơn nếu Project cần lịch sử feed
    * chưa có.
@@ -152,13 +174,7 @@ export class ActivityFeed {
     historyWindowDays: number | null;
   }): SyncWindow {
     const { coveredFrom, syncedUntil } = this.props;
-    const reachable = (time: number) =>
-      input.historyWindowDays === null
-        ? time
-        : Math.max(
-            time,
-            input.now.getTime() - input.historyWindowDays * DAY_MS,
-          );
+    const reachable = (time: number) => reachableFrom(time, input);
 
     if (coveredFrom === null || syncedUntil === null) {
       return {
@@ -222,6 +238,16 @@ export class ActivityFeed {
   toSnapshot(): ActivityFeedSnapshot {
     return copySnapshot(this.props);
   }
+}
+
+/** Mốc xa nhất nguồn còn giữ: nguồn giới hạn lịch sử không đọc trước được. */
+function reachableFrom(
+  time: number,
+  input: { now: Date; historyWindowDays: number | null },
+): number {
+  return input.historyWindowDays === null
+    ? time
+    : Math.max(time, input.now.getTime() - input.historyWindowDays * DAY_MS);
 }
 
 const cloneDate = (date: Date | null): Date | null =>
