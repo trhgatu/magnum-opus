@@ -22,6 +22,13 @@ export interface ActivityEventInput {
   quantity: number;
   dedupeKey: string;
 }
+/** Tài nguyên mà người dùng muốn gắn, như kết nối hiện tại nhìn thấy. */
+export interface ResolvedResource {
+  /** Tài khoản bên ngoài đang kết nối — feed được tạo dưới tài khoản này. */
+  externalAccountId: string;
+  displayName: string;
+}
+
 export interface FetchedActivity {
   /** Tên hiện tại của tài nguyên — đổi tên thì feed cập nhật theo. */
   displayName: string;
@@ -46,6 +53,15 @@ export interface ActivityProviderPort {
     from: Date,
     to: Date,
   ): Promise<FetchedActivity>;
+
+  /**
+   * Kết nối hiện tại có đọc được tài nguyên không, dưới tài khoản nào, tên
+   * hiện tại là gì — trước khi gắn nó vào một Project. Ném ActivitySourceError.
+   */
+  resolveResource(
+    ownerId: string,
+    externalResourceId: string,
+  ): Promise<ResolvedResource>;
 }
 /** Lỗi của nguồn, mang mã mà feed lưu vào lastErrorCode. */
 export class ActivitySourceError extends Error {

@@ -33,6 +33,7 @@ describe('Activity sync (E2E, database)', () => {
     provider: 'GITHUB',
     capabilities: { historyWindowDays: null },
     fetchEvents: jest.fn(),
+    resolveResource: jest.fn(),
   };
 
   beforeAll(async () => {
