@@ -2,6 +2,7 @@
 
 import type {
   ActivitySourceResponse,
+  GitHubConnectionResponse,
   GitHubRepositoryResponse,
 } from "@repo/contracts";
 import {
@@ -63,6 +64,17 @@ const repository = (
   ...overrides,
 });
 
+const connection = (
+  overrides: Partial<GitHubConnectionResponse> = {},
+): GitHubConnectionResponse => ({
+  accountLogin: "trhgatu",
+  status: "ACTIVE",
+  expiresAt: null,
+  lastVerifiedAt: "2026-10-01T00:00:00.000Z",
+  connectedAt: "2026-10-01T00:00:00.000Z",
+  ...overrides,
+});
+
 const renderSection = (
   props: Partial<Parameters<typeof ActivitySourcesSection>[0]> = {},
 ) =>
@@ -70,7 +82,7 @@ const renderSection = (
     <ActivitySourcesSection
       projectId={PROJECT_ID}
       sources={[]}
-      connection="active"
+      connection={connection()}
       timeZone="UTC"
       {...props}
     />,
@@ -97,7 +109,7 @@ afterEach(cleanup);
 
 describe("ActivitySourcesSection", () => {
   it("points to Settings when GitHub is not connected, with nothing to link", () => {
-    renderSection({ connection: "none" });
+    renderSection({ connection: null });
 
     expect(
       screen
@@ -108,13 +120,68 @@ describe("ActivitySourcesSection", () => {
   });
 
   it("keeps the sources but refuses new links while the connection is unusable", () => {
-    renderSection({ connection: "unusable", sources: [source()] });
+    renderSection({
+      connection: connection({ status: "EXPIRED" }),
+      sources: [source()],
+    });
 
     expect(screen.getByText("trhgatu/magnum-opus")).toBeTruthy();
     expect(
       screen.getByRole("link", { name: "Cập nhật token ở Cài đặt" }),
     ).toBeTruthy();
     expect(screen.queryByRole("combobox")).toBeNull();
+  });
+
+  it("keeps the sources and their unlink when the connection cannot be read", () => {
+    renderSection({ connection: "unavailable", sources: [source()] });
+
+    expect(
+      screen.getByText(/Chưa tải được trạng thái kết nối GitHub/),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Gỡ trhgatu/magnum-opus" }),
+    ).toBeTruthy();
+    expect(screen.queryByRole("combobox")).toBeNull();
+  });
+
+  it("stops offering new links once the token expires while the page is open", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      renderSection({
+        connection: connection({
+          expiresAt: new Date(Date.now() + 60_000).toISOString(),
+        }),
+      });
+      expect(screen.getByRole("combobox")).toBeTruthy();
+
+      await vi.advanceTimersByTimeAsync(61_000);
+
+      expect(
+        await screen.findByRole("link", { name: "Cập nhật token ở Cài đặt" }),
+      ).toBeTruthy();
+      expect(screen.queryByRole("combobox")).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("takes the server's list again when the page is refreshed", () => {
+    const { rerender } = renderSection({ sources: [source()] });
+
+    rerender(
+      <ActivitySourcesSection
+        projectId={PROJECT_ID}
+        sources={[
+          source({ status: "ERROR", error: { code: "GITHUB_TOKEN_REVOKED" } }),
+        ]}
+        connection={connection()}
+        timeZone="UTC"
+      />,
+    );
+
+    expect(
+      screen.getByText("GitHub đã thu hồi token — cập nhật ở Cài đặt."),
+    ).toBeTruthy();
   });
 
   it("shows each source with its status and error copy", () => {
@@ -186,17 +253,41 @@ describe("ActivitySourcesSection", () => {
       name: /Đang dùng cho: Portfolio/,
     });
     expect(
-      screen.getByText("Gõ tên repository để thu hẹp danh sách."),
+      screen.getByText(/Gõ tên repository để thu hẹp danh sách/),
     ).toBeTruthy();
 
     fireEvent.click(option);
-    expect(screen.getByText(/sẽ xuất hiện ở cả hai Project/)).toBeTruthy();
+    expect(screen.getByText(/sẽ xuất hiện ở mọi Project dùng nó/)).toBeTruthy();
     expect(linkActivitySource).not.toHaveBeenCalled();
 
     fireEvent.click(
       screen.getByRole("button", { name: "Gắn trhgatu/portfolio" }),
     );
-    await waitFor(() => expect(linkActivitySource).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(linkActivitySource).toHaveBeenCalledWith({
+        projectId: PROJECT_ID,
+        externalResourceId: "1002",
+      }),
+    );
+  });
+
+  it("keeps the source listed and explains a failed unlink", async () => {
+    unlinkActivitySource.mockResolvedValue({
+      status: "error",
+      message: "Không thể kết nối tới dịch vụ.",
+    });
+    renderSection({ sources: [source()] });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Gỡ trhgatu/magnum-opus" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Gỡ" }));
+
+    expect(
+      await screen.findByText("Không thể kết nối tới dịch vụ."),
+    ).toBeTruthy();
+    expect(screen.getByText("trhgatu/magnum-opus")).toBeTruthy();
+    expect(notifySuccess).not.toHaveBeenCalled();
   });
 
   it("explains a failed link", async () => {

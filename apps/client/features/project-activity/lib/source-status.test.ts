@@ -1,4 +1,7 @@
-import type { ActivitySourceResponse } from "@repo/contracts";
+import {
+  ACTIVITY_SOURCE_ERROR_CODES,
+  type ActivitySourceResponse,
+} from "@repo/contracts";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -85,10 +88,37 @@ describe("sourceLine", () => {
 });
 
 describe("sourceErrorCopy", () => {
-  it("tells how to fix an expired token", () => {
-    expect(sourceErrorCopy("GITHUB_TOKEN_EXPIRED")).toBe(
-      "token đã hết hạn — cập nhật ở Cài đặt.",
-    );
+  it.each([
+    ["GITHUB_TOKEN_EXPIRED", "token đã hết hạn — cập nhật ở Cài đặt."],
+    ["GITHUB_TOKEN_REVOKED", "GitHub đã thu hồi token — cập nhật ở Cài đặt."],
+    [
+      "GITHUB_REPOSITORY_NOT_ACCESSIBLE",
+      "không đọc được repository — kiểm tra quyền của token hoặc repository.",
+    ],
+    [
+      "GITHUB_ACCOUNT_CHANGED",
+      "ngừng cập nhật — đã gắn bằng tài khoản GitHub khác.",
+    ],
+    [
+      "GITHUB_NOT_CONNECTED",
+      "ngừng cập nhật — đã gắn bằng tài khoản GitHub khác.",
+    ],
+    [
+      "GITHUB_RATE_LIMITED",
+      "GitHub tạm giới hạn truy cập — sẽ thử lại khi bạn mở lại trang.",
+    ],
+    [
+      "GITHUB_UNAVAILABLE",
+      "chưa cập nhật được — sẽ thử lại khi bạn mở lại trang.",
+    ],
+  ] as const)("uses the BA copy for %s", (code, copy) => {
+    expect(sourceErrorCopy(code)).toBe(copy);
+  });
+
+  it("covers every source error code in the contract", () => {
+    for (const code of ACTIVITY_SOURCE_ERROR_CODES) {
+      expect(sourceErrorCopy(code)).toEqual(expect.any(String));
+    }
   });
 });
 
@@ -105,14 +135,27 @@ describe("formatUpdatedAt", () => {
 });
 
 describe("linkErrorMessage", () => {
-  it("explains a repository the token cannot read", () => {
+  it.each([
+    [
+      "GITHUB_NOT_CONNECTED",
+      "Kết nối GitHub không còn dùng được — cập nhật token ở Cài đặt.",
+    ],
+    [
+      "GITHUB_REPOSITORY_NOT_ACCESSIBLE",
+      "Không đọc được repository này — kiểm tra quyền của token.",
+    ],
+    [
+      "GITHUB_RATE_LIMITED",
+      "GitHub đang tạm giới hạn truy cập. Thử lại sau ít phút.",
+    ],
+    [
+      "GITHUB_UNAVAILABLE",
+      "Chưa kết nối được tới GitHub. Thử lại sau ít phút.",
+    ],
+  ])("explains %s", (code, message) => {
     expect(
-      linkErrorMessage({
-        status: "error",
-        code: "GITHUB_REPOSITORY_NOT_ACCESSIBLE",
-        message: "generic",
-      }),
-    ).toBe("Không đọc được repository này — kiểm tra quyền của token.");
+      linkErrorMessage({ status: "error", code, message: "generic" }),
+    ).toBe(message);
   });
 
   it("falls back to the API message", () => {

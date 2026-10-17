@@ -182,11 +182,11 @@ trhgatu/old-repo                            [Lỗi]             Không đọc đ
 ## 7.3. Link Repository
 
 1. **Gắn repository** mở một ô chọn có tìm kiếm (cùng kiểu với ô chọn múi giờ / habit của hệ thống).
-2. Danh sách gồm repository mà token đọc được, sắp theo lần cập nhật gần nhất trên GitHub. Khi có hơn 100 repository phù hợp, cuối danh sách hiển thị "Gõ tên repository để thu hẹp danh sách"; tìm kiếm luôn quét toàn bộ repository, không chỉ 100 cái đang hiện.
+2. Danh sách gồm repository mà token đọc được, sắp theo lần cập nhật gần nhất trên GitHub. Khi có hơn 100 repository phù hợp, cuối danh sách hiển thị "Gõ tên repository để thu hẹp danh sách"; tìm kiếm quét 1.000 repository được cập nhật gần nhất, không chỉ 100 cái đang hiện (`07` §4.4).
 3. Repository đang là nguồn của Project khác có nhãn phụ "Đang dùng cho: Tên Project".
 4. Repository đã là nguồn của chính Project này không xuất hiện.
 5. Chọn → gắn ngay; toast "Đã gắn trhgatu/magnum-opus".
-6. Nếu repository đang dùng cho Project khác, ô chọn hiển thị trước một dòng cảnh báo: "Hoạt động của repository này sẽ xuất hiện ở cả hai Project."
+6. Nếu repository đang dùng cho Project khác, ô chọn hiển thị trước một dòng cảnh báo: "Hoạt động của repository này sẽ xuất hiện ở mọi Project dùng nó." (đúng cả khi repository đang dùng cho nhiều Project khác).
 
 ## 7.4. Unlink Repository
 

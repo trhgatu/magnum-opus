@@ -133,7 +133,7 @@ export function RepositoryPicker({
               {pending.usedByProjects
                 .map((project) => project.title)
                 .join(", ")}
-              . Hoạt động của repository này sẽ xuất hiện ở cả hai Project.
+              . Hoạt động của repository này sẽ xuất hiện ở mọi Project dùng nó.
             </p>
             <div className="flex flex-col gap-2 sm:flex-row">
               <Button type="button" onClick={() => choose(pending)}>
@@ -165,26 +165,32 @@ export function RepositoryPicker({
               />
             </div>
 
-            <div
-              role="listbox"
-              aria-label="Repository"
-              aria-busy={list.kind === "loading"}
-              className="max-h-72 overflow-y-auto"
-            >
-              {list.kind === "loading" ? (
-                <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-                  Đang tải repository…
-                </p>
-              ) : list.kind === "error" ? (
-                <p role="alert" className="px-3 py-6 text-center text-sm">
-                  {list.message}
-                </p>
-              ) : visible.length === 0 ? (
-                <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-                  Không có repository phù hợp.
-                </p>
-              ) : (
-                visible.map((repository) => (
+            {/* Dòng trạng thái nằm ngoài listbox: listbox chỉ chứa option. */}
+            {list.kind === "loading" ? (
+              <p
+                role="status"
+                className="px-3 py-6 text-center text-sm text-muted-foreground"
+              >
+                Đang tải repository…
+              </p>
+            ) : list.kind === "error" ? (
+              <p role="alert" className="px-3 py-6 text-center text-sm">
+                {list.message}
+              </p>
+            ) : visible.length === 0 ? (
+              <p
+                role="status"
+                className="px-3 py-6 text-center text-sm text-muted-foreground"
+              >
+                Không có repository phù hợp.
+              </p>
+            ) : (
+              <div
+                role="listbox"
+                aria-label="Repository"
+                className="max-h-72 overflow-y-auto"
+              >
+                {visible.map((repository) => (
                   <Button
                     key={repository.externalResourceId}
                     type="button"
@@ -199,7 +205,8 @@ export function RepositoryPicker({
                       {repository.isPrivate ? (
                         <Lock
                           className="size-3 shrink-0 opacity-60"
-                          aria-label="private"
+                          role="img"
+                          aria-label="riêng tư"
                         />
                       ) : null}
                     </span>
@@ -212,14 +219,15 @@ export function RepositoryPicker({
                       </span>
                     ) : null}
                   </Button>
-                ))
-              )}
-              {list.kind === "ready" && list.truncated ? (
-                <p className="px-3 pt-2 pb-1 text-xs text-muted-foreground">
-                  Gõ tên repository để thu hẹp danh sách.
-                </p>
-              ) : null}
-            </div>
+                ))}
+              </div>
+            )}
+            {list.kind === "ready" && list.truncated ? (
+              <p className="px-3 pt-2 pb-1 text-xs text-muted-foreground">
+                Gõ tên repository để thu hẹp danh sách. Tìm kiếm quét 1.000
+                repository được cập nhật gần nhất.
+              </p>
+            ) : null}
           </>
         )}
       </PopoverContent>

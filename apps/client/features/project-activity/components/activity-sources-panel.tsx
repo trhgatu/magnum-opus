@@ -7,17 +7,14 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getCurrentUser } from "@/features/account/api/current-user";
 import { getGitHubConnection } from "@/features/github/api/github-connection";
-import { connectionHealth } from "@/features/github/lib/github-connection";
 import { getActivitySources } from "@/features/project-activity/api/project-activity";
 
-import {
-  ActivitySourcesSection,
-  type ConnectionState,
-} from "./activity-sources-section";
+import { ActivitySourcesSection } from "./activity-sources-section";
 
 /**
- * Đọc nguồn và kết nối riêng, trong Suspense: lỗi ở đây chỉ hiện trong mục
- * này — form tên/mô tả của trang chỉnh sửa vẫn dùng được.
+ * Đọc nguồn trong Suspense riêng: lỗi ở đây chỉ hiện trong mục này — form
+ * tên/mô tả của trang chỉnh sửa vẫn dùng được. Kết nối GitHub đọc riêng
+ * nữa: nó lỗi thì vẫn hiện được các nguồn đã gắn và nút gỡ.
  */
 export async function ActivitySourcesPanel({
   projectId,
@@ -25,12 +22,10 @@ export async function ActivitySourcesPanel({
   projectId: string;
 }) {
   let sources: ActivitySourceResponse[];
-  let connection: GitHubConnectionResponse | null;
   let timeZone: string;
   try {
-    [sources, connection, { timeZone }] = await Promise.all([
+    [sources, { timeZone }] = await Promise.all([
       getActivitySources(projectId),
-      getGitHubConnection(),
       getCurrentUser(),
     ]);
   } catch {
@@ -46,22 +41,21 @@ export async function ActivitySourcesPanel({
     );
   }
 
+  let connection: GitHubConnectionResponse | null | "unavailable";
+  try {
+    connection = await getGitHubConnection();
+  } catch {
+    connection = "unavailable";
+  }
+
   return (
     <ActivitySourcesSection
       projectId={projectId}
       sources={sources}
-      connection={connectionState(connection)}
+      connection={connection}
       timeZone={timeZone}
     />
   );
-}
-
-function connectionState(
-  connection: GitHubConnectionResponse | null,
-): ConnectionState {
-  if (!connection) return "none";
-  const health = connectionHealth(connection, new Date()).kind;
-  return health === "expired" || health === "revoked" ? "unusable" : "active";
 }
 
 export function ActivitySourcesSkeleton() {

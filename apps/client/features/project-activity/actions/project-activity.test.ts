@@ -105,6 +105,38 @@ describe("linkActivitySource", () => {
   });
 });
 
+describe("failing API calls", () => {
+  const failure = new ApiError({
+    kind: "network",
+    status: null,
+    message: "Không thể kết nối tới dịch vụ.",
+  });
+
+  it("returns the error and refreshes nothing when linking fails", async () => {
+    apiFetch.mockRejectedValue(failure);
+
+    await expect(
+      linkActivitySource({
+        projectId: PROJECT_ID,
+        externalResourceId: "1067270000",
+      }),
+    ).resolves.toMatchObject({
+      status: "error",
+      message: "Không thể kết nối tới dịch vụ.",
+    });
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("returns the error and refreshes nothing when unlinking fails", async () => {
+    apiFetch.mockRejectedValue(failure);
+
+    await expect(
+      unlinkActivitySource({ projectId: PROJECT_ID, feedId: FEED_ID }),
+    ).resolves.toMatchObject({ status: "error" });
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+});
+
 describe("unlinkActivitySource", () => {
   it("unlinks the feed and refreshes both project pages", async () => {
     apiFetch.mockResolvedValue(undefined);
