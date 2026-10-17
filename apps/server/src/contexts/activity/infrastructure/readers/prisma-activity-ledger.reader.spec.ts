@@ -85,6 +85,7 @@ describe('PrismaActivityLedgerReader', () => {
         {
           feedId: 'feed-1',
           provider: 'GITHUB',
+          externalAccountId: '127409189',
           externalResourceId: '1067270000',
           displayName: 'trhgatu/magnum-opus',
           status: 'DISCONNECTED',

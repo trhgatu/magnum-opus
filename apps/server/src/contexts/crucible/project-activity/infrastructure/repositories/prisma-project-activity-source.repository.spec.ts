@@ -87,6 +87,19 @@ describe('PrismaProjectActivitySourceRepository', () => {
     });
   });
 
+  it('gives up when the link keeps appearing and vanishing', async () => {
+    projectActivitySource.create
+      .mockRejectedValueOnce(conflict())
+      .mockRejectedValueOnce(conflict());
+    projectActivitySource.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null);
+
+    await expect(repository.link(link)).rejects.toThrow(
+      'kept changing concurrently',
+    );
+  });
+
   it('lets other database errors surface on link', async () => {
     projectActivitySource.create.mockRejectedValueOnce(new Error('down'));
 

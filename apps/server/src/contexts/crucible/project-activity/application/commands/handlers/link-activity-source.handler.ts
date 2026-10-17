@@ -78,8 +78,9 @@ export class LinkActivitySourceHandler implements ICommandHandler<
       return Result.fail(new ProjectNotFoundException(projectId));
     }
 
-    // Đã là nguồn (vd retry sau lỗi mạng): trả 200 ngay, không hỏi nguồn —
-    // token hỏng hay bị giới hạn không được biến một retry thành lỗi.
+    // Đã là nguồn dưới đúng tài khoản đang kết nối (vd retry sau lỗi mạng):
+    // trả 200 ngay, không hỏi nguồn — token hỏng hay bị giới hạn không được
+    // biến một retry thành lỗi. Đã đổi tài khoản thì đi tiếp, tạo feed mới.
     const existing = await this.existingSource(
       ownerId,
       projectId,
@@ -149,11 +150,23 @@ export class LinkActivitySourceHandler implements ICommandHandler<
       ownerId,
       feedIds: links.map((link) => link.feedId),
     });
+    const candidates = toSourceViews(links, feeds).filter(
+      (source) =>
+        source.provider === provider &&
+        source.externalResourceId === externalResourceId,
+    );
+    if (candidates.length === 0) return null;
+
+    // Chỉ đọc kết nối trong DB, không gọi nguồn. Chưa kết nối: retry vẫn trả
+    // nguồn đã có thay vì báo lỗi.
+    const accountId = await this.feeds.connectedAccountId({
+      ownerId,
+      provider,
+    });
     return (
-      toSourceViews(links, feeds).find(
+      candidates.find(
         (source) =>
-          source.provider === provider &&
-          source.externalResourceId === externalResourceId,
+          accountId === null || source.externalAccountId === accountId,
       ) ?? null
     );
   }

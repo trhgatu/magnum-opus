@@ -37,6 +37,7 @@ describe('project activity queries', () => {
   const feed: LedgerFeed = {
     feedId: 'feed-id',
     provider: 'GITHUB',
+    externalAccountId: '127409189',
     externalResourceId: '1067270000',
     displayName: 'trhgatu/magnum-opus',
     status: 'ACTIVE',

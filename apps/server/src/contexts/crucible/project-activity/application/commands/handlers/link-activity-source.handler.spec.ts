@@ -17,7 +17,7 @@ describe('LinkActivitySourceHandler', () => {
     link: jest.fn(),
     unlink: jest.fn(),
   };
-  const feeds = { ensureFeed: jest.fn() };
+  const feeds = { ensureFeed: jest.fn(), connectedAccountId: jest.fn() };
   const sync = { syncFeed: jest.fn() };
   const ledger = { listFeeds: jest.fn(), listEvents: jest.fn() };
   const handler = new LinkActivitySourceHandler(
@@ -38,6 +38,7 @@ describe('LinkActivitySourceHandler', () => {
   const feed: LedgerFeed = {
     feedId: 'feed-id',
     provider: 'GITHUB',
+    externalAccountId: '127409189',
     externalResourceId: '1067270000',
     displayName: 'trhgatu/magnum-opus',
     status: 'ACTIVE',
@@ -70,6 +71,7 @@ describe('LinkActivitySourceHandler', () => {
       cycles: [{ id: 'cycle-1', cycleNumber: 1, startedAt: CYCLE_START }],
     });
     feeds.ensureFeed.mockResolvedValue('feed-id');
+    feeds.connectedAccountId.mockResolvedValue('127409189');
     sources.listByProject.mockResolvedValue([]);
     sources.link.mockResolvedValue({ link, created: true });
     sync.syncFeed.mockResolvedValue(null);
@@ -113,6 +115,40 @@ describe('LinkActivitySourceHandler', () => {
       source: { ...feed, linkedAt: earlier.linkedAt },
       created: false,
     });
+  });
+
+  it('links a new feed when the existing source belongs to an account no longer connected', async () => {
+    const oldAccount = { ...link, feedId: 'old-feed' };
+    sources.listByProject.mockResolvedValue([oldAccount]);
+    ledger.listFeeds
+      .mockResolvedValueOnce([
+        {
+          ...feed,
+          feedId: 'old-feed',
+          externalAccountId: '555',
+          status: 'DISCONNECTED',
+          lastErrorCode: 'GITHUB_ACCOUNT_CHANGED',
+        },
+      ])
+      .mockResolvedValue([feed]);
+
+    const result = await handler.execute(command());
+
+    expect(feeds.ensureFeed).toHaveBeenCalled();
+    expect(result.getValue()).toMatchObject({
+      source: { feedId: 'feed-id', externalAccountId: '127409189' },
+      created: true,
+    });
+  });
+
+  it('answers an existing source on a retry even while disconnected', async () => {
+    sources.listByProject.mockResolvedValue([link]);
+    feeds.connectedAccountId.mockResolvedValue(null);
+
+    const result = await handler.execute(command());
+
+    expect(feeds.ensureFeed).not.toHaveBeenCalled();
+    expect(result.getValue().created).toBe(false);
   });
 
   it('takes the winner’s link when another request linked it first', async () => {

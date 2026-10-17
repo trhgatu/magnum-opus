@@ -14,6 +14,7 @@ describe('ActivityFeedService', () => {
     capabilities: { historyWindowDays: null },
     fetchEvents: jest.fn(),
     resolveResource: jest.fn(),
+    connectedAccountId: jest.fn(),
   };
   const commandBus = { execute: jest.fn() };
   const service = new ActivityFeedService([github], commandBus as never);
@@ -57,6 +58,14 @@ describe('ActivityFeedService', () => {
         displayName: 'trhgatu/magnum-opus',
       }),
     );
+  });
+
+  it('reads the connected account from the provider', async () => {
+    github.connectedAccountId.mockResolvedValue('127409189');
+
+    await expect(
+      service.connectedAccountId({ ownerId: 'owner-id', provider: 'GITHUB' }),
+    ).resolves.toBe('127409189');
   });
 
   it('creates nothing when the connection cannot read the resource', async () => {

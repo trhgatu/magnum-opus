@@ -82,6 +82,11 @@ export class GitHubActivityProvider implements ActivityProviderPort {
     }
   }
 
+  async connectedAccountId(ownerId: string): Promise<string | null> {
+    const connection = await this.connections.findByOwner(ownerId);
+    return connection?.account.id ?? null;
+  }
+
   /** Lỗi GitHub → mã của nguồn; token bị từ chối thì thu hồi có điều kiện. */
   private async sourceError(
     error: unknown,

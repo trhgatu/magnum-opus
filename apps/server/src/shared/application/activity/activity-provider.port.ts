@@ -62,6 +62,12 @@ export interface ActivityProviderPort {
     ownerId: string,
     externalResourceId: string,
   ): Promise<ResolvedResource>;
+
+  /**
+   * Tài khoản bên ngoài đang kết nối (kể cả khi token đã hết hạn); null khi
+   * chưa kết nối. Không gọi nguồn bên ngoài.
+   */
+  connectedAccountId(ownerId: string): Promise<string | null>;
 }
 /** Lỗi của nguồn, mang mã mà feed lưu vào lastErrorCode. */
 export class ActivitySourceError extends Error {

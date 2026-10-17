@@ -47,6 +47,7 @@ export class PrismaActivityLedgerReader implements ActivityLedgerReader {
       return {
         feedId: feed.id,
         provider: feed.provider,
+        externalAccountId: feed.externalAccountId,
         externalResourceId: feed.externalResourceId,
         displayName: feed.displayName,
         status: feed.status,

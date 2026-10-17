@@ -17,6 +17,7 @@ import { ProjectActivityController } from './project-activity.controller';
 const source: ActivitySourceView = {
   feedId: 'feed-id',
   provider: 'GITHUB',
+  externalAccountId: '127409189',
   externalResourceId: '1067270000',
   displayName: 'trhgatu/magnum-opus',
   status: 'ACTIVE',

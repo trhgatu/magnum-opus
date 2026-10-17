@@ -22,6 +22,7 @@ describe('Project activity (E2E)', () => {
     capabilities: { historyWindowDays: null },
     fetchEvents: jest.fn(),
     resolveResource: jest.fn(),
+    connectedAccountId: jest.fn(),
   };
 
   beforeAll(async () => {
@@ -53,7 +54,10 @@ describe('Project activity (E2E)', () => {
   });
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    // reset, không chỉ clear: hành vi "once" chưa dùng không được rò sang
+    // test sau.
+    jest.resetAllMocks();
+    provider.connectedAccountId.mockResolvedValue('127409189');
     provider.resolveResource.mockResolvedValue({
       externalAccountId: '127409189',
       displayName: 'trhgatu/magnum-opus',
@@ -183,6 +187,7 @@ describe('Project activity (E2E)', () => {
       .post(`/projects/${id}/activity/sources`)
       .send(body)
       .expect(HttpStatus.OK);
+    expect(provider.resolveResource).toHaveBeenCalledTimes(1);
   });
 
   it('shares one feed between two projects linking the same repository', async () => {

@@ -6,6 +6,7 @@ const at = (iso: string) => new Date(iso);
 const source: ActivitySourceView = {
   feedId: 'feed-id',
   provider: 'GITHUB',
+  externalAccountId: '127409189',
   externalResourceId: '1067270000',
   displayName: 'trhgatu/magnum-opus',
   status: 'DISCONNECTED',

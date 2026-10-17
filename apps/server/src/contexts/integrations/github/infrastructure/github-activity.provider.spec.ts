@@ -257,6 +257,21 @@ describe('GitHubActivityProvider', () => {
     });
   });
 
+  describe('connectedAccountId', () => {
+    it('reads the connected account without calling GitHub', async () => {
+      await expect(provider.connectedAccountId('owner-id')).resolves.toBe(
+        ME.id,
+      );
+      expect(gitHubApi.findRepository).not.toHaveBeenCalled();
+    });
+
+    it('is null without a connection', async () => {
+      connections.findByOwner.mockResolvedValue(null);
+
+      await expect(provider.connectedAccountId('owner-id')).resolves.toBeNull();
+    });
+  });
+
   describe('resolveResource', () => {
     const resolve = () => provider.resolveResource('owner-id', '1067270000');
 

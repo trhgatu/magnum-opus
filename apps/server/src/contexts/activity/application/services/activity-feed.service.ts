@@ -50,4 +50,14 @@ export class ActivityFeedService {
     );
     return result.unwrap().id;
   }
+
+  /** Tài khoản đang kết nối của nguồn; null khi chưa kết nối. */
+  connectedAccountId(input: {
+    ownerId: string;
+    provider: ActivityProvider;
+  }): Promise<string | null> {
+    return providerFor(this.providers, input.provider).connectedAccountId(
+      input.ownerId,
+    );
+  }
 }

@@ -19,6 +19,8 @@ export interface LedgerEvent {
 export interface LedgerFeed {
   feedId: string;
   provider: ActivityProvider;
+  /** Tài khoản bên ngoài mà feed được chép dưới nó. */
+  externalAccountId: string;
   externalResourceId: string;
   displayName: string;
   status: ActivitySourceStatus;

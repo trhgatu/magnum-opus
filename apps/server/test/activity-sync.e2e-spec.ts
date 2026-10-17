@@ -34,6 +34,7 @@ describe('Activity sync (E2E, database)', () => {
     capabilities: { historyWindowDays: null },
     fetchEvents: jest.fn(),
     resolveResource: jest.fn(),
+    connectedAccountId: jest.fn(),
   };
 
   beforeAll(async () => {

@@ -26,6 +26,7 @@ describe('ActivitySyncService', () => {
     capabilities: { historyWindowDays: null },
     fetchEvents: jest.fn(),
     resolveResource: jest.fn(),
+    connectedAccountId: jest.fn(),
   };
   const clock: Clock = { now: () => NOW };
   const service = new ActivitySyncService(feeds, writer, [github], clock);
