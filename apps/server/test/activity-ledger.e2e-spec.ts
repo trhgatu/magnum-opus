@@ -125,6 +125,49 @@ describe('Activity ledger (E2E, database)', () => {
     expect(stored.syncedUntil).toEqual(new Date('2026-10-16T10:00:00.000Z'));
   });
 
+  it('does not join an older span across a gap another copy restarted after', async () => {
+    const created = newFeed('1006');
+    await feeds.insert(created);
+    const seed = (await feeds.findById(ownerId, created.id))!;
+    seed.recordSuccess({
+      window: {
+        from: new Date('2026-09-25T00:00:00.000Z'),
+        to: new Date('2026-09-28T00:00:00.000Z'),
+      },
+      displayName: 'wakatime-project',
+      now: new Date('2026-09-28T00:00:00.000Z'),
+    });
+    await feeds.saveSyncResult(seed);
+
+    // Hai lần chép đọc cùng trạng thái; lần sau bắt đầu lại sau lỗ hổng.
+    const older = (await feeds.findById(ownerId, created.id))!;
+    const restarted = (await feeds.findById(ownerId, created.id))!;
+
+    restarted.recordSuccess({
+      window: {
+        from: new Date('2026-10-09T10:00:00.000Z'),
+        to: new Date('2026-10-16T10:00:00.000Z'),
+      },
+      displayName: 'wakatime-project',
+      now: new Date('2026-10-16T10:00:00.000Z'),
+    });
+    await feeds.saveSyncResult(restarted);
+
+    older.recordSuccess({
+      window: {
+        from: new Date('2026-09-25T00:00:00.000Z'),
+        to: new Date('2026-10-01T00:00:00.000Z'),
+      },
+      displayName: 'wakatime-project',
+      now: new Date('2026-10-01T00:00:00.000Z'),
+    });
+    await feeds.saveSyncResult(older);
+
+    const stored = (await feeds.findById(ownerId, created.id))!;
+    expect(stored.coveredFrom).toEqual(new Date('2026-10-09T10:00:00.000Z'));
+    expect(stored.syncedUntil).toEqual(new Date('2026-10-16T10:00:00.000Z'));
+  });
+
   it('keeps one row per event however many times it is copied', async () => {
     const feed = newFeed('1003');
     await feeds.insert(feed);

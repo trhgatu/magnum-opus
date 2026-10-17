@@ -214,7 +214,12 @@ describe('PrismaActivityFeedRepository', () => {
               ownerId: 'owner-id',
               OR: [
                 { coveredFrom: null },
-                { coveredFrom: { gt: new Date('2026-09-01T00:00:00.000Z') } },
+                {
+                  coveredFrom: {
+                    gt: new Date('2026-09-01T00:00:00.000Z'),
+                    lte: now,
+                  },
+                },
                 {
                   syncedUntil: { lt: new Date('2026-09-01T00:00:00.000Z') },
                 },

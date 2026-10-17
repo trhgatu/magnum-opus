@@ -78,7 +78,14 @@ export class PrismaActivityFeedRepository implements ActivityFeedRepository {
             ...scope,
             OR: [
               { coveredFrom: null },
-              { coveredFrom: { gt: snapshot.coveredFrom } },
+              // Lùi: chỉ khi khoảng của lần chép này chạm tới mốc đang lưu —
+              // không nối qua một lỗ hổng mà lần chép khác đã bắt đầu lại.
+              {
+                coveredFrom: {
+                  gt: snapshot.coveredFrom,
+                  lte: snapshot.syncedUntil ?? snapshot.coveredFrom,
+                },
+              },
               // Lỗ hổng (nguồn giới hạn lịch sử): độ phủ bắt đầu lại.
               { syncedUntil: { lt: snapshot.coveredFrom } },
             ],
