@@ -11,6 +11,7 @@ import {
   type CalendarDay,
   calendarDayAt,
   eachDayInclusive,
+  existsIn,
   startOfDay,
 } from '../calendar-day';
 import type { DeclarationTimeline } from '../declaration-timeline';
@@ -77,22 +78,22 @@ export function summarizeCycleActivity(input: {
     new Date(Math.max(rangeEnd.getTime() - 1, cycleStart.getTime())),
     timeZone,
   );
-  const days = eachDayInclusive(
-    calendarDayAt(cycleStart, timeZone),
-    lastDay,
-  ).map((date) => {
-    // Ngày đầu và ngày cuối bị cắt theo phạm vi Cycle.
-    const dayStart = new Date(
-      Math.max(startOfDay(date, timeZone).getTime(), cycleStart.getTime()),
-    );
-    const dayEnd = new Date(
-      Math.min(
-        startOfDay(addDays(date, 1), timeZone).getTime(),
-        rangeEnd.getTime(),
-      ),
-    );
-    return { date, state: dayState(date, dayStart, dayEnd) };
-  });
+  const days = eachDayInclusive(calendarDayAt(cycleStart, timeZone), lastDay)
+    // Ngày múi giờ bỏ qua (đổi đường đổi ngày) không có trong dải ngày.
+    .filter((date) => existsIn(date, timeZone))
+    .map((date) => {
+      // Ngày đầu và ngày cuối bị cắt theo phạm vi Cycle.
+      const dayStart = new Date(
+        Math.max(startOfDay(date, timeZone).getTime(), cycleStart.getTime()),
+      );
+      const dayEnd = new Date(
+        Math.min(
+          startOfDay(addDays(date, 1), timeZone).getTime(),
+          rangeEnd.getTime(),
+        ),
+      );
+      return { date, state: dayState(date, dayStart, dayEnd) };
+    });
 
   function dayState(
     date: CalendarDay,

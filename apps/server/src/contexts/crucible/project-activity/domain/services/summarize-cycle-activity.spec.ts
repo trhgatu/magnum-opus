@@ -205,6 +205,32 @@ describe('summarizeCycleActivity', () => {
     ]);
   });
 
+  it('leaves out a date the account time zone skipped', () => {
+    // Samoa bỏ 30/12/2011 (UTC−10 → UTC+14 lúc 30/12 10:00Z): Cycle mở
+    // 29/12 02:00 giờ địa phương, xét tới 31/12 02:00 — chỉ có hai ngày.
+    const samoa = DeclarationTimeline.fromTransitions([
+      {
+        fromState: 'NOT_STARTED',
+        toState: 'ACTIVE',
+        occurredAt: at('2011-12-29T12:00:00Z'),
+        cycleId: 'cycle-1',
+      },
+    ]);
+    const summary = summarizeCycleActivity({
+      cycleId: 'cycle-1',
+      timeline: samoa,
+      events: [],
+      sources: [source('2011-12-01T00:00:00Z', '2012-01-01T00:00:00Z')],
+      timeZone: 'Pacific/Apia',
+      until: at('2011-12-30T12:00:00Z'),
+    });
+
+    expect(summary.days.map((day) => day.date)).toEqual([
+      '2011-12-29',
+      '2011-12-31',
+    ]);
+  });
+
   it('runs an open cycle up to now, including today', () => {
     const open = DeclarationTimeline.fromTransitions(cycleOne.slice(0, 1));
     const summary = summarizeCycleActivity({

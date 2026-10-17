@@ -2,6 +2,7 @@ import {
   addDays,
   calendarDayAt,
   eachDayInclusive,
+  existsIn,
   startOfDay,
 } from './calendar-day';
 
@@ -50,6 +51,15 @@ describe('calendar-day', () => {
     expect(
       calendarDayAt(new Date(start.getTime() - 1), 'America/Santiago'),
     ).toBe('2026-09-05');
+  });
+
+  it('knows a date the time zone skipped never existed there', () => {
+    expect(existsIn('2011-12-30', 'Pacific/Apia')).toBe(false);
+    expect(existsIn('2011-12-29', 'Pacific/Apia')).toBe(true);
+    expect(existsIn('2011-12-31', 'Pacific/Apia')).toBe(true);
+    expect(existsIn('2011-12-30', 'UTC')).toBe(true);
+    // Nhảy giờ lúc nửa đêm vẫn là một ngày có thật, chỉ ngắn hơn.
+    expect(existsIn('2026-09-06', 'America/Santiago')).toBe(true);
   });
 
   it('steps across months and lists days inclusively', () => {

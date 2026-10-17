@@ -35,7 +35,8 @@ const MAX_OFFSET_MS = 14 * 60 * 60_000;
  * Thời điểm đầu tiên thuộc `day` tại `timeZone` — thường là 00:00, nhưng
  * ở múi giờ nhảy giờ đúng nửa đêm (vd America/Santiago) 00:00 không tồn tại
  * và ngày bắt đầu lúc 01:00. Tìm nhị phân thay vì đoán độ lệch: ngày lịch
- * chỉ tăng theo thời gian.
+ * chỉ tăng theo thời gian. Ngày không tồn tại ở múi giờ đó (xem
+ * `existsIn`) cho ra lúc bắt đầu của ngày kế tiếp.
  */
 export function startOfDay(day: CalendarDay, timeZone: string): Date {
   const [year, month, date] = day.split('-').map(Number);
@@ -48,6 +49,14 @@ export function startOfDay(day: CalendarDay, timeZone: string): Date {
     else from = middle;
   }
   return new Date(from);
+}
+
+/**
+ * Ngày có thật ở múi giờ đó không. Hiếm khi sai, nhưng có: Samoa
+ * (Pacific/Apia) nhảy qua đường đổi ngày và bỏ hẳn 30/12/2011.
+ */
+export function existsIn(day: CalendarDay, timeZone: string): boolean {
+  return calendarDayAt(startOfDay(day, timeZone), timeZone) === day;
 }
 
 const formatters = new Map<string, Intl.DateTimeFormat>();
