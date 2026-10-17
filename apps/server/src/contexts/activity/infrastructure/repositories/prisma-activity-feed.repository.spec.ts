@@ -189,17 +189,38 @@ describe('PrismaActivityFeedRepository', () => {
 
       await repository.saveSyncResult(feed);
 
-      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
       expect(activityFeed.updateMany.mock.calls).toEqual([
         [
           {
-            where: { id: 'feed-id', ownerId: 'owner-id' },
+            // Lần chép bắt đầu sớm hơn lần đã lưu không đè trạng thái.
+            where: {
+              id: 'feed-id',
+              ownerId: 'owner-id',
+              OR: [{ lastSyncAt: null }, { lastSyncAt: { lte: now } }],
+            },
             data: {
               displayName: 'trhgatu/magnum-opus-renamed',
               status: 'ACTIVE',
               lastErrorCode: null,
               lastSyncAt: now,
             },
+          },
+        ],
+        [
+          {
+            // coveredFrom chỉ lùi — hoặc bắt đầu lại sau một lỗ hổng.
+            where: {
+              id: 'feed-id',
+              ownerId: 'owner-id',
+              OR: [
+                { coveredFrom: null },
+                { coveredFrom: { gt: new Date('2026-09-01T00:00:00.000Z') } },
+                {
+                  syncedUntil: { lt: new Date('2026-09-01T00:00:00.000Z') },
+                },
+              ],
+            },
+            data: { coveredFrom: new Date('2026-09-01T00:00:00.000Z') },
           },
         ],
         [
@@ -213,21 +234,14 @@ describe('PrismaActivityFeedRepository', () => {
             data: { syncedUntil: now },
           },
         ],
-        [
-          {
-            // coveredFrom chỉ lùi.
-            where: {
-              id: 'feed-id',
-              ownerId: 'owner-id',
-              OR: [
-                { coveredFrom: null },
-                { coveredFrom: { gt: new Date('2026-09-01T00:00:00.000Z') } },
-              ],
-            },
-            data: { coveredFrom: new Date('2026-09-01T00:00:00.000Z') },
-          },
-        ],
       ]);
+
+      // Cả ba câu đi chung một transaction: không có chuyện trạng thái đã
+      // lưu mà mốc thì chưa.
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+      expect(prisma.$transaction).toHaveBeenCalledWith(
+        activityFeed.updateMany.mock.results.map((result) => result.value),
+      );
     });
 
     it('leaves the bounds alone for a feed that has never been copied', async () => {
@@ -243,7 +257,11 @@ describe('PrismaActivityFeedRepository', () => {
 
       expect(activityFeed.updateMany).toHaveBeenCalledTimes(1);
       expect(activityFeed.updateMany).toHaveBeenCalledWith({
-        where: { id: 'feed-id', ownerId: 'owner-id' },
+        where: {
+          id: 'feed-id',
+          ownerId: 'owner-id',
+          OR: [{ lastSyncAt: null }, { lastSyncAt: { lte: now } }],
+        },
         data: {
           displayName: 'trhgatu/magnum-opus',
           status: 'DISCONNECTED',

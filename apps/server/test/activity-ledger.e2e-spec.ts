@@ -57,7 +57,7 @@ describe('Activity ledger (E2E, database)', () => {
     await expect(feeds.insert(newFeed('1001'))).resolves.toBe(false);
   });
 
-  it('never moves the bounds back when an older copy finishes last', async () => {
+  it('never lets an older copy that finishes last undo a newer one', async () => {
     const created = newFeed('1002');
     await feeds.insert(created);
 
@@ -65,28 +65,63 @@ describe('Activity ledger (E2E, database)', () => {
     const newer = (await feeds.findById(ownerId, created.id))!;
     const older = (await feeds.findById(ownerId, created.id))!;
 
+    // Bắt đầu 10:00, xong trước.
     newer.recordSuccess({
       window: {
         from: new Date('2026-09-01T00:00:00.000Z'),
         to: new Date('2026-10-16T10:00:00.000Z'),
       },
-      displayName: 'trhgatu/magnum-opus',
-      now: new Date('2026-10-16T10:01:00.000Z'),
+      displayName: 'trhgatu/magnum-opus-renamed',
+      now: new Date('2026-10-16T10:00:00.000Z'),
     });
     await feeds.saveSyncResult(newer);
 
+    // Bắt đầu 09:58 với tên cũ, xong sau.
     older.recordSuccess({
       window: {
         from: new Date('2026-10-01T00:00:00.000Z'),
         to: new Date('2026-10-16T09:58:00.000Z'),
       },
       displayName: 'trhgatu/magnum-opus',
-      now: new Date('2026-10-16T10:03:00.000Z'),
+      now: new Date('2026-10-16T09:58:00.000Z'),
     });
     await feeds.saveSyncResult(older);
 
     const stored = (await feeds.findById(ownerId, created.id))!;
     expect(stored.coveredFrom).toEqual(new Date('2026-09-01T00:00:00.000Z'));
+    expect(stored.syncedUntil).toEqual(new Date('2026-10-16T10:00:00.000Z'));
+    expect(stored.displayName).toBe('trhgatu/magnum-opus-renamed');
+    expect(stored.lastSyncAt).toEqual(new Date('2026-10-16T10:00:00.000Z'));
+  });
+
+  it('starts coverage again after a gap instead of claiming it was covered', async () => {
+    const created = newFeed('1005');
+    await feeds.insert(created);
+    const first = (await feeds.findById(ownerId, created.id))!;
+    first.recordSuccess({
+      window: {
+        from: new Date('2026-09-25T00:00:00.000Z'),
+        to: new Date('2026-10-01T00:00:00.000Z'),
+      },
+      displayName: 'wakatime-project',
+      now: new Date('2026-10-01T00:00:00.000Z'),
+    });
+    await feeds.saveSyncResult(first);
+
+    // Nguồn giữ 7 ngày, chép lại 16/10: không nối được với 01/10.
+    const late = (await feeds.findById(ownerId, created.id))!;
+    late.recordSuccess({
+      window: {
+        from: new Date('2026-10-09T10:00:00.000Z'),
+        to: new Date('2026-10-16T10:00:00.000Z'),
+      },
+      displayName: 'wakatime-project',
+      now: new Date('2026-10-16T10:00:00.000Z'),
+    });
+    await feeds.saveSyncResult(late);
+
+    const stored = (await feeds.findById(ownerId, created.id))!;
+    expect(stored.coveredFrom).toEqual(new Date('2026-10-09T10:00:00.000Z'));
     expect(stored.syncedUntil).toEqual(new Date('2026-10-16T10:00:00.000Z'));
   });
 

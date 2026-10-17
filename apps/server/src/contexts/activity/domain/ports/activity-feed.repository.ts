@@ -21,8 +21,10 @@ export interface ActivityFeedRepository {
    */
   insert(feed: ActivityFeed): Promise<boolean>;
   /**
-   * Lưu kết quả một lần chép. Ở DB, syncedUntil chỉ tiến và coveredFrom chỉ
-   * lùi: một lần chép bắt đầu trước nhưng xong sau không kéo mốc ngược lại.
+   * Lưu kết quả một lần chép, trong một transaction. Ở DB, syncedUntil chỉ
+   * tiến và coveredFrom chỉ lùi (hoặc bắt đầu lại sau một lỗ hổng); trạng
+   * thái chỉ ghi khi lần chép bắt đầu không sớm hơn lần đã lưu. Một lần chép
+   * bắt đầu trước nhưng xong sau không làm hỏng kết quả mới hơn.
    */
   saveSyncResult(feed: ActivityFeed): Promise<void>;
 }

@@ -48,7 +48,17 @@ export class PrismaActivityFeedRepository implements ActivityFeedRepository {
 
     const operations = [
       this.prisma.activityFeed.updateMany({
-        where: scope,
+        // Trạng thái, tên, lỗi: chỉ ghi khi lần chép này bắt đầu không sớm
+        // hơn lần đã lưu — lần chép cũ xong sau không đè kết quả mới hơn.
+        where: snapshot.lastSyncAt
+          ? {
+              ...scope,
+              OR: [
+                { lastSyncAt: null },
+                { lastSyncAt: { lte: snapshot.lastSyncAt } },
+              ],
+            }
+          : scope,
         data: {
           displayName: snapshot.displayName,
           status: snapshot.status,
@@ -58,7 +68,25 @@ export class PrismaActivityFeedRepository implements ActivityFeedRepository {
       }),
     ];
     // Có điều kiện (03 §5.4): hai lần chép song song, lần xong sau nhưng
-    // bắt đầu trước không kéo mốc ngược lại.
+    // bắt đầu trước không kéo mốc ngược lại. coveredFrom trước syncedUntil:
+    // điều kiện "phần đã lưu kết thúc trước lần chép này" phải đọc
+    // syncedUntil cũ.
+    if (snapshot.coveredFrom) {
+      operations.push(
+        this.prisma.activityFeed.updateMany({
+          where: {
+            ...scope,
+            OR: [
+              { coveredFrom: null },
+              { coveredFrom: { gt: snapshot.coveredFrom } },
+              // Lỗ hổng (nguồn giới hạn lịch sử): độ phủ bắt đầu lại.
+              { syncedUntil: { lt: snapshot.coveredFrom } },
+            ],
+          },
+          data: { coveredFrom: snapshot.coveredFrom },
+        }),
+      );
+    }
     if (snapshot.syncedUntil) {
       operations.push(
         this.prisma.activityFeed.updateMany({
@@ -70,20 +98,6 @@ export class PrismaActivityFeedRepository implements ActivityFeedRepository {
             ],
           },
           data: { syncedUntil: snapshot.syncedUntil },
-        }),
-      );
-    }
-    if (snapshot.coveredFrom) {
-      operations.push(
-        this.prisma.activityFeed.updateMany({
-          where: {
-            ...scope,
-            OR: [
-              { coveredFrom: null },
-              { coveredFrom: { gt: snapshot.coveredFrom } },
-            ],
-          },
-          data: { coveredFrom: snapshot.coveredFrom },
         }),
       );
     }

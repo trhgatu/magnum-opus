@@ -173,17 +173,24 @@ export class ActivityFeed {
     const needed = reachable(input.neededFrom.getTime());
     if (needed < coveredFrom.getTime()) from = Math.min(from, needed);
 
-    return { from: new Date(from), to: new Date(input.now) };
+    // Nguồn giới hạn lịch sử: lần chép trễ cũng không hỏi xa hơn nguồn giữ.
+    return { from: new Date(reachable(from)), to: new Date(input.now) };
   }
-  /** Lần chép thành công: sổ chỉ nở ra, không bao giờ co lại. */
+  /**
+   * Lần chép thành công: sổ chỉ nở ra, không bao giờ co lại — trừ khi lần
+   * chép không nối được với phần đã có (nguồn giới hạn lịch sử, chép quá
+   * trễ): khi đó độ phủ bắt đầu lại từ lần chép này, không ghi đè lỗ hổng.
+   * `now` là lúc lần chép bắt đầu.
+   */
   recordSuccess(input: {
     window: SyncWindow;
     displayName: string;
     now: Date;
   }): void {
     const { coveredFrom, syncedUntil } = this.props;
+    const leavesGap = syncedUntil !== null && input.window.from > syncedUntil;
     this.props.coveredFrom = new Date(
-      coveredFrom === null
+      coveredFrom === null || leavesGap
         ? input.window.from
         : Math.min(coveredFrom.getTime(), input.window.from.getTime()),
     );
@@ -198,7 +205,10 @@ export class ActivityFeed {
     this.props.lastErrorCode = null;
   }
 
-  /** Lần chép thất bại: giữ nguyên sổ, ghi lỗi để giao diện hướng dẫn. */
+  /**
+   * Lần chép thất bại: giữ nguyên sổ, ghi lỗi để giao diện hướng dẫn.
+   * `now` là lúc lần chép bắt đầu.
+   */
   recordFailure(input: { code: ActivitySourceErrorCode; now: Date }): void {
     this.props.status = DISCONNECTING_ERRORS.has(input.code)
       ? 'DISCONNECTED'

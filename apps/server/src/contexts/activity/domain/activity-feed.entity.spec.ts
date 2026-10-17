@@ -110,6 +110,19 @@ describe('ActivityFeed', () => {
       ).toEqual({ from: neededFrom, to: now });
     });
 
+    it('never asks a limited source for more than it keeps, even when copying late', () => {
+      // Chép lần trước 01/10; nguồn giữ 7 ngày; hôm nay 16/10.
+      const feed = synced({
+        coveredFrom: new Date('2026-09-25T00:00:00.000Z'),
+        syncedUntil: neededFrom,
+      });
+
+      expect(feed.planSync({ neededFrom, now, historyWindowDays: 7 })).toEqual({
+        from: new Date(now.getTime() - days(7)),
+        to: now,
+      });
+    });
+
     it('never asks a limited source for more than it keeps', () => {
       // Nguồn chỉ giữ 7 ngày: không hỏi xa hơn now − 7 ngày.
       expect(
@@ -160,6 +173,21 @@ describe('ActivityFeed', () => {
 
       expect(feed.coveredFrom).toEqual(coveredFrom);
       expect(feed.syncedUntil).toEqual(syncedUntil);
+    });
+  });
+
+  describe('recordSuccess after a gap', () => {
+    it('starts coverage again instead of claiming the gap was covered', () => {
+      const feed = synced({
+        coveredFrom: new Date('2026-09-25T00:00:00.000Z'),
+        syncedUntil: new Date('2026-10-01T00:00:00.000Z'),
+      });
+      const window = { from: new Date('2026-10-09T10:00:00.000Z'), to: now };
+
+      feed.recordSuccess({ window, displayName: 'wakatime-project', now });
+
+      expect(feed.coveredFrom).toEqual(window.from);
+      expect(feed.syncedUntil).toEqual(now);
     });
   });
 
