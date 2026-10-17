@@ -77,6 +77,32 @@ describe("apiFetch", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("chuyển tiếp tham số nguyên thủy của lỗi, bỏ mọi thứ khác", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(
+        {
+          code: "GITHUB_ACCOUNT_CHANGE_UNCONFIRMED",
+          args: {
+            currentAccount: "trhgatu",
+            newAccount: "other-account",
+            nested: { secret: "x" },
+          },
+        },
+        409,
+      ),
+    );
+
+    const error = await apiFetch("/integrations/github").catch(
+      (caught: unknown) => caught,
+    );
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect((error as ApiError).args).toEqual({
+      currentAccount: "trhgatu",
+      newAccount: "other-account",
+    });
+  });
+
   it("giữ code và correlation ID nhưng không lộ raw backend message", async () => {
     fetchMock.mockResolvedValue(
       jsonResponse(
@@ -221,6 +247,21 @@ describe("toMutationError", () => {
       message: "Thói quen đã thay đổi ở một phiên làm việc khác.",
       code: "HABIT_REVISION_CONFLICT",
       correlationId: "request-789",
+    });
+  });
+
+  it("giữ lại tham số của lỗi nghiệp vụ", () => {
+    const error = new ApiError({
+      kind: "conflict",
+      status: 409,
+      code: "GITHUB_ACCOUNT_CHANGE_UNCONFIRMED",
+      args: { currentAccount: "trhgatu", newAccount: "other-account" },
+      message: "Dữ liệu đã thay đổi.",
+    });
+
+    expect(toMutationError(error)).toMatchObject({
+      code: "GITHUB_ACCOUNT_CHANGE_UNCONFIRMED",
+      args: { currentAccount: "trhgatu", newAccount: "other-account" },
     });
   });
 

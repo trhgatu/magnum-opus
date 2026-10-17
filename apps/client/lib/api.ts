@@ -28,10 +28,14 @@ export interface PublicApiError {
   correlationId?: string;
 }
 
+/** Tham số của lỗi nghiệp vụ (vd tên tài khoản) — chỉ giá trị nguyên thủy. */
+export type ApiErrorArgs = Record<string, string | number | boolean>;
+
 interface ApiErrorOptions extends PublicApiError {
   status: number | null;
   code?: string;
   translationKey?: string;
+  args?: ApiErrorArgs;
   retryable?: boolean;
 }
 
@@ -40,12 +44,15 @@ interface ApiErrorOptions extends PublicApiError {
  *
  * `message` luôn an toàn để hiển thị. Chi tiết backend không được sao chép vào
  * Error vì error có thể đi tới error boundary hoặc Server Action response.
+ * Ngoại lệ có chủ đích: `args` của lỗi nghiệp vụ (vd tên tài khoản), và chỉ
+ * giá trị nguyên thủy — object lồng từ API bị bỏ ở `readErrorArgs`.
  */
 export class ApiError extends Error {
   readonly kind: ApiErrorKind;
   readonly status: number | null;
   readonly code?: string;
   readonly translationKey?: string;
+  readonly args?: ApiErrorArgs;
   readonly correlationId?: string;
   readonly retryable: boolean;
 
@@ -55,6 +62,7 @@ export class ApiError extends Error {
     status,
     code,
     translationKey,
+    args,
     correlationId,
     retryable = false,
   }: ApiErrorOptions) {
@@ -64,6 +72,7 @@ export class ApiError extends Error {
     this.status = status;
     this.code = code;
     this.translationKey = translationKey;
+    this.args = args;
     this.correlationId = correlationId;
     this.retryable = retryable;
   }
@@ -121,9 +130,25 @@ const errorDescriptor = (
   };
 };
 
+/** Chỉ nhận giá trị nguyên thủy: không object lạ nào từ API đi tới UI. */
+const readErrorArgs = (value: unknown): ApiErrorArgs | undefined => {
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    return undefined;
+  const args: ApiErrorArgs = {};
+  for (const [key, item] of Object.entries(value)) {
+    if (
+      typeof item === "string" ||
+      typeof item === "number" ||
+      typeof item === "boolean"
+    )
+      args[key] = item;
+  }
+  return Object.keys(args).length > 0 ? args : undefined;
+};
+
 const readErrorContract = async (
   response: Response,
-): Promise<Partial<ApiErrorResponse>> => {
+): Promise<Partial<ApiErrorResponse> & { args?: ApiErrorArgs }> => {
   try {
     const body: unknown = await response.json();
     if (!body || typeof body !== "object") return {};
@@ -134,6 +159,7 @@ const readErrorContract = async (
         typeof candidate.translationKey === "string"
           ? candidate.translationKey
           : undefined,
+      args: readErrorArgs(candidate.args),
     };
   } catch {
     return {};
@@ -150,6 +176,7 @@ const responseError = async (
     status: response.status,
     code: contract.code,
     translationKey: contract.translationKey,
+    args: contract.args,
     correlationId:
       response.headers.get("x-correlation-id") ?? requestCorrelationId,
   });
@@ -258,6 +285,7 @@ export interface MutationError {
   message: string;
   kind?: ApiErrorKind;
   code?: string;
+  args?: ApiErrorArgs;
   correlationId?: string;
 }
 
@@ -270,6 +298,7 @@ export const toMutationError = (error: unknown): MutationError => {
     message: publicError.message,
     kind: publicError.kind,
     ...(error instanceof ApiError && error.code ? { code: error.code } : {}),
+    ...(error instanceof ApiError && error.args ? { args: error.args } : {}),
     ...(publicError.correlationId
       ? { correlationId: publicError.correlationId }
       : {}),
