@@ -4,6 +4,8 @@ import { PageHeading } from "@/components/system/page-heading";
 import { Card, CardContent } from "@/components/ui/card";
 import { getCurrentUser } from "@/features/account/api/current-user";
 import { TimeZoneField } from "@/features/account/components/time-zone-field";
+import { getGitHubConnection } from "@/features/github/api/github-connection";
+import { GitHubConnectionCard } from "@/features/github/components/github-connection-card";
 
 export const metadata: Metadata = {
   title: "Cài đặt",
@@ -11,7 +13,10 @@ export const metadata: Metadata = {
 };
 
 export default async function SettingsPage() {
-  const user = await getCurrentUser();
+  const [user, gitHubConnection] = await Promise.all([
+    getCurrentUser(),
+    getGitHubConnection(),
+  ]);
 
   return (
     <section className="flex flex-col gap-8" aria-labelledby="settings-heading">
@@ -25,6 +30,15 @@ export default async function SettingsPage() {
       <Card className="bg-card/70">
         <CardContent className="px-5 py-5 sm:px-7">
           <TimeZoneField timeZone={user.timeZone} />
+        </CardContent>
+      </Card>
+
+      <Card className="bg-card/70">
+        <CardContent className="px-5 py-5 sm:px-7">
+          <GitHubConnectionCard
+            connection={gitHubConnection}
+            timeZone={user.timeZone}
+          />
         </CardContent>
       </Card>
     </section>
