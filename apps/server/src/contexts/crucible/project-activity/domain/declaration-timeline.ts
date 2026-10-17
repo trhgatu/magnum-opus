@@ -36,15 +36,19 @@ const CLOSED_STATES: ReadonlySet<ProjectLifecycleState> = new Set([
 export class DeclarationTimeline {
   private constructor(
     private readonly transitions: LifecycleTransition[],
-    readonly segments: DeclarationSegment[],
+    private readonly ownSegments: DeclarationSegment[],
   ) {}
 
   static fromTransitions(
     transitions: readonly LifecycleTransition[],
   ): DeclarationTimeline {
-    const ordered = [...transitions].sort(
-      (a, b) => a.occurredAt.getTime() - b.occurredAt.getTime(),
-    );
+    // Bản sao của input: thay đổi bên ngoài không làm hỏng dòng thời gian.
+    const ordered = transitions
+      .map((transition) => ({
+        ...transition,
+        occurredAt: new Date(transition.occurredAt),
+      }))
+      .sort((a, b) => a.occurredAt.getTime() - b.occurredAt.getTime());
 
     const segments: DeclarationSegment[] = [];
     let current: DeclarationSegment = {
@@ -70,36 +74,47 @@ export class DeclarationTimeline {
     return new DeclarationTimeline(ordered, segments);
   }
 
+  /** Bản sao: sửa nó không đổi được dòng thời gian. */
+  get segments(): DeclarationSegment[] {
+    return this.ownSegments.map(copySegment);
+  }
+
   get currentState(): ProjectLifecycleState {
-    return this.segments[this.segments.length - 1].state;
+    return this.lastSegment.state;
   }
 
   /** Cycle đang mở bây giờ; null khi Project không ở ACTIVE/PAUSED. */
   get currentCycleId(): string | null {
-    return this.segments[this.segments.length - 1].cycleId;
+    return this.lastSegment.cycleId;
+  }
+
+  private get lastSegment(): DeclarationSegment {
+    return this.ownSegments[this.ownSegments.length - 1];
   }
 
   /** Khoảng chứa `instant`; đúng lúc chuyển trạng thái thuộc khoảng mới. */
   segmentAt(instant: Date): DeclarationSegment {
     const time = instant.getTime();
-    const segment = this.segments.find(
+    const segment = this.ownSegments.find(
       (candidate) =>
         (candidate.from === null || candidate.from.getTime() <= time) &&
         (candidate.to === null || time < candidate.to.getTime()),
     );
     // Các khoảng phủ kín trục thời gian.
-    return segment ?? this.segments[this.segments.length - 1];
+    return copySegment(segment ?? this.lastSegment);
   }
 
   segmentsOfCycle(cycleId: string): DeclarationSegment[] {
-    return this.segments.filter((segment) => segment.cycleId === cycleId);
+    return this.ownSegments
+      .filter((segment) => segment.cycleId === cycleId)
+      .map(copySegment);
   }
 
   /** Lần gần nhất Project vào một trong các trạng thái; null nếu chưa từng. */
   lastEntryInto(states: readonly ProjectLifecycleState[]): Date | null {
     for (let i = this.transitions.length - 1; i >= 0; i--) {
       if (states.includes(this.transitions[i].toState)) {
-        return this.transitions[i].occurredAt;
+        return new Date(this.transitions[i].occurredAt);
       }
     }
     return null;
@@ -116,9 +131,15 @@ export class DeclarationTimeline {
         CLOSED_STATES.has(transition.toState) &&
         OPEN_STATES.has(transition.fromState)
       ) {
-        return transition.occurredAt;
+        return new Date(transition.occurredAt);
       }
     }
     return null;
   }
 }
+
+const copySegment = (segment: DeclarationSegment): DeclarationSegment => ({
+  ...segment,
+  from: segment.from ? new Date(segment.from) : null,
+  to: segment.to ? new Date(segment.to) : null,
+});

@@ -28,53 +28,50 @@ export function eachDayInclusive(
   return days;
 }
 
+/** Mọi múi giờ lệch UTC trong khoảng ±14 giờ. */
+const MAX_OFFSET_MS = 14 * 60 * 60_000;
+
 /**
- * Thời điểm 00:00 của `day` tại `timeZone`. Tính lệch múi giờ hai lần vì
- * ngày đổi giờ mùa hè: lệch ở 00:00 UTC chưa chắc là lệch ở 00:00 địa phương.
+ * Thời điểm đầu tiên thuộc `day` tại `timeZone` — thường là 00:00, nhưng
+ * ở múi giờ nhảy giờ đúng nửa đêm (vd America/Santiago) 00:00 không tồn tại
+ * và ngày bắt đầu lúc 01:00. Tìm nhị phân thay vì đoán độ lệch: ngày lịch
+ * chỉ tăng theo thời gian.
  */
 export function startOfDay(day: CalendarDay, timeZone: string): Date {
   const [year, month, date] = day.split('-').map(Number);
   const asUtc = Date.UTC(year, month - 1, date);
-  const firstGuess = asUtc - offsetMs(asUtc, timeZone);
-  return new Date(asUtc - offsetMs(firstGuess, timeZone));
+  let before = asUtc - MAX_OFFSET_MS; // chắc chắn còn ở ngày trước
+  let from = asUtc + MAX_OFFSET_MS; // chắc chắn đã sang `day`
+  while (from - before > 1) {
+    const middle = Math.floor((before + from) / 2);
+    if (calendarDayAt(new Date(middle), timeZone) < day) before = middle;
+    else from = middle;
+  }
+  return new Date(from);
 }
 
-/** Lệch của múi giờ so với UTC tại một thời điểm (UTC+7 → 7 giờ). */
-function offsetMs(instantMs: number, timeZone: string): number {
-  const wholeSecond = Math.floor(instantMs / 1000) * 1000;
-  const part = wallClock(wholeSecond, timeZone);
-  const wallAsUtc = Date.UTC(
-    part.year,
-    part.month - 1,
-    part.day,
-    part.hour,
-    part.minute,
-    part.second,
-  );
-  return wallAsUtc - wholeSecond;
+const formatters = new Map<string, Intl.DateTimeFormat>();
+
+/** Một formatter cho mỗi múi giờ: tạo Intl.DateTimeFormat khá tốn. */
+function formatterFor(timeZone: string): Intl.DateTimeFormat {
+  let formatter = formatters.get(timeZone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+    formatters.set(timeZone, formatter);
+  }
+  return formatter;
 }
 
 function wallClock(instantMs: number, timeZone: string) {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    hourCycle: 'h23',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  }).formatToParts(new Date(instantMs));
+  const parts = formatterFor(timeZone).formatToParts(new Date(instantMs));
   const value = (type: Intl.DateTimeFormatPartTypes) =>
     Number(parts.find((part) => part.type === type)?.value ?? 0);
-  return {
-    year: value('year'),
-    month: value('month'),
-    day: value('day'),
-    hour: value('hour'),
-    minute: value('minute'),
-    second: value('second'),
-  };
+  return { year: value('year'), month: value('month'), day: value('day') };
 }
 
 const pad = (value: number, width = 2) => String(value).padStart(width, '0');

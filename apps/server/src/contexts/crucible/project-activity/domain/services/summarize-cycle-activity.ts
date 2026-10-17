@@ -51,7 +51,8 @@ export function summarizeCycleActivity(input: {
   const cycleStart = segments[0]?.from;
   if (!cycleStart) throw new Error(`Cycle ${cycleId} is not on the timeline`);
 
-  const cycleEnd = segments[segments.length - 1].to ?? until;
+  const closedAt = segments[segments.length - 1].to;
+  const cycleEnd = closedAt ?? until;
   const rangeEnd = new Date(Math.min(cycleEnd.getTime(), until.getTime()));
 
   // Event của Cycle, có nhãn; event ghi ngày tương lai (đồng hồ lệch) không tính.
@@ -140,7 +141,13 @@ export function summarizeCycleActivity(input: {
       days.some((day) => day.state === 'NO_DATA') ||
       sources.some(
         (source) =>
-          source.status !== 'ACTIVE' || !coversInstant(source, cycleStart),
+          source.status !== 'ACTIVE' ||
+          !coversInstant(source, cycleStart) ||
+          // Cycle đã khép: phải chép tới lúc khép. Cycle đang mở thì mốc chép
+          // luôn trễ vài phút so với bây giờ — độ tươi do dataUntil báo.
+          (closedAt !== null &&
+            closedAt.getTime() <= until.getTime() &&
+            (source.syncedUntil?.getTime() ?? 0) < closedAt.getTime()),
       ),
     dataUntil: dataUntilOf(sources),
   };

@@ -44,12 +44,13 @@ const detect = (
   events: ActivityEvent[],
   sources: LinkedSource[] = [source()],
   now = at('2026-10-20T00:00:00Z'),
+  timeZone = 'UTC',
 ) =>
   detectDivergences({
     timeline: DeclarationTimeline.fromTransitions(transitions),
     events,
     sources,
-    timeZone: 'UTC',
+    timeZone,
     now,
   });
 
@@ -67,6 +68,23 @@ describe('detectDivergences', () => {
           [source({ syncedUntil: at('2026-10-09T00:00:00Z') })],
         ),
       ).toEqual([{ kind: 'ACTIVE_WITHOUT_ACTIVITY', idleDays: 8 }]);
+    });
+
+    it('appears on the seventh idle day, not later', () => {
+      expect(
+        detect(
+          [started],
+          [],
+          [source({ syncedUntil: at('2026-10-08T00:00:00Z') })],
+        ),
+      ).toEqual([{ kind: 'ACTIVE_WITHOUT_ACTIVITY', idleDays: 7 }]);
+      expect(
+        detect(
+          [started],
+          [],
+          [source({ syncedUntil: at('2026-10-07T23:59:59Z') })],
+        ),
+      ).toEqual([]);
     });
 
     it('counts from the latest event of the cycle', () => {
@@ -141,6 +159,21 @@ describe('detectDivergences', () => {
           event('2026-10-06T22:00:00Z'),
         ]),
       ).toEqual([]);
+    });
+
+    it('groups events by day in the account time zone', () => {
+      // 06/10 17:30Z và 07/10 01:00Z khác ngày UTC nhưng cùng 07/10 ở Việt Nam.
+      const sameLocalDay = [
+        event('2026-10-06T17:30:00Z'),
+        event('2026-10-07T01:00:00Z'),
+      ];
+
+      expect(
+        detect(paused, sameLocalDay, undefined, undefined, 'Asia/Ho_Chi_Minh'),
+      ).toEqual([]);
+      expect(detect(paused, sameLocalDay)).toEqual([
+        { kind: 'PAUSED_WITH_ACTIVITY', activeDays: 2 },
+      ]);
     });
 
     it('ignores events from before the pause', () => {

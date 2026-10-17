@@ -167,6 +167,18 @@ describe('summarizeCycleActivity', () => {
     expect(summary.dataUntil).toEqual(at('2026-10-09T12:00:00Z'));
   });
 
+  it('reports missing data when a closed cycle was not copied up to its close', () => {
+    // Khép 12/10 17:00; nguồn chỉ chép tới 12/10 12:00 — cùng ngày, nên
+    // không ngày nào NO_DATA, nhưng dữ liệu vẫn thiếu.
+    const summary = summarize(
+      [],
+      [source('2026-09-24T00:00:00Z', '2026-10-12T12:00:00Z')],
+    );
+
+    expect(summary.days.every((day) => day.state !== 'NO_DATA')).toBe(true);
+    expect(summary.hasMissingData).toBe(true);
+  });
+
   it('reports missing data when a source is in error or never copied', () => {
     expect(
       summarize(

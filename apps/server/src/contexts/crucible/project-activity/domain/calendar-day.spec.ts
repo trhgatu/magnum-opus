@@ -32,9 +32,24 @@ describe('calendar-day', () => {
     expect(startOfDay('2026-03-09', 'America/New_York')).toEqual(
       new Date('2026-03-09T04:00:00.000Z'),
     );
+    // Ngày lùi giờ: 00:00 vẫn là UTC−4 (02:00 mới lùi về UTC−5).
+    expect(startOfDay('2026-11-01', 'America/New_York')).toEqual(
+      new Date('2026-11-01T04:00:00.000Z'),
+    );
     expect(startOfDay('2026-11-02', 'America/New_York')).toEqual(
       new Date('2026-11-02T05:00:00.000Z'),
     );
+  });
+
+  it('starts the day at 01:00 where clocks jump forward at midnight', () => {
+    // Santiago 06/09/2026: 00:00 nhảy thẳng lên 01:00 (UTC−4 → UTC−3).
+    const start = startOfDay('2026-09-06', 'America/Santiago');
+
+    expect(start).toEqual(new Date('2026-09-06T04:00:00.000Z'));
+    expect(calendarDayAt(start, 'America/Santiago')).toBe('2026-09-06');
+    expect(
+      calendarDayAt(new Date(start.getTime() - 1), 'America/Santiago'),
+    ).toBe('2026-09-05');
   });
 
   it('steps across months and lists days inclusively', () => {

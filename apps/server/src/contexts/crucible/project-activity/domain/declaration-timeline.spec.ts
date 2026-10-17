@@ -109,6 +109,25 @@ describe('DeclarationTimeline', () => {
     expect(stoppedBeforeStart.lastCycleClose()).toBeNull();
   });
 
+  it('cannot be changed from the outside', () => {
+    const input = transitions.map((transition) => ({
+      ...transition,
+      occurredAt: new Date(transition.occurredAt),
+    }));
+    const owned = DeclarationTimeline.fromTransitions(input);
+
+    input[0].occurredAt.setFullYear(1999);
+    owned.segments[1].state = 'STOPPED';
+    owned.segmentAt(at('2026-10-03T00:00:00Z')).from?.setFullYear(1999);
+    owned.lastEntryInto(['ACTIVE'])?.setFullYear(1999);
+
+    expect(owned.segments[1]).toMatchObject({
+      state: 'ACTIVE',
+      from: at('2026-10-01T09:00:00Z'),
+    });
+    expect(owned.lastEntryInto(['ACTIVE'])).toEqual(at('2026-10-20T10:00:00Z'));
+  });
+
   it('lists the segments of a cycle', () => {
     expect(
       timeline.segmentsOfCycle('cycle-1').map((segment) => segment.state),

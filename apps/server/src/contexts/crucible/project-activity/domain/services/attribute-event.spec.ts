@@ -74,11 +74,15 @@ describe('attributeEvent', () => {
 
   it('attributes the events of one pull request independently', () => {
     // PR #150 mở 11/10 (Cycle 1), merge 21/10 (Cycle 2): không đếm trùng.
-    expect(attribute('2026-10-11T09:00:00Z')).toMatchObject({
+    expect(attribute('2026-10-11T09:00:00Z')).toEqual({
+      inCycle: true,
       cycleId: 'cycle-1',
+      label: 'ACTIVE',
     });
-    expect(attribute('2026-10-21T09:00:00Z')).toMatchObject({
+    expect(attribute('2026-10-21T09:00:00Z')).toEqual({
+      inCycle: true,
       cycleId: 'cycle-2',
+      label: 'ACTIVE',
     });
   });
 });
