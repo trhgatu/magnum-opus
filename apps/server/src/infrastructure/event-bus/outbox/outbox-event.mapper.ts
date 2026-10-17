@@ -3,6 +3,8 @@ import { UserRegisteredEvent } from '@iam/users/domain/events/user-registered.ev
 import { JournalEntrySealedEvent } from '@reflection/journal/domain/events/journal-entry-sealed.event';
 import { MemoryCreatedEvent } from '@reflection/memory/domain/events/memory-created.event';
 import { NotificationCreatedEvent } from '@/contexts/notifications/domain/events/notification-created.event';
+import { ProjectCycleClosedEvent } from '@/contexts/crucible/project/domain/events/project-cycle-closed.event';
+import { ProjectCycleEndReason } from '@/contexts/crucible/project/domain/enums';
 import { DomainEvent } from '@shared/domain/events/domain-event';
 import type { Prisma } from '@repo/database';
 import { getCorrelationId } from '@infrastructure/observability/correlation-context';
@@ -13,6 +15,7 @@ export const OUTBOX_EVENT_TYPES = {
   NOTIFICATION_CREATED: 'notifications.notification.created.v1',
   JOURNAL_ENTRY_SEALED: 'relection.journal-entry.sealed.v1',
   MEMORY_CREATED: 'reflection.memory.created.v1',
+  PROJECT_CYCLE_CLOSED: 'crucible.project.cycle-closed.v1',
 } as const;
 
 export interface SerializedOutboxEvent {
@@ -48,6 +51,9 @@ const requireString = (
   }
   return value;
 };
+
+const isCycleEndReason = (value: string): value is ProjectCycleEndReason =>
+  (Object.values(ProjectCycleEndReason) as string[]).includes(value);
 
 // Gắn correlation ID của request đang chạy vào row outbox, để sau này lần
 // ngược được từ email/notification về đúng request đã sinh ra nó.
@@ -134,6 +140,22 @@ const serializeEventPayload = (
     };
   }
 
+  if (event instanceof ProjectCycleClosedEvent) {
+    return {
+      id: event.eventId,
+      type: OUTBOX_EVENT_TYPES.PROJECT_CYCLE_CLOSED,
+      aggregateId: event.projectId,
+      payload: {
+        projectId: event.projectId,
+        ownerId: event.ownerId,
+        cycleId: event.cycleId,
+        endReason: event.endReason,
+        closedAt: event.closedAt.toISOString(),
+      },
+      occurredAt: event.occurredOn,
+    };
+  }
+
   throw new Error(`Unsupported domain event: ${event.constructor.name}`);
 };
 
@@ -186,6 +208,20 @@ export const rehydrateDomainEvent = (
           : null,
       );
       break;
+    case OUTBOX_EVENT_TYPES.PROJECT_CYCLE_CLOSED: {
+      const endReason = requireString(payload, 'endReason');
+      if (!isCycleEndReason(endReason)) {
+        throw new Error(`Unknown cycle end reason "${endReason}"`);
+      }
+      event = new ProjectCycleClosedEvent(
+        requireString(payload, 'projectId'),
+        requireString(payload, 'ownerId'),
+        requireString(payload, 'cycleId'),
+        endReason,
+        new Date(requireString(payload, 'closedAt')),
+      );
+      break;
+    }
     default:
       throw new Error(`Unsupported outbox event type: ${persisted.type}`);
   }

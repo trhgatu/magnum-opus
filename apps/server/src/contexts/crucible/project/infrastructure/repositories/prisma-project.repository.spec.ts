@@ -21,6 +21,9 @@ describe('PrismaProjectRepository', () => {
     projectLifecycleTransition: {
       createMany: jest.fn(),
     },
+    outboxEvent: {
+      createMany: jest.fn(),
+    },
   };
 
   const projectModel = {
@@ -266,6 +269,58 @@ describe('PrismaProjectRepository', () => {
           update: expect.objectContaining({ closingNote: 'Xong sớm' }),
         }),
       );
+    });
+  });
+
+  describe('cycle closed event', () => {
+    beforeEach(() => {
+      transactionClient.project.updateMany.mockResolvedValue({ count: 1 });
+      transactionClient.projectCycle.upsert.mockResolvedValue({});
+    });
+
+    it('writes ProjectCycleClosed to the outbox in the same transaction as the close', async () => {
+      const project = createProject();
+      project.start();
+      const cycleId = project.currentCycle!.id;
+      project.complete();
+
+      await repository.update(project, 1);
+
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+      expect(transactionClient.outboxEvent.createMany).toHaveBeenCalledWith({
+        data: [
+          expect.objectContaining({
+            type: 'crucible.project.cycle-closed.v1',
+            aggregateId: project.id,
+            payload: expect.objectContaining({
+              projectId: project.id,
+              ownerId: 'owner-id',
+              cycleId,
+              endReason: 'COMPLETED',
+            }),
+          }),
+        ],
+      });
+    });
+
+    it('writes nothing to the outbox when no cycle closes', async () => {
+      const project = createProject();
+      project.start();
+
+      await repository.update(project, 1);
+
+      expect(transactionClient.outboxEvent.createMany).not.toHaveBeenCalled();
+    });
+
+    it('writes nothing when the revision is stale', async () => {
+      transactionClient.project.updateMany.mockResolvedValue({ count: 0 });
+      const project = createProject();
+      project.start();
+      project.stop();
+
+      await repository.update(project, 1);
+
+      expect(transactionClient.outboxEvent.createMany).not.toHaveBeenCalled();
     });
   });
 

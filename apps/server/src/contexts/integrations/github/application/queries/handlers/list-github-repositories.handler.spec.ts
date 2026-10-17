@@ -43,11 +43,13 @@ describe('ListGitHubRepositoriesHandler', () => {
     deleteByOwner: jest.fn(),
   };
   const clock: Clock = { now: () => NOW };
+  const usage = { usedByProjects: jest.fn() };
   const handler = new ListGitHubRepositoriesHandler(
     api,
     cipher,
     connections,
     clock,
+    usage,
   );
 
   const connection = (expiresAt: Date | null = null) =>
@@ -65,6 +67,9 @@ describe('ListGitHubRepositoriesHandler', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    usage.usedByProjects.mockResolvedValue({
+      '3': [{ id: 'p1', title: 'Magnum Opus' }],
+    });
     connections.findByOwner.mockResolvedValue(connection());
     connections.update.mockResolvedValue(true);
   });
@@ -82,7 +87,13 @@ describe('ListGitHubRepositoriesHandler', () => {
     const result = await handler.execute(query());
 
     expect(api.listRepositories).toHaveBeenCalledWith('plain(enc-token)');
+    expect(usage.usedByProjects).toHaveBeenCalledWith('owner-id', [
+      '3',
+      '1',
+      '2',
+    ]);
     expect(result.getValue()).toEqual({
+      usedByProjects: { '3': [{ id: 'p1', title: 'Magnum Opus' }] },
       repositories: [
         repository(3, 'trhgatu/magnum-opus', '2026-10-15T00:00:00Z'),
         repository(1, 'trhgatu/old', '2026-01-01T00:00:00Z'),

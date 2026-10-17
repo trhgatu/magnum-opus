@@ -1,11 +1,15 @@
 import { Injectable } from '@nestjs/common';
 
 import { PrismaService } from '@infrastructure/database/prisma.service';
+import { serializeDomainEvent } from '@infrastructure/event-bus/outbox/outbox-event.mapper';
 
 import { Project } from '../../domain/project.aggregate';
 import { ProjectRepository } from '../../domain/ports/project.repository';
 import { PrismaProjectMapper } from '../mappers/prisma-project.mapper';
-import { ProjectLifecycleTransitionedEvent } from '../../domain/events';
+import {
+  ProjectCycleClosedEvent,
+  ProjectLifecycleTransitionedEvent,
+} from '../../domain/events';
 
 @Injectable()
 export class PrismaProjectRepository implements ProjectRepository {
@@ -24,13 +28,17 @@ export class PrismaProjectRepository implements ProjectRepository {
     expectedRevision: number,
   ): Promise<boolean> {
     const raw = PrismaProjectMapper.toPersistence(project);
-    const transitions = project
-      .pullDomainEvents()
+    const events = project.pullDomainEvents();
+    const transitions = events
       .filter(
         (event): event is ProjectLifecycleTransitionedEvent =>
           event instanceof ProjectLifecycleTransitionedEvent,
       )
       .map((event) => PrismaProjectMapper.transitionToPersistence(event));
+    // Cycle khép → outbox, cùng transaction: không có lần khép nào mất event.
+    const outboxEvents = events
+      .filter((event) => event instanceof ProjectCycleClosedEvent)
+      .map(serializeDomainEvent);
 
     return this.prisma.$transaction(async (transaction) => {
       const result = await transaction.project.updateMany({
@@ -77,6 +85,10 @@ export class PrismaProjectRepository implements ProjectRepository {
         await transaction.projectLifecycleTransition.createMany({
           data: transitions,
         });
+      }
+
+      if (outboxEvents.length > 0) {
+        await transaction.outboxEvent.createMany({ data: outboxEvents });
       }
 
       return true;

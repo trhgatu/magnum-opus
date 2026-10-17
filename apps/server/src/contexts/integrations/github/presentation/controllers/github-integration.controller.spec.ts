@@ -115,6 +115,7 @@ describe('GitHubIntegrationController', () => {
         },
       ],
       truncated: false,
+      usedByProjects: {},
     };
 
     it('lists repositories of the authenticated owner, filtered by search', async () => {

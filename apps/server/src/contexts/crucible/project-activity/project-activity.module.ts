@@ -10,10 +10,14 @@ import { CLOCK } from './application/ports/clock.port';
 import { PROJECT_DECLARATION_READER } from './application/ports/project-declaration-reader.port';
 import { GetProjectActivityHandler } from './application/queries/handlers/get-project-activity.handler';
 import { ListActivitySourcesHandler } from './application/queries/handlers/list-activity-sources.handler';
+import { ListCycleSnapshotsHandler } from './application/queries/handlers/list-cycle-snapshots.handler';
+import { CaptureCycleSnapshotService } from './application/services/capture-cycle-snapshot.service';
+import { CYCLE_ACTIVITY_SNAPSHOT_REPOSITORY } from './domain/ports/cycle-activity-snapshot.repository';
 import { PROJECT_ACTIVITY_SOURCE_REPOSITORY } from './domain/ports/project-activity-source.repository';
 import { SystemClock } from './infrastructure/clock/system-clock';
 import { PrismaAccountTimeZoneReader } from './infrastructure/readers/prisma-account-time-zone.reader';
 import { PrismaProjectDeclarationReader } from './infrastructure/readers/prisma-project-declaration.reader';
+import { PrismaCycleActivitySnapshotRepository } from './infrastructure/repositories/prisma-cycle-activity-snapshot.repository';
 import { PrismaProjectActivitySourceRepository } from './infrastructure/repositories/prisma-project-activity-source.repository';
 import { ProjectActivityController } from './presentation/controllers/project-activity.controller';
 
@@ -30,6 +34,10 @@ import { ProjectActivityController } from './presentation/controllers/project-ac
       useClass: PrismaProjectActivitySourceRepository,
     },
     {
+      provide: CYCLE_ACTIVITY_SNAPSHOT_REPOSITORY,
+      useClass: PrismaCycleActivitySnapshotRepository,
+    },
+    {
       provide: PROJECT_DECLARATION_READER,
       useClass: PrismaProjectDeclarationReader,
     },
@@ -42,6 +50,10 @@ import { ProjectActivityController } from './presentation/controllers/project-ac
     UnlinkActivitySourceHandler,
     GetProjectActivityHandler,
     ListActivitySourcesHandler,
+    ListCycleSnapshotsHandler,
+    CaptureCycleSnapshotService,
   ],
+  // Outbox chụp snapshot khi nhận ProjectCycleClosed.
+  exports: [CaptureCycleSnapshotService],
 })
 export class ProjectActivityModule {}

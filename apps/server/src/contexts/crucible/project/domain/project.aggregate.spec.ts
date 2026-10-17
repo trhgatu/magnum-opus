@@ -5,6 +5,10 @@ import {
   InvalidProjectTransitionException,
 } from './exceptions';
 import { ProjectLifecycleState, ProjectCycleEndReason } from './enums';
+import {
+  ProjectCycleClosedEvent,
+  ProjectLifecycleTransitionedEvent,
+} from './events';
 import { Project } from './project.aggregate';
 
 const createProject = (overrides?: { title?: string; description?: string }) =>
@@ -86,6 +90,60 @@ describe('Project', () => {
     it('rejects Pause outside ACTIVE', () => {
       const project = createProject();
       expect(() => project.pause()).toThrow(InvalidProjectTransitionException);
+    });
+  });
+
+  describe('cycle closed event', () => {
+    const closedEvents = (project: Project) =>
+      project
+        .pullDomainEvents()
+        .filter((event) => event instanceof ProjectCycleClosedEvent);
+
+    it('announces a cycle closed by Complete, at the transition instant', () => {
+      const project = createProject();
+      project.start();
+      project.pullDomainEvents();
+      const cycleId = project.currentCycle!.id;
+
+      project.complete();
+      const events = project.pullDomainEvents();
+      const transition = events.find(
+        (event) => event instanceof ProjectLifecycleTransitionedEvent,
+      )!;
+      const closed = events.find(
+        (event) => event instanceof ProjectCycleClosedEvent,
+      ) as ProjectCycleClosedEvent;
+
+      expect(closed).toMatchObject({
+        projectId: project.id,
+        ownerId: project.ownerId,
+        cycleId,
+        endReason: ProjectCycleEndReason.COMPLETED,
+      });
+      expect(closed.closedAt).toEqual(transition.occurredOn);
+    });
+
+    it('announces a cycle closed by Stop from ACTIVE or PAUSED', () => {
+      const active = createProject();
+      active.start();
+      active.stop();
+      expect(closedEvents(active)).toEqual([
+        expect.objectContaining({ endReason: ProjectCycleEndReason.STOPPED }),
+      ]);
+
+      const paused = createProject();
+      paused.start();
+      paused.pause();
+      paused.stop();
+      expect(closedEvents(paused)).toHaveLength(1);
+    });
+
+    it('announces nothing for a Stop before the project started', () => {
+      const project = createProject();
+
+      project.stop();
+
+      expect(closedEvents(project)).toEqual([]);
     });
   });
 

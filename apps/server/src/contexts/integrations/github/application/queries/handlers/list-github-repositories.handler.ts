@@ -18,6 +18,11 @@ import {
   type GitHubApi,
   type GitHubRepository,
 } from '../../ports/github-api.port';
+import {
+  GITHUB_REPOSITORY_USAGE_READER,
+  type GitHubRepositoryUsageReader,
+  type ProjectRef,
+} from '../../ports/github-repository-usage-reader.port';
 import { TOKEN_CIPHER, type TokenCipher } from '../../ports/token-cipher.port';
 import { ListGitHubRepositoriesQuery } from '../list-github-repositories.query';
 
@@ -28,6 +33,8 @@ export interface GitHubRepositorySelection {
   repositories: GitHubRepository[];
   /** true: còn repository phù hợp nhưng không được trả về. */
   truncated: boolean;
+  /** Project đang dùng từng repository (theo id); không ai dùng thì vắng. */
+  usedByProjects: Record<string, ProjectRef[]>;
 }
 
 @QueryHandler(ListGitHubRepositoriesQuery)
@@ -41,6 +48,8 @@ export class ListGitHubRepositoriesHandler implements IQueryHandler<
     @Inject(GITHUB_CONNECTION_REPOSITORY)
     private readonly repository: GitHubConnectionRepository,
     @Inject(CLOCK) private readonly clock: Clock,
+    @Inject(GITHUB_REPOSITORY_USAGE_READER)
+    private readonly usage: GitHubRepositoryUsageReader,
   ) {}
 
   async execute({
@@ -61,9 +70,15 @@ export class ListGitHubRepositoriesHandler implements IQueryHandler<
       );
       const matched = sortByLastPush(filterByName(list.repositories, search));
 
+      const repositories = matched.slice(0, MAX_REPOSITORIES);
+
       return Result.ok({
-        repositories: matched.slice(0, MAX_REPOSITORIES),
+        repositories,
         truncated: matched.length > MAX_REPOSITORIES || !list.complete,
+        usedByProjects: await this.usage.usedByProjects(
+          ownerId,
+          repositories.map((repository) => repository.id),
+        ),
       });
     } catch (error) {
       if (error instanceof GitHubTokenInvalidException) {
