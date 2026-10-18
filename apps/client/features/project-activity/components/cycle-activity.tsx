@@ -140,10 +140,7 @@ export function CycleActivity({
         </div>
       ) : null}
 
-      <DayStrip
-        days={cycle.days}
-        label={`Các ngày của Cycle ${cycle.cycleNumber}`}
-      />
+      <DayStrip days={cycle.days} label="Dải ngày của vòng này" />
 
       <div className="flex flex-col gap-1">
         <p className="text-sm font-medium tabular-nums">{summaryLine(cycle)}</p>

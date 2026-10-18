@@ -71,12 +71,14 @@ export default async function ProjectDetailPage({
   // Vòng không có snapshot: không có mục "Hoạt động của vòng" (06 §10).
   const closedCycleActivity: Record<string, ReactNode> = {};
   for (const snapshot of snapshots ?? []) {
-    const closedAt = closedCycles?.find(
-      (cycle) => cycle.id === snapshot.cycleId,
-    )?.endedAt;
-    if (closedAt) {
+    const cycle = closedCycles?.find((item) => item.id === snapshot.cycleId);
+    if (cycle?.endedAt) {
       closedCycleActivity[snapshot.cycleId] = (
-        <CycleSnapshot snapshot={snapshot} closedAt={closedAt} />
+        <CycleSnapshot
+          snapshot={snapshot}
+          cycleNumber={cycle.cycleNumber}
+          closedAt={cycle.endedAt}
+        />
       );
     }
   }

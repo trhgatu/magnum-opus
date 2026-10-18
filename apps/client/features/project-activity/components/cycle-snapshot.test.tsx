@@ -102,11 +102,52 @@ describe("snapshotSourceLines", () => {
   });
 });
 
+describe("snapshotSourceLines without a complete source", () => {
+  it("has no shared line when every source stopped short", () => {
+    expect(
+      snapshotSourceLines(
+        snapshot({
+          sources: [
+            {
+              provider: "GITHUB",
+              displayName: "trhgatu/old-repo",
+              coveredFrom: null,
+              dataUntil: "2026-10-11T02:00:00.000Z",
+            },
+          ],
+        }),
+        CLOSED_AT,
+      ),
+    ).toEqual({
+      lines: ["trhgatu/old-repo — dữ liệu tới 11/10/2026 09:00"],
+      incomplete: true,
+    });
+  });
+
+  it("has nothing to say without sources", () => {
+    expect(snapshotSourceLines(snapshot({ sources: [] }), CLOSED_AT)).toEqual({
+      lines: [],
+      incomplete: false,
+    });
+  });
+});
+
 describe("CycleSnapshot", () => {
   it("shows the captured strip, summary and sources", () => {
-    render(<CycleSnapshot snapshot={snapshot()} closedAt={CLOSED_AT} />);
+    render(
+      <CycleSnapshot
+        snapshot={snapshot()}
+        cycleNumber={2}
+        closedAt={CLOSED_AT}
+      />,
+    );
 
-    const region = screen.getByRole("region", { name: "Hoạt động của vòng" });
+    const region = screen.getByRole("region", {
+      name: "Hoạt động của Cycle 2",
+    });
+    expect(
+      within(region).getByRole("list", { name: "Dải ngày của Cycle 2" }),
+    ).toBeTruthy();
     expect(
       within(region)
         .getAllByRole("listitem")
@@ -142,6 +183,7 @@ describe("CycleSnapshot", () => {
             },
           ],
         })}
+        cycleNumber={2}
         closedAt={CLOSED_AT}
       />,
     );
