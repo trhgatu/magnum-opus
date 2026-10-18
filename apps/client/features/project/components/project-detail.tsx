@@ -32,6 +32,7 @@ export function ProjectDetail({
   timeZone,
   activity,
   activityNotes,
+  closedCycleActivity,
 }: {
   project: ProjectResponse;
   /** null khi không tải được — xem page.tsx. */
@@ -41,6 +42,8 @@ export function ProjectDetail({
   activity?: ReactNode;
   /** Chỗ lệch D3/D4 — ngay dưới phần đầu trang. */
   activityNotes?: ReactNode;
+  /** Snapshot hoạt động của từng Cycle đã đóng, theo id Cycle. */
+  closedCycleActivity?: Record<string, ReactNode>;
 }) {
   const hasOpenCycle =
     project.lifecycleState === "ACTIVE" || project.lifecycleState === "PAUSED";
@@ -120,7 +123,11 @@ export function ProjectDetail({
           </Card>
         ) : null}
       </ProjectFieldsProvider>
-      <ProjectClosedCycles cycles={closedCycles} timeZone={timeZone} />
+      <ProjectClosedCycles
+        cycles={closedCycles}
+        timeZone={timeZone}
+        activityByCycle={closedCycleActivity}
+      />
 
       <footer className="flex flex-wrap justify-end gap-2 border-t pt-4 font-mono text-xs text-muted-foreground">
         <time dateTime={project.updatedAt}>

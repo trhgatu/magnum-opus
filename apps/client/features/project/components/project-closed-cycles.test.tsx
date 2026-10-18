@@ -113,4 +113,22 @@ describe("ProjectClosedCycles", () => {
     expect(screen.getByText("02/08/2026")).toBeTruthy();
     expect(screen.getByText("16/08/2026")).toBeTruthy();
   });
+
+  it("adds the activity of Cycles that have a snapshot, after the closing note", () => {
+    render(
+      <ProjectClosedCycles
+        cycles={[completed, stopped]}
+        timeZone="UTC"
+        activityByCycle={{ "cycle-2": <p>Hoạt động của Cycle 2</p> }}
+      />,
+    );
+
+    const [second, first] = screen.getAllByRole("article");
+    const activity = within(second!).getByText("Hoạt động của Cycle 2");
+    const note = within(second!).getByText("Xong sớm hơn dự kiến");
+    expect(
+      note.compareDocumentPosition(activity) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(within(first!).queryByText(/Hoạt động/)).toBeNull();
+  });
 });

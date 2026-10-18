@@ -1,8 +1,10 @@
 import type {
   ActivityDay,
   ActivityDayState,
+  ActivityMetrics,
   ActivitySourceResponse,
   CycleActivityResponse,
+  CycleActivitySnapshotResponse,
   Divergence,
 } from "@repo/contracts";
 
@@ -13,8 +15,12 @@ export const WEEK_ROWS_AFTER_DAYS = 70;
 
 const count = (value: number) => new Intl.NumberFormat("vi-VN").format(value);
 
-/** Dòng tóm tắt của vòng (06 §8.3). Không so sánh với vòng trước. */
-export function summaryLine(cycle: CycleActivityResponse): string {
+/** Dòng tóm tắt của vòng (06 §8.3, §10). Không so sánh với vòng trước. */
+export function summaryLine(cycle: {
+  days: readonly ActivityDay[];
+  metrics: ActivityMetrics;
+  hasMissingData: boolean;
+}): string {
   const { days, metrics } = cycle;
   const missingDays = days.filter((day) => day.state === "NO_DATA").length;
   if (days.length > 0 && missingDays === days.length) {
@@ -66,6 +72,13 @@ const shortDay = (date: Date, timeZone: string) => {
   const [, month, day] = dayKey(date, timeZone).split("-");
   return `${day}/${month}`;
 };
+
+/** "12/10/2026 17:00" (06 §11). */
+export function formatDateTime(iso: string, timeZone: string): string {
+  const at = new Date(iso);
+  const [year, month, day] = dayKey(at, timeZone).split("-");
+  return `${day}/${month}/${year} ${time(at, timeZone)}`;
+}
 
 /** "hôm nay, 14:20" / "hôm qua, 21:05" / "12/10, 09:30" (06 §8.4, §11). */
 export function formatRecent(iso: string, timeZone: string, now: Date): string {
@@ -174,4 +187,38 @@ export function divergenceText(
     case "ACTIVITY_BEFORE_START":
       return "Đã có hoạt động dù Project chưa bắt đầu.";
   }
+}
+
+/**
+ * Dòng nguồn của snapshot (06 §10). Nguồn đã chép tới lúc vòng đóng gộp một
+ * dòng; nguồn chưa đủ thì mỗi nguồn một dòng nói rõ dữ liệu tới đâu. Giờ
+ * theo múi giờ lúc chụp.
+ */
+export function snapshotSourceLines(
+  snapshot: Pick<CycleActivitySnapshotResponse, "sources" | "timeZone">,
+  closedAt: string,
+): { lines: string[]; incomplete: boolean } {
+  const closed = Date.parse(closedAt);
+  const complete = snapshot.sources.filter(
+    (source) =>
+      source.dataUntil !== null && Date.parse(source.dataUntil) >= closed,
+  );
+  const partial = snapshot.sources.filter(
+    (source) => !complete.includes(source),
+  );
+  const lines: string[] = [];
+  if (complete.length > 0) {
+    lines.push(
+      `Nguồn: ${complete.map((source) => source.displayName).join(", ")} · ` +
+        `dữ liệu tới ${formatDateTime(closedAt, snapshot.timeZone)}`,
+    );
+  }
+  for (const source of partial) {
+    lines.push(
+      source.dataUntil === null
+        ? `${source.displayName} — chưa có dữ liệu`
+        : `${source.displayName} — dữ liệu tới ${formatDateTime(source.dataUntil, snapshot.timeZone)}`,
+    );
+  }
+  return { lines, incomplete: partial.length > 0 };
 }
