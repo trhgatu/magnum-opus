@@ -3,6 +3,8 @@ import type {
   ProjectCycleResponse,
 } from "@repo/contracts";
 
+import type { ReactNode } from "react";
+
 import { Badge } from "@/components/ui/badge";
 import { ProjectOutcomeHistory } from "@/features/project/components/project-outcome-history";
 import {
@@ -20,11 +22,14 @@ const END_REASON_LABEL: Record<ProjectCycleEndReason, string> = {
 export function ProjectClosedCycles({
   cycles,
   timeZone,
+  activityByCycle = {},
 }: {
   /** null khi không tải được danh sách — báo lỗi ngay trong mục này thay
    * vì làm như Project chưa từng có Cycle nào đóng. */
   cycles: ProjectCycleResponse[] | null;
   timeZone: string;
+  /** "Hoạt động của vòng" theo id Cycle — chỉ vòng có snapshot. */
+  activityByCycle?: Record<string, ReactNode>;
 }) {
   if (cycles === null) {
     return (
@@ -112,6 +117,8 @@ export function ProjectClosedCycles({
                 </p>
               </div>
             ) : null}
+
+            {activityByCycle[cycle.id]}
 
             <ProjectOutcomeHistory
               history={cycle.outcomeHistory}

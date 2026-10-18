@@ -1,8 +1,12 @@
-import type { ProjectCycleResponse, ProjectResponse } from "@repo/contracts";
+import type {
+  CycleActivitySnapshotResponse,
+  ProjectCycleResponse,
+  ProjectResponse,
+} from "@repo/contracts";
 import type { User } from "@repo/types";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
+import { type ReactNode, Suspense } from "react";
 
 import { getCurrentUser } from "@/features/account/api/current-user";
 import {
@@ -11,7 +15,11 @@ import {
 } from "@/features/project/api/project";
 import { ProjectDetail } from "@/features/project/components/project-detail";
 import { ProjectResumeInline } from "@/features/project/components/project-inline-fields";
-import { getProjectActivity } from "@/features/project-activity/api/project-activity";
+import {
+  getCycleSnapshots,
+  getProjectActivity,
+} from "@/features/project-activity/api/project-activity";
+import { CycleSnapshot } from "@/features/project-activity/components/cycle-snapshot";
 import {
   ActivityDivergencePanel,
   CycleActivityPanel,
@@ -35,16 +43,19 @@ export default async function ProjectDetailPage({
   const activity = getProjectActivity(id).catch(() => null);
   let project: ProjectResponse;
   let closedCycles: ProjectCycleResponse[] | null;
+  let snapshots: CycleActivitySnapshotResponse[] | null;
   let user: User;
 
   try {
-    [project, closedCycles, user] = await Promise.all([
+    [project, closedCycles, snapshots, user] = await Promise.all([
       getProject(id),
       // Lịch sử chỉ đọc, không phải đường chính của trang: lỗi tạm thời ở
       // đây (5xx/timeout) chỉ làm mục "Các chu kỳ đã đóng" báo lỗi, không
       // kéo sập cả trang. Project không tồn tại thì getProject đã 404 song
       // song nên vẫn ra notFound() như cũ.
       getClosedProjectCycles(id).catch(() => null),
+      // Phần phụ của lịch sử: lỗi thì các vòng chỉ thiếu mục hoạt động.
+      getCycleSnapshots(id).catch(() => null),
       getCurrentUser(),
     ]);
   } catch (error) {
@@ -55,6 +66,21 @@ export default async function ProjectDetailPage({
       notFound();
     }
     throw error;
+  }
+
+  // Vòng không có snapshot: không có mục "Hoạt động của vòng" (06 §10).
+  const closedCycleActivity: Record<string, ReactNode> = {};
+  for (const snapshot of snapshots ?? []) {
+    const cycle = closedCycles?.find((item) => item.id === snapshot.cycleId);
+    if (cycle?.endedAt) {
+      closedCycleActivity[snapshot.cycleId] = (
+        <CycleSnapshot
+          snapshot={snapshot}
+          cycleNumber={cycle.cycleNumber}
+          closedAt={cycle.endedAt}
+        />
+      );
+    }
   }
 
   return (
@@ -70,6 +96,7 @@ export default async function ProjectDetailPage({
           />
         </Suspense>
       }
+      closedCycleActivity={closedCycleActivity}
       activityNotes={
         <Suspense fallback={null}>
           <ActivityDivergencePanel activity={activity} />

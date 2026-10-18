@@ -1,4 +1,5 @@
 import type {
+  ActivityDay,
   ActivityDayState,
   CycleActivityResponse,
   Divergence,
@@ -40,19 +41,25 @@ function DayCell({ state }: { state: ActivityDayState }) {
 
 const capitalize = (text: string) => text[0]!.toUpperCase() + text.slice(1);
 
-/** Dải ngày của vòng: hôm nay ở cuối, quá 70 ngày thì xuống dòng theo tuần. */
-function DayStrip({ cycle }: { cycle: CycleActivityResponse }) {
-  const weekly = cycle.days.length > WEEK_ROWS_AFTER_DAYS;
+/** Dải ngày của vòng: ngày cuối ở cuối, quá 70 ngày thì xuống dòng theo tuần. */
+export function DayStrip({
+  days,
+  label,
+}: {
+  days: readonly ActivityDay[];
+  label: string;
+}) {
+  const weekly = days.length > WEEK_ROWS_AFTER_DAYS;
   return (
     <div className="flex flex-col gap-2">
       <ol
-        aria-label={`Các ngày của Cycle ${cycle.cycleNumber}`}
+        aria-label={label}
         className={cn(
           "gap-1",
           weekly ? "grid w-fit grid-cols-7" : "flex flex-wrap",
         )}
       >
-        {cycle.days.map((day) => (
+        {days.map((day) => (
           <li key={day.date} title={dayDescription(day)}>
             <DayCell state={day.state} />
             <span className="sr-only">{dayDescription(day)}</span>
@@ -63,7 +70,7 @@ function DayStrip({ cycle }: { cycle: CycleActivityResponse }) {
         aria-label="Chú thích"
         className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground"
       >
-        {legendStates(cycle.days).map((state) => (
+        {legendStates(days).map((state) => (
           <li key={state} className="flex items-center gap-1.5">
             <DayCell state={state} />
             {capitalize(DAY_STATE_LABEL[state])}
@@ -133,7 +140,7 @@ export function CycleActivity({
         </div>
       ) : null}
 
-      <DayStrip cycle={cycle} />
+      <DayStrip days={cycle.days} label="Dải ngày của vòng này" />
 
       <div className="flex flex-col gap-1">
         <p className="text-sm font-medium tabular-nums">{summaryLine(cycle)}</p>

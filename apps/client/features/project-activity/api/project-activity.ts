@@ -2,6 +2,7 @@ import "server-only";
 
 import type {
   ActivitySourceResponse,
+  CycleActivitySnapshotResponse,
   ProjectActivityResponse,
 } from "@repo/contracts";
 
@@ -24,4 +25,13 @@ export function getProjectActivity(
   projectId: string,
 ): Promise<ProjectActivityResponse> {
   return apiFetch<ProjectActivityResponse>(`/projects/${projectId}/activity`);
+}
+
+/** Snapshot của các vòng đã đóng, đúng như lúc chụp (07 §5.5). */
+export function getCycleSnapshots(
+  projectId: string,
+): Promise<CycleActivitySnapshotResponse[]> {
+  return apiFetch<CycleActivitySnapshotResponse[]>(
+    `/projects/${projectId}/activity/snapshots`,
+  );
 }

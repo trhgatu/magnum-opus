@@ -77,7 +77,7 @@ describe("CycleActivity", () => {
       />,
     );
 
-    const strip = screen.getByRole("list", { name: "Các ngày của Cycle 3" });
+    const strip = screen.getByRole("list", { name: "Dải ngày của vòng này" });
     const days = within(strip).getAllByRole("listitem");
     expect(days.map((day) => day.textContent)).toEqual([
       "15/10: có hoạt động",
@@ -117,7 +117,7 @@ describe("CycleActivity", () => {
     );
 
     expect(
-      screen.getByRole("list", { name: "Các ngày của Cycle 3" }).className,
+      screen.getByRole("list", { name: "Dải ngày của vòng này" }).className,
     ).toContain("grid-cols-7");
   });
 
