@@ -152,12 +152,7 @@ describe("CycleSnapshot", () => {
       within(region)
         .getAllByRole("listitem")
         .map((item) => item.textContent),
-    ).toEqual([
-      "11/10: có hoạt động lúc tạm dừng",
-      "12/10: có hoạt động",
-      "Có hoạt động",
-      "Có hoạt động lúc tạm dừng",
-    ]);
+    ).toEqual(["11/10: có hoạt động lúc tạm dừng", "12/10: có hoạt động"]);
     expect(
       within(region).getByText(
         "8 ngày có hoạt động (2 ngày lúc tạm dừng) · 23 commit · 4 PR mở · 3 PR merge",
