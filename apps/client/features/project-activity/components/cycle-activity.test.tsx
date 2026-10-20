@@ -85,7 +85,9 @@ describe("CycleActivity", () => {
       "17/10: tạm dừng",
       "18/10: tạm dừng",
     ]);
-    expect(screen.getAllByRole("list")).toHaveLength(1);
+    expect(screen.queryByRole("list", { name: "Chú thích" })).toBeNull();
+    expect(screen.queryByText("Có hoạt động")).toBeNull();
+    expect(screen.queryByText("Tạm dừng")).toBeNull();
     expect(
       screen.getByText(
         "2 ngày có hoạt động (1 ngày lúc tạm dừng) · 5 commit · 1 PR mở · 0 PR merge",
