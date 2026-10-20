@@ -232,7 +232,7 @@ Xuất hiện trong card Cycle đang mở, **sau** outcome và ngày dự kiến
 | `IDLE`          | Ô viền, không tô          | "09/10: không có hoạt động"        |
 | Chưa có dữ liệu | Ô viền đứt nét            | "06/10: chưa có dữ liệu"           |
 
-- Có chú thích nhỏ dưới dải, chỉ liệt kê các trạng thái đang xuất hiện trong dải.
+- Không có chú thích dưới dải — người dùng bỏ sau khi dùng thật (2026-10-20): nhìn dải là đọc được. Ý nghĩa vẫn tới được mà không cần chú thích: mỗi ô có tooltip và mô tả văn bản ("20/10: có hoạt động"); số ngày có hoạt động lúc tạm dừng nằm ở dòng tóm tắt (§8.3); trạng thái tạm dừng của Project hiện ở phần đầu trang.
 - Màu không phải cách duy nhất để phân biệt trạng thái (sọc, viền đứt, mô tả).
 
 ## 8.3. Summary Line

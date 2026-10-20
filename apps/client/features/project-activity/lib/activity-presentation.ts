@@ -142,7 +142,7 @@ export function sourceErrorLines(
   );
 }
 
-export const DAY_STATE_LABEL: Record<ActivityDayState, string> = {
+const DAY_STATE_LABEL: Record<ActivityDayState, string> = {
   ACTIVE: "có hoạt động",
   PAUSED_ACTIVE: "có hoạt động lúc tạm dừng",
   PAUSED_IDLE: "tạm dừng",
@@ -154,14 +154,6 @@ export const DAY_STATE_LABEL: Record<ActivityDayState, string> = {
 export function dayDescription(day: ActivityDay): string {
   const [, month, date] = day.date.split("-");
   return `${date}/${month}: ${DAY_STATE_LABEL[day.state]}`;
-}
-
-/** Chỉ các trạng thái đang có trong dải, theo thứ tự cố định (06 §8.2). */
-export function legendStates(days: readonly ActivityDay[]): ActivityDayState[] {
-  const present = new Set(days.map((day) => day.state));
-  return (Object.keys(DAY_STATE_LABEL) as ActivityDayState[]).filter((state) =>
-    present.has(state),
-  );
 }
 
 /** Câu chữ của từng chỗ lệch (06 §9). D2 có nút riêng, không nằm ở đây. */

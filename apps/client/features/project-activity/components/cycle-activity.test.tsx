@@ -67,7 +67,7 @@ const activity = (
 const resume = <button type="button">Tiếp tục</button>;
 
 describe("CycleActivity", () => {
-  it("shows the day strip, a legend of the states present and the summary", () => {
+  it("shows the day strip, without a legend, and the summary", () => {
     render(
       <CycleActivity
         activity={activity()}
@@ -85,11 +85,9 @@ describe("CycleActivity", () => {
       "17/10: tạm dừng",
       "18/10: tạm dừng",
     ]);
-    expect(
-      within(screen.getByRole("list", { name: "Chú thích" }))
-        .getAllByRole("listitem")
-        .map((item) => item.textContent),
-    ).toEqual(["Có hoạt động", "Có hoạt động lúc tạm dừng", "Tạm dừng"]);
+    expect(screen.queryByRole("list", { name: "Chú thích" })).toBeNull();
+    expect(screen.queryByText("Có hoạt động")).toBeNull();
+    expect(screen.queryByText("Tạm dừng")).toBeNull();
     expect(
       screen.getByText(
         "2 ngày có hoạt động (1 ngày lúc tạm dừng) · 5 commit · 1 PR mở · 0 PR merge",

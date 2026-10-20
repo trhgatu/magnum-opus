@@ -9,7 +9,6 @@ import {
   divergenceText,
   formatRecent,
   freshnessLine,
-  legendStates,
   sourceErrorLines,
   summaryLine,
 } from "./activity-presentation";
@@ -206,16 +205,6 @@ describe("day strip helpers", () => {
     expect(dayDescription({ date: "2026-10-08", state: "PAUSED_ACTIVE" })).toBe(
       "08/10: có hoạt động lúc tạm dừng",
     );
-  });
-
-  it("lists only the states present, in a fixed order", () => {
-    expect(
-      legendStates([
-        { date: "2026-10-01", state: "NO_DATA" },
-        { date: "2026-10-02", state: "ACTIVE" },
-        { date: "2026-10-03", state: "ACTIVE" },
-      ]),
-    ).toEqual(["ACTIVE", "NO_DATA"]);
   });
 });
 

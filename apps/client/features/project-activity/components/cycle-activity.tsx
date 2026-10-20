@@ -9,11 +9,9 @@ import { TriangleAlert } from "lucide-react";
 import type { ReactNode } from "react";
 
 import {
-  DAY_STATE_LABEL,
   dayDescription,
   divergenceText,
   freshnessLine,
-  legendStates,
   sourceErrorLines,
   summaryLine,
   WEEK_ROWS_AFTER_DAYS,
@@ -39,9 +37,11 @@ function DayCell({ state }: { state: ActivityDayState }) {
   );
 }
 
-const capitalize = (text: string) => text[0]!.toUpperCase() + text.slice(1);
-
-/** Dải ngày của vòng: ngày cuối ở cuối, quá 70 ngày thì xuống dòng theo tuần. */
+/**
+ * Dải ngày của vòng: ngày cuối ở cuối, quá 70 ngày thì xuống dòng theo tuần.
+ * Không có chú thích — mỗi ô tự mô tả qua tooltip và chữ cho trình đọc màn
+ * hình (06 §8.2).
+ */
 export function DayStrip({
   days,
   label,
@@ -51,33 +51,20 @@ export function DayStrip({
 }) {
   const weekly = days.length > WEEK_ROWS_AFTER_DAYS;
   return (
-    <div className="flex flex-col gap-2">
-      <ol
-        aria-label={label}
-        className={cn(
-          "gap-1",
-          weekly ? "grid w-fit grid-cols-7" : "flex flex-wrap",
-        )}
-      >
-        {days.map((day) => (
-          <li key={day.date} title={dayDescription(day)}>
-            <DayCell state={day.state} />
-            <span className="sr-only">{dayDescription(day)}</span>
-          </li>
-        ))}
-      </ol>
-      <ul
-        aria-label="Chú thích"
-        className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground"
-      >
-        {legendStates(days).map((state) => (
-          <li key={state} className="flex items-center gap-1.5">
-            <DayCell state={state} />
-            {capitalize(DAY_STATE_LABEL[state])}
-          </li>
-        ))}
-      </ul>
-    </div>
+    <ol
+      aria-label={label}
+      className={cn(
+        "gap-1",
+        weekly ? "grid w-fit grid-cols-7" : "flex flex-wrap",
+      )}
+    >
+      {days.map((day) => (
+        <li key={day.date} title={dayDescription(day)}>
+          <DayCell state={day.state} />
+          <span className="sr-only">{dayDescription(day)}</span>
+        </li>
+      ))}
+    </ol>
   );
 }
 
