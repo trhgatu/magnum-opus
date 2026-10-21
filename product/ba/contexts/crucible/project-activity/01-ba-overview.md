@@ -22,17 +22,18 @@ Tài liệu này **không** thay đổi lifecycle, Cycle hay bất kỳ business
 
 ### Tài liệu trong bộ này
 
-| File                                           | Nội dung                                                                | Trạng thái                 |
-| ---------------------------------------------- | ----------------------------------------------------------------------- | -------------------------- |
-| `01-ba-overview.md`                            | Problem, needs, scope, khái niệm, quyết định                            | Draft                      |
-| `02-evidence-behavior-analysis.md`             | Gắn hoạt động vào Cycle, chỗ lệch, đóng băng, các ca biên               | Draft                      |
-| `03-integration-architecture.md`               | Kiến trúc tích hợp nhiều nguồn, cấu trúc module, thiết kế DB            | Draft                      |
-| `04-functional-requirements-business-rules.md` | Functional Requirements (FR-PAC) và Business Rules (BR-PAC) của Phase 1 | Candidate Baseline         |
-| `05-use-cases-acceptance-criteria.md`          | Use Cases (UC-PAC) và Acceptance Criteria của Phase 1                   | Candidate Baseline         |
-| `06-product-specification.md`                  | Baseline sản phẩm: bề mặt, trạng thái hiển thị, câu chữ                 | Product Baseline Candidate |
-| `07-api-contract.md`                           | Endpoint, request/response, mã lỗi                                      | Contract Candidate         |
+| File                                           | Nội dung                                                                          | Trạng thái                 |
+| ---------------------------------------------- | --------------------------------------------------------------------------------- | -------------------------- |
+| `01-ba-overview.md`                            | Problem, needs, scope, khái niệm, quyết định                                      | Draft                      |
+| `02-evidence-behavior-analysis.md`             | Gắn hoạt động vào Cycle, chỗ lệch, đóng băng, các ca biên                         | Draft                      |
+| `03-integration-architecture.md`               | Kiến trúc tích hợp nhiều nguồn, cấu trúc module, thiết kế DB                      | Draft                      |
+| `04-functional-requirements-business-rules.md` | Functional Requirements (FR-PAC) và Business Rules (BR-PAC) của Phase 1           | Candidate Baseline         |
+| `05-use-cases-acceptance-criteria.md`          | Use Cases (UC-PAC) và Acceptance Criteria của Phase 1                             | Candidate Baseline         |
+| `06-product-specification.md`                  | Baseline sản phẩm: bề mặt, trạng thái hiển thị, câu chữ                           | Product Baseline Candidate |
+| `07-api-contract.md`                           | Endpoint, request/response, mã lỗi                                                | Contract Candidate         |
+| `08-wakatime-phase-2.md`                       | Phase 2: thời gian code từ WakaTime — hành vi, kiến trúc, yêu cầu, giao diện, API | Draft for review           |
 
-Bộ tài liệu BA của Phase 1 đã đủ (01 → 07); bước tiếp theo là implementation theo thứ tự PR ở `07` §11.
+Bộ tài liệu BA của Phase 1 đã đủ (01 → 07) và đã được implement. Phase 2 (WakaTime) nằm trọn trong `08`; implementation theo thứ tự PR ở `08` §10.
 
 ---
 
@@ -206,11 +207,11 @@ Capability thành công khi người dùng, lúc khép một Cycle hay đọc Ch
 
 ### Phase 2 — Candidates
 
-| Candidate                          | Loại         | Điều kiện bắt đầu                                                                   |
-| ---------------------------------- | ------------ | ----------------------------------------------------------------------------------- |
-| WakaTime (thời gian code)          | Nguồn ngoài  | Đã kiểm chứng giới hạn lịch sử API gói free (OQ-PAC-001); Phase 1 đã được dùng thật |
-| Habit check-in                     | Nguồn nội bộ | Phase 1 đã được dùng thật; OQ-PAC-009                                               |
-| Journal entry / Memory gắn Project | Reflection   | Phân tích riêng — không phải bằng chứng hoạt động (§11.4)                           |
+| Candidate                          | Loại         | Điều kiện bắt đầu                                               |
+| ---------------------------------- | ------------ | --------------------------------------------------------------- |
+| WakaTime (thời gian code)          | Nguồn ngoài  | **Đang làm** — `08-wakatime-phase-2.md` (OQ-PAC-001 đã trả lời) |
+| Habit check-in                     | Nguồn nội bộ | Phase 1 đã được dùng thật; OQ-PAC-009                           |
+| Journal entry / Memory gắn Project | Reflection   | Phân tích riêng — không phải bằng chứng hoạt động (§11.4)       |
 
 ---
 
@@ -340,11 +341,12 @@ Nguồn nội bộ dạng Evidence giao tiếp bằng event qua outbox (cùng c�
 
 | ID         | Question                                                                                                                                                                                                   |
 | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| OQ-PAC-001 | WakaTime API trên gói free có giới hạn lịch sử (khả năng ~7 ngày) không? Cần kiểm chứng bằng API key thật. Quyết định Phase 2 có cần chép định kỳ hay không.                                               |
 | OQ-PAC-002 | Ngưỡng nhắc chính xác cho từng loại Divergence (đề xuất ban đầu ở `02` §4.3).                                                                                                                              |
 | OQ-PAC-004 | Activity Snapshot có xuất hiện trong Chronicle tháng không, và dưới dạng nào?                                                                                                                              |
 | OQ-PAC-005 | BA Project (§8) ghi Cycle 1 bắt đầu khi tạo Project, còn implementation tạo Cycle 1 khi Start. Cần thống nhất câu chữ BA (không ảnh hưởng capability này: hoạt động lúc NOT_STARTED luôn nằm ngoài Cycle). |
 | OQ-PAC-009 | Module nội bộ nào trở thành nguồn đầu tiên và một entity được gắn với Project bằng cách nào? Phân tích khi Phase 1 đã được dùng thật.                                                                      |
+
+OQ-PAC-001 (giới hạn lịch sử của WakaTime) đã được trả lời bằng spike ngày 2026-10-21: không giới hạn 7 ngày trên tài khoản hiện tại, không cần chép định kỳ (`08` §2, DEC-PAC-015).
 
 OQ-PAC-003 (thử lại snapshot khi GitHub lỗi lúc khép Cycle) đã được giải quyết bởi DEC-PAC-008: snapshot được chụp từ sổ và ghi rõ sổ đầy đủ tới thời điểm nào (`02` §5.1).
 
@@ -361,4 +363,5 @@ Discovery gồm `02-evidence-behavior-analysis.md` (hành vi chi tiết) và `03
 05 — Use Cases & Acceptance Criteria            ✅
 06 — Product Specification                    ✅
 07 — API Contract                             ✅
+08 — Phase 2: WakaTime                        📝
 ```
