@@ -513,8 +513,8 @@ Thứ tự:
 | PR  | Migration           | Server                                                                                                             | Trạng thái |
 | --- | ------------------- | ------------------------------------------------------------------------------------------------------------------ | ---------- |
 | 1   | Bước 1–3 (chỉ thêm) | Đọc entry; **ghi đôi** cột cũ và đối chiếu nó, để server V1 còn sống không làm mất outcome nó vừa đặt              | Đã xong    |
-| 4a  | Không               | Ngừng **đọc** cột (bỏ đối chiếu, Prisma `omit`) nhưng vẫn ghi đôi — bản 1 còn sống vẫn đối chiếu nên cột phải khớp | PR này     |
-| 4b  | Không               | Ngừng **ghi** cột. Bản 4a còn sống không đọc cột nên cột cũ đi không ảnh hưởng                                     | Sau 4a     |
+| 4a  | Không               | Ngừng **đọc** cột (bỏ đối chiếu, Prisma `omit`) nhưng vẫn ghi đôi — bản 1 còn sống vẫn đối chiếu nên cột phải khớp | Đã xong    |
+| 4b  | Không               | Ngừng **ghi** cột. Bản 4a còn sống không đọc cột nên cột cũ đi không ảnh hưởng                                     | PR này     |
 | 4c  | Bước 4 (drop cột)   | Bỏ field khỏi schema và bỏ `omit`. Bản 4b còn sống trong lúc drop không đọc, không ghi cột nên không lỗi           | Sau 4b     |
 
 Dữ liệu outcome cũ không mất: bước 3 đã chép sang bảng entry ở PR 1; từ PR 4a entry là nguồn đọc duy nhất.

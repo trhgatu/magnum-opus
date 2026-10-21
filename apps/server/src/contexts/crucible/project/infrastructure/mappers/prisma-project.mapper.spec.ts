@@ -158,7 +158,6 @@ describe('PrismaProjectMapper', () => {
         projectId: 'project-id',
         ownerId: 'owner-id',
         cycleNumber: 1,
-        intendedOutcome: null,
         startedAt: closedCycle.startedAt,
         endedAt: closedCycle.endedAt,
         endReason: 'STOPPED',
@@ -170,8 +169,6 @@ describe('PrismaProjectMapper', () => {
         projectId: 'project-id',
         ownerId: 'owner-id',
         cycleNumber: 2,
-        // Still dual-written for the previous server version (until PR4b).
-        intendedOutcome: 'Ship Projects V1.1',
         startedAt: openCycle.startedAt,
         endedAt: null,
         endReason: null,
