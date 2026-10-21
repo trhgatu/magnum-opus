@@ -206,11 +206,11 @@ Capability thành công khi người dùng, lúc khép một Cycle hay đọc Ch
 
 ### Phase 2 — Candidates
 
-| Candidate                          | Loại         | Điều kiện bắt đầu                                                                   |
-| ---------------------------------- | ------------ | ----------------------------------------------------------------------------------- |
-| WakaTime (thời gian code)          | Nguồn ngoài  | Đã kiểm chứng giới hạn lịch sử API gói free (OQ-PAC-001); Phase 1 đã được dùng thật |
-| Habit check-in                     | Nguồn nội bộ | Phase 1 đã được dùng thật; OQ-PAC-009                                               |
-| Journal entry / Memory gắn Project | Reflection   | Phân tích riêng — không phải bằng chứng hoạt động (§11.4)                           |
+| Candidate                          | Loại         | Điều kiện bắt đầu                                               |
+| ---------------------------------- | ------------ | --------------------------------------------------------------- |
+| WakaTime (thời gian code)          | Nguồn ngoài  | **Đang làm** — `08-wakatime-phase-2.md` (OQ-PAC-001 đã trả lời) |
+| Habit check-in                     | Nguồn nội bộ | Phase 1 đã được dùng thật; OQ-PAC-009                           |
+| Journal entry / Memory gắn Project | Reflection   | Phân tích riêng — không phải bằng chứng hoạt động (§11.4)       |
 
 ---
 
@@ -340,11 +340,12 @@ Nguồn nội bộ dạng Evidence giao tiếp bằng event qua outbox (cùng c�
 
 | ID         | Question                                                                                                                                                                                                   |
 | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| OQ-PAC-001 | WakaTime API trên gói free có giới hạn lịch sử (khả năng ~7 ngày) không? Cần kiểm chứng bằng API key thật. Quyết định Phase 2 có cần chép định kỳ hay không.                                               |
 | OQ-PAC-002 | Ngưỡng nhắc chính xác cho từng loại Divergence (đề xuất ban đầu ở `02` §4.3).                                                                                                                              |
 | OQ-PAC-004 | Activity Snapshot có xuất hiện trong Chronicle tháng không, và dưới dạng nào?                                                                                                                              |
 | OQ-PAC-005 | BA Project (§8) ghi Cycle 1 bắt đầu khi tạo Project, còn implementation tạo Cycle 1 khi Start. Cần thống nhất câu chữ BA (không ảnh hưởng capability này: hoạt động lúc NOT_STARTED luôn nằm ngoài Cycle). |
 | OQ-PAC-009 | Module nội bộ nào trở thành nguồn đầu tiên và một entity được gắn với Project bằng cách nào? Phân tích khi Phase 1 đã được dùng thật.                                                                      |
+
+OQ-PAC-001 (giới hạn lịch sử của WakaTime) đã được trả lời bằng spike ngày 2026-10-21: không giới hạn 7 ngày trên tài khoản hiện tại, không cần chép định kỳ (`08` §2, DEC-PAC-015).
 
 OQ-PAC-003 (thử lại snapshot khi GitHub lỗi lúc khép Cycle) đã được giải quyết bởi DEC-PAC-008: snapshot được chụp từ sổ và ghi rõ sổ đầy đủ tới thời điểm nào (`02` §5.1).
 
@@ -361,4 +362,5 @@ Discovery gồm `02-evidence-behavior-analysis.md` (hành vi chi tiết) và `03
 05 — Use Cases & Acceptance Criteria            ✅
 06 — Product Specification                    ✅
 07 — API Contract                             ✅
+08 — Phase 2: WakaTime                        📝
 ```
