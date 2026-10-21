@@ -121,8 +121,8 @@ describe('PrismaProjectMapper', () => {
   });
 
   it('reads the outcome only from its history, never the old column', () => {
-    // Every live server dual-writes the column, so it no longer carries
-    // anything the history lacks; whatever it holds is ignored.
+    // The history is authoritative. The old column may hold anything,
+    // stale values included, and is ignored on read.
     const project = PrismaProjectMapper.toDomain({
       ...rawProject,
       cycles: [
