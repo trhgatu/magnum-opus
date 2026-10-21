@@ -28,7 +28,9 @@ Kiểm chứng ngày 2026-10-21 bằng API key thật của người dùng, ch�
 | Danh sách project            | `users/current/projects`: 20 project; mỗi project có `id`, `name`, `repository`, `first_heartbeat_at`, `last_heartbeat_at`.                                                                  |
 | Múi giờ WakaTime             | `Asia/Ho_Chi_Minh` — trùng múi giờ tài khoản Magnum Opus, nhưng thiết kế không dựa vào sự trùng này (§4.3).                                                                                  |
 
-**Hệ quả:** OQ-PAC-001 đã có câu trả lời. Không cần chép định kỳ để giữ lịch sử; WakaTime đi cùng trigger với GitHub (mở trang, khép Cycle, gắn nguồn — `03` §5.1). `historyWindowDays` của WakaTime để `null`; nếu sau này gói đổi và lịch sử bị cắt, chỉ cần đặt giá trị này (DEC-PAC-015).
+**Hệ quả:** OQ-PAC-001 có câu trả lời **cho tài khoản này**: lịch sử đọc được đủ xa, không cần chép định kỳ để giữ lịch sử; WakaTime đi cùng trigger với GitHub (mở trang, khép Cycle, gắn nguồn — `03` §5.1).
+
+Kết quả này **không** được suy rộng thành "WakaTime không giới hạn lịch sử": gói của tài khoản không đọc được qua API, và gói có thể đổi. Thiết kế không dựa vào nó (DEC-PAC-015, §5.3): ngày nào không đọc được thì không được đánh dấu là đã chép, và vẫn là `NO_DATA`.
 
 ---
 
@@ -60,11 +62,11 @@ Kiểm chứng ngày 2026-10-21 bằng API key thật của người dùng, ch�
 
 Phase 1 chỉ có event **tại một thời điểm** (commit, PR). Thời gian code là một **khoảng**:
 
-| Type             | Thời điểm (`occurredAt`) | Số lượng (`quantity`) | Nguồn                |
-| ---------------- | ------------------------ | --------------------- | -------------------- |
-| `CODING_SESSION` | Lúc đoạn code bắt đầu    | Số giây của đoạn      | Một đoạn `durations` |
+| Type          | Thời điểm (`occurredAt`) | Số lượng (`quantity`) | Nguồn                |
+| ------------- | ------------------------ | --------------------- | -------------------- |
+| `CODING_TIME` | Lúc đoạn code bắt đầu    | Số giây của đoạn      | Một đoạn `durations` |
 
-Sổ chỉ lưu tín hiệu: `{ feed, CODING_SESSION, bắt đầu, số giây, khóa }`. Không lưu tên file, ngôn ngữ, editor hay bất kỳ trường AI nào.
+Sổ chỉ lưu tín hiệu: `{ feed, CODING_TIME, bắt đầu, số giây, khóa }`. Không lưu tên file, ngôn ngữ, editor hay bất kỳ trường AI nào.
 
 Chỉ tính thời gian của **chính người dùng**: API key là của tài khoản người dùng, mọi đoạn trả về đều là của họ (DEC-PAC-007 tự thỏa).
 
@@ -77,36 +79,41 @@ Sổ Phase 1 chỉ thêm dòng (`02` §2.5): một commit đã viết thì khôn
 15:10 chép: 14:30 · 40 phút      ← cùng đoạn, đã dài thêm
 ```
 
-Vì vậy với `CODING_SESSION`, mỗi lần chép **thay toàn bộ đoạn của từng ngày WakaTime vừa đọc** (BR-PAC-038):
+Vì vậy với `CODING_TIME`, mỗi lần chép **thay toàn bộ đoạn của từng ngày WakaTime vừa đọc** (BR-PAC-038):
 
 ```text
 Đọc ngày WakaTime D → nhận [start, end) của ngày D và danh sách đoạn
+Cắt mỗi đoạn vào [start, end)            ← đoạn vắt qua ranh giới ngày thành hai dòng,
+                                            mỗi ngày giữ phần của mình
 Trong một transaction:
-  xóa mọi CODING_SESSION của feed có occurredAt ∈ [start, end)
-  thêm các đoạn vừa đọc
+  xóa mọi CODING_TIME của feed có occurredAt ∈ [start, end)
+  thêm các đoạn đã cắt
 ```
+
+Vì mỗi dòng sổ nằm trọn trong đúng một ngày WakaTime, "xóa theo lúc bắt đầu" luôn xóa đủ: không còn dòng nào của ngày D nằm ở ngày khác, dù WakaTime có tự cắt đoạn tại nửa đêm hay không (TQ-WAK-03 không còn chặn thiết kế).
 
 WakaTime là nguồn sự thật cho thời gian code của chính nó. Đây là ngoại lệ thứ hai cho nguyên tắc "chỉ thêm", cùng loại với nguồn nội bộ (`03` §8.2). Snapshot không bị ảnh hưởng: nó chụp **số liệu** lúc khép Cycle và không đọc lại sổ (DEC-PAC-006).
 
-Khóa chống trùng của `CODING_SESSION` là thời điểm bắt đầu; trong một ngày đã được thay trọn vẹn, nó chỉ để chặn trùng nếu WakaTime trả cùng một đoạn hai lần.
+Khóa chống trùng của `CODING_TIME` là thời điểm bắt đầu (sau khi cắt); trong một ngày đã được thay trọn vẹn, nó chỉ để chặn trùng nếu WakaTime trả cùng một đoạn hai lần.
 
 ### 4.3. Day Windows Across Time Zones
 
 `durations?date=` hỏi theo **ngày trong múi giờ WakaTime**, còn Magnum Opus tính ngày theo **múi giờ tài khoản**. Thiết kế không giả định hai múi giờ trùng nhau:
 
 - Khoảng cần chép `[from, to)` là khoảng thời gian tuyệt đối.
-- Adapter hỏi mọi ngày WakaTime chạm vào khoảng đó, dùng `start`/`end` mà response trả về làm ranh giới để thay.
+- Adapter hỏi mọi ngày WakaTime chạm vào khoảng đó, dùng `start`/`end` mà response trả về làm ranh giới để cắt và thay (§4.2).
 - Mỗi đoạn mang thời điểm tuyệt đối (`time`), nên Attribution chia ngày theo múi giờ tài khoản như mọi event khác.
 
 ### 4.4. Splitting a Session at Boundaries
 
 Một đoạn có thể vắt qua một mốc. Khi tính, đoạn được **cắt tại mỗi mốc**, mỗi phần được gán độc lập (BR-PAC-039):
 
-| Mốc                                               | Vì sao                                                     |
-| ------------------------------------------------- | ---------------------------------------------------------- |
-| Nửa đêm theo múi giờ tài khoản                    | Giờ code của mỗi ngày đúng với ngày đó                     |
-| Mỗi lần chuyển trạng thái (Start, Pause, Resume…) | Phần trong/ngoài Cycle, phần ACTIVE/PAUSED được tính riêng |
-| Lúc khép Cycle (snapshot)                         | Snapshot chỉ gồm phần trước lúc khép                       |
+| Mốc                                               | Vì sao                                                                        |
+| ------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Nửa đêm theo múi giờ tài khoản                    | Giờ code của mỗi ngày đúng với ngày đó                                        |
+| Mỗi lần chuyển trạng thái (Start, Pause, Resume…) | Phần trong/ngoài Cycle, phần ACTIVE/PAUSED được tính riêng                    |
+| Lúc khép Cycle (snapshot)                         | Snapshot chỉ gồm phần trước lúc khép                                          |
+| Lúc gắn nguồn, với Project `NOT_STARTED`          | D4 chỉ xét hoạt động sau lúc gắn (`04` BR-PAC-016) — phần trước mốc bị bỏ qua |
 
 ```text
 Đoạn 13:50 → 14:20, Pause lúc 14:00
@@ -155,16 +162,16 @@ Thêm một metric vào `02` §3.4:
 
 - Giờ code được tính **từ lúc Cycle bắt đầu tới hiện tại** khi Cycle đang mở, và **tới lúc khép** trong snapshot. Không cần khép Cycle mới có số.
 - "Hoạt động gần nhất" là thời điểm muộn nhất giữa event GitHub và **lúc kết thúc** của đoạn code (bắt đầu + số giây).
-- Giờ code chỉ được trình bày khi Project có ít nhất một nguồn WakaTime (§7). Không có nguồn WakaTime thì không có "0 giờ code".
+- Giờ code chỉ được đo khi Project có ít nhất một nguồn WakaTime. Không có nguồn WakaTime thì giờ code là **không đo** (`null`), khác với "đo được 0 giờ" — không bao giờ trình bày "0 giờ code" cho Project không dùng WakaTime (§7).
 
 ### 4.8. Divergence
 
-| Divergence | Thay đổi                                                                                                                        |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| D1         | Không đổi định nghĩa; "ngày có hoạt động" giờ gồm cả ngày code ≥ 15 phút → D1 ít báo nhầm hơn với người code nhiều mà ít commit |
-| D2         | Không đổi định nghĩa; ngày `PAUSED_ACTIVE` do code cũng được đếm                                                                |
-| D3         | Thời gian code sau khi khép được tính khi tổng **từ 15 phút**. Câu chữ nêu giờ code cạnh số event (§7.4)                        |
-| D4         | Code lúc `NOT_STARTED` từ 15 phút trở lên tính là "đã có hoạt động"                                                             |
+| Divergence | Thay đổi                                                                                                                                            |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1         | Không đổi định nghĩa; "ngày có hoạt động" giờ gồm cả ngày code ≥ 15 phút → D1 ít báo nhầm hơn với người code nhiều mà ít commit                     |
+| D2         | Không đổi định nghĩa; ngày `PAUSED_ACTIVE` do code cũng được đếm                                                                                    |
+| D3         | Thời gian code sau khi khép được tính khi tổng **từ 15 phút**. Câu chữ nêu giờ code cạnh số event (§7.4)                                            |
+| D4         | Code lúc `NOT_STARTED` **sau lúc gắn nguồn** (`04` BR-PAC-016) từ 15 phút trở lên tính là "đã có hoạt động"; đoạn vắt qua lúc gắn chỉ tính phần sau |
 
 ### 4.9. Edge Cases
 
@@ -178,7 +185,7 @@ Thêm một metric vào `02` §3.4:
 | WakaTime sửa lại một ngày cũ (gộp đoạn, xóa dữ liệu) | Ngày nằm trong khoảng đệm 2 ngày được thay ở lần chép sau; cũ hơn thì giữ như sổ đang có — Cycle đã khép không bị ảnh hưởng (snapshot)      |
 | API key bị đổi hoặc thu hồi                          | Mọi nguồn WakaTime `DISCONNECTED` với `WAKATIME_KEY_INVALID`; sổ cũ vẫn dùng; nhắc cập nhật ở Cài đặt                                       |
 | Kết nối lại bằng key của **tài khoản WakaTime khác** | Như GitHub (`04` BR-PAC-008): hỏi xác nhận; nguồn của tài khoản cũ `DISCONNECTED` với `WAKATIME_ACCOUNT_CHANGED`                            |
-| Snapshot chụp trước Phase 2                          | Không có nguồn WakaTime trong snapshot → không hiện giờ code (không phải "0 giờ")                                                           |
+| Snapshot chụp trước Phase 2                          | Giờ code là `null` (không đo) — không hiện, không phải "0 giờ"                                                                              |
 
 ---
 
@@ -198,24 +205,39 @@ integrations/
     presentation/    /integrations/wakatime
 ```
 
-- Enum thêm `WAKATIME` vào `IntegrationProvider`, `ActivityProvider`; thêm `CODING_SESSION` vào `ActivityKind`.
+- Enum thêm `WAKATIME` vào `IntegrationProvider`, `ActivityProvider`; thêm `CODING_TIME` vào `ActivityKind`.
 - API key mã hóa AES-256-GCM như token GitHub (`03` §9). Không bao giờ log, trả về hay đưa vào lỗi.
 - Kết nối không có ngày hết hạn (`expiresAt = null`).
 
 ### 5.2. Adapter
 
-| `ActivityProviderPort`  | WakaTime                                                                                                                                           |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `resolveResource(id)`   | `GET /users/current/projects` → tìm theo `id`; trả tên hiện tại làm `displayName`                                                                  |
-| `fetchEvents(from, to)` | Với mỗi ngày WakaTime chạm `[from, to)`: `GET /users/current/durations?date=…&project=<tên>` → các đoạn của **đúng project đó**, kèm `start`/`end` |
-| `connectedAccountId`    | `id` của `users/current`                                                                                                                           |
+| `ActivityProviderPort`  | WakaTime                                                                                                                                                                                                                           |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `resolveResource(id)`   | `GET /users/current/projects` → tìm theo `id`; trả tên hiện tại làm `displayName`                                                                                                                                                  |
+| `fetchEvents(from, to)` | Tra id → tên hiện tại (như `resolveResource`), rồi với mỗi ngày WakaTime chạm `[from, to)`: `GET /users/current/durations?date=…&project=<tên>`. **Kiểm từng đoạn**: `project` phải đúng tên vừa tra, đoạn khác bị bỏ (BR-PAC-044) |
+| `connectedAccountId`    | `id` của `users/current`                                                                                                                                                                                                           |
 
-Kết quả của `fetchEvents` cho WakaTime mang theo **các khoảng ngày đã đọc trọn** để sync service thay đúng những ngày đó (§4.2). Sổ ghi theo hai chế độ:
+Tên project là duy nhất trong một tài khoản WakaTime (kiểm chứng ở TQ-WAK-02), và tên được tra lại từ id ở **mỗi** lần chép. Vì vậy hai project WakaTime cùng gắn vào Magnum Opus không thể nhận thời gian của nhau: lọc theo tên chỉ là cách hỏi API, còn danh tính là id; bước kiểm từng đoạn chặn cả trường hợp project bị đổi tên đúng giữa lúc tra và lúc hỏi.
+
+**Hợp đồng port phải đổi (PR 7c).** `ActivityProviderPort` hiện chỉ trả danh sách event (`03` §3); sync service không biết khoảng nào đã đọc trọn nên không thể thay theo ngày một cách an toàn. `FetchedActivity` thêm:
+
+```typescript
+export interface FetchedActivity {
+  displayName: string;
+  events: ActivityEventInput[];
+  /** Chỉ provider "thay theo ngày" (WakaTime). Mỗi khoảng là một ngày nguồn đã đọc
+   *  TRỌN; sync service xóa CODING_TIME của feed trong từng khoảng rồi ghi events
+   *  thuộc khoảng đó. Khoảng không có ở đây thì không bị đụng tới. */
+  replacedWindows?: { from: Date; to: Date }[];
+}
+```
+
+GitHub không trả `replacedWindows` và giữ nguyên upsert. Sổ ghi theo hai chế độ:
 
 | Kind                                        | Ghi sổ                                        |
 | ------------------------------------------- | --------------------------------------------- |
 | `COMMIT_AUTHORED`, `PR_OPENED`, `PR_MERGED` | Upsert theo khóa chống trùng (Phase 1)        |
-| `CODING_SESSION`                            | Thay theo ngày đã đọc trọn, trong transaction |
+| `CODING_TIME`                               | Thay theo ngày đã đọc trọn, trong transaction |
 
 ### 5.3. Sync Cost and Progress
 
@@ -224,14 +246,16 @@ Mỗi ngày là một request. Lần chép tăng dần chỉ cần 1–3 ngày (
 - Đọc **từ ngày mới về ngày cũ**, song song có giới hạn (vd 4 request cùng lúc).
 - `syncedUntil`/`coveredFrom` chỉ dời theo phần **liên tục** đã đọc trọn: hết giới hạn 10 giây (`03` §10, TQ-PAC-05) giữa chừng thì phần đã chép vẫn được giữ và mốc dời tới đó; lần mở trang sau chép tiếp phần còn lại.
 - Ngày chưa chép là `NO_DATA`, không phải `IDLE` — như Phase 1.
+- **Ngày nằm ngoài lịch sử mà WakaTime cho đọc** (gói giới hạn): nếu WakaTime báo bằng lỗi, chép bù dừng tại đó, `coveredFrom` không lùi qua ngày đó → `NO_DATA`. Nếu WakaTime trả `200` rỗng (không phân biệt được với ngày không code), dữ liệu không tự phát hiện được giới hạn — khi đó `historyWindowDays` phải được đặt theo gói. Cách WakaTime phản hồi được kiểm chứng ở TQ-WAK-04 **trước** PR 7c.
 
 ### 5.4. Technical Questions
 
-| ID        | Câu hỏi                                                                                                         | Kiểm chứng khi                      |
-| --------- | --------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
-| TQ-WAK-01 | Giới hạn request của WakaTime API (mỗi giây / mỗi ngày) và header báo giới hạn                                  | Implement adapter                   |
-| TQ-WAK-02 | Tham số `project` của `durations` khớp tên thế nào (có dấu cách, ký tự đặc biệt, phân biệt hoa thường?)         | Implement adapter                   |
-| TQ-WAK-03 | Một đoạn có thể vắt qua `end` của ngày WakaTime không, hay WakaTime đã cắt sẵn? (ảnh hưởng ranh giới thay §4.2) | Implement adapter, với dữ liệu thật |
+| ID        | Câu hỏi                                                                                                                                 | Kiểm chứng khi                                                      |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| TQ-WAK-01 | Giới hạn request của WakaTime API (mỗi giây / mỗi ngày) và header báo giới hạn                                                          | Implement adapter                                                   |
+| TQ-WAK-02 | Tham số `project` của `durations` khớp tên thế nào (có dấu cách, ký tự đặc biệt, phân biệt hoa thường?)                                 | Implement adapter                                                   |
+| TQ-WAK-03 | Một đoạn có thể vắt qua `end` của ngày WakaTime không, hay WakaTime đã cắt sẵn? (ảnh hưởng ranh giới thay §4.2)                         | Implement adapter — không còn chặn thiết kế nhờ cắt lúc chép (§4.2) |
+| TQ-WAK-04 | Ngày nằm ngoài lịch sử mà gói cho đọc: WakaTime trả lỗi gì, hay trả `200` rỗng? (quyết định có tự phát hiện được giới hạn không — §5.3) | Trước PR 7c, theo tài liệu WakaTime / tài khoản gói free            |
 
 ---
 
@@ -253,21 +277,22 @@ Mỗi ngày là một request. Lần chép tăng dần chỉ cần 1–3 ngày (
 | ID         | Rule                                                                                                                                                                       |
 | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | BR-PAC-037 | Một tài khoản Magnum Opus có tối đa một kết nối WakaTime. API key chỉ được dùng để đọc.                                                                                    |
-| BR-PAC-038 | `CODING_SESSION` được ghi bằng cách thay toàn bộ đoạn của một ngày WakaTime đã đọc trọn, trong một transaction. Ngày đọc dở không được thay.                               |
+| BR-PAC-038 | `CODING_TIME` được ghi bằng cách thay toàn bộ đoạn của một ngày WakaTime đã đọc trọn, trong một transaction. Ngày đọc dở không được thay.                                  |
 | BR-PAC-039 | Khi tính, một đoạn được cắt tại nửa đêm (múi giờ tài khoản), tại mỗi lần chuyển trạng thái và tại lúc khép Cycle; mỗi phần được gán độc lập. Sổ không bị sửa bởi việc cắt. |
 | BR-PAC-040 | Trong một Project, thời gian code là hợp các khoảng của mọi nguồn WakaTime — phần trùng tính một lần.                                                                      |
 | BR-PAC-041 | Một ngày có hoạt động khi có ≥ 1 event GitHub hoặc ≥ 15 phút code (sau cắt và hợp). Ngưỡng 15 phút áp dụng cho D3, D4 như nhau.                                            |
-| BR-PAC-042 | Giờ code chỉ được trình bày khi Project (hoặc snapshot) có ít nhất một nguồn WakaTime.                                                                                     |
+| BR-PAC-042 | Giờ code là `null` (không đo) khi Project — hoặc snapshot — không có nguồn WakaTime, và chỉ được trình bày khi khác `null`. `0` nghĩa là đo được và không có code.         |
 | BR-PAC-043 | Chỉ `project`, `time`, `duration` của một đoạn được dùng; mọi trường khác của WakaTime (AI, ngôn ngữ, editor, file…) không được lưu.                                       |
+| BR-PAC-044 | Một đoạn chỉ được ghi vào feed khi `project` của nó đúng tên hiện tại của project mà feed trỏ tới (tra từ id ngay trong lần chép đó).                                      |
 
 ### 6.3. Decisions
 
-| ID          | Decision                                                                                                                                                               |
-| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| DEC-PAC-015 | WakaTime không giới hạn lịch sử trên tài khoản hiện tại (§2): không chép định kỳ, `historyWindowDays = null`. Đổi thành số nếu gói thay đổi — không phải thiết kế lại. |
-| DEC-PAC-016 | Đọc `durations` theo từng ngày, không dùng `summaries`: cần thời điểm của từng đoạn để gán đúng trạng thái lúc code (§4.4).                                            |
-| DEC-PAC-017 | Chỉ lấy thời gian code. Không bộ lọc, không ngôn ngữ/editor/AI (§3.2).                                                                                                 |
-| DEC-PAC-018 | Nguồn WakaTime trỏ tới **id** project, không phải tên — đổi tên trên WakaTime không làm đứt liên kết.                                                                  |
+| ID          | Decision                                                                                                                                                                                                                                   |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| DEC-PAC-015 | Không chép định kỳ: tài khoản hiện tại đọc được đủ lịch sử (§2). Nhưng không giả định mọi tài khoản như vậy: ngày không đọc được giữ `NO_DATA`; nếu WakaTime không báo giới hạn bằng lỗi thì `historyWindowDays` đặt theo gói (TQ-WAK-04). |
+| DEC-PAC-016 | Đọc `durations` theo từng ngày, không dùng `summaries`: cần thời điểm của từng đoạn để gán đúng trạng thái lúc code (§4.4).                                                                                                                |
+| DEC-PAC-017 | Chỉ lấy thời gian code. Không bộ lọc, không ngôn ngữ/editor/AI (§3.2).                                                                                                                                                                     |
+| DEC-PAC-018 | Nguồn WakaTime trỏ tới **id** project, không phải tên — đổi tên trên WakaTime không làm đứt liên kết.                                                                                                                                      |
 
 ---
 
@@ -414,10 +439,10 @@ Lỗi: `WAKATIME_KEY_INVALID` (400), `WAKATIME_ACCOUNT_CHANGE_UNCONFIRMED` (409,
 
 - `POST /projects/:id/activity/sources` nhận thêm `provider: "GITHUB" | "WAKATIME"`; thiếu `provider` thì là `GITHUB` (tương thích client cũ).
 - `ActivitySourceResponse.provider` có thêm `"WAKATIME"`; `error.code` có thêm các mã §7.7.
-- `ActivityMetrics` thêm `codingSeconds: number` — `0` khi không có nguồn WakaTime; client dựa vào danh sách nguồn (BR-PAC-042), không dựa vào số 0.
-- `ActivityDay` thêm `codingSeconds: number` (sau cắt và hợp, cả ACTIVE lẫn PAUSED).
-- Divergence `ACTIVITY_AFTER_CLOSE` thêm `codingSeconds: number`.
-- Snapshot: `metrics.codingSeconds` và `days[].codingSeconds`; snapshot chụp trước Phase 2 trả `0` và không có nguồn WakaTime.
+- `ActivityMetrics` thêm `codingSeconds: number | null` — `null` khi không có nguồn WakaTime (không đo), `0` khi đo được và không có code (BR-PAC-042).
+- `ActivityDay` thêm `codingSeconds: number | null` (sau cắt và hợp, cả ACTIVE lẫn PAUSED); `null` theo cùng quy tắc.
+- Divergence `ACTIVITY_AFTER_CLOSE` thêm `codingSeconds: number | null`.
+- Snapshot: `metrics.codingSeconds` và `days[].codingSeconds` cùng kiểu; snapshot chụp trước Phase 2 trả `null` — dữ liệu JSON đã lưu không bị sửa, presenter điền `null` khi thiếu trường.
 
 ---
 
@@ -425,15 +450,15 @@ Lỗi: `WAKATIME_KEY_INVALID` (400), `WAKATIME_ACCOUNT_CHANGE_UNCONFIRMED` (409,
 
 Theo cách Phase 1 (một PR mỗi phần, CI + review trước khi merge):
 
-| PR  | Nội dung                                                                                                    |
-| --- | ----------------------------------------------------------------------------------------------------------- |
-| 7a  | Domain thuần: `CODING_SESSION`, cắt đoạn tại mốc, hợp khoảng, ngưỡng ngày, metric `codingSeconds` — có test |
-| 7b  | Migration enum + `integrations/wakatime`: kết nối (connect/get/disconnect), HTTP client                     |
-| 7c  | `WakaTimeActivityProvider` + ghi sổ "thay theo ngày" + chép bù có tiến độ; kiểm chứng TQ-WAK-01–03          |
-| 7d  | API: gắn nguồn WakaTime, liệt kê project, `codingSeconds` trong response và snapshot                        |
-| 7e  | Client: card WakaTime ở Cài đặt                                                                             |
-| 7f  | Client: gắn project WakaTime ở trang chỉnh sửa                                                              |
-| 7g  | Client: giờ code ở tóm tắt, tooltip, D3, snapshot                                                           |
+| PR  | Nội dung                                                                                                                                                                                              |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 7a  | Domain thuần: `CODING_TIME`, cắt đoạn tại mốc, hợp khoảng, ngưỡng ngày, metric `codingSeconds` — có test                                                                                              |
+| 7b  | Migration enum + `integrations/wakatime`: kết nối (connect/get/disconnect), HTTP client                                                                                                               |
+| 7c  | Kiểm chứng TQ-WAK-01–04; đổi `FetchedActivity` (`replacedWindows`) và sync service ghi "thay theo ngày"; `WakaTimeActivityProvider` (tra id → tên, kiểm từng đoạn, cắt theo ngày); chép bù có tiến độ |
+| 7d  | API: gắn nguồn WakaTime, liệt kê project, `codingSeconds` trong response và snapshot                                                                                                                  |
+| 7e  | Client: card WakaTime ở Cài đặt                                                                                                                                                                       |
+| 7f  | Client: gắn project WakaTime ở trang chỉnh sửa                                                                                                                                                        |
+| 7g  | Client: giờ code ở tóm tắt, tooltip, D3, snapshot                                                                                                                                                     |
 
 ---
 

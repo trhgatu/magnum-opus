@@ -22,17 +22,18 @@ Tài liệu này **không** thay đổi lifecycle, Cycle hay bất kỳ business
 
 ### Tài liệu trong bộ này
 
-| File                                           | Nội dung                                                                | Trạng thái                 |
-| ---------------------------------------------- | ----------------------------------------------------------------------- | -------------------------- |
-| `01-ba-overview.md`                            | Problem, needs, scope, khái niệm, quyết định                            | Draft                      |
-| `02-evidence-behavior-analysis.md`             | Gắn hoạt động vào Cycle, chỗ lệch, đóng băng, các ca biên               | Draft                      |
-| `03-integration-architecture.md`               | Kiến trúc tích hợp nhiều nguồn, cấu trúc module, thiết kế DB            | Draft                      |
-| `04-functional-requirements-business-rules.md` | Functional Requirements (FR-PAC) và Business Rules (BR-PAC) của Phase 1 | Candidate Baseline         |
-| `05-use-cases-acceptance-criteria.md`          | Use Cases (UC-PAC) và Acceptance Criteria của Phase 1                   | Candidate Baseline         |
-| `06-product-specification.md`                  | Baseline sản phẩm: bề mặt, trạng thái hiển thị, câu chữ                 | Product Baseline Candidate |
-| `07-api-contract.md`                           | Endpoint, request/response, mã lỗi                                      | Contract Candidate         |
+| File                                           | Nội dung                                                                          | Trạng thái                 |
+| ---------------------------------------------- | --------------------------------------------------------------------------------- | -------------------------- |
+| `01-ba-overview.md`                            | Problem, needs, scope, khái niệm, quyết định                                      | Draft                      |
+| `02-evidence-behavior-analysis.md`             | Gắn hoạt động vào Cycle, chỗ lệch, đóng băng, các ca biên                         | Draft                      |
+| `03-integration-architecture.md`               | Kiến trúc tích hợp nhiều nguồn, cấu trúc module, thiết kế DB                      | Draft                      |
+| `04-functional-requirements-business-rules.md` | Functional Requirements (FR-PAC) và Business Rules (BR-PAC) của Phase 1           | Candidate Baseline         |
+| `05-use-cases-acceptance-criteria.md`          | Use Cases (UC-PAC) và Acceptance Criteria của Phase 1                             | Candidate Baseline         |
+| `06-product-specification.md`                  | Baseline sản phẩm: bề mặt, trạng thái hiển thị, câu chữ                           | Product Baseline Candidate |
+| `07-api-contract.md`                           | Endpoint, request/response, mã lỗi                                                | Contract Candidate         |
+| `08-wakatime-phase-2.md`                       | Phase 2: thời gian code từ WakaTime — hành vi, kiến trúc, yêu cầu, giao diện, API | Draft for review           |
 
-Bộ tài liệu BA của Phase 1 đã đủ (01 → 07); bước tiếp theo là implementation theo thứ tự PR ở `07` §11.
+Bộ tài liệu BA của Phase 1 đã đủ (01 → 07) và đã được implement. Phase 2 (WakaTime) nằm trọn trong `08`; implementation theo thứ tự PR ở `08` §10.
 
 ---
 
