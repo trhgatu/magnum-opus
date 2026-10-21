@@ -4,12 +4,14 @@ import cookieParser from 'cookie-parser';
 import request from 'supertest';
 
 import { AppModule } from '../src/app.module';
+import { PrismaService } from '../src/infrastructure/database/prisma.service';
 import { DomainExceptionFilter } from '../src/presentation/filters/domain-exception.filter';
 
 describe('Project (E2E)', () => {
   let app: INestApplication;
   let ownerToken: string;
   let otherToken: string;
+  let prisma: PrismaService;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -27,6 +29,7 @@ describe('Project (E2E)', () => {
     );
     app.useGlobalFilters(new DomainExceptionFilter());
     await app.init();
+    prisma = app.get(PrismaService);
 
     ownerToken = await registerAndLogin('owner');
     otherToken = await registerAndLogin('other');
@@ -53,6 +56,37 @@ describe('Project (E2E)', () => {
       request(app.getHttpServer())
         .patch(url)
         .set('Authorization', `Bearer ${token}`),
+  });
+
+  // V1.1 PR4a: project_cycles.intended_outcome is still dual-written for the
+  // previous server version, but no longer read; the column is dropped later.
+  it('keeps dual-writing the old intended_outcome column without reading it', async () => {
+    const owner = as(ownerToken);
+    const created = await owner
+      .post('/projects')
+      .send({ title: 'Retire the old column' })
+      .expect(HttpStatus.CREATED);
+    const id = created.body.id as string;
+    await owner
+      .patch(`/projects/${id}/start`)
+      .send({ expectedRevision: 1 })
+      .expect(HttpStatus.OK);
+    const saved = await owner
+      .put(`/projects/${id}/cycle/outcome`)
+      .send({ expectedRevision: 2, intendedOutcome: 'Only in the history' })
+      .expect(HttpStatus.OK);
+    expect(saved.body.currentCycle.intendedOutcome).toBe('Only in the history');
+
+    const cycleId = saved.body.currentCycle.id as string;
+    const column = await prisma.$queryRaw<
+      { intended_outcome: string | null }[]
+    >`SELECT intended_outcome FROM project_cycles WHERE id = ${cycleId}`;
+    expect(column).toEqual([{ intended_outcome: 'Only in the history' }]);
+
+    const read = await prisma.projectCycle.findUniqueOrThrow({
+      where: { id: cycleId },
+    });
+    expect(read).not.toHaveProperty('intendedOutcome');
   });
 
   it('requires authentication', async () => {

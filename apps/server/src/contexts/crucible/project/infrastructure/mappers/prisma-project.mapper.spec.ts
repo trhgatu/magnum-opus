@@ -120,44 +120,23 @@ describe('PrismaProjectMapper', () => {
     expect(project.currentCycle?.targetEndAt).toBe('2026-09-30');
   });
 
-  it('treats a legacy intended_outcome without history as entry 1', () => {
-    // Written by the previous server version during the deploy window.
+  it('reads the outcome only from its history, never the old column', () => {
+    // The history is authoritative. The old column may hold anything,
+    // stale values included, and is ignored on read.
     const project = PrismaProjectMapper.toDomain({
       ...rawProject,
       cycles: [
-        {
-          ...openCycle,
-          intendedOutcome: 'Set by the old server',
-          outcomeEntries: [],
-        },
+        { ...openCycle, intendedOutcome: 'Left in the old column' },
+        { ...closedCycle, intendedOutcome: 'Also left behind' },
       ],
-    });
-
-    expect(project.currentCycle?.outcomeHistory).toEqual([
-      { sequence: 1, outcome: 'Set by the old server', setAt: updatedAt },
-    ]);
-  });
-
-  it('appends a legacy value the old server set after the history existed', () => {
-    // The previous server overwrote intended_outcome during the deploy
-    // window; ignoring it would show a stale outcome and let the next save
-    // write the stale value back.
-    const project = PrismaProjectMapper.toDomain({
-      ...rawProject,
-      cycles: [{ ...openCycle, intendedOutcome: 'Changed by the old server' }],
     });
 
     expect(project.currentCycle?.outcomeHistory).toEqual([
       { sequence: 1, outcome: 'Ship Projects V1', setAt: firstSet },
       { sequence: 2, outcome: 'Ship Projects V1.1', setAt: secondSet },
-      { sequence: 3, outcome: 'Changed by the old server', setAt: updatedAt },
     ]);
-  });
-
-  it('adds nothing when the dual-written column matches the latest entry', () => {
-    const project = PrismaProjectMapper.toDomain(raw());
-
-    expect(project.currentCycle?.outcomeHistory).toHaveLength(2);
+    expect(project.cycles[0].outcomeHistory).toEqual([]);
+    expect(project.cycles[0].intendedOutcome).toBeNull();
   });
 
   it('maps a Project with no Cycles yet', () => {
@@ -191,7 +170,7 @@ describe('PrismaProjectMapper', () => {
         projectId: 'project-id',
         ownerId: 'owner-id',
         cycleNumber: 2,
-        // Still written while the old column exists (dropped in a later PR).
+        // Still dual-written for the previous server version (until PR4b).
         intendedOutcome: 'Ship Projects V1.1',
         startedAt: openCycle.startedAt,
         endedAt: null,
