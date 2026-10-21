@@ -58,13 +58,13 @@ describe('Project (E2E)', () => {
         .set('Authorization', `Bearer ${token}`),
   });
 
-  // V1.1 PR4a: project_cycles.intended_outcome is about to be dropped, and
-  // the drop migration runs while this server is still live.
-  it('neither writes nor reads the old intended_outcome column', async () => {
+  // V1.1 PR4a: project_cycles.intended_outcome is still dual-written for the
+  // previous server version, but no longer read; the column is dropped later.
+  it('keeps dual-writing the old intended_outcome column without reading it', async () => {
     const owner = as(ownerToken);
     const created = await owner
       .post('/projects')
-      .send({ title: 'Drop the old column' })
+      .send({ title: 'Retire the old column' })
       .expect(HttpStatus.CREATED);
     const id = created.body.id as string;
     await owner
@@ -81,7 +81,7 @@ describe('Project (E2E)', () => {
     const column = await prisma.$queryRaw<
       { intended_outcome: string | null }[]
     >`SELECT intended_outcome FROM project_cycles WHERE id = ${cycleId}`;
-    expect(column).toEqual([{ intended_outcome: null }]);
+    expect(column).toEqual([{ intended_outcome: 'Only in the history' }]);
 
     const read = await prisma.projectCycle.findUniqueOrThrow({
       where: { id: cycleId },

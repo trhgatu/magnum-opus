@@ -508,15 +508,16 @@ Thứ tự:
    `set_at = updated_at` là xấp xỉ — V1 không lưu thời điểm outcome được đặt, và các giá trị bị ghi đè trước đó đã mất từ V1, không khôi phục được. Đây là giới hạn đã biết, chấp nhận được.
 4. Drop cột `intended_outcome` khỏi `project_cycles`.
 
-**Cách đã triển khai (expand → contract).** CI migrate production _trước khi_ Render chuyển sang server mới, nên server cũ còn chạy vài phút trên schema mới. Vì vậy bước 4 không nằm cùng migration với bước 1–3 mà tách thành ba lần deploy:
+**Cách đã triển khai (expand → contract).** CI migrate production _trước khi_ Render chuyển sang server mới, nên server bản trước còn chạy vài phút song song với bản mới, trên schema mới. Vì vậy bước 4 tách khỏi bước 1–3 và đi qua từng lần deploy, mỗi bản chỉ bỏ đúng thứ mà bản trước nó không còn cần:
 
-| PR  | Migration           | Server                                                                                                | Trạng thái |
-| --- | ------------------- | ----------------------------------------------------------------------------------------------------- | ---------- |
-| 1   | Bước 1–3 (chỉ thêm) | Đọc entry; vẫn **ghi đôi** cột cũ và đối chiếu nó, để server V1 còn sống không thấy dữ liệu lệch      | Đã xong    |
-| 4a  | Không               | Ngừng đọc và ghi cột cũ; Prisma `omit` bỏ cột khỏi mọi SELECT                                         | PR này     |
-| 4b  | Bước 4 (drop cột)   | Bỏ field khỏi schema và bỏ `omit`. Server 4a còn sống trong lúc drop không đụng tới cột nên không lỗi | Sau 4a     |
+| PR  | Migration           | Server                                                                                                             | Trạng thái |
+| --- | ------------------- | ------------------------------------------------------------------------------------------------------------------ | ---------- |
+| 1   | Bước 1–3 (chỉ thêm) | Đọc entry; **ghi đôi** cột cũ và đối chiếu nó, để server V1 còn sống không làm mất outcome nó vừa đặt              | Đã xong    |
+| 4a  | Không               | Ngừng **đọc** cột (bỏ đối chiếu, Prisma `omit`) nhưng vẫn ghi đôi — bản 1 còn sống vẫn đối chiếu nên cột phải khớp | PR này     |
+| 4b  | Không               | Ngừng **ghi** cột. Bản 4a còn sống không đọc cột nên cột cũ đi không ảnh hưởng                                     | Sau 4a     |
+| 4c  | Bước 4 (drop cột)   | Bỏ field khỏi schema và bỏ `omit`. Bản 4b còn sống trong lúc drop không đọc, không ghi cột nên không lỗi           | Sau 4b     |
 
-Dữ liệu outcome cũ không mất: bước 3 đã chép sang bảng entry từ PR 1, và từ đó entry là nguồn duy nhất.
+Dữ liệu outcome cũ không mất: bước 3 đã chép sang bảng entry ở PR 1; từ PR 4a entry là nguồn đọc duy nhất.
 
 ---
 

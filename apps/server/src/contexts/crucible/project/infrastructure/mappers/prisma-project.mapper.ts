@@ -36,6 +36,7 @@ export interface ProjectCyclePersistence {
   projectId: string;
   ownerId: string;
   cycleNumber: number;
+  intendedOutcome: string | null;
   startedAt: Date;
   endedAt: Date | null;
   endReason: PrismaProjectCycleEndReason | null;
@@ -220,6 +221,10 @@ export class PrismaProjectMapper {
       projectId,
       ownerId,
       cycleNumber: primitives.cycleNumber,
+      // Vẫn ghi đôi entry mới nhất (V1.1 PR4a): server bản trước còn đối
+      // chiếu cột này trong lúc deploy, cột phải khớp để nó không thấy lệch.
+      // Ngừng ghi ở PR4b.
+      intendedOutcome: primitives.intendedOutcome,
       startedAt: primitives.startedAt,
       endedAt: primitives.endedAt,
       endReason: primitives.endReason

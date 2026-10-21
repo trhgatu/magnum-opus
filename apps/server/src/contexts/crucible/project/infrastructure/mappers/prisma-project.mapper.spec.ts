@@ -121,8 +121,8 @@ describe('PrismaProjectMapper', () => {
   });
 
   it('reads the outcome only from its history, never the old column', () => {
-    // intended_outcome is about to be dropped; whatever is left in it is
-    // ignored.
+    // Every live server dual-writes the column, so it no longer carries
+    // anything the history lacks; whatever it holds is ignored.
     const project = PrismaProjectMapper.toDomain({
       ...rawProject,
       cycles: [
@@ -158,6 +158,7 @@ describe('PrismaProjectMapper', () => {
         projectId: 'project-id',
         ownerId: 'owner-id',
         cycleNumber: 1,
+        intendedOutcome: null,
         startedAt: closedCycle.startedAt,
         endedAt: closedCycle.endedAt,
         endReason: 'STOPPED',
@@ -169,6 +170,8 @@ describe('PrismaProjectMapper', () => {
         projectId: 'project-id',
         ownerId: 'owner-id',
         cycleNumber: 2,
+        // Still dual-written for the previous server version (until PR4b).
+        intendedOutcome: 'Ship Projects V1.1',
         startedAt: openCycle.startedAt,
         endedAt: null,
         endReason: null,
