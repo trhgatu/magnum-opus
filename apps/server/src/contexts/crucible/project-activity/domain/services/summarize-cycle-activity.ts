@@ -14,6 +14,14 @@ import {
   existsIn,
   startOfDay,
 } from '../calendar-day';
+import {
+  clipIntervals,
+  CODING_DAY_THRESHOLD_MS,
+  codingIntervals,
+  isPointEvent,
+  latestEnd,
+  splitAtBoundaries,
+} from '../coding-time';
 import type { DeclarationTimeline } from '../declaration-timeline';
 import { attributeEvent } from './attribute-event';
 
@@ -25,6 +33,13 @@ export interface CycleActivityMetrics {
   prsMerged: number;
 }
 
+/** Thời gian code của Cycle; null ở summary khi không đo (BR-PAC-042). */
+export interface CycleCodingTime {
+  totalSeconds: number;
+  /** Mọi ngày của dải ngày, kể cả ngày 0 giây. */
+  secondsByDay: Record<CalendarDay, number>;
+}
+
 export interface CycleActivitySummary {
   metrics: CycleActivityMetrics;
   lastActivityAt: Date | null;
@@ -32,12 +47,19 @@ export interface CycleActivitySummary {
   /** Có ngày không có dữ liệu, hoặc có nguồn chưa phủ trọn Cycle. */
   hasMissingData: boolean;
   dataUntil: Date | null;
+  /**
+   * null: Project không đo thời gian code (không có nguồn WakaTime) — khác
+   * với đo được 0 giây.
+   */
+  coding: CycleCodingTime | null;
 }
+
+const toSeconds = (ms: number) => Math.floor(ms / 1000);
 
 /**
  * Hoạt động của một Cycle theo ngày lịch trong múi giờ của tài khoản
- * (02 §3.3–3.4). `until` là thời điểm xét: bây giờ với Cycle đang mở, lúc
- * khép với snapshot.
+ * (02 §3.3–3.4, 08 §4.4–4.7). `until` là thời điểm xét: bây giờ với Cycle
+ * đang mở, lúc khép với snapshot.
  */
 export function summarizeCycleActivity(input: {
   cycleId: string;
@@ -46,6 +68,8 @@ export function summarizeCycleActivity(input: {
   sources: readonly SourceCoverage[];
   timeZone: string;
   until: Date;
+  /** Project có nguồn đo thời gian code. Mặc định không. */
+  codingMeasured?: boolean;
 }): CycleActivitySummary {
   const { cycleId, timeline, sources, timeZone, until } = input;
   const segments = timeline.segmentsOfCycle(cycleId);
@@ -56,8 +80,9 @@ export function summarizeCycleActivity(input: {
   const cycleEnd = closedAt ?? until;
   const rangeEnd = new Date(Math.min(cycleEnd.getTime(), until.getTime()));
 
-  // Event của Cycle, có nhãn; event ghi ngày tương lai (đồng hồ lệch) không tính.
-  const labelled = input.events.flatMap((event) => {
+  // Event có thời điểm của Cycle, có nhãn; event ghi ngày tương lai (đồng hồ
+  // lệch) không tính.
+  const labelled = input.events.filter(isPointEvent).flatMap((event) => {
     if (event.occurredAt.getTime() >= rangeEnd.getTime()) return [];
     const attribution = attributeEvent(event, timeline);
     return attribution.inCycle && attribution.cycleId === cycleId
@@ -69,6 +94,26 @@ export function summarizeCycleActivity(input: {
   for (const { event, label } of labelled) {
     const day = calendarDayAt(event.occurredAt, timeZone);
     labelsByDay.set(day, (labelsByDay.get(day) ?? new Set()).add(label));
+  }
+
+  // Thời gian code trong phạm vi Cycle, đã hợp và cắt theo ngày và lời
+  // tuyên bố — phần lúc tạm dừng vẫn thuộc Cycle (DEC-PAC-004).
+  const codingPieces = splitAtBoundaries(
+    clipIntervals(
+      codingIntervals(input.events),
+      cycleStart.getTime(),
+      rangeEnd.getTime(),
+    ),
+    timeline,
+    timeZone,
+  ).filter((piece) => piece.segment.cycleId === cycleId);
+  const codingByDay = new Map<CalendarDay, { active: number; total: number }>();
+  for (const piece of codingPieces) {
+    const ms = piece.end - piece.start;
+    const day = codingByDay.get(piece.day) ?? { active: 0, total: 0 };
+    day.total += ms;
+    if (piece.segment.state === 'ACTIVE') day.active += ms;
+    codingByDay.set(piece.day, day);
   }
 
   const pausedSegments = segments.filter(
@@ -105,8 +150,15 @@ export function summarizeCycleActivity(input: {
       return 'NO_DATA';
     }
     const labels = labelsByDay.get(date);
-    if (labels?.has('ACTIVE')) return 'ACTIVE';
-    if (labels) return 'PAUSED_ACTIVE';
+    const coding = codingByDay.get(date);
+    // Một event, hoặc từ 15 phút code (BR-PAC-041).
+    const hasActivity =
+      labels !== undefined || (coding?.total ?? 0) >= CODING_DAY_THRESHOLD_MS;
+    if (hasActivity) {
+      return labels?.has('ACTIVE') || (coding?.active ?? 0) > 0
+        ? 'ACTIVE'
+        : 'PAUSED_ACTIVE';
+    }
 
     const withinPause = pausedSegments.some(
       (segment) =>
@@ -119,10 +171,10 @@ export function summarizeCycleActivity(input: {
 
   const count = (kind: ActivityEvent['kind']) =>
     labelled.filter(({ event }) => event.kind === kind).length;
-  const lastActivity = labelled.reduce<number | null>(
-    (latest, { event }) =>
-      Math.max(latest ?? -Infinity, event.occurredAt.getTime()),
-    null,
+  // Hoạt động gần nhất: event muộn nhất, hoặc lúc kết thúc đoạn code muộn nhất.
+  const lastActivity = Math.max(
+    ...labelled.map(({ event }) => event.occurredAt.getTime()),
+    latestEnd(codingPieces) ?? -Infinity,
   );
 
   return {
@@ -136,7 +188,9 @@ export function summarizeCycleActivity(input: {
       prsOpened: count('PR_OPENED'),
       prsMerged: count('PR_MERGED'),
     },
-    lastActivityAt: lastActivity === null ? null : new Date(lastActivity),
+    lastActivityAt: Number.isFinite(lastActivity)
+      ? new Date(lastActivity)
+      : null,
     days,
     hasMissingData:
       days.some((day) => day.state === 'NO_DATA') ||
@@ -151,5 +205,21 @@ export function summarizeCycleActivity(input: {
             (source.syncedUntil?.getTime() ?? 0) < closedAt.getTime()),
       ),
     dataUntil: dataUntilOf(sources),
+    coding: input.codingMeasured
+      ? {
+          totalSeconds: toSeconds(
+            codingPieces.reduce(
+              (sum, piece) => sum + piece.end - piece.start,
+              0,
+            ),
+          ),
+          secondsByDay: Object.fromEntries(
+            days.map(({ date }) => [
+              date,
+              toSeconds(codingByDay.get(date)?.total ?? 0),
+            ]),
+          ),
+        }
+      : null,
   };
 }

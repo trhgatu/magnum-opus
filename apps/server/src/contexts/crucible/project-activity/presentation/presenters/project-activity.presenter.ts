@@ -83,6 +83,14 @@ function toCycle(cycle: CycleActivityView): CycleActivityResponse {
 function toDivergence(divergence: Divergence): DivergenceResponse {
   switch (divergence.kind) {
     case 'ACTIVITY_AFTER_CLOSE':
+      // Từng trường: codingSeconds chưa có trong contract (08 §9.2, PR 7d).
+      return {
+        kind: divergence.kind,
+        closedAs: divergence.closedAs,
+        commits: divergence.commits,
+        otherEvents: divergence.otherEvents,
+        lastActivityAt: divergence.lastActivityAt.toISOString(),
+      };
     case 'ACTIVITY_BEFORE_START':
       return {
         ...divergence,

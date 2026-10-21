@@ -1,7 +1,12 @@
 import type { ActivitySourceStatus } from '@repo/contracts';
 
 /** Loại sự kiện trong sổ (02 §2.1) — domain không biết nguồn là gì. */
-export type ActivityEventKind = 'COMMIT_AUTHORED' | 'PR_OPENED' | 'PR_MERGED';
+export type ActivityEventKind =
+  | 'COMMIT_AUTHORED'
+  | 'PR_OPENED'
+  | 'PR_MERGED'
+  /** Một khoảng code: occurredAt là lúc bắt đầu, quantity là số giây (08 §4.1). */
+  | 'CODING_TIME';
 
 /** Một dòng sổ hoạt động, như tầng activity cho đọc. */
 export interface ActivityEvent {

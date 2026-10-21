@@ -71,6 +71,8 @@ describe('ProjectActivityPresenter', () => {
         days: [{ date: '2026-10-02', state: 'ACTIVE' }],
         hasMissingData: true,
         dataUntil: at('2026-10-03T11:55:00Z'),
+        // Chưa có trong contract (08 §9.2, PR 7d) — không được lọt ra response.
+        coding: { totalSeconds: 3600, secondsByDay: { '2026-10-02': 3600 } },
       },
       divergences: [
         {
@@ -78,6 +80,7 @@ describe('ProjectActivityPresenter', () => {
           closedAs: 'COMPLETED',
           commits: 2,
           otherEvents: 1,
+          codingSeconds: 1800,
           lastActivityAt: at('2026-10-14T00:00:00Z'),
         },
         { kind: 'PAUSED_WITH_ACTIVITY', activeDays: 2 },

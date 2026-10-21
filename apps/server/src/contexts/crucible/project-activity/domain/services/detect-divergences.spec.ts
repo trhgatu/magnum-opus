@@ -203,6 +203,8 @@ describe('detectDivergences', () => {
           closedAs: 'COMPLETED',
           commits: 1,
           otherEvents: 1,
+          // Project không đo thời gian code.
+          codingSeconds: null,
           lastActivityAt: at('2026-10-12T00:00:00Z'),
         },
       ]);
@@ -286,5 +288,125 @@ describe('detectDivergences', () => {
         ],
       ),
     ).toEqual([]);
+  });
+
+  describe('coding time (08 §4.8)', () => {
+    const coding = (
+      iso: string,
+      minutes: number,
+      feedId = 'feed-1',
+    ): ActivityEvent => ({
+      feedId,
+      kind: 'CODING_TIME',
+      occurredAt: at(iso),
+      quantity: minutes * 60,
+    });
+
+    const detectCoding = (
+      transitions: LifecycleTransition[],
+      events: ActivityEvent[],
+      sources: LinkedSource[] = [source()],
+    ) =>
+      detectDivergences({
+        timeline: DeclarationTimeline.fromTransitions(transitions),
+        events,
+        sources,
+        timeZone: 'UTC',
+        now: at('2026-10-20T00:00:00Z'),
+        codingMeasured: true,
+      });
+
+    it('D1: a day with 15 minutes of coding counts as activity', () => {
+      expect(
+        detectCoding([started], [coding('2026-10-15T10:00:00Z', 20)]),
+      ).toEqual([]);
+    });
+
+    it('D1: a few minutes in the editor do not', () => {
+      expect(
+        detectCoding([started], [coding('2026-10-15T10:00:00Z', 5)]),
+      ).toEqual([{ kind: 'ACTIVE_WITHOUT_ACTIVITY', idleDays: 19 }]);
+    });
+
+    it('D2: counts paused days with enough coding', () => {
+      const paused = [
+        started,
+        transition('ACTIVE', 'PAUSED', '2026-10-10T00:00:00Z'),
+      ];
+
+      expect(
+        detectCoding(paused, [
+          coding('2026-10-12T10:00:00Z', 20),
+          coding('2026-10-13T10:00:00Z', 20),
+        ]),
+      ).toEqual([{ kind: 'PAUSED_WITH_ACTIVITY', activeDays: 2 }]);
+      expect(
+        detectCoding(paused, [
+          coding('2026-10-12T10:00:00Z', 10),
+          coding('2026-10-13T10:00:00Z', 10),
+        ]),
+      ).toEqual([]);
+    });
+
+    describe('D3', () => {
+      const completed = [
+        started,
+        transition('ACTIVE', 'COMPLETED', '2026-10-10T00:00:00Z'),
+      ];
+
+      it('reports coding after close, with its duration', () => {
+        expect(
+          detectCoding(completed, [coding('2026-10-12T00:00:00Z', 30)]),
+        ).toEqual([
+          {
+            kind: 'ACTIVITY_AFTER_CLOSE',
+            closedAs: 'COMPLETED',
+            commits: 0,
+            otherEvents: 0,
+            codingSeconds: 1800,
+            lastActivityAt: at('2026-10-12T00:30:00Z'),
+          },
+        ]);
+      });
+
+      it('ignores less than 15 minutes of coding after close', () => {
+        expect(
+          detectCoding(completed, [coding('2026-10-12T00:00:00Z', 10)]),
+        ).toEqual([]);
+      });
+
+      it('only counts the part after the close', () => {
+        // 23:50 → 00:20: chỉ 20 phút sau lúc khép.
+        expect(
+          detectCoding(completed, [coding('2026-10-09T23:50:00Z', 30)]),
+        ).toEqual([
+          expect.objectContaining({
+            codingSeconds: 1200,
+            lastActivityAt: at('2026-10-10T00:20:00Z'),
+          }),
+        ]);
+      });
+    });
+
+    describe('D4', () => {
+      const linkedOnFifth = [source({ linkedAt: at('2026-10-05T00:00:00Z') })];
+
+      it('counts coding after the source was linked, cut at the link', () => {
+        expect(
+          detectCoding([], [coding('2026-10-04T23:50:00Z', 30)], linkedOnFifth),
+        ).toEqual([
+          {
+            kind: 'ACTIVITY_BEFORE_START',
+            lastActivityAt: at('2026-10-05T00:20:00Z'),
+          },
+        ]);
+      });
+
+      it('ignores coding from before the source was linked', () => {
+        expect(
+          detectCoding([], [coding('2026-10-03T10:00:00Z', 60)], linkedOnFifth),
+        ).toEqual([]);
+      });
+    });
   });
 });
