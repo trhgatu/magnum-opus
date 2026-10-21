@@ -33,7 +33,6 @@ describe('PrismaProjectMapper', () => {
     projectId: 'project-id',
     ownerId: 'owner-id',
     cycleNumber: 2,
-    intendedOutcome: 'Ship Projects V1.1',
     startedAt: new Date('2026-08-21T00:00:00.000Z'),
     endedAt: null,
     endReason: null,
@@ -68,7 +67,6 @@ describe('PrismaProjectMapper', () => {
     projectId: 'project-id',
     ownerId: 'owner-id',
     cycleNumber: 1,
-    intendedOutcome: null,
     startedAt: new Date('2026-08-01T00:00:00.000Z'),
     endedAt: new Date('2026-08-20T00:00:00.000Z'),
     endReason: PrismaProjectCycleEndReason.STOPPED,
@@ -118,25 +116,6 @@ describe('PrismaProjectMapper', () => {
 
     expect(project.cycles[0].closingNote).toBe('Đổi hướng');
     expect(project.currentCycle?.targetEndAt).toBe('2026-09-30');
-  });
-
-  it('reads the outcome only from its history, never the old column', () => {
-    // The history is authoritative. The old column may hold anything,
-    // stale values included, and is ignored on read.
-    const project = PrismaProjectMapper.toDomain({
-      ...rawProject,
-      cycles: [
-        { ...openCycle, intendedOutcome: 'Left in the old column' },
-        { ...closedCycle, intendedOutcome: 'Also left behind' },
-      ],
-    });
-
-    expect(project.currentCycle?.outcomeHistory).toEqual([
-      { sequence: 1, outcome: 'Ship Projects V1', setAt: firstSet },
-      { sequence: 2, outcome: 'Ship Projects V1.1', setAt: secondSet },
-    ]);
-    expect(project.cycles[0].outcomeHistory).toEqual([]);
-    expect(project.cycles[0].intendedOutcome).toBeNull();
   });
 
   it('maps a Project with no Cycles yet', () => {

@@ -393,7 +393,6 @@ function rawProjectWithCycles(): PrismaProjectWithCycles {
         projectId: 'project-id',
         ownerId: 'owner-id',
         cycleNumber: 1,
-        intendedOutcome: null,
         startedAt: new Date('2026-08-20T10:00:00.000Z'),
         endedAt: null,
         endReason: null,
