@@ -65,7 +65,6 @@ export class PrismaProjectRepository implements ProjectRepository {
           where: { id: cycle.id },
           create: cycle,
           update: {
-            intendedOutcome: cycle.intendedOutcome,
             endedAt: cycle.endedAt,
             endReason: cycle.endReason,
             closingNote: cycle.closingNote,

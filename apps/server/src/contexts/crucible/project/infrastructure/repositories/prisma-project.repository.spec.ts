@@ -104,7 +104,6 @@ describe('PrismaProjectRepository', () => {
           projectId: project.id,
           ownerId: 'owner-id',
           cycleNumber: 1,
-          intendedOutcome: null,
           startedAt: cycle.startedAt,
           endedAt: null,
           endReason: null,
@@ -112,7 +111,6 @@ describe('PrismaProjectRepository', () => {
           targetEndAt: null,
         },
         update: {
-          intendedOutcome: null,
           endedAt: null,
           endReason: null,
           closingNote: null,
@@ -170,7 +168,6 @@ describe('PrismaProjectRepository', () => {
         where: { id: cycleId },
         create: expect.objectContaining({ id: cycleId }),
         update: {
-          intendedOutcome: null,
           endedAt: project.cycles[0].endedAt,
           endReason: 'STOPPED',
           closingNote: null,
@@ -219,7 +216,6 @@ describe('PrismaProjectRepository', () => {
       expect(transactionClient.projectCycle.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           update: expect.objectContaining({
-            intendedOutcome: 'Đàn Für Elise rút gọn',
             targetEndAt: new Date('2026-09-30T00:00:00.000Z'),
           }),
         }),
