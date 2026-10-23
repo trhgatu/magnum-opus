@@ -369,10 +369,29 @@ describe('detectDivergences', () => {
         ]);
       });
 
-      it('ignores less than 15 minutes of coding after close', () => {
+      it('needs 15 minutes of coding after close, inclusive', () => {
         expect(
-          detectCoding(completed, [coding('2026-10-12T00:00:00Z', 10)]),
+          detectCoding(completed, [coding('2026-10-12T00:00:00Z', 14)]),
         ).toEqual([]);
+        expect(
+          detectCoding(completed, [coding('2026-10-12T00:00:00Z', 15)]),
+        ).toEqual([expect.objectContaining({ codingSeconds: 900 })]);
+      });
+
+      it('takes a short session as the last activity once a commit shows it', () => {
+        // Commit đã đủ để có D3; 5 phút code sau đó vẫn là hoạt động gần nhất.
+        expect(
+          detectCoding(completed, [
+            event('2026-10-11T00:00:00Z'),
+            coding('2026-10-12T00:00:00Z', 5),
+          ]),
+        ).toEqual([
+          expect.objectContaining({
+            commits: 1,
+            codingSeconds: 300,
+            lastActivityAt: at('2026-10-12T00:05:00Z'),
+          }),
+        ]);
       });
 
       it('only counts the part after the close', () => {

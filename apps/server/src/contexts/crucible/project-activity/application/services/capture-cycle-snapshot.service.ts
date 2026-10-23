@@ -6,6 +6,7 @@ import {
 } from '@activity/application/ports/activity-ledger-reader.port';
 import { ActivitySyncService } from '@activity/application/services/activity-sync.service';
 
+import { CODING_LOOKBACK_MS } from '../../domain/coding-time';
 import type { LinkedSource } from '../../domain/activity-evidence';
 import { DeclarationTimeline } from '../../domain/declaration-timeline';
 import {
@@ -106,7 +107,9 @@ export class CaptureCycleSnapshotService {
     const events = await this.ledger.listEvents({
       ownerId,
       feedIds,
-      from: cycleStart,
+      // Lùi thêm: đoạn code bắt đầu trước lúc Cycle mở vẫn có thể kéo dài
+      // qua nó; phần trước mốc bị cắt khi tính.
+      from: new Date(cycleStart.getTime() - CODING_LOOKBACK_MS),
       to: closedAt,
     });
     const timeZone = await this.timeZones.getForUser(ownerId);

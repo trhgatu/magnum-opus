@@ -126,8 +126,19 @@ export function msByDay(
   return byDay;
 }
 
-/** Lúc kết thúc muộn nhất; null khi không có phần nào. */
+/**
+ * Lúc kết thúc muộn nhất; null khi không có phần nào. Duyệt từng phần, không
+ * spread vào Math.max — lịch sử code có thể rất dài.
+ */
 export const latestEnd = (intervals: readonly Interval[]): number | null =>
-  intervals.length === 0
-    ? null
-    : Math.max(...intervals.map((interval) => interval.end));
+  intervals.reduce<number | null>(
+    (latest, interval) => Math.max(latest ?? -Infinity, interval.end),
+    null,
+  );
+
+/**
+ * Đọc sổ lùi thêm chừng này trước mốc cần: đoạn code bắt đầu trước mốc vẫn
+ * có thể kéo dài qua nó. Mỗi đoạn được cắt theo ngày WakaTime lúc chép
+ * (08 §4.2), nên không đoạn nào dài hơn một ngày (25 giờ khi đổi giờ).
+ */
+export const CODING_LOOKBACK_MS = 2 * 86_400_000;

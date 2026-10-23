@@ -206,7 +206,7 @@ function activityAfterClose(
     codingSeconds: codingMeasured
       ? Math.floor(totalMs(codingAfter) / 1000)
       : null,
-    lastActivityAt: latestOf(after, codingCounts ? codingAfter : []),
+    lastActivityAt: latestOf(after, codingAfter),
   };
 }
 
@@ -234,17 +234,21 @@ function activityBeforeStart(
   if (after.length === 0 && !codingCounts) return null;
   return {
     kind: 'ACTIVITY_BEFORE_START',
-    lastActivityAt: latestOf(after, codingCounts ? codingAfter : []),
+    lastActivityAt: latestOf(after, codingAfter),
   };
 }
 
+/**
+ * Hoạt động muộn nhất sau mốc. Ngưỡng 15 phút chỉ quyết định chỗ lệch có
+ * xuất hiện không; đã xuất hiện thì mọi phần code sau mốc đều là hoạt động.
+ */
 const latestOf = (
   events: readonly ActivityEvent[],
   coding: readonly Interval[],
 ): Date =>
   new Date(
-    Math.max(
-      ...events.map((event) => event.occurredAt.getTime()),
+    events.reduce(
+      (latest, event) => Math.max(latest, event.occurredAt.getTime()),
       latestEnd(coding) ?? -Infinity,
     ),
   );

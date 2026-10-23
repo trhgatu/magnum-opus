@@ -172,9 +172,16 @@ export function summarizeCycleActivity(input: {
   const count = (kind: ActivityEvent['kind']) =>
     labelled.filter(({ event }) => event.kind === kind).length;
   // Hoạt động gần nhất: event muộn nhất, hoặc lúc kết thúc đoạn code muộn nhất.
-  const lastActivity = Math.max(
-    ...labelled.map(({ event }) => event.occurredAt.getTime()),
+  const lastActivity = labelled.reduce(
+    (latest, { event }) => Math.max(latest, event.occurredAt.getTime()),
     latestEnd(codingPieces) ?? -Infinity,
+  );
+  // Tổng là tổng các ngày, để hai con số luôn khớp nhau khi làm tròn.
+  const secondsByDay = Object.fromEntries(
+    days.map(({ date }) => [
+      date,
+      toSeconds(codingByDay.get(date)?.total ?? 0),
+    ]),
   );
 
   return {
@@ -207,18 +214,11 @@ export function summarizeCycleActivity(input: {
     dataUntil: dataUntilOf(sources),
     coding: input.codingMeasured
       ? {
-          totalSeconds: toSeconds(
-            codingPieces.reduce(
-              (sum, piece) => sum + piece.end - piece.start,
-              0,
-            ),
+          totalSeconds: Object.values(secondsByDay).reduce(
+            (sum, seconds) => sum + seconds,
+            0,
           ),
-          secondsByDay: Object.fromEntries(
-            days.map(({ date }) => [
-              date,
-              toSeconds(codingByDay.get(date)?.total ?? 0),
-            ]),
-          ),
+          secondsByDay,
         }
       : null,
   };

@@ -323,6 +323,14 @@ describe('summarizeCycleActivity', () => {
       expect(summary.metrics.pausedActiveDays).toBe(1);
     });
 
+    it('splits a session at Resume: the part after it is active', () => {
+      // Resume lúc 10/10 08:00: 10 phút PAUSED, 20 phút ACTIVE. Gán cả đoạn
+      // theo lúc bắt đầu sẽ ra PAUSED_ACTIVE.
+      const summary = summarizeCoding([coding('2026-10-10T07:50:00Z', 30)]);
+
+      expect(stateOf(summary, '2026-10-10')).toBe('ACTIVE');
+    });
+
     it('splits a session at midnight before applying the threshold', () => {
       // 20 phút vắt qua nửa đêm: 10 phút mỗi ngày, không ngày nào đủ ngưỡng.
       const summary = summarizeCoding([coding('2026-10-02T23:50:00Z', 20)]);
@@ -359,6 +367,29 @@ describe('summarizeCycleActivity', () => {
 
       expect(summary.lastActivityAt).toEqual(at('2026-10-11T10:30:00Z'));
       expect(summary.metrics.commits).toBe(1);
+    });
+
+    it('reports zero, not null, when coding is measured but absent', () => {
+      const summary = summarizeCoding([]);
+
+      expect(summary.coding?.totalSeconds).toBe(0);
+      expect(
+        Object.values(summary.coding?.secondsByDay ?? {}).every(
+          (seconds) => seconds === 0,
+        ),
+      ).toBe(true);
+    });
+
+    it('keeps the total equal to the sum of the days', () => {
+      // Phần lẻ giây ở hai ngày: tổng không được lớn hơn tổng các ngày.
+      const summary = summarizeCoding([
+        { ...coding('2026-10-02T23:59:59.500Z', 0), quantity: 1 },
+      ]);
+      const days = Object.values(summary.coding?.secondsByDay ?? {});
+
+      expect(summary.coding?.totalSeconds).toBe(
+        days.reduce((sum, seconds) => sum + seconds, 0),
+      );
     });
 
     it('reports no coding time when the project does not measure it', () => {

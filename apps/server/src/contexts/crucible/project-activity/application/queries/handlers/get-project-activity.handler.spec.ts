@@ -1,5 +1,6 @@
 import type { LedgerFeed } from '@activity/application/ports/activity-ledger-reader.port';
 
+import { CODING_LOOKBACK_MS } from '../../../domain/coding-time';
 import type { LifecycleTransition } from '../../../domain/declaration-timeline';
 import { GetProjectActivityQuery, ListActivitySourcesQuery } from '..';
 import { GetProjectActivityHandler } from './get-project-activity.handler';
@@ -95,7 +96,8 @@ describe('project activity queries', () => {
       expect(ledger.listEvents).toHaveBeenCalledWith({
         ownerId: 'owner-id',
         feedIds: ['feed-id'],
-        from: CYCLE_START,
+        // Lùi thêm để giữ đoạn code vắt qua đầu Cycle.
+        from: new Date(CYCLE_START.getTime() - CODING_LOOKBACK_MS),
         to: NOW,
       });
 
@@ -153,7 +155,9 @@ describe('project activity queries', () => {
 
       // Không có Cycle: đọc sổ từ lúc gắn.
       expect(ledger.listEvents).toHaveBeenCalledWith(
-        expect.objectContaining({ from: link.linkedAt }),
+        expect.objectContaining({
+          from: new Date(link.linkedAt.getTime() - CODING_LOOKBACK_MS),
+        }),
       );
       expect(view.currentCycle).toBeNull();
       expect(view.divergences).toEqual([

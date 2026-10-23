@@ -193,6 +193,15 @@ describe('coding time', () => {
     });
   });
 
+  it('finds the latest end of a very long history without overflowing', () => {
+    const intervals = Array.from({ length: 300_000 }, (_, index) => ({
+      start: index,
+      end: index + 1,
+    }));
+
+    expect(latestEnd(intervals)).toBe(300_000);
+  });
+
   it('finds the latest end, or none', () => {
     expect(
       latestEnd([
