@@ -9,6 +9,7 @@ import { ActivitySyncService } from '@activity/application/services/activity-syn
 import { DomainException } from '@shared/domain/exceptions/domain.exception';
 import { Result } from '@shared/domain/result';
 
+import { CODING_LOOKBACK_MS } from '../../../domain/coding-time';
 import type { LinkedSource } from '../../../domain/activity-evidence';
 import { DeclarationTimeline } from '../../../domain/declaration-timeline';
 import { ProjectNotFoundException } from '../../../domain/exceptions';
@@ -119,7 +120,11 @@ export class GetProjectActivityHandler implements IQueryHandler<
     const events = await this.ledger.listEvents({
       ownerId,
       feedIds,
-      from: new Date(Math.min(...needed.map(({ from }) => from.getTime()))),
+      // Lùi thêm: đoạn code bắt đầu trước mốc vẫn có thể kéo dài qua nó.
+      from: new Date(
+        Math.min(...needed.map(({ from }) => from.getTime())) -
+          CODING_LOOKBACK_MS,
+      ),
       to: now,
     });
 

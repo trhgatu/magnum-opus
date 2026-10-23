@@ -1,5 +1,6 @@
 import type { LedgerFeed } from '@activity/application/ports/activity-ledger-reader.port';
 
+import { CODING_LOOKBACK_MS } from '../../domain/coding-time';
 import type { LifecycleTransition } from '../../domain/declaration-timeline';
 import { CaptureCycleSnapshotService } from './capture-cycle-snapshot.service';
 
@@ -110,7 +111,8 @@ describe('CaptureCycleSnapshotService', () => {
     expect(ledger.listEvents).toHaveBeenCalledWith({
       ownerId: 'owner-id',
       feedIds: ['feed-id'],
-      from: START,
+      // Lùi thêm để giữ đoạn code vắt qua lúc Cycle mở.
+      from: new Date(START.getTime() - CODING_LOOKBACK_MS),
       to: CLOSED,
     });
     expect(snapshots.createIfAbsent).toHaveBeenCalledWith({
