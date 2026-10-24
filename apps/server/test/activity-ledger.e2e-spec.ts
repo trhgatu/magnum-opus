@@ -197,6 +197,71 @@ describe('Activity ledger (E2E, database)', () => {
     ).resolves.toBe(3);
   });
 
+  it('replaces the coding time of a day read again instead of adding it up', async () => {
+    const feed = newFeed('1007');
+    await feeds.insert(feed);
+    const day = (date: string, next: string) => ({
+      from: new Date(`${date}T00:00:00.000Z`),
+      to: new Date(`${next}T00:00:00.000Z`),
+    });
+    const coding = (occurredAt: string, quantity: number) => ({
+      kind: 'CODING_TIME' as const,
+      occurredAt: new Date(occurredAt),
+      quantity,
+      dedupeKey: occurredAt,
+    });
+    const commit = {
+      kind: 'COMMIT_AUTHORED' as const,
+      occurredAt: new Date('2026-10-15T08:00:00.000Z'),
+      quantity: 1,
+      dedupeKey: 'b'.repeat(64),
+    };
+    await writer.append(feed.id, [commit]);
+    const totals = async () => {
+      const rows = await prisma.activityEvent.findMany({
+        where: { feedId: feed.id, kind: 'CODING_TIME' },
+        orderBy: { occurredAt: 'asc' },
+      });
+      return rows.map((row) => [row.occurredAt.toISOString(), row.quantity]);
+    };
+
+    // 10:00: WakaTime thấy 40 phút ngày 15, 20 phút ngày 14.
+    await writer.replace(
+      feed.id,
+      [day('2026-10-14', '2026-10-15'), day('2026-10-15', '2026-10-16')],
+      [
+        coding('2026-10-14T20:00:00.000Z', 1200),
+        coding('2026-10-15T09:00:00.000Z', 2400),
+      ],
+    );
+    // 11:00: chỉ đọc lại ngày 15, đoạn sáng đã gộp thành 90 phút.
+    await expect(
+      writer.replace(
+        feed.id,
+        [day('2026-10-15', '2026-10-16')],
+        [coding('2026-10-15T09:00:00.000Z', 5400)],
+      ),
+    ).resolves.toBe(1);
+
+    await expect(totals()).resolves.toEqual([
+      // Ngày 14 không được đọc lại nên giữ nguyên.
+      ['2026-10-14T20:00:00.000Z', 1200],
+      ['2026-10-15T09:00:00.000Z', 5400],
+    ]);
+    // Commit của ngày 15 không bị xóa theo.
+    await expect(
+      prisma.activityEvent.count({
+        where: { feedId: feed.id, kind: 'COMMIT_AUTHORED' },
+      }),
+    ).resolves.toBe(1);
+
+    // Ngày 15 đọc lại không còn gì (WakaTime đã xóa đoạn): sổ cũng trống.
+    await writer.replace(feed.id, [day('2026-10-15', '2026-10-16')], []);
+    await expect(totals()).resolves.toEqual([
+      ['2026-10-14T20:00:00.000Z', 1200],
+    ]);
+  });
+
   it('does not show a feed to another owner', async () => {
     const feed = newFeed('1004');
     await feeds.insert(feed);

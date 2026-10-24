@@ -70,7 +70,16 @@ export class ActivitySyncService {
       );
       // Sổ trước, mốc sau: lỗi giữa chừng không để lại mốc đã tiến mà sổ
       // thiếu event. Chép lại thì khóa chống trùng lo phần đã ghi.
-      await this.writer.append(feed.id, fetched.events);
+      if (fetched.replacedWindows) {
+        await this.writer.replace(
+          feed.id,
+          fetched.replacedWindows,
+          fetched.events,
+        );
+      } else {
+        await this.writer.append(feed.id, fetched.events);
+      }
+
       feed.recordSuccess({ window, displayName: fetched.displayName, now });
     } catch (error) {
       if (!(error instanceof ActivitySourceError)) throw error;
