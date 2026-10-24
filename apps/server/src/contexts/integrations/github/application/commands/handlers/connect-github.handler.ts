@@ -16,7 +16,10 @@ import {
   type GitHubApi,
   type VerifiedGitHubToken,
 } from '../../ports/github-api.port';
-import { TOKEN_CIPHER, type TokenCipher } from '../../ports/token-cipher.port';
+import {
+  TOKEN_CIPHER,
+  type TokenCipher,
+} from '../../../../shared/application/ports/token-cipher.port';
 import { ConnectGitHubCommand } from '../connect-github.command';
 
 /**

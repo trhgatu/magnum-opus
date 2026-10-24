@@ -18,14 +18,14 @@ import { GITHUB_REPOSITORY_USAGE_READER } from './application/ports/github-repos
 import {
   TOKEN_CIPHER,
   type TokenCipher,
-} from './application/ports/token-cipher.port';
+} from '../shared/application/ports/token-cipher.port';
 import { GetGitHubConnectionHandler } from './application/queries/handlers/get-github-connection.handler';
 import { ListGitHubRepositoriesHandler } from './application/queries/handlers/list-github-repositories.handler';
 import {
   GITHUB_CONNECTION_REPOSITORY,
   type GitHubConnectionRepository,
 } from './domain/ports/github-connection.repository';
-import { AesGcmTokenCipher } from './infrastructure/aes-gcm-token.cipher';
+import { AesGcmTokenCipher } from '../shared/infrastructure/aes-gcm-token.cipher';
 import { SystemClock } from './infrastructure/clock/system-clock';
 import { GitHubActivityProvider } from './infrastructure/github-activity.provider';
 import { GitHubGraphqlClient } from './infrastructure/github-graphql.client';

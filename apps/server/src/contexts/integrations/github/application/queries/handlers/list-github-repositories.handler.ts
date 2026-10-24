@@ -23,7 +23,10 @@ import {
   type GitHubRepositoryUsageReader,
   type ProjectRef,
 } from '../../ports/github-repository-usage-reader.port';
-import { TOKEN_CIPHER, type TokenCipher } from '../../ports/token-cipher.port';
+import {
+  TOKEN_CIPHER,
+  type TokenCipher,
+} from '../../../../shared/application/ports/token-cipher.port';
 import { ListGitHubRepositoriesQuery } from '../list-github-repositories.query';
 
 /** Ô chọn repository chỉ cần chừng này; muốn thấy repo khác thì gõ thêm tên. */
