@@ -20,7 +20,10 @@ describe('ActivitySyncService', () => {
     insert: jest.fn(),
     saveSyncResult: jest.fn(),
   };
-  const writer: jest.Mocked<ActivityEventWriter> = { append: jest.fn() };
+  const writer: jest.Mocked<ActivityEventWriter> = {
+    append: jest.fn(),
+    replace: jest.fn(),
+  };
   const github: jest.Mocked<ActivityProviderPort> = {
     provider: 'GITHUB',
     capabilities: { historyWindowDays: null },
@@ -90,6 +93,38 @@ describe('ActivitySyncService', () => {
       displayName: 'trhgatu/magnum-opus-renamed',
       status: 'ACTIVE',
     });
+  });
+
+  it('replaces the days a provider read in full instead of appending', async () => {
+    const day = {
+      from: new Date('2026-10-15T00:00:00.000Z'),
+      to: new Date('2026-10-16T00:00:00.000Z'),
+    };
+    const coding = {
+      kind: 'CODING_TIME' as const,
+      occurredAt: new Date('2026-10-15T09:00:00.000Z'),
+      quantity: 5400,
+      dedupeKey: '2026-10-15T09:00:00.000Z',
+    };
+    github.fetchEvents.mockResolvedValue({
+      displayName: 'magnum-opus',
+      events: [coding],
+      replacedWindows: [day],
+    });
+    writer.replace.mockResolvedValue(1);
+
+    const feed = await sync();
+
+    expect(writer.replace).toHaveBeenCalledWith('feed-id', [day], [coding]);
+    expect(writer.append).not.toHaveBeenCalled();
+    expect(feed?.toSnapshot()).toMatchObject({ syncedUntil: NOW });
+  });
+
+  it('keeps appending for a provider that reports no replaced days', async () => {
+    await sync();
+
+    expect(writer.append).toHaveBeenCalledWith('feed-id', [event]);
+    expect(writer.replace).not.toHaveBeenCalled();
   });
 
   it('writes the ledger before moving the bounds', async () => {

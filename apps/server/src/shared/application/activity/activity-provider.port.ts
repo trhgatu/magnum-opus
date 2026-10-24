@@ -29,10 +29,20 @@ export interface ResolvedResource {
   displayName: string;
 }
 
+export interface TimeWindow {
+  from: Date;
+  to: Date;
+}
 export interface FetchedActivity {
   /** Tên hiện tại của tài nguyên — đổi tên thì feed cập nhật theo. */
   displayName: string;
   events: ActivityEventInput[];
+  /**
+   * Chỉ provider "thay theo ngày" (WakaTime): mỗi khoảng là một ngày nguồn
+   * đã đọc TRỌN. Sổ xóa CODING_TIME của feed trong từng khoảng rồi ghi lại
+   * events thuộc khoảng đó; khoảng không có ở đây thì không bị đụng tới.
+   */
+  replacedWindows?: TimeWindow[];
 }
 
 export interface ActivityProviderPort {

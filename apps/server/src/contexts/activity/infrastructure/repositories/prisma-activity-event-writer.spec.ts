@@ -1,8 +1,12 @@
 import { PrismaActivityEventWriter } from './prisma-activity-event-writer';
 
 describe('PrismaActivityEventWriter', () => {
-  const activityEvent = { createMany: jest.fn() };
-  const writer = new PrismaActivityEventWriter({ activityEvent } as never);
+  const activityEvent = { createMany: jest.fn(), deleteMany: jest.fn() };
+  const $transaction = jest.fn();
+  const writer = new PrismaActivityEventWriter({
+    activityEvent,
+    $transaction,
+  } as never);
 
   beforeEach(() => jest.clearAllMocks());
 
@@ -43,5 +47,95 @@ describe('PrismaActivityEventWriter', () => {
     await expect(writer.append('feed-id', [])).resolves.toBe(0);
 
     expect(activityEvent.createMany).not.toHaveBeenCalled();
+  });
+
+  describe('replace', () => {
+    const day = (date: string) => {
+      const from = new Date(`${date}T00:00:00.000Z`);
+      return { from, to: new Date(from.getTime() + 86_400_000) };
+    };
+    const coding = (occurredAt: string, quantity: number) => ({
+      kind: 'CODING_TIME' as const,
+      occurredAt: new Date(occurredAt),
+      quantity,
+      dedupeKey: occurredAt,
+    });
+
+    beforeEach(() => {
+      activityEvent.deleteMany.mockReturnValue('delete-operation');
+      activityEvent.createMany.mockReturnValue('create-operation');
+      $transaction.mockResolvedValue([{ count: 3 }, { count: 1 }]);
+    });
+
+    it('deletes the coding time of the read days and writes it again, all at once', async () => {
+      const event = coding('2026-10-15T09:00:00.000Z', 5400);
+
+      await expect(
+        writer.replace(
+          'feed-id',
+          [day('2026-10-15'), day('2026-10-16')],
+          [event],
+        ),
+      ).resolves.toBe(1);
+
+      expect(activityEvent.deleteMany).toHaveBeenCalledWith({
+        where: {
+          feedId: 'feed-id',
+          // Commit và PR của cùng ngày không bị đụng tới.
+          kind: 'CODING_TIME',
+          OR: [
+            {
+              occurredAt: {
+                gte: new Date('2026-10-15T00:00:00.000Z'),
+                lt: new Date('2026-10-16T00:00:00.000Z'),
+              },
+            },
+            {
+              occurredAt: {
+                gte: new Date('2026-10-16T00:00:00.000Z'),
+                lt: new Date('2026-10-17T00:00:00.000Z'),
+              },
+            },
+          ],
+        },
+      });
+      expect(activityEvent.createMany).toHaveBeenCalledWith({
+        data: [{ feedId: 'feed-id', ...event }],
+        skipDuplicates: true,
+      });
+      // Xóa và ghi cùng thành công hoặc cùng không: không bao giờ để lại
+      // ngày đã xóa mà chưa ghi lại.
+      expect($transaction).toHaveBeenCalledWith([
+        'delete-operation',
+        'create-operation',
+      ]);
+    });
+
+    it('never writes an event outside the days read in full', async () => {
+      const inside = coding('2026-10-15T23:59:59.999Z', 60);
+      const before = coding('2026-10-14T23:59:59.999Z', 60);
+      // [from, to): nửa đêm thuộc về ngày sau.
+      const atMidnight = coding('2026-10-16T00:00:00.000Z', 60);
+
+      await writer.replace(
+        'feed-id',
+        [day('2026-10-15')],
+        [before, inside, atMidnight],
+      );
+
+      expect(activityEvent.createMany).toHaveBeenCalledWith({
+        data: [{ feedId: 'feed-id', ...inside }],
+        skipDuplicates: true,
+      });
+    });
+
+    it('does not touch the database when no day was read in full', async () => {
+      await expect(
+        writer.replace('feed-id', [], [coding('2026-10-15T09:00:00.000Z', 60)]),
+      ).resolves.toBe(0);
+
+      expect($transaction).not.toHaveBeenCalled();
+      expect(activityEvent.deleteMany).not.toHaveBeenCalled();
+    });
   });
 });
