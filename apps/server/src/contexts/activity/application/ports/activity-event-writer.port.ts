@@ -13,8 +13,8 @@ export interface ActivityEventWriter {
   append(feedId: string, events: ActivityEventInput[]): Promise<number>;
   /**
    * Thay CODING_TIME của feed trong từng khoảng bằng events thuộc khoảng đó,
-   * trong một transaction. Event nằm ngoài mọi khoảng bị bỏ qua. Trả số dòng
-   * được ghi.
+   * trong một transaction. Event không phải CODING_TIME, hoặc nằm ngoài mọi
+   * khoảng, bị bỏ qua. Trả số dòng được ghi.
    */
   replace(
     feedId: string,

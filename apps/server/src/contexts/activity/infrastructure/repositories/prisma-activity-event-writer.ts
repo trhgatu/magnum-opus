@@ -30,11 +30,13 @@ export class PrismaActivityEventWriter implements ActivityEventWriter {
   ): Promise<number> {
     if (windows.length === 0) return 0;
 
-    const inWindows = events.filter((event) =>
-      windows.some(
-        (window) =>
-          event.occurredAt >= window.from && event.occurredAt < window.to,
-      ),
+    const inWindows = events.filter(
+      (event) =>
+        event.kind === 'CODING_TIME' &&
+        windows.some(
+          (window) =>
+            event.occurredAt >= window.from && event.occurredAt < window.to,
+        ),
     );
 
     const [, created] = await this.prisma.$transaction([

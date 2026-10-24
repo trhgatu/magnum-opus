@@ -198,7 +198,7 @@ describe('Activity ledger (E2E, database)', () => {
   });
 
   it('replaces the coding time of a day read again instead of adding it up', async () => {
-    const feed = newFeed('1004');
+    const feed = newFeed('1007');
     await feeds.insert(feed);
     const day = (date: string, next: string) => ({
       from: new Date(`${date}T00:00:00.000Z`),

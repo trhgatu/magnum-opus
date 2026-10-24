@@ -116,11 +116,19 @@ describe('PrismaActivityEventWriter', () => {
       const before = coding('2026-10-14T23:59:59.999Z', 60);
       // [from, to): nửa đêm thuộc về ngày sau.
       const atMidnight = coding('2026-10-16T00:00:00.000Z', 60);
+      // Trong ngày nhưng không phải giờ code: phần xóa không bao giờ đụng
+      // tới nó, nên phần ghi cũng không được nhận.
+      const commit = {
+        kind: 'COMMIT_AUTHORED' as const,
+        occurredAt: new Date('2026-10-15T09:00:00.000Z'),
+        quantity: 1,
+        dedupeKey: 'abc',
+      };
 
       await writer.replace(
         'feed-id',
         [day('2026-10-15')],
-        [before, inside, atMidnight],
+        [before, inside, atMidnight, commit],
       );
 
       expect(activityEvent.createMany).toHaveBeenCalledWith({
@@ -136,6 +144,7 @@ describe('PrismaActivityEventWriter', () => {
 
       expect($transaction).not.toHaveBeenCalled();
       expect(activityEvent.deleteMany).not.toHaveBeenCalled();
+      expect(activityEvent.createMany).not.toHaveBeenCalled();
     });
   });
 });
