@@ -9,7 +9,7 @@ import type {
   GitHubPullRequest,
 } from '../application/ports/github-activity-api.port';
 import type { GitHubApi } from '../application/ports/github-api.port';
-import type { TokenCipher } from '../application/ports/token-cipher.port';
+import type { TokenCipher } from '../../shared/application/ports/token-cipher.port';
 import {
   GitHubRateLimitedException,
   GitHubRepositoryNotAccessibleException,

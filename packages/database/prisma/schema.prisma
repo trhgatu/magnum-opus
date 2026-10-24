@@ -628,6 +628,7 @@ model ChronicleSnapshotSection {
 
 enum IntegrationProvider {
   GITHUB
+  WAKATIME
 }
 
 enum IntegrationConnectionStatus {
@@ -638,6 +639,7 @@ enum IntegrationConnectionStatus {
 
 enum ActivityProvider {
   GITHUB
+  WAKATIME
 }
 
 enum ActivityFeedStatus {
@@ -650,6 +652,8 @@ enum ActivityKind {
   COMMIT_AUTHORED
   PR_OPENED
   PR_MERGED
+  // Một khoảng code: occurred_at là lúc bắt đầu, quantity là số giây.
+  CODING_TIME
 }
 
 model IntegrationConnection {

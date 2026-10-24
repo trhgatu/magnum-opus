@@ -8,7 +8,7 @@ import { GitHubConnection } from '../../../domain/github-connection.entity';
 import type { GitHubConnectionRepository } from '../../../domain/ports/github-connection.repository';
 import type { Clock } from '../../ports/clock.port';
 import type { GitHubApi, GitHubRepository } from '../../ports/github-api.port';
-import type { TokenCipher } from '../../ports/token-cipher.port';
+import type { TokenCipher } from '../../../../shared/application/ports/token-cipher.port';
 import { ListGitHubRepositoriesQuery } from '../list-github-repositories.query';
 import { ListGitHubRepositoriesHandler } from './list-github-repositories.handler';
 

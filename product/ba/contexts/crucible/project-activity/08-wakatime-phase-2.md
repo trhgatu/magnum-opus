@@ -433,7 +433,7 @@ interface WakaTimeProjectResponse {
 }
 ```
 
-Lỗi: `WAKATIME_KEY_INVALID` (400), `WAKATIME_ACCOUNT_CHANGE_UNCONFIRMED` (409, kèm `currentAccount`/`newAccount`), `WAKATIME_UNAVAILABLE` (503).
+Lỗi: `WAKATIME_KEY_INVALID` (400), `WAKATIME_ACCOUNT_CHANGE_UNCONFIRMED` (409, kèm `currentAccount`/`newAccount`), `WAKATIME_UNAVAILABLE` (502, như `GITHUB_UNAVAILABLE`), `WAKATIME_RATE_LIMITED` (429).
 
 ### 9.2. Project Activity
 

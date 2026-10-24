@@ -497,6 +497,33 @@ export const Errors = {
     statusCode: 502,
   },
 
+  // WakaTime (BA 08 §9.1)
+  WAKATIME_KEY_INVALID: {
+    code: 'WAKATIME_KEY_INVALID',
+    translationKey: 'exceptions.wakatime.key.invalid',
+    statusCode: 400,
+  },
+  WAKATIME_ACCOUNT_CHANGE_UNCONFIRMED: {
+    code: 'WAKATIME_ACCOUNT_CHANGE_UNCONFIRMED',
+    translationKey: 'exceptions.wakatime.account.change.unconfirmed',
+    statusCode: 409,
+  },
+  WAKATIME_NOT_CONNECTED: {
+    code: 'WAKATIME_NOT_CONNECTED',
+    translationKey: 'exceptions.wakatime.not.connected',
+    statusCode: 409,
+  },
+  WAKATIME_RATE_LIMITED: {
+    code: 'WAKATIME_RATE_LIMITED',
+    translationKey: 'exceptions.wakatime.rate.limited',
+    statusCode: 429,
+  },
+  WAKATIME_UNAVAILABLE: {
+    code: 'WAKATIME_UNAVAILABLE',
+    translationKey: 'exceptions.wakatime.unavailable',
+    statusCode: 502,
+  },
+
   // Project Activity
   ACTIVITY_SOURCE_NOT_FOUND: {
     code: 'ACTIVITY_SOURCE_NOT_FOUND',

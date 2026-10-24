@@ -1,4 +1,4 @@
-export const ACTIVITY_PROVIDERS = ['GITHUB'] as const;
+export const ACTIVITY_PROVIDERS = ['GITHUB', 'WAKATIME'] as const;
 export type ActivityProvider = (typeof ACTIVITY_PROVIDERS)[number];
 
 export const ACTIVITY_SOURCE_STATUSES = [
