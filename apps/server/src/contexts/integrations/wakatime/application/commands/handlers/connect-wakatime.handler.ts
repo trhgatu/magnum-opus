@@ -91,9 +91,11 @@ export class ConnectWakaTimeHandler implements ICommandHandler<
       return (await this.repository.insert(created)) ? created : null;
     }
 
+    const readKey = existing.encryptedKey;
     // Ném WakaTimeAccountChangeUnconfirmedException trước khi ghi gì vào DB.
     existing.replaceKey({ account, encryptedKey, now, confirmAccountChange });
-    // false: kết nối vừa bị ngắt — lần sau đi luồng tạo mới.
-    return (await this.repository.update(existing)) ? existing : null;
+    // false: kết nối vừa bị ngắt hoặc vừa bị thay — lần sau đọc lại (tạo
+    // mới, hoặc hỏi lại xác nhận đổi tài khoản với tài khoản mới nhất).
+    return (await this.repository.update(existing, readKey)) ? existing : null;
   }
 }

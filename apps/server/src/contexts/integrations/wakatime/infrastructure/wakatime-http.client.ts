@@ -9,14 +9,6 @@ import type { WakaTimeAccount } from '../domain/wakatime-connection.entity';
 const DEFAULT_TIMEOUT_MS = 10_000;
 const DEFAULT_RETRY_AFTER_SECONDS = 60;
 
-interface WakaTimeUserPayload {
-  data?: {
-    id?: string;
-    username?: string | null;
-    display_name?: string | null;
-  };
-}
-
 export interface WakaTimeHttpClientOptions {
   fetchFn?: typeof fetch;
   baseUrl?: string;
@@ -46,16 +38,16 @@ export class WakaTimeHttpClient implements WakaTimeApi {
     if (response.status === 429) throw rateLimited(response);
     if (!response.ok) throw new WakaTimeUnavailableException();
 
-    const payload = (await response
-      .json()
-      .catch(() => null)) as WakaTimeUserPayload | null;
-    const user = payload?.data;
-    if (!user?.id) throw new WakaTimeUnavailableException();
+    const payload: unknown = await response.json().catch(() => null);
+    const user = isRecord(payload) ? payload.data : undefined;
+    // JSON từ bên ngoài: chỉ tin trường là chuỗi không rỗng.
+    const id = isRecord(user) ? text(user.id) : null;
+    if (!isRecord(user) || !id) throw new WakaTimeUnavailableException();
 
     return {
-      id: user.id,
+      id,
       // Tài khoản chưa đặt username vẫn có tên hiển thị hoặc id.
-      username: user.username || user.display_name || user.id,
+      username: text(user.username) ?? text(user.display_name) ?? id,
     };
   }
 
@@ -76,6 +68,12 @@ export class WakaTimeHttpClient implements WakaTimeApi {
     }
   }
 }
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const text = (value: unknown): string | null =>
+  typeof value === 'string' && value.trim() !== '' ? value : null;
 
 function rateLimited(response: Response): WakaTimeRateLimitedException {
   const seconds = Number(response.headers.get('retry-after'));

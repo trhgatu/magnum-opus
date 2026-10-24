@@ -12,10 +12,15 @@ export interface WakaTimeConnectionRepository {
    */
   insert(connection: WakaTimeConnection): Promise<boolean>;
   /**
-   * Cập nhật kết nối đã có (key, tài khoản, trạng thái). Trả false nếu kết
-   * nối không còn — vd một disconnect vừa xóa nó.
+   * Cập nhật kết nối đã có (key, tài khoản, trạng thái), chỉ khi nó vẫn mang
+   * `expectedEncryptedKey` — key lúc đọc ra. Trả false nếu kết nối không còn
+   * (một disconnect vừa xóa nó) hoặc đã bị thay bởi một request khác, để
+   * người gọi đọc lại thay vì ghi đè âm thầm.
    */
-  update(connection: WakaTimeConnection): Promise<boolean>;
+  update(
+    connection: WakaTimeConnection,
+    expectedEncryptedKey: string,
+  ): Promise<boolean>;
   /**
    * Đánh dấu REVOKED, chỉ khi kết nối vẫn mang đúng key đã bị WakaTime từ
    * chối — một lần kết nối lại xen giữa đã thay key thì giữ nguyên.

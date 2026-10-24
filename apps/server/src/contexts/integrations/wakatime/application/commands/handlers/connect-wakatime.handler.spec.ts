@@ -85,7 +85,10 @@ describe('ConnectWakaTimeHandler', () => {
   });
 
   it('replaces the key of the same account and makes it active again', async () => {
-    const existing = existingConnection();
+    const existing = WakaTimeConnection.rehydrate({
+      ...existingConnection().toSnapshot(),
+      status: 'REVOKED',
+    });
     repository.findByOwner.mockResolvedValue(existing);
 
     const result = await handler.execute(command());
@@ -98,7 +101,21 @@ describe('ConnectWakaTimeHandler', () => {
         lastVerifiedAt: NOW,
       }),
     );
-    expect(repository.update).toHaveBeenCalledWith(existing);
+    // Chỉ ghi nếu kết nối vẫn mang key lúc đọc ra.
+    expect(repository.update).toHaveBeenCalledWith(existing, 'enc(old)');
+  });
+
+  it('reads again when another request replaced the key in between', async () => {
+    repository.findByOwner.mockImplementation(() =>
+      Promise.resolve(existingConnection()),
+    );
+    repository.update.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+
+    const result = await handler.execute(command());
+
+    expect(result.isSuccess).toBe(true);
+    expect(repository.findByOwner).toHaveBeenCalledTimes(2);
+    expect(repository.update).toHaveBeenCalledTimes(2);
   });
 
   it('asks before switching to another WakaTime account', async () => {

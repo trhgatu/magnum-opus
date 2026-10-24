@@ -57,6 +57,11 @@ describe('WakaTimeHttpClient.verifyKey', () => {
     await expect(
       setup(json(200, { data: { id: 'u2' } })).client.verifyKey(KEY),
     ).resolves.toEqual({ id: 'u2', username: 'u2' });
+    await expect(
+      setup(
+        json(200, { data: { id: 'u3', username: { nested: true } } }),
+      ).client.verifyKey(KEY),
+    ).resolves.toEqual({ id: 'u3', username: 'u3' });
   });
 
   it.each([401, 403])(
@@ -82,6 +87,8 @@ describe('WakaTimeHttpClient.verifyKey', () => {
   it.each([
     ['a server error', json(500, {})],
     ['a body without an account', json(200, { data: {} })],
+    ['an id that is not a string', json(200, { data: { id: 42 } })],
+    ['a body that is not an object', json(200, ['user'])],
     ['a network failure', new Error(`connect failed for ${KEY}`)],
   ])('treats %s as unavailable, never leaking the key', async (_, response) => {
     const error = await setup(response)

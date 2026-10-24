@@ -40,11 +40,19 @@ export class PrismaWakaTimeConnectionRepository implements WakaTimeConnectionRep
     }
   }
 
-  async update(connection: WakaTimeConnection): Promise<boolean> {
-    // updateMany thay cho update: dòng đã bị xóa thì trả count 0 thay vì
-    // ném P2025.
+  async update(
+    connection: WakaTimeConnection,
+    expectedEncryptedKey: string,
+  ): Promise<boolean> {
+    // updateMany thay cho update: dòng đã bị xóa hoặc đã đổi key thì trả
+    // count 0 thay vì ném P2025 hay ghi đè. Mỗi lần mã hóa có IV ngẫu nhiên,
+    // nên bản mã khác nhau ở mọi lần kết nối — dùng được như phiên bản.
     const result = await this.prisma.integrationConnection.updateMany({
-      where: { ownerId: connection.ownerId, provider: WAKATIME_PROVIDER },
+      where: {
+        ownerId: connection.ownerId,
+        provider: WAKATIME_PROVIDER,
+        credentials: expectedEncryptedKey,
+      },
       data: PrismaWakaTimeConnectionMapper.toMutableData(connection),
     });
     return result.count === 1;
