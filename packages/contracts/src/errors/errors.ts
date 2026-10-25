@@ -523,6 +523,11 @@ export const Errors = {
     translationKey: 'exceptions.wakatime.unavailable',
     statusCode: 502,
   },
+  WAKATIME_PROJECT_NOT_FOUND: {
+    code: 'WAKATIME_PROJECT_NOT_FOUND',
+    translationKey: 'exceptions.wakatime.project.not.found',
+    statusCode: 404,
+  },
 
   // Project Activity
   ACTIVITY_SOURCE_NOT_FOUND: {

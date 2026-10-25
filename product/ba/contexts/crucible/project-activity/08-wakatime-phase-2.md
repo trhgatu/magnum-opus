@@ -241,6 +241,8 @@ GitHub không trả `replacedWindows` và giữ nguyên upsert. Sổ ghi theo ha
 
 ### 5.3. Sync Cost and Progress
 
+> **Hoãn (PR 7c-3).** Bản đang chạy (7c-2) đọc mọi ngày cần chép, mới trước, tối đa 4 request cùng lúc; một ngày lỗi thì cả lần chép thất bại và sổ không đổi. Lần chép quá 10 giây vẫn chạy tiếp ở nền và ghi sổ khi xong, nên giới hạn thời gian không làm mất tiến độ. Phần "giữ phần liên tục đã đọc trọn" bên dưới chỉ được làm khi chép bù gặp `WAKATIME_RATE_LIMITED` lặp lại (§10).
+
 Mỗi ngày là một request. Lần chép tăng dần chỉ cần 1–3 ngày (khoảng đệm 2 ngày + hôm nay). Lần chép bù một Cycle dài thì nhiều request:
 
 - Đọc **từ ngày mới về ngày cũ**, song song có giới hạn (vd 4 request cùng lúc).
@@ -459,17 +461,18 @@ Lỗi: `WAKATIME_KEY_INVALID` (400), `WAKATIME_ACCOUNT_CHANGE_UNCONFIRMED` (409,
 
 Theo cách Phase 1 (một PR mỗi phần, CI + review trước khi merge):
 
-| PR   | Nội dung                                                                                                                                            |
-| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 7a   | Domain thuần: `CODING_TIME`, cắt đoạn tại mốc, hợp khoảng, ngưỡng ngày, metric `codingSeconds` — có test                                            |
-| 7b   | Migration enum + `integrations/wakatime`: kết nối (connect/get/disconnect), HTTP client                                                             |
-| 7c-1 | Đổi `FetchedActivity` (`replacedWindows`); sổ ghi "thay theo ngày" trong transaction                                                                |
-| 7c-2 | Kiểm chứng TQ-WAK-01–04; `WakaTimeActivityProvider` (tra id → tên, kiểm từng đoạn, cắt theo ngày), đăng ký vào tầng activity; mã lỗi nguồn WakaTime |
-| 7c-3 | Chép bù có tiến độ: giữ phần liên tục đã đọc trọn khi hết giới hạn thời gian                                                                        |
-| 7d   | API: gắn nguồn WakaTime, liệt kê project, `codingSeconds` trong response và snapshot                                                                |
-| 7e   | Client: card WakaTime ở Cài đặt                                                                                                                     |
-| 7f   | Client: gắn project WakaTime ở trang chỉnh sửa                                                                                                      |
-| 7g   | Client: giờ code ở tóm tắt, tooltip, D3, snapshot                                                                                                   |
+| PR   | Nội dung                                                                                                                                                                                                                             |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 7a   | Domain thuần: `CODING_TIME`, cắt đoạn tại mốc, hợp khoảng, ngưỡng ngày, metric `codingSeconds` — có test                                                                                                                             |
+| 7b   | Migration enum + `integrations/wakatime`: kết nối (connect/get/disconnect), HTTP client                                                                                                                                              |
+| 7c-1 | Đổi `FetchedActivity` (`replacedWindows`); sổ ghi "thay theo ngày" trong transaction                                                                                                                                                 |
+| 7c-2 | Kiểm chứng TQ-WAK-01–04; `WakaTimeActivityProvider` (tra id → tên, kiểm từng đoạn, cắt theo ngày), đăng ký vào tầng activity; mã lỗi nguồn WakaTime                                                                                  |
+| 7c-3 | **Hoãn.** Chép bù có tiến độ: giữ phần liên tục đã đọc trọn khi một ngày lỗi giữa chừng. Lần chép quá 10 giây vẫn chạy tiếp ở nền và ghi sổ khi xong, nên chỉ cần khi chép bù gặp `WAKATIME_RATE_LIMITED` lặp lại (TQ-WAK-01 còn mở) |
+| 7d-1 | API: `GET /integrations/wakatime/projects`; gắn nguồn `WAKATIME` (id kiểm theo provider, lỗi gắn theo provider)                                                                                                                      |
+| 7d-2 | API: `codingSeconds` trong response và snapshot                                                                                                                                                                                      |
+| 7e   | Client: card WakaTime ở Cài đặt                                                                                                                                                                                                      |
+| 7f   | Client: gắn project WakaTime ở trang chỉnh sửa                                                                                                                                                                                       |
+| 7g   | Client: giờ code ở tóm tắt, tooltip, D3, snapshot                                                                                                                                                                                    |
 
 ---
 

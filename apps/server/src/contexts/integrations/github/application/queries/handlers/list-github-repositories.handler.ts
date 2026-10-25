@@ -19,10 +19,10 @@ import {
   type GitHubRepository,
 } from '../../ports/github-api.port';
 import {
-  GITHUB_REPOSITORY_USAGE_READER,
-  type GitHubRepositoryUsageReader,
   type ProjectRef,
-} from '../../ports/github-repository-usage-reader.port';
+  RESOURCE_USAGE_READER,
+  type ResourceUsageReader,
+} from '../../../../shared/application/ports/resource-usage-reader.port';
 import {
   TOKEN_CIPHER,
   type TokenCipher,
@@ -51,8 +51,8 @@ export class ListGitHubRepositoriesHandler implements IQueryHandler<
     @Inject(GITHUB_CONNECTION_REPOSITORY)
     private readonly repository: GitHubConnectionRepository,
     @Inject(CLOCK) private readonly clock: Clock,
-    @Inject(GITHUB_REPOSITORY_USAGE_READER)
-    private readonly usage: GitHubRepositoryUsageReader,
+    @Inject(RESOURCE_USAGE_READER)
+    private readonly usage: ResourceUsageReader,
   ) {}
 
   async execute({
@@ -80,6 +80,7 @@ export class ListGitHubRepositoriesHandler implements IQueryHandler<
         truncated: matched.length > MAX_REPOSITORIES || !list.complete,
         usedByProjects: await this.usage.usedByProjects(
           ownerId,
+          'GITHUB',
           repositories.map((repository) => repository.id),
         ),
       });

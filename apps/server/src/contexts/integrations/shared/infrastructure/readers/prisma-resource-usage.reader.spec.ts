@@ -1,14 +1,14 @@
-import { PrismaGitHubRepositoryUsageReader } from './prisma-github-repository-usage.reader';
+import { PrismaResourceUsageReader } from './prisma-resource-usage.reader';
 
-describe('PrismaGitHubRepositoryUsageReader', () => {
+describe('PrismaResourceUsageReader', () => {
   const projectActivitySource = { findMany: jest.fn() };
-  const reader = new PrismaGitHubRepositoryUsageReader({
+  const reader = new PrismaResourceUsageReader({
     projectActivitySource,
   } as never);
 
   beforeEach(() => jest.clearAllMocks());
 
-  it('lists the owner’s projects using each repository, once per project', async () => {
+  it('lists the owner’s projects using each resource, once per project', async () => {
     projectActivitySource.findMany.mockResolvedValue([
       {
         feed: { externalResourceId: '1001' },
@@ -26,7 +26,7 @@ describe('PrismaGitHubRepositoryUsageReader', () => {
     ]);
 
     await expect(
-      reader.usedByProjects('owner-id', ['1001', '1002']),
+      reader.usedByProjects('owner-id', 'GITHUB', ['1001', '1002']),
     ).resolves.toEqual({
       '1001': [
         { id: 'p1', title: 'Magnum Opus' },
@@ -49,8 +49,28 @@ describe('PrismaGitHubRepositoryUsageReader', () => {
     });
   });
 
-  it('does not query for no repositories', async () => {
-    await expect(reader.usedByProjects('owner-id', [])).resolves.toEqual({});
+  it('looks only at sources of the given provider', async () => {
+    projectActivitySource.findMany.mockResolvedValue([]);
+
+    await reader.usedByProjects('owner-id', 'WAKATIME', ['project-uuid']);
+
+    expect(projectActivitySource.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          ownerId: 'owner-id',
+          feed: {
+            provider: 'WAKATIME',
+            externalResourceId: { in: ['project-uuid'] },
+          },
+        },
+      }),
+    );
+  });
+
+  it('does not query for no resources', async () => {
+    await expect(
+      reader.usedByProjects('owner-id', 'GITHUB', []),
+    ).resolves.toEqual({});
     expect(projectActivitySource.findMany).not.toHaveBeenCalled();
   });
 });

@@ -1,14 +1,55 @@
 import { ApiProperty } from '@nestjs/swagger';
 import type { ActivityProvider } from '@repo/contracts';
-import { IsIn, Matches } from 'class-validator';
+import {
+  IsIn,
+  Validate,
+  type ValidationArguments,
+  ValidatorConstraint,
+  type ValidatorConstraintInterface,
+} from 'class-validator';
 
-/**
- * Provider gắn được làm nguồn lúc này. WAKATIME đã có trong contract (sổ
- * biết nó) nhưng chỉ gắn được khi adapter và API sẵn sàng (BA 08 §10, PR 7d).
- */
+/** Provider gắn được làm nguồn (BA 08 §9.2). */
 const LINKABLE_PROVIDERS = [
   'GITHUB',
+  'WAKATIME',
 ] as const satisfies readonly ActivityProvider[];
+
+type LinkableProvider = (typeof LINKABLE_PROVIDERS)[number];
+
+/** Id của tài nguyên, theo từng provider — luôn là id ổn định, không phải tên. */
+const RESOURCE_ID_FORMAT: Record<LinkableProvider, RegExp> = {
+  // Id số của GitHub. Không có số 0 ở đầu: "0106…" và "106…" không được
+  // thành hai nguồn.
+  GITHUB: /^[1-9]\d{0,18}$/,
+  // Id project của WakaTime. Id lạ thì resolveResource không tìm thấy nên
+  // không tạo được nguồn.
+  WAKATIME: /^[A-Za-z0-9-]{1,64}$/,
+};
+
+@ValidatorConstraint({ name: 'externalResourceIdFormat' })
+class ExternalResourceIdFormat implements ValidatorConstraintInterface {
+  validate(value: unknown, args: ValidationArguments): boolean {
+    const { provider } = args.object as { provider?: unknown };
+    const format = LINKABLE_PROVIDERS.find((linkable) => linkable === provider);
+    return (
+      format !== undefined &&
+      typeof value === 'string' &&
+      RESOURCE_ID_FORMAT[format].test(value)
+    );
+  }
+
+  defaultMessage(args: ValidationArguments): string {
+    const { provider } = args.object as { provider?: unknown };
+    if (provider === 'GITHUB') {
+      return 'externalResourceId must be a numeric repository id';
+    }
+    if (provider === 'WAKATIME') {
+      return 'externalResourceId must be a WakaTime project id';
+    }
+    // Provider không gắn được: @IsIn đã báo lỗi của provider.
+    return 'externalResourceId cannot be checked without a linkable provider';
+  }
+}
 
 export class LinkActivitySourceDto {
   @ApiProperty({ enum: LINKABLE_PROVIDERS })
@@ -16,13 +57,11 @@ export class LinkActivitySourceDto {
   readonly provider!: ActivityProvider;
 
   @ApiProperty({
-    description: 'Stable numeric id of the repository',
+    description:
+      'Stable id of the resource: numeric repository id for GitHub, ' +
+      'project id for WakaTime',
     example: '1067270000',
   })
-  // Id số của GitHub: chỉ chữ số, không phải tên — đổi tên không làm mất nguồn.
-  // Không có số 0 ở đầu: "0106…" và "106…" không được thành hai nguồn.
-  @Matches(/^[1-9]\d{0,18}$/, {
-    message: 'externalResourceId must be a numeric repository id',
-  })
+  @Validate(ExternalResourceIdFormat)
   readonly externalResourceId!: string;
 }

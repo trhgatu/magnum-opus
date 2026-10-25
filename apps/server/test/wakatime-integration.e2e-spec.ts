@@ -88,6 +88,37 @@ describe('WakaTime integration (E2E)', () => {
       .expect(HttpStatus.BAD_REQUEST);
   });
 
+  describe('GET /integrations/wakatime/projects', () => {
+    it('requires authentication', async () => {
+      await request(app.getHttpServer())
+        .get('/integrations/wakatime/projects')
+        .expect(HttpStatus.UNAUTHORIZED);
+    });
+
+    it('answers 409 WAKATIME_NOT_CONNECTED before WakaTime is connected', async () => {
+      const response = await authed(
+        'get',
+        '/integrations/wakatime/projects?search=opus',
+      ).expect(HttpStatus.CONFLICT);
+
+      expect(response.body.code).toBe('WAKATIME_NOT_CONNECTED');
+    });
+
+    it('rejects a search that is not a single short string', async () => {
+      await authed(
+        'get',
+        '/integrations/wakatime/projects?search=a&search=b',
+      ).expect(HttpStatus.BAD_REQUEST);
+      await authed(
+        'get',
+        `/integrations/wakatime/projects?search=${'a'.repeat(201)}`,
+      ).expect(HttpStatus.BAD_REQUEST);
+      await authed('get', '/integrations/wakatime/projects?page=2').expect(
+        HttpStatus.BAD_REQUEST,
+      );
+    });
+  });
+
   async function registerAndLogin(): Promise<string> {
     const suffix = `${Date.now()}${Math.random().toString(16).slice(2)}`;
     const email = `wakatime.${suffix}@example.com`;

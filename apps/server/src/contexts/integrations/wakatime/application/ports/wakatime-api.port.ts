@@ -11,6 +11,7 @@ export interface WakaTimeUser {
 export interface WakaTimeProject {
   id: string;
   name: string;
+  lastHeartbeatAt: Date | null;
 }
 
 /** Một đoạn code: chỉ project, lúc bắt đầu và độ dài (BR-PAC-043). */

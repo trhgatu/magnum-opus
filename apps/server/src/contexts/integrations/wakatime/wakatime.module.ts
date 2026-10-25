@@ -11,6 +11,10 @@ import { WAKATIME_ACTIVITY_PROVIDER } from './application/ports/wakatime-activit
 import { AesGcmTokenCipher } from '../shared/infrastructure/aes-gcm-token.cipher';
 import { ConnectWakaTimeHandler } from './application/commands/handlers/connect-wakatime.handler';
 import { DisconnectWakaTimeHandler } from './application/commands/handlers/disconnect-wakatime.handler';
+import { ListWakaTimeProjectsHandler } from './application/queries/handlers/list-wakatime-projects.handler';
+import { RESOURCE_USAGE_READER } from '../shared/application/ports/resource-usage-reader.port';
+import { PrismaResourceUsageReader } from '../shared/infrastructure/readers/prisma-resource-usage.reader';
+
 import { CLOCK } from './application/ports/clock.port';
 import {
   WAKATIME_API,
@@ -64,6 +68,8 @@ import { WakaTimeIntegrationController } from './presentation/controllers/wakati
     ConnectWakaTimeHandler,
     DisconnectWakaTimeHandler,
     GetWakaTimeConnectionHandler,
+    ListWakaTimeProjectsHandler,
+    { provide: RESOURCE_USAGE_READER, useClass: PrismaResourceUsageReader },
   ],
   // Chỉ provider rời module: key, cipher và repository kết nối ở lại bên
   // trong, để không ai ngoài module chạm được thông tin xác thực.

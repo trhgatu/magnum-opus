@@ -98,7 +98,7 @@ export class LinkActivitySourceHandler implements ICommandHandler<
       });
     } catch (error) {
       if (error instanceof ActivitySourceError) {
-        return Result.fail(unavailable(error));
+        return Result.fail(unavailable(error, provider));
       }
       throw error;
     }
@@ -175,15 +175,24 @@ export class LinkActivitySourceHandler implements ICommandHandler<
 /** Lỗi của nguồn lúc gắn → mã API (07 §5.2). */
 function unavailable(
   error: ActivitySourceError,
+  provider: LinkActivitySourceCommand['provider'],
 ): ActivitySourceUnavailableException {
   const definitions: Partial<Record<ActivitySourceErrorCode, ErrorDefinition>> =
     {
       GITHUB_REPOSITORY_NOT_ACCESSIBLE: Errors.GITHUB_REPOSITORY_NOT_ACCESSIBLE,
       GITHUB_RATE_LIMITED: Errors.GITHUB_RATE_LIMITED,
       GITHUB_UNAVAILABLE: Errors.GITHUB_UNAVAILABLE,
+      WAKATIME_PROJECT_NOT_FOUND: Errors.WAKATIME_PROJECT_NOT_FOUND,
+      WAKATIME_RATE_LIMITED: Errors.WAKATIME_RATE_LIMITED,
+      WAKATIME_UNAVAILABLE: Errors.WAKATIME_UNAVAILABLE,
     };
-  // Chưa kết nối, token hết hạn hoặc bị thu hồi: đều là "chưa kết nối được".
-  const definition = definitions[error.code] ?? Errors.GITHUB_NOT_CONNECTED;
+  // Chưa kết nối, key/token hết hạn, bị thu hồi hoặc đổi tài khoản: đều là
+  // "chưa kết nối được" — của đúng provider đang gắn.
+  const definition =
+    definitions[error.code] ??
+    (provider === 'WAKATIME'
+      ? Errors.WAKATIME_NOT_CONNECTED
+      : Errors.GITHUB_NOT_CONNECTED);
   return new ActivitySourceUnavailableException(
     definition,
     error.retryAfterSeconds === null

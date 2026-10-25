@@ -87,7 +87,7 @@ describe('ListGitHubRepositoriesHandler', () => {
     const result = await handler.execute(query());
 
     expect(api.listRepositories).toHaveBeenCalledWith('plain(enc-token)');
-    expect(usage.usedByProjects).toHaveBeenCalledWith('owner-id', [
+    expect(usage.usedByProjects).toHaveBeenCalledWith('owner-id', 'GITHUB', [
       '3',
       '1',
       '2',

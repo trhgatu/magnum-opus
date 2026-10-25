@@ -203,6 +203,33 @@ describe('LinkActivitySourceHandler', () => {
     },
   );
 
+  it.each([
+    ['WAKATIME_NOT_CONNECTED', 'WAKATIME_NOT_CONNECTED'],
+    // Key bị thu hồi hay đổi tài khoản: đều là "kết nối WakaTime ở Cài đặt".
+    ['WAKATIME_KEY_INVALID', 'WAKATIME_NOT_CONNECTED'],
+    ['WAKATIME_ACCOUNT_CHANGED', 'WAKATIME_NOT_CONNECTED'],
+    ['WAKATIME_PROJECT_NOT_FOUND', 'WAKATIME_PROJECT_NOT_FOUND'],
+    ['WAKATIME_RATE_LIMITED', 'WAKATIME_RATE_LIMITED'],
+    ['WAKATIME_UNAVAILABLE', 'WAKATIME_UNAVAILABLE'],
+  ] as const)(
+    'maps %s while linking WakaTime to the API error %s',
+    async (sourceCode, apiCode) => {
+      feeds.ensureFeed.mockRejectedValue(new ActivitySourceError(sourceCode));
+
+      const result = await handler.execute(
+        new LinkActivitySourceCommand({
+          ownerId: 'owner-id',
+          projectId: 'project-id',
+          provider: 'WAKATIME',
+          externalResourceId: 'waka-project-id',
+        }),
+      );
+
+      expect(result.getError().error.code).toBe(apiCode);
+      expect(sources.link).not.toHaveBeenCalled();
+    },
+  );
+
   it('passes the seconds to wait on a rate limit', async () => {
     feeds.ensureFeed.mockRejectedValue(
       new ActivitySourceError('GITHUB_RATE_LIMITED', 120),
