@@ -241,6 +241,8 @@ GitHub không trả `replacedWindows` và giữ nguyên upsert. Sổ ghi theo ha
 
 ### 5.3. Sync Cost and Progress
 
+> **Hoãn (PR 7c-3).** Bản đang chạy (7c-2) đọc mọi ngày cần chép, mới trước, tối đa 4 request cùng lúc; một ngày lỗi thì cả lần chép thất bại và sổ không đổi. Lần chép quá 10 giây vẫn chạy tiếp ở nền và ghi sổ khi xong, nên giới hạn thời gian không làm mất tiến độ. Phần "giữ phần liên tục đã đọc trọn" bên dưới chỉ được làm khi chép bù gặp `WAKATIME_RATE_LIMITED` lặp lại (§10).
+
 Mỗi ngày là một request. Lần chép tăng dần chỉ cần 1–3 ngày (khoảng đệm 2 ngày + hôm nay). Lần chép bù một Cycle dài thì nhiều request:
 
 - Đọc **từ ngày mới về ngày cũ**, song song có giới hạn (vd 4 request cùng lúc).

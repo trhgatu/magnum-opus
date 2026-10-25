@@ -53,5 +53,9 @@ describe('LinkActivitySourceDto', () => {
     });
 
     expect(errors).toHaveLength(2);
+    // Không mượn câu chữ của GitHub cho một provider khác.
+    expect(errors).toContain(
+      'externalResourceId cannot be checked without a linkable provider',
+    );
   });
 });

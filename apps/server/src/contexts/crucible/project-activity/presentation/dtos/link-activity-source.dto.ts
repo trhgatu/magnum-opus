@@ -40,9 +40,14 @@ class ExternalResourceIdFormat implements ValidatorConstraintInterface {
 
   defaultMessage(args: ValidationArguments): string {
     const { provider } = args.object as { provider?: unknown };
-    return provider === 'WAKATIME'
-      ? 'externalResourceId must be a WakaTime project id'
-      : 'externalResourceId must be a numeric repository id';
+    if (provider === 'GITHUB') {
+      return 'externalResourceId must be a numeric repository id';
+    }
+    if (provider === 'WAKATIME') {
+      return 'externalResourceId must be a WakaTime project id';
+    }
+    // Provider không gắn được: @IsIn đã báo lỗi của provider.
+    return 'externalResourceId cannot be checked without a linkable provider';
   }
 }
 
