@@ -16,7 +16,11 @@ import { WakaTimeConnection } from '../domain/wakatime-connection.entity';
 import { WakaTimeActivityProvider } from './wakatime-activity.provider';
 
 const ACCOUNT = { id: 'waka-user', username: 'trhgatu' };
-const PROJECT = { id: 'project-id', name: 'magnum-opus' };
+const PROJECT = {
+  id: 'project-id',
+  name: 'magnum-opus',
+  lastHeartbeatAt: null,
+};
 const RESOURCE = {
   ownerId: 'owner-id',
   externalAccountId: ACCOUNT.id,
@@ -83,7 +87,7 @@ describe('WakaTimeActivityProvider', () => {
       timeZone: 'Asia/Ho_Chi_Minh',
     });
     api.listProjects.mockResolvedValue([
-      { id: 'other-id', name: 'dotfiles' },
+      { id: 'other-id', name: 'dotfiles', lastHeartbeatAt: null },
       PROJECT,
     ]);
     api.durations.mockImplementation((_, date) =>
@@ -218,7 +222,7 @@ describe('WakaTimeActivityProvider', () => {
 
     it('follows a rename on WakaTime, since the project is found by id', async () => {
       api.listProjects.mockResolvedValue([
-        { id: PROJECT.id, name: 'magnum-opus-v2' },
+        { id: PROJECT.id, name: 'magnum-opus-v2', lastHeartbeatAt: null },
       ]);
       days['2026-10-23'] = wakaDay('2026-10-23', [
         session('2026-10-23T02:00:00.000Z', 600, 'magnum-opus'),
@@ -261,7 +265,7 @@ describe('WakaTimeActivityProvider', () => {
 
     it('reports a project that is gone from WakaTime', async () => {
       api.listProjects.mockResolvedValue([
-        { id: 'other-id', name: 'dotfiles' },
+        { id: 'other-id', name: 'dotfiles', lastHeartbeatAt: null },
       ]);
 
       await expect(fetch()).rejects.toEqual(

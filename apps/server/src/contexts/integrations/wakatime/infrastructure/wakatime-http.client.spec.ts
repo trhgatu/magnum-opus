@@ -146,15 +146,26 @@ describe('WakaTimeHttpClient.listProjects', () => {
   it('reads every page while WakaTime points at a next one', async () => {
     const { client: api, fetchFn } = client(
       json(200, {
-        data: [{ id: 'p1', name: 'magnum-opus' }],
+        data: [
+          {
+            id: 'p1',
+            name: 'magnum-opus',
+            last_heartbeat_at: '2026-10-24T09:12:00Z',
+          },
+        ],
         next_page: 2,
       }),
       json(200, { data: [{ id: 'p2', name: 'dotfiles' }], next_page: null }),
     );
 
     await expect(api.listProjects(KEY)).resolves.toEqual([
-      { id: 'p1', name: 'magnum-opus' },
-      { id: 'p2', name: 'dotfiles' },
+      {
+        id: 'p1',
+        name: 'magnum-opus',
+        lastHeartbeatAt: new Date('2026-10-24T09:12:00Z'),
+      },
+      // Chưa từng có dữ liệu: không có last_heartbeat_at.
+      { id: 'p2', name: 'dotfiles', lastHeartbeatAt: null },
     ]);
     expect(urlOf(fetchFn, 0)).toBe(
       'https://wakatime.test/api/v1/users/current/projects?page=1',
@@ -186,7 +197,7 @@ describe('WakaTimeHttpClient.listProjects', () => {
     );
 
     await expect(api.listProjects(KEY)).resolves.toEqual([
-      { id: 'p1', name: 'magnum-opus' },
+      { id: 'p1', name: 'magnum-opus', lastHeartbeatAt: null },
     ]);
   });
 

@@ -14,7 +14,7 @@ import {
   GITHUB_API,
   type GitHubApi,
 } from './application/ports/github-api.port';
-import { GITHUB_REPOSITORY_USAGE_READER } from './application/ports/github-repository-usage-reader.port';
+import { RESOURCE_USAGE_READER } from '../shared/application/ports/resource-usage-reader.port';
 import {
   TOKEN_CIPHER,
   type TokenCipher,
@@ -26,11 +26,11 @@ import {
   type GitHubConnectionRepository,
 } from './domain/ports/github-connection.repository';
 import { AesGcmTokenCipher } from '../shared/infrastructure/aes-gcm-token.cipher';
+import { PrismaResourceUsageReader } from '../shared/infrastructure/readers/prisma-resource-usage.reader';
 import { SystemClock } from './infrastructure/clock/system-clock';
 import { GitHubActivityProvider } from './infrastructure/github-activity.provider';
 import { GitHubGraphqlClient } from './infrastructure/github-graphql.client';
 import { GitHubRestClient } from './infrastructure/github-rest.client';
-import { PrismaGitHubRepositoryUsageReader } from './infrastructure/readers/prisma-github-repository-usage.reader';
 import { PrismaGitHubConnectionRepository } from './infrastructure/repositories/prisma-github-connection.repository';
 import { GitHubIntegrationController } from './presentation/controllers/github-integration.controller';
 
@@ -58,8 +58,8 @@ import { GitHubIntegrationController } from './presentation/controllers/github-i
     },
     { provide: CLOCK, useClass: SystemClock },
     {
-      provide: GITHUB_REPOSITORY_USAGE_READER,
-      useClass: PrismaGitHubRepositoryUsageReader,
+      provide: RESOURCE_USAGE_READER,
+      useClass: PrismaResourceUsageReader,
     },
     {
       provide: GITHUB_ACTIVITY_PROVIDER,

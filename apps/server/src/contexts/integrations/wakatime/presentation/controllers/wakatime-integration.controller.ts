@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Put,
+  Query,
   Res,
   UseGuards,
 } from '@nestjs/common';
@@ -17,7 +18,10 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
-import type { WakaTimeConnectionResponse } from '@repo/contracts';
+import type {
+  WakaTimeConnectionResponse,
+  WakaTimeProjectResponse,
+} from '@repo/contracts';
 import type { Response } from 'express';
 
 import { GetUser } from '@presentation/decorators';
@@ -27,9 +31,14 @@ import {
   ConnectWakaTimeCommand,
   DisconnectWakaTimeCommand,
 } from '../../application/commands';
-import { GetWakaTimeConnectionQuery } from '../../application/queries';
+import {
+  GetWakaTimeConnectionQuery,
+  ListWakaTimeProjectsQuery,
+} from '../../application/queries';
 import { ConnectWakaTimeDto } from '../dtos/connect-wakatime.dto';
 import { WakaTimeConnectionPresenter } from '../presenters/wakatime-connection.presenter';
+import { ListWakaTimeProjectsDto } from '../dtos/list-wakatime-projects.dto';
+import { WakaTimeProjectPresenter } from '../presenters/wakatime-project.presenter';
 
 @ApiTags('Integrations')
 @ApiBearerAuth()
@@ -63,6 +72,23 @@ export class WakaTimeIntegrationController {
     }
 
     return WakaTimeConnectionPresenter.toResponse(connection);
+  }
+
+  @Get('projects')
+  @ApiOperation({
+    summary: 'List the WakaTime projects of the connected account',
+    description: 'Most recently coded first.',
+  })
+  @ApiOkResponse({ description: 'WakaTimeProjectResponse[]' })
+  async listProjects(
+    @GetUser('id') ownerId: string,
+    @Query() query: ListWakaTimeProjectsDto,
+  ): Promise<WakaTimeProjectResponse[]> {
+    const result = await this.queryBus.execute(
+      new ListWakaTimeProjectsQuery({ ownerId, search: query.search }),
+    );
+
+    return WakaTimeProjectPresenter.toListResponse(result.unwrap());
   }
 
   @Put()

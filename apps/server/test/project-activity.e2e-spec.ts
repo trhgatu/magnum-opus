@@ -250,6 +250,23 @@ describe('Project activity (E2E)', () => {
       );
   });
 
+  it('links WakaTime through its own provider, which needs a connection', async () => {
+    const id = await startedProject();
+
+    // Provider WakaTime thật: chủ tài khoản chưa kết nối WakaTime, nên nó
+    // trả lỗi trước khi gọi WakaTime.
+    await as(token)
+      .post(`/projects/${id}/activity/sources`)
+      .send({
+        provider: 'WAKATIME',
+        externalResourceId: '8f3c1d2e-4b5a-4c6d-9e8f-0a1b2c3d4e5f',
+      })
+      .expect(HttpStatus.CONFLICT)
+      .expect(({ body }) => expect(body.code).toBe('WAKATIME_NOT_CONNECTED'));
+    // Không đi nhầm sang provider GitHub.
+    expect(provider.resolveResource).not.toHaveBeenCalled();
+  });
+
   it('still links when the first copy fails, with the error on the source', async () => {
     const id = await startedProject();
     provider.fetchEvents.mockRejectedValueOnce(
@@ -275,6 +292,9 @@ describe('Project activity (E2E)', () => {
       { provider: 'GITLAB', externalResourceId: '1' },
       { provider: 'GITHUB', externalResourceId: 'trhgatu/magnum-opus' },
       { provider: 'GITHUB', externalResourceId: '01067270000' },
+      { provider: 'WAKATIME' },
+      { provider: 'WAKATIME', externalResourceId: 'magnum opus' },
+      { provider: 'WAKATIME', externalResourceId: 'a'.repeat(65) },
     ]) {
       await as(token)
         .post(`/projects/${id}/activity/sources`)

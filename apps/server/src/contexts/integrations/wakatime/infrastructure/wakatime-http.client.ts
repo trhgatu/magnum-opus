@@ -72,7 +72,13 @@ export class WakaTimeHttpClient implements WakaTimeApi {
       for (const item of list(payload.data)) {
         const id = text(item.id);
         const name = text(item.name);
-        if (id && name) projects.push({ id, name });
+        if (id && name) {
+          projects.push({
+            id,
+            name,
+            lastHeartbeatAt: instant(item.last_heartbeat_at),
+          });
+        }
       }
       page = typeof payload.next_page === 'number' ? payload.next_page : null;
     }
