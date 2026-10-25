@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 
 import { GitHubActivityProvider } from '@integrations/github/infrastructure/github-activity.provider';
+import { WakaTimeActivityProvider } from '@integrations/wakatime/infrastructure/wakatime-activity.provider';
 import { PrismaService } from '@infrastructure/database/prisma.service';
 import { ACTIVITY_PROVIDER_PORTS } from '@shared/application/activity';
 
@@ -28,7 +29,7 @@ import { PrismaActivityFeedRepository } from './infrastructure/repositories/pris
 class GlobalStubsModule {}
 
 describe('ActivityModule', () => {
-  it('wires the ledger, the sync service and the GitHub provider', async () => {
+  it('wires the ledger, the sync service and every activity provider', async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [GlobalStubsModule, ActivityModule],
     }).compile();
@@ -50,7 +51,8 @@ describe('ActivityModule', () => {
     );
 
     const providers = moduleRef.get(ACTIVITY_PROVIDER_PORTS);
-    expect(providers).toHaveLength(1);
+    expect(providers).toHaveLength(2);
     expect(providers[0]).toBeInstanceOf(GitHubActivityProvider);
+    expect(providers[1]).toBeInstanceOf(WakaTimeActivityProvider);
   });
 });

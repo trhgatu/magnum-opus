@@ -211,13 +211,13 @@ integrations/
 
 ### 5.2. Adapter
 
-| `ActivityProviderPort`  | WakaTime                                                                                                                                                                                                                           |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `resolveResource(id)`   | `GET /users/current/projects` → tìm theo `id`; trả tên hiện tại làm `displayName`                                                                                                                                                  |
-| `fetchEvents(from, to)` | Tra id → tên hiện tại (như `resolveResource`), rồi với mỗi ngày WakaTime chạm `[from, to)`: `GET /users/current/durations?date=…&project=<tên>`. **Kiểm từng đoạn**: `project` phải đúng tên vừa tra, đoạn khác bị bỏ (BR-PAC-044) |
-| `connectedAccountId`    | `id` của `users/current`                                                                                                                                                                                                           |
+| `ActivityProviderPort`  | WakaTime                                                                                                                                                                                                                                                                                                                                                                                               |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `resolveResource(id)`   | `GET /users/current/projects` → tìm theo `id`; trả tên hiện tại làm `displayName`                                                                                                                                                                                                                                                                                                                      |
+| `fetchEvents(from, to)` | Tra id → tên hiện tại (như `resolveResource`) và múi giờ tài khoản (`users/current`), rồi với mỗi ngày WakaTime chạm `[from, to)`: `GET /users/current/durations?date=…` **không lọc theo project** (TQ-WAK-02). **Kiểm từng đoạn**: `project` phải đúng tên vừa tra, so chính xác cả hoa/thường; đoạn khác bị bỏ (BR-PAC-044). Khoảng thay của mỗi ngày là `[start, end + 1 giây)` mà WakaTime trả về |
+| `connectedAccountId`    | `id` của `users/current`                                                                                                                                                                                                                                                                                                                                                                               |
 
-Tên project là duy nhất trong một tài khoản WakaTime (kiểm chứng ở TQ-WAK-02), và tên được tra lại từ id ở **mỗi** lần chép. Vì vậy hai project WakaTime cùng gắn vào Magnum Opus không thể nhận thời gian của nhau: lọc theo tên chỉ là cách hỏi API, còn danh tính là id; bước kiểm từng đoạn chặn cả trường hợp project bị đổi tên đúng giữa lúc tra và lúc hỏi.
+Tên project là duy nhất trong một tài khoản WakaTime (kiểm chứng ở TQ-WAK-02), và tên được tra lại từ id ở **mỗi** lần chép. Vì vậy hai project WakaTime cùng gắn vào Magnum Opus không thể nhận thời gian của nhau: danh tính là id, tên chỉ dùng để nhận ra đoạn nào của project; bước kiểm từng đoạn chặn cả trường hợp project bị đổi tên đúng giữa lúc tra và lúc hỏi. Không dùng bộ lọc `&project=` của WakaTime: nó không phân biệt hoa/thường, và chặt đoạn theo từng file.
 
 **Hợp đồng port phải đổi (PR 7c).** `ActivityProviderPort` hiện chỉ trả danh sách event (`03` §3); sync service không biết khoảng nào đã đọc trọn nên không thể thay theo ngày một cách an toàn. `FetchedActivity` thêm:
 
@@ -256,6 +256,15 @@ Mỗi ngày là một request. Lần chép tăng dần chỉ cần 1–3 ngày (
 | TQ-WAK-02 | Tham số `project` của `durations` khớp tên thế nào (có dấu cách, ký tự đặc biệt, phân biệt hoa thường?)                                 | Implement adapter                                                   |
 | TQ-WAK-03 | Một đoạn có thể vắt qua `end` của ngày WakaTime không, hay WakaTime đã cắt sẵn? (ảnh hưởng ranh giới thay §4.2)                         | Implement adapter — không còn chặn thiết kế nhờ cắt lúc chép (§4.2) |
 | TQ-WAK-04 | Ngày nằm ngoài lịch sử mà gói cho đọc: WakaTime trả lỗi gì, hay trả `200` rỗng? (quyết định có tự phát hiện được giới hạn không — §5.3) | Trước PR 7c, theo tài liệu WakaTime / tài khoản gói free            |
+
+**Kết quả kiểm chứng (2026-10-24, tài khoản `Asia/Ho_Chi_Minh` tạo 2026-03-02, khoảng 45 request bằng script chỉ đọc):**
+
+| ID        | Kết quả                                                                                                                                                                                                                                                                             | Quyết định                                                                                                                                                                           |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| TQ-WAK-01 | Không chạm giới hạn trong ~45 request liên tiếp; không đo được ngưỡng.                                                                                                                                                                                                              | Tối đa 4 request cùng lúc; `429` → `WAKATIME_RATE_LIMITED` kèm `Retry-After`. Còn mở cho tới khi gặp giới hạn thật.                                                                  |
+| TQ-WAK-02 | 20 project, không tên nào trùng (kể cả khác hoa/thường). `&project=` **không phân biệt hoa/thường** (tên đổi hoa/thường vẫn trả cùng dữ liệu); có lọc thì đoạn bị chặt theo file (79 đoạn), không lọc thì gộp theo project (3 đoạn), cùng tổng giờ. Tên không tồn tại → `200` rỗng. | Gọi `durations` không lọc, tự giữ đoạn có `project` đúng tên (so chính xác).                                                                                                         |
+| TQ-WAK-03 | 0/396 đoạn trong 30 ngày lọt ra ngoài ngày được hỏi. Mốc ngày WakaTime trả về là ngày theo múi giờ tài khoản WakaTime: `start` 00:00, `end` 23:59:59 (vd `2026-10-23T17:00:00Z` → `2026-10-24T16:59:59Z`).                                                                          | Khoảng thay = `[start, end + 1 giây)` lấy từ WakaTime, không tự tính. Vẫn cắt đoạn vào ngày lúc chép (rẻ, và 30 ngày chưa chắc có đoạn vắt qua nửa đêm).                             |
+| TQ-WAK-04 | Ngày cách 365, 400, 730, 1500 ngày và ngày tương lai đều `200` rỗng. Lần spike trước đọc được ≥ 180 ngày, tức gần trọn lịch sử của tài khoản; giới hạn thật của gói không đo được.                                                                                                  | `historyWindowDays: null`. **Rủi ro còn lại:** tài khoản gói giới hạn sẽ thấy ngày quá giới hạn là "không code" thay vì `NO_DATA` — khi có người dùng như vậy thì cấu hình theo gói. |
 
 ---
 
@@ -450,15 +459,17 @@ Lỗi: `WAKATIME_KEY_INVALID` (400), `WAKATIME_ACCOUNT_CHANGE_UNCONFIRMED` (409,
 
 Theo cách Phase 1 (một PR mỗi phần, CI + review trước khi merge):
 
-| PR  | Nội dung                                                                                                                                                                                              |
-| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 7a  | Domain thuần: `CODING_TIME`, cắt đoạn tại mốc, hợp khoảng, ngưỡng ngày, metric `codingSeconds` — có test                                                                                              |
-| 7b  | Migration enum + `integrations/wakatime`: kết nối (connect/get/disconnect), HTTP client                                                                                                               |
-| 7c  | Kiểm chứng TQ-WAK-01–04; đổi `FetchedActivity` (`replacedWindows`) và sync service ghi "thay theo ngày"; `WakaTimeActivityProvider` (tra id → tên, kiểm từng đoạn, cắt theo ngày); chép bù có tiến độ |
-| 7d  | API: gắn nguồn WakaTime, liệt kê project, `codingSeconds` trong response và snapshot                                                                                                                  |
-| 7e  | Client: card WakaTime ở Cài đặt                                                                                                                                                                       |
-| 7f  | Client: gắn project WakaTime ở trang chỉnh sửa                                                                                                                                                        |
-| 7g  | Client: giờ code ở tóm tắt, tooltip, D3, snapshot                                                                                                                                                     |
+| PR   | Nội dung                                                                                                                                            |
+| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 7a   | Domain thuần: `CODING_TIME`, cắt đoạn tại mốc, hợp khoảng, ngưỡng ngày, metric `codingSeconds` — có test                                            |
+| 7b   | Migration enum + `integrations/wakatime`: kết nối (connect/get/disconnect), HTTP client                                                             |
+| 7c-1 | Đổi `FetchedActivity` (`replacedWindows`); sổ ghi "thay theo ngày" trong transaction                                                                |
+| 7c-2 | Kiểm chứng TQ-WAK-01–04; `WakaTimeActivityProvider` (tra id → tên, kiểm từng đoạn, cắt theo ngày), đăng ký vào tầng activity; mã lỗi nguồn WakaTime |
+| 7c-3 | Chép bù có tiến độ: giữ phần liên tục đã đọc trọn khi hết giới hạn thời gian                                                                        |
+| 7d   | API: gắn nguồn WakaTime, liệt kê project, `codingSeconds` trong response và snapshot                                                                |
+| 7e   | Client: card WakaTime ở Cài đặt                                                                                                                     |
+| 7f   | Client: gắn project WakaTime ở trang chỉnh sửa                                                                                                      |
+| 7g   | Client: giờ code ở tóm tắt, tooltip, D3, snapshot                                                                                                   |
 
 ---
 

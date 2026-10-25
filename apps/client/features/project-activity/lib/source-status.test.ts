@@ -111,6 +111,23 @@ describe("sourceErrorCopy", () => {
       "GITHUB_UNAVAILABLE",
       "chưa cập nhật được — sẽ thử lại khi bạn mở lại trang.",
     ],
+    [
+      "WAKATIME_KEY_INVALID",
+      "API key WakaTime không còn dùng được — cập nhật ở Cài đặt.",
+    ],
+    [
+      "WAKATIME_NOT_CONNECTED",
+      "WakaTime chưa được kết nối — kết nối ở Cài đặt.",
+    ],
+    [
+      "WAKATIME_ACCOUNT_CHANGED",
+      "ngừng cập nhật — đã gắn bằng tài khoản WakaTime khác.",
+    ],
+    ["WAKATIME_PROJECT_NOT_FOUND", "không còn thấy project này trên WakaTime."],
+    [
+      "WAKATIME_RATE_LIMITED",
+      "WakaTime tạm giới hạn truy cập — sẽ thử lại khi bạn mở lại trang.",
+    ],
   ] as const)("uses the BA copy for %s", (code, copy) => {
     expect(sourceErrorCopy(code)).toBe(copy);
   });

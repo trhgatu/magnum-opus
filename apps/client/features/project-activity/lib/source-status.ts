@@ -16,6 +16,15 @@ const SOURCE_ERROR_COPY: Record<ActivitySourceErrorCode, string> = {
   GITHUB_RATE_LIMITED:
     "GitHub tạm giới hạn truy cập — sẽ thử lại khi bạn mở lại trang.",
   GITHUB_UNAVAILABLE: "chưa cập nhật được — sẽ thử lại khi bạn mở lại trang.",
+  WAKATIME_NOT_CONNECTED: "WakaTime chưa được kết nối — kết nối ở Cài đặt.",
+  WAKATIME_KEY_INVALID:
+    "API key WakaTime không còn dùng được — cập nhật ở Cài đặt.",
+  WAKATIME_ACCOUNT_CHANGED:
+    "ngừng cập nhật — đã gắn bằng tài khoản WakaTime khác.",
+  WAKATIME_PROJECT_NOT_FOUND: "không còn thấy project này trên WakaTime.",
+  WAKATIME_RATE_LIMITED:
+    "WakaTime tạm giới hạn truy cập — sẽ thử lại khi bạn mở lại trang.",
+  WAKATIME_UNAVAILABLE: "chưa cập nhật được — sẽ thử lại khi bạn mở lại trang.",
 };
 
 export function sourceErrorCopy(code: ActivitySourceErrorCode): string {

@@ -16,7 +16,12 @@ const account = { id: 'user-uuid', username: 'trhgatu' };
 const otherAccount = { id: 'other-uuid', username: 'other-account' };
 
 describe('ConnectWakaTimeHandler', () => {
-  const api: jest.Mocked<WakaTimeApi> = { verifyKey: jest.fn() };
+  const api: jest.Mocked<WakaTimeApi> = {
+    verifyKey: jest.fn(),
+    currentUser: jest.fn(),
+    listProjects: jest.fn(),
+    durations: jest.fn(),
+  };
   const cipher: jest.Mocked<TokenCipher> = {
     encrypt: jest.fn((plain: string) => `enc(${plain})`),
     decrypt: jest.fn(),
