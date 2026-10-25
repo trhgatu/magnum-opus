@@ -76,6 +76,9 @@ export class WakaTimeHttpClient implements WakaTimeApi {
       }
       page = typeof payload.next_page === 'number' ? payload.next_page : null;
     }
+    // Hết giới hạn mà WakaTime vẫn còn trang: danh sách chưa đủ, không được
+    // kết luận project nào đó không tồn tại.
+    if (page !== null) throw new WakaTimeUnavailableException();
     return projects;
   }
 
@@ -87,6 +90,9 @@ export class WakaTimeHttpClient implements WakaTimeApi {
     const start = instant(payload.start);
     const lastSecond = instant(payload.end);
     if (!start || !lastSecond) throw new WakaTimeUnavailableException();
+    // Không có mảng data thì không biết ngày này có gì: không được để sổ
+    // thay nó bằng một ngày rỗng.
+    if (!Array.isArray(payload.data)) throw new WakaTimeUnavailableException();
 
     const sessions: WakaTimeSession[] = [];
     for (const item of list(payload.data)) {

@@ -128,6 +128,10 @@ describe("sourceErrorCopy", () => {
       "WAKATIME_RATE_LIMITED",
       "WakaTime tạm giới hạn truy cập — sẽ thử lại khi bạn mở lại trang.",
     ],
+    [
+      "WAKATIME_UNAVAILABLE",
+      "chưa cập nhật được — sẽ thử lại khi bạn mở lại trang.",
+    ],
   ] as const)("uses the BA copy for %s", (code, copy) => {
     expect(sourceErrorCopy(code)).toBe(copy);
   });

@@ -190,7 +190,7 @@ describe('WakaTimeHttpClient.listProjects', () => {
     ]);
   });
 
-  it('stops following pages that never end', async () => {
+  it('gives up on pages that never end instead of returning a partial list', async () => {
     const fetchFn = jest.fn(() =>
       Promise.resolve(json(200, { data: [], next_page: 1 })),
     );
@@ -199,7 +199,10 @@ describe('WakaTimeHttpClient.listProjects', () => {
       baseUrl: 'https://wakatime.test/api/v1',
     });
 
-    await expect(api.listProjects(KEY)).resolves.toEqual([]);
+    // Danh sách thiếu sẽ biến project ở trang sau thành "không tồn tại".
+    await expect(api.listProjects(KEY)).rejects.toBeInstanceOf(
+      WakaTimeUnavailableException,
+    );
     expect(fetchFn).toHaveBeenCalledTimes(50);
   });
 });
@@ -258,11 +261,30 @@ describe('WakaTimeHttpClient.durations', () => {
 
     const result = await api.durations(KEY, '2026-10-24');
 
-    expect(result.sessions).toHaveLength(1);
+    expect(result.sessions).toEqual([
+      {
+        project: 'magnum-opus',
+        start: new Date(1_792_818_000_000),
+        seconds: 60,
+      },
+    ]);
   });
 
   it.each([
     ['no start', { data: [], end: '2026-10-24T16:59:59Z' }],
+    // Không có mảng data thì không phải ngày rỗng: sổ không được xóa ngày đó.
+    [
+      'no data array',
+      { start: '2026-10-23T17:00:00Z', end: '2026-10-24T16:59:59Z' },
+    ],
+    [
+      'data that is not an array',
+      {
+        data: { project: 'magnum-opus' },
+        start: '2026-10-23T17:00:00Z',
+        end: '2026-10-24T16:59:59Z',
+      },
+    ],
     [
       'an end that is not a date',
       { data: [], start: '2026-10-23T17:00:00Z', end: 'soon' },

@@ -94,6 +94,29 @@ describe('WakaTimeActivityProvider', () => {
   const fetch = () => provider.fetchEvents(RESOURCE, FROM, TO);
 
   describe('fetchEvents', () => {
+    it('asks WakaTime for at most four days at once', async () => {
+      let running = 0;
+      let peak = 0;
+      api.durations.mockImplementation(async (_, date) => {
+        running += 1;
+        peak = Math.max(peak, running);
+        await new Promise((done) => setImmediate(done));
+        running -= 1;
+        return wakaDay(date);
+      });
+
+      // 6 ngày: 18/10 → 23/10 giờ Việt Nam.
+      const fetched = await provider.fetchEvents(
+        RESOURCE,
+        new Date('2026-10-17T17:00:00.000Z'),
+        new Date('2026-10-23T17:00:00.000Z'),
+      );
+
+      expect(api.durations).toHaveBeenCalledTimes(6);
+      expect(peak).toBe(4);
+      expect(fetched.replacedWindows).toHaveLength(6);
+    });
+
     it('reads each touched day, newest first, with the decrypted key', async () => {
       await fetch();
 
@@ -221,6 +244,7 @@ describe('WakaTimeActivityProvider', () => {
         await expect(fetch()).rejects.toEqual(new ActivitySourceError(code));
         expect(api.durations).not.toHaveBeenCalled();
         expect(api.listProjects).not.toHaveBeenCalled();
+        expect(api.currentUser).not.toHaveBeenCalled();
       },
     );
 
