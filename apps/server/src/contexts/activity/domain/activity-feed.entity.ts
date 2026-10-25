@@ -44,12 +44,17 @@ const DISCONNECTING_ERRORS: ReadonlySet<ActivitySourceErrorCode> = new Set([
   'GITHUB_TOKEN_EXPIRED',
   'GITHUB_TOKEN_REVOKED',
   'GITHUB_ACCOUNT_CHANGED',
+  'WAKATIME_NOT_CONNECTED',
+  'WAKATIME_KEY_INVALID',
+  'WAKATIME_ACCOUNT_CHANGED',
 ]);
 
 /** Lỗi tạm thời: feed vẫn ACTIVE, dùng sổ hiện có và thử lại lần sau. */
 const TRANSIENT_ERRORS: ReadonlySet<ActivitySourceErrorCode> = new Set([
   'GITHUB_RATE_LIMITED',
   'GITHUB_UNAVAILABLE',
+  'WAKATIME_RATE_LIMITED',
+  'WAKATIME_UNAVAILABLE',
 ]);
 
 /**

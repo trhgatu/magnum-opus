@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 
 import { GITHUB_ACTIVITY_PROVIDER } from '@integrations/github/application/ports/github-activity-provider.port';
+import { WAKATIME_ACTIVITY_PROVIDER } from '@integrations/wakatime/application/ports/wakatime-activity-provider.port';
+
 import { IntegrationsModule } from '@integrations/integrations.module';
 import {
   ACTIVITY_PROVIDER_PORTS,
@@ -37,10 +39,11 @@ import { PrismaActivityFeedRepository } from './infrastructure/repositories/pris
     {
       // Mỗi integration thêm provider của mình vào đây (vd WakaTime sau này).
       provide: ACTIVITY_PROVIDER_PORTS,
-      inject: [GITHUB_ACTIVITY_PROVIDER],
-      useFactory: (github: ActivityProviderPort): ActivityProviderPort[] => [
-        github,
-      ],
+      inject: [GITHUB_ACTIVITY_PROVIDER, WAKATIME_ACTIVITY_PROVIDER],
+      useFactory: (
+        github: ActivityProviderPort,
+        wakaTime: ActivityProviderPort,
+      ): ActivityProviderPort[] => [github, wakaTime],
     },
     ActivityFeedService,
     ActivitySyncService,

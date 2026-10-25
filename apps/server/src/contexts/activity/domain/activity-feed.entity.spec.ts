@@ -256,6 +256,13 @@ describe('ActivityFeed', () => {
       // Tạm thời: giữ ACTIVE, dùng sổ hiện có, thử lại lần sau.
       ['GITHUB_RATE_LIMITED', 'ACTIVE'],
       ['GITHUB_UNAVAILABLE', 'ACTIVE'],
+      // WakaTime theo cùng ba nhóm (BA 08 §4.9).
+      ['WAKATIME_NOT_CONNECTED', 'DISCONNECTED'],
+      ['WAKATIME_KEY_INVALID', 'DISCONNECTED'],
+      ['WAKATIME_ACCOUNT_CHANGED', 'DISCONNECTED'],
+      ['WAKATIME_PROJECT_NOT_FOUND', 'ERROR'],
+      ['WAKATIME_RATE_LIMITED', 'ACTIVE'],
+      ['WAKATIME_UNAVAILABLE', 'ACTIVE'],
     ] as const)('records %s as %s', (code, status) => {
       const feed = create();
 
