@@ -130,7 +130,12 @@ export function CycleActivity({
       <DayStrip days={cycle.days} label="Dải ngày của vòng này" />
 
       <div className="flex flex-col gap-1">
-        <p className="text-sm font-medium tabular-nums">{summaryLine(cycle)}</p>
+        <p className="text-sm font-medium tabular-nums">
+          {summaryLine({
+            ...cycle,
+            providers: sources.map((source) => source.provider),
+          })}
+        </p>
         {freshness ? (
           <p className="text-xs text-muted-foreground tabular-nums">
             {freshness}

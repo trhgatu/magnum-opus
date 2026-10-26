@@ -40,6 +40,7 @@ export function CycleSnapshot({
             days: snapshot.days,
             metrics: snapshot.metrics,
             hasMissingData: sources.incomplete,
+            providers: snapshot.sources.map((source) => source.provider),
           })}
         </p>
         {sources.lines.map((line) => (

@@ -102,6 +102,56 @@ describe("CycleActivity", () => {
     ).toBeTruthy();
   });
 
+  it("shows coding time for a WakaTime-only project", () => {
+    const coding: CycleActivityResponse = {
+      ...cycle,
+      metrics: {
+        ...cycle.metrics,
+        commits: 0,
+        prsOpened: 0,
+        codingSeconds: 10_440,
+      },
+      days: [
+        { date: "2026-10-15", state: "ACTIVE", codingSeconds: 10_440 },
+        { date: "2026-10-16", state: "IDLE", codingSeconds: 0 },
+      ],
+    };
+    const [github] = activity().sources;
+    render(
+      <CycleActivity
+        activity={activity({
+          sources: [
+            {
+              ...github!,
+              provider: "WAKATIME",
+              externalResourceId: "waka-1",
+              displayName: "magnum-opus",
+            },
+          ],
+          currentCycle: coding,
+        })}
+        cycle={coding}
+        now={NOW}
+        resumeAction={resume}
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        "2 ngày có hoạt động (1 ngày lúc tạm dừng) · 2,9 giờ code",
+      ),
+    ).toBeTruthy();
+    const strip = screen.getByRole("list", { name: "Dải ngày của vòng này" });
+    expect(
+      within(strip)
+        .getAllByRole("listitem")
+        .map((day) => day.getAttribute("title")),
+    ).toEqual([
+      "15/10: có hoạt động · 2,9 giờ code",
+      "16/10: không có hoạt động",
+    ]);
+  });
+
   it("wraps long cycles into weekly rows", () => {
     const days: ActivityDay[] = Array.from({ length: 71 }, (_, index) => ({
       date: new Date(Date.UTC(2026, 7, 1 + index)).toISOString().slice(0, 10),
