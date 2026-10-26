@@ -11,9 +11,10 @@ const snapshot: CycleActivitySnapshot = {
     commits: 5,
     prsOpened: 1,
     prsMerged: 1,
+    codingSeconds: 5400,
   },
   lastActivityAt: at('2026-10-02T12:00:00Z'),
-  days: [{ date: '2026-10-02', state: 'ACTIVE' }],
+  days: [{ date: '2026-10-02', state: 'ACTIVE', codingSeconds: 5400 }],
   sources: [
     {
       provider: 'GITHUB',
@@ -35,8 +36,9 @@ const row = {
   commits: 5,
   prsOpened: 1,
   prsMerged: 1,
+  codingSeconds: 5400,
   lastActivityAt: snapshot.lastActivityAt,
-  days: [{ date: '2026-10-02', state: 'ACTIVE' }],
+  days: [{ date: '2026-10-02', state: 'ACTIVE', codingSeconds: 5400 }],
   sources: [
     {
       provider: 'GITHUB',
@@ -74,6 +76,7 @@ describe('PrismaCycleActivitySnapshotRepository', () => {
           commits: 5,
           prsOpened: 1,
           prsMerged: 1,
+          codingSeconds: 5400,
           lastActivityAt: snapshot.lastActivityAt,
           days: row.days,
           sources: row.sources,
@@ -117,8 +120,32 @@ describe('PrismaCycleActivitySnapshotRepository', () => {
 
     const [read] = await repository.listByProject('owner-id', 'project-id');
 
-    expect(read.days).toEqual([{ date: '2026-10-03', state: 'ACTIVE' }]);
+    expect(read.days).toEqual([
+      { date: '2026-10-03', state: 'ACTIVE', codingSeconds: null },
+    ]);
     expect(read.sources).toEqual(snapshot.sources);
+  });
+
+  it('reads a snapshot taken before coding time existed as not measured', async () => {
+    // Dữ liệu đã lưu không bị sửa: cột null, ngày không có trường.
+    cycleActivitySnapshot.findMany.mockResolvedValue([
+      {
+        ...row,
+        codingSeconds: null,
+        days: [
+          { date: '2026-10-02', state: 'ACTIVE' },
+          { date: '2026-10-03', state: 'IDLE', codingSeconds: '600' },
+        ],
+      },
+    ]);
+
+    const [read] = await repository.listByProject('owner-id', 'project-id');
+
+    expect(read.metrics.codingSeconds).toBeNull();
+    expect(read.days).toEqual([
+      { date: '2026-10-02', state: 'ACTIVE', codingSeconds: null },
+      { date: '2026-10-03', state: 'IDLE', codingSeconds: null },
+    ]);
   });
 
   it('knows whether a cycle has a snapshot', async () => {

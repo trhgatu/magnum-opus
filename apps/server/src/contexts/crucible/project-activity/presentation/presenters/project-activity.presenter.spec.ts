@@ -66,13 +66,12 @@ describe('ProjectActivityPresenter', () => {
           commits: 3,
           prsOpened: 1,
           prsMerged: 0,
+          codingSeconds: 3600,
         },
         lastActivityAt: at('2026-10-02T15:00:00Z'),
-        days: [{ date: '2026-10-02', state: 'ACTIVE' }],
+        days: [{ date: '2026-10-02', state: 'ACTIVE', codingSeconds: 3600 }],
         hasMissingData: true,
         dataUntil: at('2026-10-03T11:55:00Z'),
-        // Chưa có trong contract (08 §9.2, PR 7d) — không được lọt ra response.
-        coding: { totalSeconds: 3600, secondsByDay: { '2026-10-02': 3600 } },
       },
       divergences: [
         {
@@ -97,9 +96,10 @@ describe('ProjectActivityPresenter', () => {
         commits: 3,
         prsOpened: 1,
         prsMerged: 0,
+        codingSeconds: 3600,
       },
       lastActivityAt: '2026-10-02T15:00:00.000Z',
-      days: [{ date: '2026-10-02', state: 'ACTIVE' }],
+      days: [{ date: '2026-10-02', state: 'ACTIVE', codingSeconds: 3600 }],
       hasMissingData: true,
       dataUntil: '2026-10-03T11:55:00.000Z',
     });
@@ -109,6 +109,8 @@ describe('ProjectActivityPresenter', () => {
         closedAs: 'COMPLETED',
         commits: 2,
         otherEvents: 1,
+        // D3 nói cả giờ code sau khi khép (08 §9.2).
+        codingSeconds: 1800,
         lastActivityAt: '2026-10-14T00:00:00.000Z',
       },
       { kind: 'PAUSED_WITH_ACTIVITY', activeDays: 2 },
@@ -126,9 +128,10 @@ describe('ProjectActivityPresenter', () => {
           commits: 5,
           prsOpened: 1,
           prsMerged: 1,
+          codingSeconds: 5400,
         },
         lastActivityAt: at('2026-10-02T12:00:00Z'),
-        days: [{ date: '2026-10-02', state: 'ACTIVE' }],
+        days: [{ date: '2026-10-02', state: 'ACTIVE', codingSeconds: 5400 }],
         sources: [
           {
             provider: 'GITHUB',
@@ -149,9 +152,10 @@ describe('ProjectActivityPresenter', () => {
         commits: 5,
         prsOpened: 1,
         prsMerged: 1,
+        codingSeconds: 5400,
       },
       lastActivityAt: '2026-10-02T12:00:00.000Z',
-      days: [{ date: '2026-10-02', state: 'ACTIVE' }],
+      days: [{ date: '2026-10-02', state: 'ACTIVE', codingSeconds: 5400 }],
       sources: [
         {
           provider: 'GITHUB',

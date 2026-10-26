@@ -31,27 +31,23 @@ export interface CycleActivityMetrics {
   commits: number;
   prsOpened: number;
   prsMerged: number;
+  codingSeconds: number | null;
 }
 
-/** Thời gian code của Cycle; null ở summary khi không đo (BR-PAC-042). */
-export interface CycleCodingTime {
-  totalSeconds: number;
-  /** Mọi ngày của dải ngày, kể cả ngày 0 giây. */
-  secondsByDay: Record<CalendarDay, number>;
+export interface CycleActivityDay {
+  date: CalendarDay;
+  state: ActivityDayState;
+  /** Giây code trong ngày; null theo cùng quy tắc với metrics. */
+  codingSeconds: number | null;
 }
 
 export interface CycleActivitySummary {
   metrics: CycleActivityMetrics;
   lastActivityAt: Date | null;
-  days: { date: CalendarDay; state: ActivityDayState }[];
+  days: CycleActivityDay[];
   /** Có ngày không có dữ liệu, hoặc có nguồn chưa phủ trọn Cycle. */
   hasMissingData: boolean;
   dataUntil: Date | null;
-  /**
-   * null: Project không đo thời gian code (không có nguồn WakaTime) — khác
-   * với đo được 0 giây.
-   */
-  coding: CycleCodingTime | null;
 }
 
 const toSeconds = (ms: number) => Math.floor(ms / 1000);
@@ -137,7 +133,13 @@ export function summarizeCycleActivity(input: {
           rangeEnd.getTime(),
         ),
       );
-      return { date, state: dayState(date, dayStart, dayEnd) };
+      return {
+        date,
+        state: dayState(date, dayStart, dayEnd),
+        codingSeconds: input.codingMeasured
+          ? toSeconds(codingByDay.get(date)?.total ?? 0)
+          : null,
+      };
     });
 
   function dayState(
@@ -176,14 +178,6 @@ export function summarizeCycleActivity(input: {
     (latest, { event }) => Math.max(latest, event.occurredAt.getTime()),
     latestEnd(codingPieces) ?? -Infinity,
   );
-  // Tổng là tổng các ngày, để hai con số luôn khớp nhau khi làm tròn.
-  const secondsByDay = Object.fromEntries(
-    days.map(({ date }) => [
-      date,
-      toSeconds(codingByDay.get(date)?.total ?? 0),
-    ]),
-  );
-
   return {
     metrics: {
       activeDays: days.filter(
@@ -194,6 +188,9 @@ export function summarizeCycleActivity(input: {
       commits: count('COMMIT_AUTHORED'),
       prsOpened: count('PR_OPENED'),
       prsMerged: count('PR_MERGED'),
+      codingSeconds: input.codingMeasured
+        ? days.reduce((sum, day) => sum + (day.codingSeconds ?? 0), 0)
+        : null,
     },
     lastActivityAt: Number.isFinite(lastActivity)
       ? new Date(lastActivity)
@@ -212,14 +209,5 @@ export function summarizeCycleActivity(input: {
             (source.syncedUntil?.getTime() ?? 0) < closedAt.getTime()),
       ),
     dataUntil: dataUntilOf(sources),
-    coding: input.codingMeasured
-      ? {
-          totalSeconds: Object.values(secondsByDay).reduce(
-            (sum, seconds) => sum + seconds,
-            0,
-          ),
-          secondsByDay,
-        }
-      : null,
   };
 }

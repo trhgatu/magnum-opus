@@ -28,13 +28,15 @@ const cycle: CycleActivityResponse = {
     commits: 5,
     prsOpened: 1,
     prsMerged: 0,
+
+    codingSeconds: null,
   },
   lastActivityAt: "2026-10-18T07:20:00.000Z",
   days: [
-    { date: "2026-10-15", state: "ACTIVE" },
-    { date: "2026-10-16", state: "PAUSED_ACTIVE" },
-    { date: "2026-10-17", state: "PAUSED_IDLE" },
-    { date: "2026-10-18", state: "PAUSED_IDLE" },
+    { date: "2026-10-15", state: "ACTIVE", codingSeconds: null },
+    { date: "2026-10-16", state: "PAUSED_ACTIVE", codingSeconds: null },
+    { date: "2026-10-17", state: "PAUSED_IDLE", codingSeconds: null },
+    { date: "2026-10-18", state: "PAUSED_IDLE", codingSeconds: null },
   ],
   hasMissingData: false,
   dataUntil: "2026-10-18T07:32:00.000Z",
@@ -104,6 +106,7 @@ describe("CycleActivity", () => {
     const days: ActivityDay[] = Array.from({ length: 71 }, (_, index) => ({
       date: new Date(Date.UTC(2026, 7, 1 + index)).toISOString().slice(0, 10),
       state: "IDLE",
+      codingSeconds: null,
     }));
     render(
       <CycleActivity
@@ -188,6 +191,8 @@ describe("ActivityDivergenceNotes", () => {
               closedAs: "COMPLETED",
               commits: 4,
               otherEvents: 0,
+
+              codingSeconds: null,
               lastActivityAt: "2026-10-14T03:00:00.000Z",
             },
           ],

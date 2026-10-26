@@ -136,6 +136,10 @@ export class GetProjectActivityHandler implements IQueryHandler<
       syncedUntil: source.syncedUntil,
     }));
 
+    const codingMeasured = sources.some(
+      (source) => source.provider === 'WAKATIME',
+    );
+
     let currentCycle: CycleActivityView | null = null;
     const cycleId = timeline.currentCycleId;
     const cycle = declaration.cycles.find(
@@ -153,6 +157,7 @@ export class GetProjectActivityHandler implements IQueryHandler<
           sources: linkedSources,
           timeZone,
           until: now,
+          codingMeasured,
         }),
       };
     }
@@ -168,6 +173,7 @@ export class GetProjectActivityHandler implements IQueryHandler<
         sources: linkedSources,
         timeZone,
         now,
+        codingMeasured,
       }),
     });
   }

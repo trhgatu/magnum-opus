@@ -92,7 +92,7 @@ describe('summarizeCycleActivity', () => {
       event('2026-09-30T09:00:00Z'),
     ]);
 
-    expect(summary.days).toEqual([
+    expect(summary.days.map(({ date, state }) => ({ date, state }))).toEqual([
       { date: '2026-10-01', state: 'ACTIVE' },
       { date: '2026-10-02', state: 'IDLE' },
       { date: '2026-10-03', state: 'IDLE' },
@@ -116,7 +116,10 @@ describe('summarizeCycleActivity', () => {
       commits: 4,
       prsOpened: 1,
       prsMerged: 0,
+      // Không có nguồn đo thời gian code: không đo, không phải 0.
+      codingSeconds: null,
     });
+    expect(summary.days.every((day) => day.codingSeconds === null)).toBe(true);
     expect(summary.lastActivityAt).toEqual(at('2026-10-11T09:00:00Z'));
     expect(summary.hasMissingData).toBe(false);
     expect(summary.dataUntil).toEqual(at('2026-10-25T00:00:00Z'));
@@ -200,8 +203,8 @@ describe('summarizeCycleActivity', () => {
     });
 
     expect(summary.days.slice(0, 2)).toEqual([
-      { date: '2026-10-01', state: 'IDLE' },
-      { date: '2026-10-02', state: 'ACTIVE' },
+      { date: '2026-10-01', state: 'IDLE', codingSeconds: null },
+      { date: '2026-10-02', state: 'ACTIVE', codingSeconds: null },
     ]);
   });
 
@@ -296,6 +299,11 @@ describe('summarizeCycleActivity', () => {
       date: string,
     ) => summary.days.find((day) => day.date === date)?.state;
 
+    const secondsOf = (
+      summary: ReturnType<typeof summarizeCoding>,
+      date: string,
+    ) => summary.days.find((day) => day.date === date)?.codingSeconds;
+
     it('makes a day active from 15 minutes of coding, without any commit', () => {
       const summary = summarizeCoding([
         coding('2026-10-02T10:00:00Z', 20),
@@ -305,10 +313,10 @@ describe('summarizeCycleActivity', () => {
       expect(stateOf(summary, '2026-10-02')).toBe('ACTIVE');
       expect(stateOf(summary, '2026-10-03')).toBe('IDLE');
       expect(summary.metrics.activeDays).toBe(1);
-      expect(summary.coding?.secondsByDay['2026-10-02']).toBe(1200);
-      expect(summary.coding?.secondsByDay['2026-10-03']).toBe(600);
-      expect(summary.coding?.secondsByDay['2026-10-04']).toBe(0);
-      expect(summary.coding?.totalSeconds).toBe(1800);
+      expect(secondsOf(summary, '2026-10-02')).toBe(1200);
+      expect(secondsOf(summary, '2026-10-03')).toBe(600);
+      expect(secondsOf(summary, '2026-10-04')).toBe(0);
+      expect(summary.metrics.codingSeconds).toBe(1800);
     });
 
     it('splits a session at Pause: active if any of it was while active', () => {
@@ -337,7 +345,9 @@ describe('summarizeCycleActivity', () => {
 
       expect(stateOf(summary, '2026-10-02')).toBe('IDLE');
       expect(stateOf(summary, '2026-10-03')).toBe('IDLE');
-      expect(summary.coding?.totalSeconds).toBe(1200);
+      expect(secondsOf(summary, '2026-10-02')).toBe(600);
+      expect(secondsOf(summary, '2026-10-03')).toBe(600);
+      expect(summary.metrics.codingSeconds).toBe(1200);
     });
 
     it('counts time two sources share only once', () => {
@@ -346,7 +356,7 @@ describe('summarizeCycleActivity', () => {
         coding('2026-10-02T09:30:00Z', 60, 'feed-b'),
       ]);
 
-      expect(summary.coding?.totalSeconds).toBe(90 * 60);
+      expect(summary.metrics.codingSeconds).toBe(90 * 60);
     });
 
     it('keeps only the part inside the cycle', () => {
@@ -356,7 +366,7 @@ describe('summarizeCycleActivity', () => {
         coding('2026-10-12T16:30:00Z', 60),
       ]);
 
-      expect(summary.coding?.totalSeconds).toBe(60 * 60);
+      expect(summary.metrics.codingSeconds).toBe(60 * 60);
     });
 
     it('takes the end of the latest session as the last activity', () => {
@@ -372,12 +382,8 @@ describe('summarizeCycleActivity', () => {
     it('reports zero, not null, when coding is measured but absent', () => {
       const summary = summarizeCoding([]);
 
-      expect(summary.coding?.totalSeconds).toBe(0);
-      expect(
-        Object.values(summary.coding?.secondsByDay ?? {}).every(
-          (seconds) => seconds === 0,
-        ),
-      ).toBe(true);
+      expect(summary.metrics.codingSeconds).toBe(0);
+      expect(summary.days.every((day) => day.codingSeconds === 0)).toBe(true);
     });
 
     it('keeps the total equal to the sum of the days', () => {
@@ -385,17 +391,21 @@ describe('summarizeCycleActivity', () => {
       const summary = summarizeCoding([
         { ...coding('2026-10-02T23:59:59.500Z', 0), quantity: 1 },
       ]);
-      const days = Object.values(summary.coding?.secondsByDay ?? {});
-
-      expect(summary.coding?.totalSeconds).toBe(
-        days.reduce((sum, seconds) => sum + seconds, 0),
+      expect(summary.metrics.codingSeconds).toBe(
+        summary.days.reduce((sum, day) => sum + (day.codingSeconds ?? 0), 0),
       );
     });
 
     it('reports no coding time when the project does not measure it', () => {
-      expect(
-        summarizeCoding([coding('2026-10-02T10:00:00Z', 20)], false).coding,
-      ).toBeNull();
+      const summary = summarizeCoding(
+        [coding('2026-10-02T10:00:00Z', 20)],
+        false,
+      );
+
+      expect(summary.metrics.codingSeconds).toBeNull();
+      expect(summary.days.every((day) => day.codingSeconds === null)).toBe(
+        true,
+      );
     });
   });
 });

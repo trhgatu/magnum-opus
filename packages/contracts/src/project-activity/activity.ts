@@ -55,11 +55,13 @@ export interface ActivityMetrics {
   commits: number;
   prsOpened: number;
   prsMerged: number;
+  codingSeconds: number | null;
 }
 
 export interface ActivityDay {
   date: string;
   state: ActivityDayState;
+  codingSeconds: number | null;
 }
 
 export interface CycleActivityResponse {
@@ -81,6 +83,7 @@ export type Divergence =
       closedAs: 'STOPPED' | 'COMPLETED';
       commits: number;
       otherEvents: number;
+      codingSeconds: number | null;
       lastActivityAt: string;
     }
   | { kind: 'ACTIVITY_BEFORE_START'; lastActivityAt: string };

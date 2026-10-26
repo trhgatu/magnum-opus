@@ -1,7 +1,10 @@
-import type { ActivityDayState, ActivityProvider } from '@repo/contracts';
+import type { ActivityProvider } from '@repo/contracts';
 
 import type { CalendarDay } from '../calendar-day';
-import type { CycleActivityMetrics } from '../services/summarize-cycle-activity';
+import type {
+  CycleActivityDay,
+  CycleActivityMetrics,
+} from '../services/summarize-cycle-activity';
 
 export const CYCLE_ACTIVITY_SNAPSHOT_REPOSITORY = Symbol(
   'CYCLE_ACTIVITY_SNAPSHOT_REPOSITORY',
@@ -20,7 +23,7 @@ export interface CycleActivitySnapshot {
   cycleId: string;
   metrics: CycleActivityMetrics;
   lastActivityAt: Date | null;
-  days: { date: CalendarDay; state: ActivityDayState }[];
+  days: CycleActivityDay[];
   sources: SnapshotSource[];
   timeZone: string;
   dataUntil: Date | null;

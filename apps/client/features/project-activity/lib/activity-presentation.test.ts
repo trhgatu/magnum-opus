@@ -28,11 +28,13 @@ const cycle = (
     commits: 23,
     prsOpened: 4,
     prsMerged: 3,
+
+    codingSeconds: null,
   },
   lastActivityAt: "2026-10-18T07:20:00.000Z",
   days: [
-    { date: "2026-10-17", state: "ACTIVE" },
-    { date: "2026-10-18", state: "IDLE" },
+    { date: "2026-10-17", state: "ACTIVE", codingSeconds: null },
+    { date: "2026-10-18", state: "IDLE", codingSeconds: null },
   ],
   hasMissingData: false,
   dataUntil: "2026-10-18T07:32:00.000Z",
@@ -72,6 +74,8 @@ describe("summaryLine", () => {
             commits: 1024,
             prsOpened: 0,
             prsMerged: 0,
+
+            codingSeconds: null,
           },
         }),
       ),
@@ -87,6 +91,8 @@ describe("summaryLine", () => {
       commits: 0,
       prsOpened: 0,
       prsMerged: 0,
+
+      codingSeconds: null,
     };
     expect(summaryLine(cycle({ metrics: none }))).toBe(
       "Chưa có hoạt động trong vòng này.",
@@ -96,8 +102,8 @@ describe("summaryLine", () => {
         cycle({
           metrics: none,
           days: [
-            { date: "2026-10-17", state: "NO_DATA" },
-            { date: "2026-10-18", state: "NO_DATA" },
+            { date: "2026-10-17", state: "NO_DATA", codingSeconds: null },
+            { date: "2026-10-18", state: "NO_DATA", codingSeconds: null },
           ],
         }),
       ),
@@ -115,8 +121,8 @@ describe("summaryLine", () => {
       summaryLine(
         cycle({
           days: [
-            { date: "2026-10-17", state: "NO_DATA" },
-            { date: "2026-10-18", state: "ACTIVE" },
+            { date: "2026-10-17", state: "NO_DATA", codingSeconds: null },
+            { date: "2026-10-18", state: "ACTIVE", codingSeconds: null },
           ],
         }),
       ),
@@ -202,9 +208,13 @@ describe("sourceErrorLines", () => {
 
 describe("day strip helpers", () => {
   it("describes a day for screen readers", () => {
-    expect(dayDescription({ date: "2026-10-08", state: "PAUSED_ACTIVE" })).toBe(
-      "08/10: có hoạt động lúc tạm dừng",
-    );
+    expect(
+      dayDescription({
+        date: "2026-10-08",
+        state: "PAUSED_ACTIVE",
+        codingSeconds: null,
+      }),
+    ).toBe("08/10: có hoạt động lúc tạm dừng");
   });
 });
 
@@ -235,6 +245,8 @@ describe("divergenceText", () => {
           closedAs: "COMPLETED",
           commits: 4,
           otherEvents: 0,
+
+          codingSeconds: null,
           lastActivityAt: "2026-10-14T03:00:00.000Z",
         },
         TZ,
@@ -247,6 +259,8 @@ describe("divergenceText", () => {
           closedAs: "STOPPED",
           commits: 4,
           otherEvents: 2,
+
+          codingSeconds: null,
           lastActivityAt: "2026-10-14T03:00:00.000Z",
         },
         TZ,

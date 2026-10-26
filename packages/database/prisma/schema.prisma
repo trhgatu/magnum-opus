@@ -740,6 +740,7 @@ model CycleActivitySnapshot {
   commits Int
   prsOpened Int @map("prs_opened")
   prsMerged Int @map("prs_merged")
+  codingSeconds Int? @map("coding_seconds")
   lastActivityAt DateTime? @map("last_activity_at")
   days Json
   sources Json
