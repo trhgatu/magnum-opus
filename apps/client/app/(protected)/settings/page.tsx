@@ -9,6 +9,10 @@ import {
   GitHubConnectionSection,
   GitHubConnectionSkeleton,
 } from "@/features/github/components/github-connection-section";
+import {
+  WakaTimeConnectionSection,
+  WakaTimeConnectionSkeleton,
+} from "@/features/wakatime/components/wakatime-connection-section";
 
 export const metadata: Metadata = {
   title: "Cài đặt",
@@ -38,6 +42,15 @@ export default async function SettingsPage() {
           {/* Đọc riêng: GitHub lỗi không làm hỏng phần múi giờ. */}
           <Suspense fallback={<GitHubConnectionSkeleton />}>
             <GitHubConnectionSection timeZone={user.timeZone} />
+          </Suspense>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-card/70">
+        <CardContent className="px-5 py-5 sm:px-7">
+          {/* Đọc riêng: WakaTime lỗi không làm hỏng các phần khác. */}
+          <Suspense fallback={<WakaTimeConnectionSkeleton />}>
+            <WakaTimeConnectionSection timeZone={user.timeZone} />
           </Suspense>
         </CardContent>
       </Card>
