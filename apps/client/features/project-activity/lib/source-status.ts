@@ -1,4 +1,5 @@
 import type {
+  ActivityProvider,
   ActivitySourceErrorCode,
   ActivitySourceResponse,
 } from "@repo/contracts";
@@ -25,6 +26,11 @@ const SOURCE_ERROR_COPY: Record<ActivitySourceErrorCode, string> = {
   WAKATIME_RATE_LIMITED:
     "WakaTime tạm giới hạn truy cập — sẽ thử lại khi bạn mở lại trang.",
   WAKATIME_UNAVAILABLE: "chưa cập nhật được — sẽ thử lại khi bạn mở lại trang.",
+};
+
+export const PROVIDER_NAME: Record<ActivityProvider, string> = {
+  GITHUB: "GitHub",
+  WAKATIME: "WakaTime",
 };
 
 export function sourceErrorCopy(code: ActivitySourceErrorCode): string {
@@ -65,7 +71,7 @@ export function sourceLine(
   if (source.status === "DISCONNECTED") {
     return {
       label,
-      detail: "Đã gắn bằng tài khoản khác hoặc đã ngắt kết nối GitHub.",
+      detail: `Đã gắn bằng tài khoản khác hoặc đã ngắt kết nối ${PROVIDER_NAME[source.provider]}.`,
     };
   }
 
@@ -109,6 +115,12 @@ const LINK_ERROR_COPY: Record<string, string> = {
   GITHUB_RATE_LIMITED:
     "GitHub đang tạm giới hạn truy cập. Thử lại sau ít phút.",
   GITHUB_UNAVAILABLE: "Chưa kết nối được tới GitHub. Thử lại sau ít phút.",
+  WAKATIME_NOT_CONNECTED:
+    "Kết nối WakaTime không còn dùng được — cập nhật API key ở Cài đặt.",
+  WAKATIME_PROJECT_NOT_FOUND: "Không còn thấy project này trên WakaTime.",
+  WAKATIME_RATE_LIMITED:
+    "WakaTime đang tạm giới hạn truy cập. Thử lại sau ít phút.",
+  WAKATIME_UNAVAILABLE: "Chưa kết nối được tới WakaTime. Thử lại sau ít phút.",
 };
 
 /** Câu chữ khi gắn hoặc tìm repository thất bại; lỗi khác dùng câu chung. */

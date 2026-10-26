@@ -80,6 +80,16 @@ describe("sourceLine", () => {
     });
   });
 
+  it("names the provider of a source that stopped updating", () => {
+    expect(
+      sourceLine(
+        source({ provider: "WAKATIME", status: "DISCONNECTED" }),
+        "UTC",
+        NOW,
+      ).detail,
+    ).toBe("Đã gắn bằng tài khoản khác hoặc đã ngắt kết nối WakaTime.");
+  });
+
   it("says a source was never updated", () => {
     expect(sourceLine(source({ lastSyncAt: null }), "UTC", NOW).detail).toBe(
       "Chưa cập nhật lần nào",
@@ -172,6 +182,19 @@ describe("linkErrorMessage", () => {
     [
       "GITHUB_UNAVAILABLE",
       "Chưa kết nối được tới GitHub. Thử lại sau ít phút.",
+    ],
+    [
+      "WAKATIME_NOT_CONNECTED",
+      "Kết nối WakaTime không còn dùng được — cập nhật API key ở Cài đặt.",
+    ],
+    ["WAKATIME_PROJECT_NOT_FOUND", "Không còn thấy project này trên WakaTime."],
+    [
+      "WAKATIME_RATE_LIMITED",
+      "WakaTime đang tạm giới hạn truy cập. Thử lại sau ít phút.",
+    ],
+    [
+      "WAKATIME_UNAVAILABLE",
+      "Chưa kết nối được tới WakaTime. Thử lại sau ít phút.",
     ],
   ])("explains %s", (code, message) => {
     expect(

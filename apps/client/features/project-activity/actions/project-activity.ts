@@ -1,8 +1,10 @@
 "use server";
 
 import type {
+  ActivityProvider,
   ActivitySourceResponse,
   GitHubRepositoryListResponse,
+  WakaTimeProjectResponse,
 } from "@repo/contracts";
 import { revalidatePath } from "next/cache";
 
@@ -11,6 +13,13 @@ import { validId } from "@/lib/validation";
 
 export type RepositorySearchResult =
   ({ status: "success" } & GitHubRepositoryListResponse) | MutationError;
+
+export type WakaTimeProjectSearchResult =
+  | {
+      status: "success";
+      projects: WakaTimeProjectResponse[];
+    }
+  | MutationError;
 
 export type LinkSourceResult =
   { status: "success"; source: ActivitySourceResponse } | MutationError;
@@ -39,17 +48,43 @@ export async function searchGitHubRepositories(
   }
 }
 
+export async function searchWakaTimeProjects(
+  search: string,
+): Promise<WakaTimeProjectSearchResult> {
+  const query = typeof search === "string" ? search.trim().slice(0, 200) : "";
+  const params = query ? `?${new URLSearchParams({ search: query })}` : "";
+
+  try {
+    const projects = await apiFetch<WakaTimeProjectResponse[]>(
+      `/integrations/wakatime/projects${params}`,
+    );
+    return { status: "success", projects };
+  } catch (error) {
+    return toMutationError(error);
+  }
+}
+
+const RESOURCE_ID_FORMAT: Record<ActivityProvider, RegExp> = {
+  GITHUB: /^[1-9]\d{0,18}$/,
+  WAKATIME: /^[A-Za-z0-9-]{1,64}$/,
+};
+
 export async function linkActivitySource(input: {
   projectId: string;
+  provider: ActivityProvider;
   externalResourceId: string;
 }): Promise<LinkSourceResult> {
-  // Server Action có thể bị gọi với payload bất kỳ ngoài UI.
   if (!validId(input?.projectId)) return invalid("Project không hợp lệ.");
+  const format =
+    input.provider === "GITHUB" || input.provider === "WAKATIME"
+      ? RESOURCE_ID_FORMAT[input.provider]
+      : null;
   if (
+    !format ||
     typeof input.externalResourceId !== "string" ||
-    !/^[1-9]\d{0,18}$/.test(input.externalResourceId)
+    !format.test(input.externalResourceId)
   ) {
-    return invalid("Repository không hợp lệ.");
+    return invalid("Nguồn hoạt động không hợp lệ.");
   }
 
   let source: ActivitySourceResponse;
@@ -59,7 +94,7 @@ export async function linkActivitySource(input: {
       {
         method: "POST",
         body: JSON.stringify({
-          provider: "GITHUB",
+          provider: input.provider,
           externalResourceId: input.externalResourceId,
         }),
       },

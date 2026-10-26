@@ -18,6 +18,7 @@ import { ApiError } from "@/lib/api";
 import {
   linkActivitySource,
   searchGitHubRepositories,
+  searchWakaTimeProjects,
   unlinkActivitySource,
 } from "./project-activity";
 
@@ -65,6 +66,52 @@ describe("searchGitHubRepositories", () => {
   });
 });
 
+describe("searchWakaTimeProjects", () => {
+  it("searches on the server with the trimmed name", async () => {
+    const projects = [
+      {
+        id: "p1",
+        name: "magnum-opus",
+        lastHeartbeatAt: null,
+        usedByProjects: [],
+      },
+    ];
+    apiFetch.mockResolvedValue(projects);
+
+    await expect(searchWakaTimeProjects("  opus ")).resolves.toEqual({
+      status: "success",
+      projects,
+    });
+    expect(apiFetch).toHaveBeenCalledWith(
+      "/integrations/wakatime/projects?search=opus",
+    );
+  });
+
+  it("lists without a filter for an empty search", async () => {
+    apiFetch.mockResolvedValue([]);
+
+    await searchWakaTimeProjects("   ");
+
+    expect(apiFetch).toHaveBeenCalledWith("/integrations/wakatime/projects");
+  });
+
+  it("returns API errors with their code", async () => {
+    apiFetch.mockRejectedValue(
+      new ApiError({
+        kind: "conflict",
+        status: 409,
+        code: "WAKATIME_NOT_CONNECTED",
+        message: "x",
+      }),
+    );
+
+    await expect(searchWakaTimeProjects("")).resolves.toMatchObject({
+      status: "error",
+      code: "WAKATIME_NOT_CONNECTED",
+    });
+  });
+});
+
 describe("linkActivitySource", () => {
   it("links the repository and refreshes both project pages", async () => {
     const source = { feedId: FEED_ID, displayName: "trhgatu/magnum-opus" };
@@ -73,6 +120,7 @@ describe("linkActivitySource", () => {
     await expect(
       linkActivitySource({
         projectId: PROJECT_ID,
+        provider: "GITHUB",
         externalResourceId: "1067270000",
       }),
     ).resolves.toEqual({ status: "success", source });
@@ -90,17 +138,60 @@ describe("linkActivitySource", () => {
     expect(revalidatePath).toHaveBeenCalledWith(`/projects/${PROJECT_ID}/edit`);
   });
 
+  it("links a WakaTime project by its id", async () => {
+    const source = { feedId: FEED_ID, displayName: "magnum-opus" };
+    apiFetch.mockResolvedValue(source);
+    const id = "8b1f2c3d-4e5f-4a6b-9c7d-0e1f2a3b4c5d";
+
+    await expect(
+      linkActivitySource({
+        projectId: PROJECT_ID,
+        provider: "WAKATIME",
+        externalResourceId: id,
+      }),
+    ).resolves.toEqual({ status: "success", source });
+    expect(apiFetch).toHaveBeenCalledWith(
+      `/projects/${PROJECT_ID}/activity/sources`,
+      {
+        method: "POST",
+        body: JSON.stringify({ provider: "WAKATIME", externalResourceId: id }),
+      },
+    );
+  });
+
   it.each([
-    ["a bad project id", { projectId: "x", externalResourceId: "1" }],
+    [
+      "a bad project id",
+      { projectId: "x", provider: "GITHUB", externalResourceId: "1" },
+    ],
     [
       "a repository name instead of its id",
-      { projectId: PROJECT_ID, externalResourceId: "trhgatu/magnum-opus" },
+      {
+        projectId: PROJECT_ID,
+        provider: "GITHUB",
+        externalResourceId: "trhgatu/magnum-opus",
+      },
     ],
-    ["a leading zero", { projectId: PROJECT_ID, externalResourceId: "0106" }],
+    [
+      "a leading zero",
+      { projectId: PROJECT_ID, provider: "GITHUB", externalResourceId: "0106" },
+    ],
+    [
+      "a WakaTime project name instead of its id",
+      {
+        projectId: PROJECT_ID,
+        provider: "WAKATIME",
+        externalResourceId: "magnum opus",
+      },
+    ],
+    [
+      "an unknown provider",
+      { projectId: PROJECT_ID, provider: "GITLAB", externalResourceId: "1" },
+    ],
   ])("rejects %s before calling the API", async (_label, input) => {
-    await expect(linkActivitySource(input)).resolves.toMatchObject({
-      status: "error",
-    });
+    await expect(
+      linkActivitySource(input as Parameters<typeof linkActivitySource>[0]),
+    ).resolves.toMatchObject({ status: "error" });
     expect(apiFetch).not.toHaveBeenCalled();
   });
 });
@@ -118,6 +209,7 @@ describe("failing API calls", () => {
     await expect(
       linkActivitySource({
         projectId: PROJECT_ID,
+        provider: "GITHUB",
         externalResourceId: "1067270000",
       }),
     ).resolves.toMatchObject({

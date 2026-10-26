@@ -1,6 +1,7 @@
 import type {
   ActivitySourceResponse,
   GitHubConnectionResponse,
+  WakaTimeConnectionResponse,
 } from "@repo/contracts";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -8,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getCurrentUser } from "@/features/account/api/current-user";
 import { getGitHubConnection } from "@/features/github/api/github-connection";
 import { getActivitySources } from "@/features/project-activity/api/project-activity";
+import { getWakaTimeConnection } from "@/features/wakatime/api/wakatime-connection";
 
 import { ActivitySourcesSection } from "./activity-sources-section";
 
@@ -26,6 +28,9 @@ export async function ActivitySourcesPanel({
     GitHubConnectionResponse | null | "unavailable"
   > = getGitHubConnection().catch(() => "unavailable" as const);
 
+  const wakaTimeRead: Promise<
+    WakaTimeConnectionResponse | null | "unavailable"
+  > = getWakaTimeConnection().catch(() => "unavailable" as const);
   let sources: ActivitySourceResponse[];
   let timeZone: string;
   try {
@@ -46,13 +51,17 @@ export async function ActivitySourcesPanel({
     );
   }
 
-  const connection = await connectionRead;
+  const [connection, wakaTimeConnection] = await Promise.all([
+    connectionRead,
+    wakaTimeRead,
+  ]);
 
   return (
     <ActivitySourcesSection
       projectId={projectId}
       sources={sources}
       connection={connection}
+      wakaTimeConnection={wakaTimeConnection}
       timeZone={timeZone}
     />
   );

@@ -1,10 +1,12 @@
 "use client";
 
 import type {
+  ActivityProvider,
   ActivitySourceResponse,
   GitHubConnectionResponse,
-  GitHubRepositoryResponse,
+  WakaTimeConnectionResponse,
 } from "@repo/contracts";
+
 import Link from "next/link";
 import {
   type MouseEvent,
@@ -35,11 +37,13 @@ import {
 } from "@/features/project-activity/actions/project-activity";
 import {
   linkErrorMessage,
+  PROVIDER_NAME,
   sourceLine,
 } from "@/features/project-activity/lib/source-status";
 import { notifySuccess } from "@/lib/toast";
 
 import { RepositoryPicker } from "./repository-picker";
+import { WakaTimeProjectPicker } from "./wakatime-project-picker";
 
 /** Kết nối GitHub nhìn từ trang Project: quyết định có gắn thêm được không. */
 export type ConnectionState = "none" | "unusable" | "active" | "unavailable";
@@ -54,11 +58,20 @@ export function connectionState(
   return health === "expired" || health === "revoked" ? "unusable" : "active";
 }
 
+export function wakaTimeConnectionState(
+  connection: WakaTimeConnectionResponse | null | "unavailable",
+): ConnectionState {
+  if (connection === "unavailable") return "unavailable";
+  if (connection === null) return "none";
+  return connection.status === "ACTIVE" ? "active" : "unusable";
+}
+
 interface ActivitySourcesSectionProps {
   projectId: string;
   sources: ActivitySourceResponse[];
   /** "unavailable": không đọc được kết nối — vẫn hiện nguồn, không gắn thêm. */
   connection: GitHubConnectionResponse | null | "unavailable";
+  wakaTimeConnection: WakaTimeConnectionResponse | null | "unavailable";
   timeZone: string;
 }
 
@@ -67,6 +80,7 @@ export function ActivitySourcesSection({
   projectId,
   sources: serverSources,
   connection,
+  wakaTimeConnection,
   timeZone,
 }: ActivitySourcesSectionProps) {
   const [sources, setSources] = useState(serverSources);
@@ -87,19 +101,26 @@ export function ActivitySourcesSection({
     connection === "unavailable" ? null : connection,
   );
   const state = connectionState(connection, now);
+  const wakaTimeState = wakaTimeConnectionState(wakaTimeConnection);
   // Dòng "Cập nhật lúc…" cần biết hôm nay là ngày nào, kể cả qua nửa đêm.
   const clock = useMinuteClock();
-  const linkedIds = useMemo(
-    () => new Set(sources.map((source) => source.externalResourceId)),
-    [sources],
-  );
+  const linkedIds = useMemo(() => {
+    const ids = (provider: ActivityProvider) =>
+      new Set(
+        sources
+          .filter((source) => source.provider === provider)
+          .map((source) => source.externalResourceId),
+      );
+    return { GITHUB: ids("GITHUB"), WAKATIME: ids("WAKATIME") };
+  }, [sources]);
 
-  const link = (repository: GitHubRepositoryResponse) => {
+  const link = (provider: ActivityProvider, externalResourceId: string) => {
     setError(undefined);
     startTransition(async () => {
       const result = await linkActivitySource({
         projectId,
-        externalResourceId: repository.externalResourceId,
+        provider,
+        externalResourceId: externalResourceId,
       });
       if (result.status === "error") {
         setError(linkErrorMessage(result));
@@ -140,8 +161,8 @@ export function ActivitySourcesSection({
       <div className="space-y-1">
         <h2 className="text-sm font-medium">Nguồn hoạt động</h2>
         <p className="text-sm text-muted-foreground">
-          Gắn repository GitHub để thấy hoạt động thật của từng vòng — đặt cạnh
-          trạng thái bạn tuyên bố cho Project.
+          Gắn repository GitHub hoặc project WakaTime để thấy hoạt động thật của
+          từng vòng — đặt cạnh trạng thái bạn tuyên bố cho Project.
         </p>
       </div>
 
@@ -174,6 +195,36 @@ export function ActivitySourcesSection({
         </Alert>
       ) : null}
 
+      {wakaTimeState === "none" ? (
+        <p className="text-sm">
+          Muốn tính cả thời gian code?{" "}
+          <Link href="/settings" className="underline underline-offset-4">
+            Kết nối WakaTime ở Cài đặt
+          </Link>
+        </p>
+      ) : null}
+
+      {wakaTimeState === "unusable" ? (
+        <Alert>
+          <AlertDescription>
+            API key WakaTime không còn dùng được — không gắn thêm được project
+            WakaTime.{" "}
+            <Link href="/settings" className="underline underline-offset-4">
+              Cập nhật key ở Cài đặt
+            </Link>
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
+      {wakaTimeState === "unavailable" ? (
+        <Alert>
+          <AlertDescription>
+            Chưa tải được trạng thái kết nối WakaTime nên chưa gắn thêm được
+            project WakaTime. Tải lại trang để thử lại.
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
       {error ? (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
@@ -191,6 +242,9 @@ export function ActivitySourcesSection({
               >
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                   <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs text-muted-foreground">
+                      {PROVIDER_NAME[source.provider]}
+                    </span>
                     <span className="truncate font-medium">
                       {source.displayName}
                     </span>
@@ -223,13 +277,25 @@ export function ActivitySourcesSection({
         </ul>
       ) : null}
 
-      {state === "active" ? (
-        <div>
-          <RepositoryPicker
-            excludedIds={linkedIds}
-            onSelect={link}
-            disabled={isPending}
-          />
+      {state === "active" || wakaTimeState === "active" ? (
+        <div className="flex flex-col gap-2 sm:flex-row">
+          {state === "active" ? (
+            <RepositoryPicker
+              excludedIds={linkedIds.GITHUB}
+              onSelect={(repository) =>
+                link("GITHUB", repository.externalResourceId)
+              }
+              disabled={isPending}
+            />
+          ) : null}
+          {wakaTimeState === "active" ? (
+            <WakaTimeProjectPicker
+              excludedIds={linkedIds.WAKATIME}
+              onSelect={(project) => link("WAKATIME", project.id)}
+              timeZone={timeZone}
+              disabled={isPending}
+            />
+          ) : null}
         </div>
       ) : null}
 
@@ -245,9 +311,9 @@ export function ActivitySourcesSection({
               Gỡ {unlinkTarget?.displayName} khỏi Project?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Hoạt động của repository này sẽ không còn tính cho vòng đang mở.
-              Tóm tắt của các vòng đã đóng không thay đổi. Bạn có thể gắn lại
-              bất cứ lúc nào.
+              Hoạt động của nguồn này sẽ không còn tính cho vòng đang mở. Tóm
+              tắt của các vòng đã đóng không thay đổi. Bạn có thể gắn lại bất cứ
+              lúc nào.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
