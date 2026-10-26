@@ -23,11 +23,13 @@ const snapshot = (
     commits: 23,
     prsOpened: 4,
     prsMerged: 3,
+
+    codingSeconds: null,
   },
   lastActivityAt: "2026-10-12T09:00:00.000Z",
   days: [
-    { date: "2026-10-11", state: "PAUSED_ACTIVE" },
-    { date: "2026-10-12", state: "ACTIVE" },
+    { date: "2026-10-11", state: "PAUSED_ACTIVE", codingSeconds: null },
+    { date: "2026-10-12", state: "ACTIVE", codingSeconds: null },
   ],
   sources: [
     {

@@ -128,6 +128,7 @@ export class CaptureCycleSnapshotService {
       sources: linkedSources,
       timeZone,
       until: closedAt,
+      codingMeasured: feeds.some((feed) => feed.provider === 'WAKATIME'),
     });
 
     await this.snapshots.createIfAbsent({

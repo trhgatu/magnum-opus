@@ -34,7 +34,12 @@ export class PrismaCycleActivitySnapshotRepository implements CycleActivitySnaps
           cycleId: snapshot.cycleId,
           ...snapshot.metrics,
           lastActivityAt: snapshot.lastActivityAt,
-          days: snapshot.days,
+          days: snapshot.days.map((day) => ({
+            date: day.date,
+            state: day.state,
+            codingSeconds: day.codingSeconds,
+          })),
+
           sources: snapshot.sources.map((source) => ({
             provider: source.provider,
             displayName: source.displayName,
@@ -72,6 +77,7 @@ function toSnapshot(row: PrismaSnapshot): CycleActivitySnapshot {
       commits: row.commits,
       prsOpened: row.prsOpened,
       prsMerged: row.prsMerged,
+      codingSeconds: row.codingSeconds,
     },
     lastActivityAt: row.lastActivityAt,
     days: readDays(row.days),
@@ -95,6 +101,9 @@ function readDate(value: unknown): Date | null | undefined {
   return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
+const isSeconds = (value: unknown): value is number =>
+  Number.isInteger(value) && (value as number) >= 0;
+
 /** JSON do chính mình ghi; dòng nào sai hình dạng thì bỏ, không làm hỏng cả trang. */
 function readDays(json: unknown): CycleActivitySnapshot['days'] {
   if (!Array.isArray(json)) return [];
@@ -103,7 +112,16 @@ function readDays(json: unknown): CycleActivitySnapshot['days'] {
     typeof day.date === 'string' &&
     DAY_PATTERN.test(day.date) &&
     (ACTIVITY_DAY_STATES as readonly unknown[]).includes(day.state)
-      ? [{ date: day.date, state: day.state as ActivityDayState }]
+      ? [
+          {
+            date: day.date,
+            state: day.state as ActivityDayState,
+            // Ngày chụp trước Phase 2 không có trường này.
+            codingSeconds: isSeconds(day.codingSeconds)
+              ? day.codingSeconds
+              : null,
+          },
+        ]
       : [],
   );
 }

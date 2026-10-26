@@ -123,12 +123,14 @@ describe('CaptureCycleSnapshotService', () => {
         commits: 1,
         prsOpened: 0,
         prsMerged: 0,
+        // Chỉ có GitHub: không đo thời gian code.
+        codingSeconds: null,
       },
       lastActivityAt: at('2026-10-02T12:00:00Z'),
       days: [
-        { date: '2026-10-01', state: 'IDLE' },
-        { date: '2026-10-02', state: 'ACTIVE' },
-        { date: '2026-10-03', state: 'IDLE' },
+        { date: '2026-10-01', state: 'IDLE', codingSeconds: null },
+        { date: '2026-10-02', state: 'ACTIVE', codingSeconds: null },
+        { date: '2026-10-03', state: 'IDLE', codingSeconds: null },
       ],
       sources: [
         {
@@ -142,6 +144,26 @@ describe('CaptureCycleSnapshotService', () => {
       dataUntil: NOW,
       capturedAt: NOW,
     });
+  });
+
+  it('freezes the coding time too when a WakaTime source is linked', async () => {
+    ledger.listFeeds.mockResolvedValue([
+      { ...feed, provider: 'WAKATIME', displayName: 'magnum-opus' },
+    ]);
+    ledger.listEvents.mockResolvedValue([
+      {
+        feedId: 'feed-id',
+        kind: 'CODING_TIME',
+        occurredAt: at('2026-10-02T10:00:00Z'),
+        quantity: 1800,
+      },
+    ]);
+
+    await capture();
+
+    const [snapshot] = snapshots.createIfAbsent.mock.calls[0];
+    expect(snapshot.metrics.codingSeconds).toBe(1800);
+    expect(snapshot.days.map((day) => day.codingSeconds)).toEqual([0, 1800, 0]);
   });
 
   it('does nothing for a cycle that already has a snapshot', async () => {

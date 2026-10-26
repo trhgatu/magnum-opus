@@ -117,6 +117,32 @@ describe('project activity queries', () => {
         hasMissingData: false,
       });
       expect(view.divergences).toEqual([]);
+      // Chỉ có GitHub: không đo thời gian code (BR-PAC-042).
+      expect(view.currentCycle?.metrics.codingSeconds).toBeNull();
+    });
+
+    it('measures coding time once a WakaTime source is linked, even at zero', async () => {
+      ledger.listFeeds.mockResolvedValue([
+        feed,
+        {
+          ...feed,
+          feedId: 'waka-feed',
+          provider: 'WAKATIME',
+          displayName: 'magnum-opus',
+        },
+      ]);
+      sources.listByProject.mockResolvedValue([
+        link,
+        { ...link, feedId: 'waka-feed' },
+      ]);
+      ledger.listEvents.mockResolvedValue([]);
+
+      const view = (await handler.execute(query())).getValue();
+
+      expect(view.currentCycle?.metrics.codingSeconds).toBe(0);
+      expect(view.currentCycle?.days.map((day) => day.codingSeconds)).toEqual([
+        0, 0, 0,
+      ]);
     });
 
     it('answers without copying or reading the ledger when there is no source', async () => {
