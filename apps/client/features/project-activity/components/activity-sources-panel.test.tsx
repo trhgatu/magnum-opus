@@ -3,13 +3,17 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getActivitySources, getGitHubConnection, getCurrentUser } = vi.hoisted(
-  () => ({
-    getActivitySources: vi.fn(),
-    getGitHubConnection: vi.fn(),
-    getCurrentUser: vi.fn(),
-  }),
-);
+const {
+  getActivitySources,
+  getGitHubConnection,
+  getWakaTimeConnection,
+  getCurrentUser,
+} = vi.hoisted(() => ({
+  getActivitySources: vi.fn(),
+  getGitHubConnection: vi.fn(),
+  getWakaTimeConnection: vi.fn(),
+  getCurrentUser: vi.fn(),
+}));
 
 vi.mock("@/features/project-activity/api/project-activity", () => ({
   getActivitySources,
@@ -17,11 +21,15 @@ vi.mock("@/features/project-activity/api/project-activity", () => ({
 vi.mock("@/features/github/api/github-connection", () => ({
   getGitHubConnection,
 }));
+vi.mock("@/features/wakatime/api/wakatime-connection", () => ({
+  getWakaTimeConnection,
+}));
 vi.mock("@/features/account/api/current-user", () => ({ getCurrentUser }));
 vi.mock("@/features/project-activity/actions/project-activity", () => ({
   linkActivitySource: vi.fn(),
   unlinkActivitySource: vi.fn(),
   searchGitHubRepositories: vi.fn(),
+  searchWakaTimeProjects: vi.fn(),
 }));
 
 import { ActivitySourcesPanel } from "./activity-sources-panel";
@@ -55,6 +63,7 @@ beforeEach(() => {
     lastVerifiedAt: "2026-10-01T00:00:00.000Z",
     connectedAt: "2026-10-01T00:00:00.000Z",
   });
+  getWakaTimeConnection.mockResolvedValue(null);
 });
 afterEach(cleanup);
 
@@ -107,6 +116,34 @@ describe("ActivitySourcesPanel", () => {
     ).toBeTruthy();
   });
 
+  it("offers WakaTime projects with an active WakaTime connection", async () => {
+    getWakaTimeConnection.mockResolvedValue({
+      account: { id: "waka-user", username: "trhgatu" },
+      status: "ACTIVE",
+      lastVerifiedAt: "2026-10-01T00:00:00.000Z",
+      connectedAt: "2026-10-01T00:00:00.000Z",
+    });
+
+    await renderPanel();
+
+    expect(
+      screen.getByRole("combobox", { name: "Gắn project WakaTime" }),
+    ).toBeTruthy();
+  });
+
+  it("keeps GitHub usable when the WakaTime connection cannot be read", async () => {
+    getWakaTimeConnection.mockRejectedValue(new Error("integrations down"));
+
+    await renderPanel();
+
+    expect(
+      screen.getByText(/Chưa tải được trạng thái kết nối WakaTime/),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("combobox", { name: "Gắn repository" }),
+    ).toBeTruthy();
+  });
+
   it("reads the connection alongside the sources, not after them", async () => {
     let sourcesSettled = false;
     let calledBeforeSourcesSettled = false;
@@ -119,9 +156,14 @@ describe("ActivitySourcesPanel", () => {
           }, 20),
         ),
     );
+    let wakaTimeBeforeSourcesSettled = false;
     getGitHubConnection.mockImplementation(async () => {
       // Ghi lại rồi kiểm bên ngoài: lỗi trong mock sẽ bị panel bắt mất.
       calledBeforeSourcesSettled = !sourcesSettled;
+      return null;
+    });
+    getWakaTimeConnection.mockImplementation(async () => {
+      wakaTimeBeforeSourcesSettled = !sourcesSettled;
       return null;
     });
 
@@ -129,6 +171,8 @@ describe("ActivitySourcesPanel", () => {
 
     expect(getGitHubConnection).toHaveBeenCalledTimes(1);
     expect(calledBeforeSourcesSettled).toBe(true);
+    expect(getWakaTimeConnection).toHaveBeenCalledTimes(1);
+    expect(wakaTimeBeforeSourcesSettled).toBe(true);
   });
 
   it("shows its own error when the sources cannot be read", async () => {
