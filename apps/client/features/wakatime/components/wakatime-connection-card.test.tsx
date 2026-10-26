@@ -111,6 +111,8 @@ describe("WakaTimeConnectionCard", () => {
     // Không có gì để "Hủy" về: kết nối cũ không dùng được.
     expect(screen.queryByRole("button", { name: "Hủy" })).toBeNull();
 
+    // Dán key mới rồi đổi ý, ngắt kết nối luôn.
+    fireEvent.change(keyInput(), { target: { value: "waka_unsaved" } });
     fireEvent.click(screen.getByRole("button", { name: "Ngắt kết nối" }));
     fireEvent.click(
       screen.getAllByRole("button", { name: "Ngắt kết nối" }).at(-1)!,
@@ -119,6 +121,10 @@ describe("WakaTimeConnectionCard", () => {
     await waitFor(() =>
       expect(notifySuccess).toHaveBeenCalledWith("Đã ngắt kết nối WakaTime"),
     );
+    // Key chưa lưu không được ở lại trong ô nhập.
+    expect(await screen.findByRole("button", { name: "Kết nối" })).toBeTruthy();
+    expect((keyInput() as HTMLInputElement).value).toBe("");
+    expect(document.body.innerHTML).not.toContain("waka_unsaved");
   });
 
   it("keeps the pasted key and explains a rejected one", async () => {
@@ -165,6 +171,11 @@ describe("WakaTimeConnectionCard", () => {
         screen.getByText("Đổi sang tài khoản WakaTime khác?"),
       ).toBeTruthy(),
     );
+    // Lần gửi đầu không bao giờ tự xác nhận đổi tài khoản.
+    expect(connectWakaTime).toHaveBeenNthCalledWith(1, {
+      apiKey: "waka_other",
+      confirmAccountChange: false,
+    });
     const dialog = screen.getByRole("alertdialog");
     expect(dialog.textContent).toContain("other-account");
     expect(dialog.textContent).toContain("trhgatu");

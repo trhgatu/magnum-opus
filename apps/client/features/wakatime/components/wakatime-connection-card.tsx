@@ -110,6 +110,7 @@ export function WakaTimeConnectionCard({
       }
       setConnection(null);
       setEditing(true);
+      setApiKey("");
       setDisconnecting(false);
       void notifySuccess("Đã ngắt kết nối WakaTime");
     });
