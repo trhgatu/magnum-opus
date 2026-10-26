@@ -371,12 +371,12 @@ Snapshot (`06` §10) hiện giờ code trong dòng tóm tắt khi snapshot có n
 
 ### 7.6. Formatting
 
-| Loại     | Định dạng                                                                                  |
-| -------- | ------------------------------------------------------------------------------------------ |
-| Giờ code | ≥ 1 giờ: một chữ số thập phân, dấu phẩy — "12,5 giờ code". < 1 giờ: phút — "40 phút code". |
-| Làm tròn | Làm tròn xuống tới phút trước khi định dạng (không bao giờ nói nhiều hơn thực tế)          |
-| < 1 phút | Có code nhưng chưa đủ một phút: "dưới 1 phút code" — không nói "0 phút"                    |
-| Chỉ code | Không có nguồn GitHub: dòng tóm tắt bỏ commit/PR, trừ khi vẫn còn commit/PR đã đếm được    |
+| Loại     | Định dạng                                                                                                                                                                       |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Giờ code | ≥ 1 giờ: một chữ số thập phân, dấu phẩy — "12,5 giờ code". < 1 giờ: phút — "40 phút code".                                                                                      |
+| Làm tròn | Làm tròn xuống tới phút trước khi định dạng (không bao giờ nói nhiều hơn thực tế)                                                                                               |
+| < 1 phút | Có code nhưng chưa đủ một phút: "dưới 1 phút code" — không nói "0 phút"                                                                                                         |
+| Chỉ code | Dòng tóm tắt bỏ commit/PR khi không có nguồn GitHub — nguồn đang gắn với vòng đang mở, nguồn lúc chụp với snapshot (§7.3). Số commit/PR > 0 thì luôn hiện, không giấu số đã đếm |
 
 ### 7.7. Source Error Copy
 

@@ -107,6 +107,8 @@ describe("CycleActivity", () => {
       ...cycle,
       metrics: {
         ...cycle.metrics,
+        activeDays: 1,
+        pausedActiveDays: 0,
         commits: 0,
         prsOpened: 0,
         codingSeconds: 10_440,
@@ -136,11 +138,7 @@ describe("CycleActivity", () => {
       />,
     );
 
-    expect(
-      screen.getByText(
-        "2 ngày có hoạt động (1 ngày lúc tạm dừng) · 2,9 giờ code",
-      ),
-    ).toBeTruthy();
+    expect(screen.getByText("1 ngày có hoạt động · 2,9 giờ code")).toBeTruthy();
     const strip = screen.getByRole("list", { name: "Dải ngày của vòng này" });
     expect(
       within(strip)
