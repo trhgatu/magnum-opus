@@ -135,6 +135,10 @@ describe('PrismaCycleActivitySnapshotRepository', () => {
         days: [
           { date: '2026-10-02', state: 'ACTIVE' },
           { date: '2026-10-03', state: 'IDLE', codingSeconds: '600' },
+          // Giờ code âm hay lẻ là dữ liệu hỏng: không đưa ra API.
+          { date: '2026-10-04', state: 'IDLE', codingSeconds: -5 },
+          { date: '2026-10-05', state: 'IDLE', codingSeconds: 90.5 },
+          { date: '2026-10-06', state: 'ACTIVE', codingSeconds: 0 },
         ],
       },
     ]);
@@ -145,6 +149,10 @@ describe('PrismaCycleActivitySnapshotRepository', () => {
     expect(read.days).toEqual([
       { date: '2026-10-02', state: 'ACTIVE', codingSeconds: null },
       { date: '2026-10-03', state: 'IDLE', codingSeconds: null },
+      { date: '2026-10-04', state: 'IDLE', codingSeconds: null },
+      { date: '2026-10-05', state: 'IDLE', codingSeconds: null },
+      // 0 là đo được và không code — giữ nguyên, không thành null.
+      { date: '2026-10-06', state: 'ACTIVE', codingSeconds: 0 },
     ]);
   });
 

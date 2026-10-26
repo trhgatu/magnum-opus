@@ -101,6 +101,9 @@ function readDate(value: unknown): Date | null | undefined {
   return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
+const isSeconds = (value: unknown): value is number =>
+  Number.isInteger(value) && (value as number) >= 0;
+
 /** JSON do chính mình ghi; dòng nào sai hình dạng thì bỏ, không làm hỏng cả trang. */
 function readDays(json: unknown): CycleActivitySnapshot['days'] {
   if (!Array.isArray(json)) return [];
@@ -114,8 +117,9 @@ function readDays(json: unknown): CycleActivitySnapshot['days'] {
             date: day.date,
             state: day.state as ActivityDayState,
             // Ngày chụp trước Phase 2 không có trường này.
-            codingSeconds:
-              typeof day.codingSeconds === 'number' ? day.codingSeconds : null,
+            codingSeconds: isSeconds(day.codingSeconds)
+              ? day.codingSeconds
+              : null,
           },
         ]
       : [],
