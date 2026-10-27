@@ -1,131 +1,45 @@
 "use client";
 
-import type { ProjectResponse } from "@repo/contracts";
-import { ArrowRight, FolderKanban, Save } from "lucide-react";
+import { ArrowRight, FolderKanban } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState, useTransition } from "react";
 
-import { ConflictAlert } from "@/components/system/conflict-alert";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  createProject,
-  reloadProject,
-  updateProject,
-} from "@/features/project/actions/project";
+import { createProject } from "@/features/project/actions/project";
 import { useUnsavedChangesWarning } from "@/hooks/use-unsaved-changes-warning";
 import { notifySuccess } from "@/lib/toast";
 
-type PersistedProject = Pick<
-  ProjectResponse,
-  "id" | "title" | "description" | "revision"
->;
-
-export function ProjectEditor({
-  initialProject,
-}: {
-  initialProject?: PersistedProject;
-}) {
+/**
+ * Form tạo Project. Project đã có sửa tên và mô tả ngay trên trang chi tiết
+ * (project-inline-fields).
+ */
+export function ProjectEditor() {
   const router = useRouter();
-  const [persistedProject, setPersistedProject] = useState(initialProject);
-  const [title, setTitle] = useState(initialProject?.title ?? "");
-  const [description, setDescription] = useState(
-    initialProject?.description ?? "",
-  );
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [message, setMessage] = useState<string>();
-  const [hasConflict, setHasConflict] = useState(false);
-  const [recoveryError, setRecoveryError] = useState<string>();
   const [isPending, startTransition] = useTransition();
 
-  const isDirty =
-    title !== (persistedProject?.title ?? "") ||
-    description !== (persistedProject?.description ?? "");
-  useUnsavedChangesWarning(isDirty);
-
-  const applyPersistedProject = (project: PersistedProject) => {
-    setPersistedProject(project);
-    setTitle(project.title);
-    setDescription(project.description ?? "");
-    setMessage(undefined);
-    setHasConflict(false);
-    setRecoveryError(undefined);
-  };
+  useUnsavedChangesWarning(title !== "" || description !== "");
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setMessage(undefined);
-    setRecoveryError(undefined);
 
     startTransition(async () => {
-      const result = persistedProject
-        ? await updateProject({
-            id: persistedProject.id,
-            title,
-            description,
-            expectedRevision: persistedProject.revision,
-          })
-        : await createProject({ title, description });
+      const result = await createProject({ title, description });
 
       if (result.status === "error") {
         setMessage(result.message);
-        setHasConflict(result.code === "PROJECT_REVISION_CONFLICT");
         return;
       }
 
-      void notifySuccess(
-        persistedProject
-          ? `Đã cập nhật "${result.project.title}"`
-          : `Đã tạo "${result.project.title}"`,
-      );
-
-      router.push(`/projects/${result.project.id}`);
-      router.refresh();
-    });
-  };
-
-  const resolveConflict = (keepLocal: boolean) => {
-    if (!persistedProject) {
-      return;
-    }
-
-    setRecoveryError(undefined);
-
-    startTransition(async () => {
-      const latest = await reloadProject(persistedProject.id);
-
-      if (latest.status === "error") {
-        setRecoveryError(latest.message);
-        return;
-      }
-
-      if (!keepLocal) {
-        applyPersistedProject(latest.project);
-        return;
-      }
-
-      const result = await updateProject({
-        id: latest.project.id,
-        title,
-        description,
-        expectedRevision: latest.project.revision,
-      });
-
-      if (result.status === "error") {
-        setMessage(result.message);
-        setHasConflict(result.code === "PROJECT_REVISION_CONFLICT");
-        setRecoveryError(
-          result.code === "PROJECT_REVISION_CONFLICT"
-            ? "Project lại thay đổi trong lúc xử lý. Nội dung đang viết vẫn được giữ."
-            : result.message,
-        );
-        return;
-      }
-
-      void notifySuccess(`Đã cập nhật "${result.project.title}"`);
+      void notifySuccess(`Đã tạo "${result.project.title}"`);
 
       router.push(`/projects/${result.project.id}`);
       router.refresh();
@@ -134,16 +48,7 @@ export function ProjectEditor({
 
   return (
     <form onSubmit={submit} className="space-y-4" aria-busy={isPending}>
-      {hasConflict ? (
-        <ConflictAlert
-          title="Project đã được thay đổi ở nơi khác"
-          description="Nội dung đang viết vẫn còn nguyên trên màn hình. Chọn bản mới nhất để bỏ phần đang viết, hoặc chủ động ghi nội dung này lên revision mới nhất."
-          busy={isPending}
-          recoveryError={recoveryError}
-          onUseLatest={() => resolveConflict(false)}
-          onKeepLocal={() => resolveConflict(true)}
-        />
-      ) : message ? (
+      {message ? (
         <Alert variant="destructive">
           <AlertDescription>{message}</AlertDescription>
         </Alert>
@@ -202,26 +107,14 @@ export function ProjectEditor({
 
         <footer className="flex flex-col-reverse gap-3 border-t bg-muted/30 px-5 py-4 sm:flex-row sm:justify-end sm:px-7">
           <Link
-            href={
-              persistedProject
-                ? `/projects/${persistedProject.id}`
-                : "/projects"
-            }
+            href="/projects"
             className={buttonVariants({ variant: "outline", size: "lg" })}
           >
             Hủy
           </Link>
           <Button type="submit" size="lg" disabled={isPending}>
-            {persistedProject ? (
-              <Save aria-hidden="true" />
-            ) : (
-              <ArrowRight aria-hidden="true" />
-            )}
-            {isPending
-              ? "Đang lưu…"
-              : persistedProject
-                ? "Lưu thay đổi"
-                : "Tạo Project"}
+            <ArrowRight aria-hidden="true" />
+            {isPending ? "Đang lưu…" : "Tạo Project"}
           </Button>
         </footer>
       </section>
