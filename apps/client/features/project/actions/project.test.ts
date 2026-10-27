@@ -25,7 +25,6 @@ import {
   changeProjectLifecycle,
   createProject,
   deleteProjectPermanently,
-  reloadProject,
   setProjectIntendedOutcome,
   setProjectTargetEndDate,
   updateProject,
@@ -97,26 +96,6 @@ describe("Project Server Actions", () => {
 
     expect(apiFetch).not.toHaveBeenCalled();
     expect(revalidatePath).not.toHaveBeenCalled();
-  });
-
-  it("reloads a Project by id", async () => {
-    apiFetch.mockResolvedValue(project);
-
-    await expect(reloadProject(project.id)).resolves.toEqual({
-      status: "success",
-      project,
-    });
-
-    expect(apiFetch).toHaveBeenCalledWith(`/projects/${project.id}`);
-  });
-
-  it("rejects an invalid id when reloading a Project", async () => {
-    await expect(reloadProject("not-a-uuid")).resolves.toEqual({
-      status: "error",
-      message: "Dữ liệu Project không hợp lệ.",
-    });
-
-    expect(apiFetch).not.toHaveBeenCalled();
   });
 
   it("updates a Project's title and description at the expected revision", async () => {

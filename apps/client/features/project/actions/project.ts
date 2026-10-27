@@ -14,13 +14,6 @@ export type ProjectMutationResult =
     }
   | MutationError;
 
-export type ReloadProjectResult =
-  | {
-      status: "success";
-      project: ProjectResponse;
-    }
-  | MutationError;
-
 export type ProjectDeleteResult =
   | {
       status: "success";
@@ -136,26 +129,6 @@ export async function createProject(
     });
 
     revalidatePath("/projects");
-    return {
-      status: "success",
-      project,
-    };
-  } catch (error) {
-    return toMutationError(error);
-  }
-}
-
-export async function reloadProject(id: string): Promise<ReloadProjectResult> {
-  if (!validId(id)) {
-    return {
-      status: "error",
-      message: "Dữ liệu Project không hợp lệ.",
-    };
-  }
-
-  try {
-    const project = await apiFetch<ProjectResponse>(`/projects/${id}`);
-
     return {
       status: "success",
       project,
