@@ -2,6 +2,7 @@ import type {
   ActivityDay,
   ActivityDayState,
   ActivityMetrics,
+  ActivityProvider,
   ActivitySourceResponse,
   CycleActivityResponse,
   CycleActivitySnapshotResponse,
@@ -15,11 +16,29 @@ export const WEEK_ROWS_AFTER_DAYS = 70;
 
 const count = (value: number) => new Intl.NumberFormat("vi-VN").format(value);
 
-/** Dòng tóm tắt của vòng (06 §8.3, §10). Không so sánh với vòng trước. */
+/**
+ * "12,5 giờ code" / "40 phút code" (08 §7.6). Làm tròn xuống — không bao giờ
+ * nói nhiều hơn thực tế.
+ */
+export function formatCodingTime(seconds: number): string {
+  const minutes = Math.floor(seconds / 60);
+  if (minutes === 0 && seconds > 0) return "dưới 1 phút code";
+  if (minutes < 60) return `${count(minutes)} phút code`;
+  const hours = Math.floor(minutes / 6) / 10;
+  const formatted = new Intl.NumberFormat("vi-VN", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }).format(hours);
+  return `${formatted} giờ code`;
+}
+
+/** Dòng tóm tắt của vòng (06 §8.3, §10, 08 §7.3). Không so sánh với vòng trước. */
 export function summaryLine(cycle: {
   days: readonly ActivityDay[];
   metrics: ActivityMetrics;
   hasMissingData: boolean;
+  /** Provider của các nguồn: không có GitHub thì không nói commit/PR. */
+  providers: readonly ActivityProvider[];
 }): string {
   const { days, metrics } = cycle;
   const missingDays = days.filter((day) => day.state === "NO_DATA").length;
@@ -36,7 +55,8 @@ export function summaryLine(cycle: {
     metrics.activeDays > 0 ||
     metrics.commits > 0 ||
     metrics.prsOpened > 0 ||
-    metrics.prsMerged > 0;
+    metrics.prsMerged > 0 ||
+    (metrics.codingSeconds ?? 0) > 0;
   if (!hasActivity) return `Chưa có hoạt động trong vòng này.${partial}`;
 
   const paused =
@@ -44,11 +64,22 @@ export function summaryLine(cycle: {
       ? ` (${count(metrics.pausedActiveDays)} ngày lúc tạm dừng)`
       : "";
   // Metric bằng 0 vẫn hiện khi có hoạt động khác.
-  return (
-    `${count(metrics.activeDays)} ngày có hoạt động${paused} · ` +
-    `${count(metrics.commits)} commit · ${count(metrics.prsOpened)} PR mở · ` +
-    `${count(metrics.prsMerged)} PR merge${partial}`
-  );
+  const parts = [`${count(metrics.activeDays)} ngày có hoạt động${paused}`];
+  const hasGitHub =
+    cycle.providers.includes("GITHUB") ||
+    metrics.commits + metrics.prsOpened + metrics.prsMerged > 0;
+  if (hasGitHub) {
+    parts.push(
+      `${count(metrics.commits)} commit`,
+      `${count(metrics.prsOpened)} PR mở`,
+      `${count(metrics.prsMerged)} PR merge`,
+    );
+  }
+  // null: không có nguồn WakaTime nên không đo — khác với 0 phút.
+  if (metrics.codingSeconds !== null) {
+    parts.push(formatCodingTime(metrics.codingSeconds));
+  }
+  return parts.join(" · ") + partial;
 }
 
 const dayKey = (date: Date, timeZone: string) =>
@@ -150,10 +181,14 @@ const DAY_STATE_LABEL: Record<ActivityDayState, string> = {
   NO_DATA: "chưa có dữ liệu",
 };
 
-/** "12/10: có hoạt động" — mô tả cho trình đọc màn hình (06 §8.2). */
+/** "12/10: có hoạt động · 2,9 giờ code" — tooltip và trình đọc màn hình (06 §8.2, 08 §7.3). */
 export function dayDescription(day: ActivityDay): string {
   const [, month, date] = day.date.split("-");
-  return `${date}/${month}: ${DAY_STATE_LABEL[day.state]}`;
+  const coding =
+    day.codingSeconds !== null && day.codingSeconds > 0
+      ? ` · ${formatCodingTime(day.codingSeconds)}`
+      : "";
+  return `${date}/${month}: ${DAY_STATE_LABEL[day.state]}${coding}`;
 }
 
 /** Câu chữ của từng chỗ lệch (06 §9). D2 có nút riêng, không nằm ở đây. */
@@ -170,11 +205,20 @@ export function divergenceText(
       const since = divergence.closedAs === "COMPLETED" ? "hoàn thành" : "dừng";
       const last = shortDay(new Date(divergence.lastActivityAt), timeZone);
       // Chỉ có commit thì nói commit; có cả PR thì đếm chung là hoạt động.
-      const what =
-        divergence.otherEvents === 0
-          ? `${count(divergence.commits)} commit`
-          : `${count(divergence.commits + divergence.otherEvents)} hoạt động`;
-      return `${what} kể từ khi ${since} (gần nhất ${last}).`;
+      const events = divergence.commits + divergence.otherEvents;
+      const parts: string[] = [];
+      if (events > 0) {
+        parts.push(
+          divergence.otherEvents === 0
+            ? `${count(divergence.commits)} commit`
+            : `${count(events)} hoạt động`,
+        );
+      }
+      // Giờ code đứng sau event (08 §7.4).
+      if (divergence.codingSeconds !== null && divergence.codingSeconds > 0) {
+        parts.push(formatCodingTime(divergence.codingSeconds));
+      }
+      return `${parts.join(" · ")} kể từ khi ${since} (gần nhất ${last}).`;
     }
     case "ACTIVITY_BEFORE_START":
       return "Đã có hoạt động dù Project chưa bắt đầu.";

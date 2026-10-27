@@ -167,6 +167,38 @@ describe("CycleSnapshot", () => {
     ).toBeTruthy();
   });
 
+  it("shows the captured coding time and lists the WakaTime project as a source", () => {
+    render(
+      <CycleSnapshot
+        snapshot={snapshot({
+          metrics: { ...snapshot().metrics, codingSeconds: 45_000 },
+          sources: [
+            ...snapshot().sources,
+            {
+              provider: "WAKATIME",
+              displayName: "magnum-opus",
+              coveredFrom: null,
+              dataUntil: "2026-10-12T10:05:00.000Z",
+            },
+          ],
+        })}
+        cycleNumber={2}
+        closedAt={CLOSED_AT}
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        "8 ngày có hoạt động (2 ngày lúc tạm dừng) · 23 commit · 4 PR mở · 3 PR merge · 12,5 giờ code",
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Nguồn: trhgatu/magnum-opus, magnum-opus · dữ liệu tới 12/10/2026 17:00",
+      ),
+    ).toBeTruthy();
+  });
+
   it("flags the summary when a source was not copied up to the close", () => {
     render(
       <CycleSnapshot

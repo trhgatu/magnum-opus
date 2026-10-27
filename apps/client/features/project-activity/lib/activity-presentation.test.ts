@@ -1,4 +1,6 @@
 import type {
+  ActivityMetrics,
+  ActivityProvider,
   ActivitySourceResponse,
   CycleActivityResponse,
 } from "@repo/contracts";
@@ -7,6 +9,7 @@ import { describe, expect, it } from "vitest";
 import {
   dayDescription,
   divergenceText,
+  formatCodingTime,
   formatRecent,
   freshnessLine,
   sourceErrorLines,
@@ -57,16 +60,113 @@ const source = (
   ...overrides,
 });
 
+const summary = (
+  value: CycleActivityResponse,
+  providers: ActivityProvider[] = ["GITHUB"],
+) => summaryLine({ ...value, providers });
+
+const metrics = (overrides: Partial<ActivityMetrics>): ActivityMetrics => ({
+  activeDays: 8,
+  pausedActiveDays: 0,
+  commits: 23,
+  prsOpened: 4,
+  prsMerged: 3,
+  codingSeconds: null,
+  ...overrides,
+});
+
+describe("formatCodingTime", () => {
+  it.each([
+    [0, "0 phút code"],
+    [30, "dưới 1 phút code"],
+    [2_400, "40 phút code"],
+    [3_599, "59 phút code"],
+    [3_600, "1,0 giờ code"],
+    [10_440, "2,9 giờ code"],
+    // 2 giờ 59 phút: làm tròn xuống, không lên 3,0.
+    [10_790, "2,9 giờ code"],
+    [45_000, "12,5 giờ code"],
+  ])("formats %i seconds as %s", (seconds, text) => {
+    expect(formatCodingTime(seconds)).toBe(text);
+  });
+});
+
 describe("summaryLine", () => {
+  it("adds coding time after the GitHub metrics", () => {
+    expect(
+      summary(cycle({ metrics: metrics({ codingSeconds: 45_000 }) }), [
+        "GITHUB",
+        "WAKATIME",
+      ]),
+    ).toBe(
+      "8 ngày có hoạt động · 23 commit · 4 PR mở · 3 PR merge · 12,5 giờ code",
+    );
+  });
+
+  it("leaves out commits and pull requests without a repository", () => {
+    expect(
+      summary(
+        cycle({
+          metrics: metrics({
+            commits: 0,
+            prsOpened: 0,
+            prsMerged: 0,
+            codingSeconds: 45_000,
+          }),
+        }),
+        ["WAKATIME"],
+      ),
+    ).toBe("8 ngày có hoạt động · 12,5 giờ code");
+  });
+
+  it("keeps counted commits even after the repository was unlinked", () => {
+    expect(
+      summary(cycle({ metrics: metrics({ codingSeconds: 600 }) }), [
+        "WAKATIME",
+      ]),
+    ).toBe(
+      "8 ngày có hoạt động · 23 commit · 4 PR mở · 3 PR merge · 10 phút code",
+    );
+  });
+
+  it("shows zero coding time when measured, nothing when not", () => {
+    expect(
+      summary(cycle({ metrics: metrics({ codingSeconds: 0 }) }), [
+        "GITHUB",
+        "WAKATIME",
+      ]),
+    ).toBe(
+      "8 ngày có hoạt động · 23 commit · 4 PR mở · 3 PR merge · 0 phút code",
+    );
+    expect(summary(cycle())).not.toContain("code");
+  });
+
+  it("counts coding below the active-day threshold as activity", () => {
+    expect(
+      summary(
+        cycle({
+          metrics: metrics({
+            activeDays: 0,
+            commits: 0,
+            prsOpened: 0,
+            prsMerged: 0,
+            codingSeconds: 600,
+          }),
+        }),
+        ["WAKATIME"],
+      ),
+    ).toBe("0 ngày có hoạt động · 10 phút code");
+  });
+
   it("lists active days, commits and pull requests", () => {
-    expect(summaryLine(cycle())).toBe(
+    expect(summary(cycle())).toBe(
       "8 ngày có hoạt động · 23 commit · 4 PR mở · 3 PR merge",
     );
   });
 
   it("says how many of those days were while paused, and keeps zeros", () => {
     expect(
-      summaryLine(
+      summary(
         cycle({
           metrics: {
             activeDays: 8,
@@ -94,11 +194,11 @@ describe("summaryLine", () => {
 
       codingSeconds: null,
     };
-    expect(summaryLine(cycle({ metrics: none }))).toBe(
+    expect(summary(cycle({ metrics: none }))).toBe(
       "Chưa có hoạt động trong vòng này.",
     );
     expect(
-      summaryLine(
+      summary(
         cycle({
           metrics: none,
           days: [
@@ -111,14 +211,14 @@ describe("summaryLine", () => {
   });
 
   it("flags missing data reported by a stale source", () => {
-    expect(summaryLine(cycle({ hasMissingData: true }))).toBe(
+    expect(summary(cycle({ hasMissingData: true }))).toBe(
       "8 ngày có hoạt động · 23 commit · 4 PR mở · 3 PR merge (một số ngày chưa có dữ liệu)",
     );
   });
 
   it("flags days without data next to a normal line", () => {
     expect(
-      summaryLine(
+      summary(
         cycle({
           days: [
             { date: "2026-10-17", state: "NO_DATA", codingSeconds: null },
@@ -216,6 +316,23 @@ describe("day strip helpers", () => {
       }),
     ).toBe("08/10: có hoạt động lúc tạm dừng");
   });
+
+  it("adds the coding time of a day that has some", () => {
+    expect(
+      dayDescription({
+        date: "2026-10-20",
+        state: "ACTIVE",
+        codingSeconds: 10_440,
+      }),
+    ).toBe("20/10: có hoạt động · 2,9 giờ code");
+    // Dưới ngưỡng 15 phút: chưa là ngày có hoạt động, nhưng vẫn nói giờ code.
+    expect(
+      dayDescription({ date: "2026-10-18", state: "IDLE", codingSeconds: 600 }),
+    ).toBe("18/10: không có hoạt động · 10 phút code");
+    expect(
+      dayDescription({ date: "2026-10-19", state: "IDLE", codingSeconds: 0 }),
+    ).toBe("19/10: không có hoạt động");
+  });
 });
 
 describe("divergenceText", () => {
@@ -266,5 +383,37 @@ describe("divergenceText", () => {
         TZ,
       ),
     ).toBe("6 hoạt động kể từ khi dừng (gần nhất 14/10).");
+  });
+
+  it("adds coding time after closing, alone or after the events", () => {
+    const afterClose = {
+      kind: "ACTIVITY_AFTER_CLOSE" as const,
+      lastActivityAt: "2026-10-14T03:00:00.000Z",
+      codingSeconds: 9_000,
+    };
+    expect(
+      divergenceText(
+        { ...afterClose, closedAs: "COMPLETED", commits: 0, otherEvents: 0 },
+        TZ,
+      ),
+    ).toBe("2,5 giờ code kể từ khi hoàn thành (gần nhất 14/10).");
+    expect(
+      divergenceText(
+        { ...afterClose, closedAs: "STOPPED", commits: 4, otherEvents: 0 },
+        TZ,
+      ),
+    ).toBe("4 commit · 2,5 giờ code kể từ khi dừng (gần nhất 14/10).");
+    expect(
+      divergenceText(
+        {
+          ...afterClose,
+          closedAs: "STOPPED",
+          commits: 4,
+          otherEvents: 0,
+          codingSeconds: 0,
+        },
+        TZ,
+      ),
+    ).toBe("4 commit kể từ khi dừng (gần nhất 14/10).");
   });
 });
