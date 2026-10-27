@@ -328,7 +328,7 @@ Hướng dẫn:
 
 Không có ngày hết hạn nên không có trạng thái "sắp hết hạn".
 
-### 7.2. Project Edit — Nguồn hoạt động
+### 7.2. Sheet Nguồn hoạt động
 
 - Thêm nút **Gắn project WakaTime** cạnh **Gắn repository** (chỉ khi đã kết nối WakaTime; chưa kết nối thì có đường dẫn tới Cài đặt, như GitHub).
 - Bộ chọn giống bộ chọn repository: tìm theo tên; mỗi dòng có tên project và "Code gần nhất {ngày}".

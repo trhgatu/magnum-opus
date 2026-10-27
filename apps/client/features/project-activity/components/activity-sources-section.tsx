@@ -158,14 +158,6 @@ export function ActivitySourcesSection({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="space-y-1">
-        <h2 className="text-sm font-medium">Nguồn hoạt động</h2>
-        <p className="text-sm text-muted-foreground">
-          Gắn repository GitHub hoặc project WakaTime để thấy hoạt động thật của
-          từng vòng — đặt cạnh trạng thái bạn tuyên bố cho Project.
-        </p>
-      </div>
-
       {state === "none" ? (
         <p className="text-sm">
           Cần kết nối GitHub trước.{" "}

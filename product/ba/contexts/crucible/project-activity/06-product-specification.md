@@ -70,11 +70,9 @@ Không dùng trong sản phẩm: "năng suất", "điểm", "streak", "mục ti�
 /settings
   └── Kết nối GitHub                         (§6)
 
-/projects/:id/edit
-  └── Nguồn hoạt động                        (§7)
-
 /projects/:id
   ├── Hero (trạng thái, Cycle)
+  │     ├── Nút "Nguồn hoạt động" → sheet    (§7)
   │     └── Dòng thông tin D3 / D4           (§9)   khi không có Cycle mở
   ├── Card Cycle đang mở
   │     ├── Outcome, lịch sử outcome          (có sẵn)
@@ -84,7 +82,9 @@ Không dùng trong sản phẩm: "năng suất", "điểm", "streak", "mục ti�
         └── Hoạt động của vòng (snapshot)     (§10)
 ```
 
-**Vì sao quản lý nguồn nằm ở trang Chỉnh sửa:** BR-PAC-034 không cho trang chi tiết của Project không có nguồn hiển thị khung trống hay lời mời kết nối. Trang Chỉnh sửa là nơi người dùng chủ động thay đổi thông tin Project, nên mục "Nguồn hoạt động" ở đó không làm Project trông như đang thiếu gì. Trang chi tiết chỉ hiển thị hoạt động khi đã có nguồn.
+**Vì sao quản lý nguồn nằm trong sheet:** BR-PAC-034 không cho trang chi tiết của Project không có nguồn hiển thị khung trống hay lời mời kết nối. Nút "Nguồn hoạt động" là một hành động trung tính cạnh các nút trạng thái, như nút Chỉnh sửa trước đây; danh sách nguồn và lời nhắc kết nối chỉ hiện khi người dùng chủ động mở sheet, nên Project không trông như đang thiếu gì. Trang chi tiết chỉ hiển thị hoạt động khi đã có nguồn.
+
+Trước 2026-10-27 mục này nằm ở `/projects/:id/edit`. Tên và mô tả đã sửa được ngay trên trang chi tiết, nên trang Chỉnh sửa bị bỏ; đường dẫn cũ chuyển hướng về `/projects/:id`.
 
 ---
 
@@ -151,9 +151,9 @@ Lỗi không xóa nội dung ô token người dùng vừa dán.
 
 ---
 
-# 7. Project Edit — Nguồn hoạt động
+# 7. Project Detail — Sheet Nguồn hoạt động
 
-Một mục mới ở cuối trang `/projects/:id/edit`, tách khỏi form tên/mô tả (không đi qua nút Lưu của form).
+Nút **Nguồn hoạt động** ở phần đầu trang `/projects/:id`, đứng trước các nút đổi trạng thái, mở một sheet bên phải. Gắn hoặc gỡ có hiệu lực ngay, không qua nút Lưu; trang chi tiết phía sau làm mới theo nguồn mới.
 
 ## 7.1. States
 

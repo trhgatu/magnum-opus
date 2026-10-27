@@ -1,5 +1,5 @@
 import type { ProjectCycleResponse, ProjectResponse } from "@repo/contracts";
-import { ArrowLeft, FolderKanban, Pencil } from "lucide-react";
+import { ArrowLeft, FolderKanban } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -33,6 +33,7 @@ export function ProjectDetail({
   activity,
   activityNotes,
   closedCycleActivity,
+  sourcesAction,
 }: {
   project: ProjectResponse;
   /** null khi không tải được — xem page.tsx. */
@@ -44,6 +45,8 @@ export function ProjectDetail({
   activityNotes?: ReactNode;
   /** Snapshot hoạt động của từng Cycle đã đóng, theo id Cycle. */
   closedCycleActivity?: Record<string, ReactNode>;
+  /** Nút "Nguồn hoạt động" — đứng trước các nút đổi trạng thái. */
+  sourcesAction?: ReactNode;
 }) {
   const hasOpenCycle =
     project.lifecycleState === "ACTIVE" || project.lifecycleState === "PAUSED";
@@ -92,12 +95,7 @@ export function ProjectDetail({
           }
           actions={
             <>
-              <Link
-                href={`/projects/${project.id}/edit`}
-                className={buttonVariants({ variant: "outline" })}
-              >
-                <Pencil aria-hidden="true" /> Chỉnh sửa
-              </Link>
+              {sourcesAction}
               <ProjectLifecycleControlsInline />
             </>
           }

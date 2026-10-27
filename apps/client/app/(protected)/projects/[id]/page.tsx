@@ -19,6 +19,11 @@ import {
   getCycleSnapshots,
   getProjectActivity,
 } from "@/features/project-activity/api/project-activity";
+import {
+  ActivitySourcesPanel,
+  ActivitySourcesSkeleton,
+} from "@/features/project-activity/components/activity-sources-panel";
+import { ActivitySourcesSheet } from "@/features/project-activity/components/activity-sources-sheet";
 import { CycleSnapshot } from "@/features/project-activity/components/cycle-snapshot";
 import {
   ActivityDivergencePanel,
@@ -97,6 +102,13 @@ export default async function ProjectDetailPage({
         </Suspense>
       }
       closedCycleActivity={closedCycleActivity}
+      sourcesAction={
+        <ActivitySourcesSheet>
+          <Suspense fallback={<ActivitySourcesSkeleton />}>
+            <ActivitySourcesPanel projectId={project.id} />
+          </Suspense>
+        </ActivitySourcesSheet>
+      }
       activityNotes={
         <Suspense fallback={null}>
           <ActivityDivergencePanel activity={activity} />
