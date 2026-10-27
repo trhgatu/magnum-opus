@@ -25,7 +25,8 @@ export function ActivitySourcesSheet({ children }: { children: ReactNode }) {
           <Cable aria-hidden="true" /> Nguồn hoạt động
         </Button>
       </SheetTrigger>
-      <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
+      {/* Cùng biến thể data-[side=right] với sheet.tsx thì mới đè được. */}
+      <SheetContent className="overflow-y-auto data-[side=right]:w-full data-[side=right]:sm:max-w-lg">
         <SheetHeader className="pr-12">
           <SheetTitle>Nguồn hoạt động</SheetTitle>
           <SheetDescription>

@@ -134,6 +134,8 @@ describe("linkActivitySource", () => {
         }),
       },
     );
+    // Chỉ trang chi tiết: trang chỉnh sửa không còn.
+    expect(revalidatePath).toHaveBeenCalledTimes(1);
     expect(revalidatePath).toHaveBeenCalledWith(`/projects/${PROJECT_ID}`);
   });
 
