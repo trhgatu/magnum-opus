@@ -328,7 +328,9 @@ Hướng dẫn:
 
 Không có ngày hết hạn nên không có trạng thái "sắp hết hạn".
 
-### 7.2. Project Edit — Nguồn hoạt động
+### 7.2. Sheet Nguồn hoạt động
+
+Sheet mở từ nút **Nguồn hoạt động** ở phần đầu trang chi tiết Project (`06` §7). Trang không nhắc tới WakaTime hay mời kết nối cho tới khi người dùng mở sheet (BR-PAC-034).
 
 - Thêm nút **Gắn project WakaTime** cạnh **Gắn repository** (chỉ khi đã kết nối WakaTime; chưa kết nối thì có đường dẫn tới Cài đặt, như GitHub).
 - Bộ chọn giống bộ chọn repository: tìm theo tên; mỗi dòng có tên project và "Code gần nhất {ngày}".
@@ -473,7 +475,7 @@ Theo cách Phase 1 (một PR mỗi phần, CI + review trước khi merge):
 | 7d-1 | API: `GET /integrations/wakatime/projects`; gắn nguồn `WAKATIME` (id kiểm theo provider, lỗi gắn theo provider)                                                                                                                      |
 | 7d-2 | API: `codingSeconds` trong response và snapshot                                                                                                                                                                                      |
 | 7e   | Client: card WakaTime ở Cài đặt                                                                                                                                                                                                      |
-| 7f   | Client: gắn project WakaTime ở trang chỉnh sửa                                                                                                                                                                                       |
+| 7f   | Client: gắn project WakaTime (trang chỉnh sửa; từ #194 là sheet trên trang chi tiết)                                                                                                                                                 |
 | 7g   | Client: giờ code ở tóm tắt, tooltip, D3, snapshot                                                                                                                                                                                    |
 
 ---

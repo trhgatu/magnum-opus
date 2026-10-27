@@ -14,9 +14,9 @@ import { getWakaTimeConnection } from "@/features/wakatime/api/wakatime-connecti
 import { ActivitySourcesSection } from "./activity-sources-section";
 
 /**
- * Đọc nguồn trong Suspense riêng: lỗi ở đây chỉ hiện trong mục này — form
- * tên/mô tả của trang chỉnh sửa vẫn dùng được. Kết nối GitHub đọc riêng
- * nữa: nó lỗi thì vẫn hiện được các nguồn đã gắn và nút gỡ.
+ * Đọc nguồn trong Suspense riêng: lỗi ở đây chỉ hiện trong sheet nguồn — phần
+ * còn lại của trang chi tiết vẫn dùng được. Kết nối GitHub và WakaTime đọc
+ * riêng nữa: chúng lỗi thì vẫn hiện được các nguồn đã gắn và nút gỡ.
  */
 export async function ActivitySourcesPanel({
   projectId,
@@ -40,14 +40,11 @@ export async function ActivitySourcesPanel({
     ]);
   } catch {
     return (
-      <div className="flex flex-col gap-2">
-        <h2 className="text-sm font-medium">Nguồn hoạt động</h2>
-        <Alert variant="destructive">
-          <AlertDescription>
-            Chưa tải được nguồn hoạt động. Tải lại trang để thử lại.
-          </AlertDescription>
-        </Alert>
-      </div>
+      <Alert variant="destructive">
+        <AlertDescription>
+          Chưa tải được nguồn hoạt động. Tải lại trang để thử lại.
+        </AlertDescription>
+      </Alert>
     );
   }
 

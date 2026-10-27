@@ -128,8 +128,7 @@ export async function unlinkActivitySource(input: {
   return { status: "success" };
 }
 
-/** Trang chi tiết và trang chỉnh sửa đều hiển thị nguồn. */
+/** Trang chi tiết hiện nguồn (sheet) và hoạt động tính từ nguồn. */
 function revalidateProject(projectId: string) {
   revalidatePath(`/projects/${projectId}`);
-  revalidatePath(`/projects/${projectId}/edit`);
 }

@@ -113,7 +113,7 @@ describe("searchWakaTimeProjects", () => {
 });
 
 describe("linkActivitySource", () => {
-  it("links the repository and refreshes both project pages", async () => {
+  it("links the repository and refreshes the project page", async () => {
     const source = { feedId: FEED_ID, displayName: "trhgatu/magnum-opus" };
     apiFetch.mockResolvedValue(source);
 
@@ -134,8 +134,9 @@ describe("linkActivitySource", () => {
         }),
       },
     );
+    // Chỉ trang chi tiết: trang chỉnh sửa không còn.
+    expect(revalidatePath).toHaveBeenCalledTimes(1);
     expect(revalidatePath).toHaveBeenCalledWith(`/projects/${PROJECT_ID}`);
-    expect(revalidatePath).toHaveBeenCalledWith(`/projects/${PROJECT_ID}/edit`);
   });
 
   it("links a WakaTime project by its id", async () => {
@@ -230,7 +231,7 @@ describe("failing API calls", () => {
 });
 
 describe("unlinkActivitySource", () => {
-  it("unlinks the feed and refreshes both project pages", async () => {
+  it("unlinks the feed and refreshes the project page", async () => {
     apiFetch.mockResolvedValue(undefined);
 
     await expect(
@@ -240,7 +241,7 @@ describe("unlinkActivitySource", () => {
       `/projects/${PROJECT_ID}/activity/sources/${FEED_ID}`,
       { method: "DELETE" },
     );
-    expect(revalidatePath).toHaveBeenCalledTimes(2);
+    expect(revalidatePath).toHaveBeenCalledTimes(1);
   });
 
   it("rejects ids that are not UUIDs", async () => {
