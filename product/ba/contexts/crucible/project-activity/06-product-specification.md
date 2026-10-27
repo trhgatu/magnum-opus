@@ -386,8 +386,9 @@ And khác với ngày "không có hoạt động"
 Given người dùng có kết nối GitHub ACTIVE
 And Project chưa có nguồn
 When người dùng mở trang chi tiết Project
-Then không có phần nào nhắc tới hoạt động, GitHub hay nguồn
-And người dùng vẫn gắn được nguồn từ trang Chỉnh sửa
+Then không có phần hoạt động, khung trống hay lời mời kết nối GitHub
+And chỉ có nút trung tính "Nguồn hoạt động" ở phần đầu trang
+And mở sheet từ nút đó, người dùng gắn được nguồn
 ```
 
 ```gherkin
