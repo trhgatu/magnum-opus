@@ -267,7 +267,7 @@ POST /projects/:id/activity/sources  { provider: GITHUB, externalResourceId }   
 | Khi nào                               | Vì sao                                                                                                                   |
 | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | Mở trang Project, feed cũ hơn 10 phút | Giữ dữ liệu đủ tươi mà không gọi API mỗi lần (ASM-PAC-006)                                                               |
-| Khép Cycle                            | Snapshot có dữ liệu mới nhất có thể                                                                                      |
+| Khép Cycle                            | Snapshot có dữ liệu mới nhất có thể; chép khi sổ chưa tới lúc khép, không xét mốc 10 phút                                |
 | Gắn nguồn                             | Chép bù phần lịch sử cần cho Cycle đang mở                                                                               |
 | _(sau)_ Định kỳ                       | Chỉ cho nguồn có `historyWindowDays` (vd WakaTime free); chạy bằng cron bên ngoài gọi endpoint nội bộ khi chưa có worker |
 

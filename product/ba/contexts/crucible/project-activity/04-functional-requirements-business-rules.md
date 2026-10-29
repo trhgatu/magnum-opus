@@ -461,7 +461,7 @@ Ngoài nội dung, mỗi dòng sổ mang metadata cần cho vận hành: feed m�
 Một feed được chép:
 
 - khi người dùng xem hoạt động của Project và lần chép gần nhất đã cách hơn 10 phút;
-- khi một Cycle của Project dùng feed khép lại (lần chép cuối, giới hạn thời gian);
+- khi một Cycle của Project dùng feed khép lại (lần chép cuối, giới hạn thời gian). Lần chép này chạy khi sổ chưa phủ tới lúc khép, kể cả khi lần chép trước chưa quá 10 phút hay vừa lỗi; nếu không, khép ngay sau khi mở trang sẽ cho snapshot thiếu vài phút cuối và bị ghi là thiếu dữ liệu;
 - khi feed được gắn vào Project và khoảng đã chép chưa phủ tới thời điểm cần:
   - Project có Cycle mở: lúc Cycle đó bắt đầu;
   - Project `STOPPED`/`COMPLETED` sau khi đã có ít nhất một Cycle: lúc Cycle cuối cùng khép (để D3 thấy được hoạt động sau khi khép, kể cả trước lúc gắn);

@@ -152,13 +152,25 @@ export class ActivityFeed {
    * nguồn ở mỗi lần mở trang. Feed DISCONNECTED vẫn được thử lại: kết nối
    * lại cùng tài khoản đưa nó về ACTIVE (07 §4.3), và provider kiểm kết nối
    * trước khi gọi nguồn nên lần thử đó không tốn request bên ngoài.
+   *
+   * `neededUntil` (lần chép cuối trước snapshot): sổ chưa tới mốc đó thì chép
+   * ngay, kể cả vừa chép hay vừa lỗi — snapshot chỉ chụp một lần.
    */
   needsSyncAt(input: {
     neededFrom: Date;
+    neededUntil?: Date;
     now: Date;
     historyWindowDays: number | null;
   }): boolean {
     if (this.isStaleAt(input.now)) return true;
+
+    const { syncedUntil } = this.props;
+    if (
+      input.neededUntil &&
+      (syncedUntil === null || syncedUntil < input.neededUntil)
+    ) {
+      return true;
+    }
     if (this.props.lastErrorCode !== null) return false;
 
     const { coveredFrom } = this.props;

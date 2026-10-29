@@ -122,6 +122,43 @@ describe('ActivityFeed', () => {
       ).toBe(false);
     });
 
+    it('copies right away when the ledger stops short of the needed end', () => {
+      // Vừa chép lúc mở trang, rồi khép Cycle 2 phút sau: lần chép cuối
+      // không được bỏ qua, nếu không snapshot dừng trước lúc khép.
+      const feed = synced({ coveredFrom: neededFrom, syncedUntil: now });
+
+      expect(
+        feed.needsSyncAt({
+          neededFrom,
+          neededUntil: at(2),
+          now: at(2),
+          historyWindowDays: null,
+        }),
+      ).toBe(true);
+      expect(
+        feed.needsSyncAt({
+          neededFrom,
+          neededUntil: now,
+          now: at(2),
+          historyWindowDays: null,
+        }),
+      ).toBe(false);
+    });
+
+    it('retries a just-failed copy when the ledger stops short of the needed end', () => {
+      const feed = synced({ coveredFrom: neededFrom, syncedUntil: now });
+      feed.recordFailure({ code: 'GITHUB_UNAVAILABLE', now: at(1) });
+
+      expect(
+        feed.needsSyncAt({
+          neededFrom,
+          neededUntil: at(2),
+          now: at(2),
+          historyWindowDays: null,
+        }),
+      ).toBe(true);
+    });
+
     it('waits out the 10 minutes after a failure, even when history is missing', () => {
       // Lần chép đầu vừa lỗi: không gọi lại nguồn ở mỗi lần mở trang.
       const feed = create();
