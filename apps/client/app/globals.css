@@ -2,6 +2,14 @@
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
+/*
+ * components/ui viết hiệu ứng bằng data-open:/data-closed: (quy ước Base UI),
+ * nhưng chạy trên Radix — Radix gắn data-state chứ không gắn data-open, nên
+ * thiếu hai dòng này thì không modal, dropdown, tooltip nào có hiệu ứng.
+ * delayed-open/instant-open là trạng thái mở của Tooltip.
+ */
+@custom-variant data-open (&:is([data-state="open"], [data-state="delayed-open"], [data-state="instant-open"]));
+@custom-variant data-closed (&[data-state="closed"]);
 
 :root {
   --background: oklch(0.978 0.012 82);
@@ -174,5 +182,21 @@
   .memory-sort-control:has(.memory-sort-popover:popover-open)
     .memory-sort-chevron {
     rotate: 180deg;
+  }
+}
+
+/*
+ * Người dùng chọn giảm chuyển động: hiệu ứng gần như tức thì. Rút ngắn chứ
+ * không tắt hẳn, để animation vẫn chạy tới trạng thái cuối và phát
+ * animationend như bình thường.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

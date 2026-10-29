@@ -21,6 +21,11 @@ const createDailyHabit = async (
   await expect(page).toHaveURL(/\/habits\/[0-9a-f-]+$/);
 };
 
+// Chỉ trong danh sách của Nếp sinh hoạt: ô chọn vừa đóng còn mờ dần một
+// thoáng, và nút chọn vẫn hiện tên Thói quen vừa chọn.
+const routineHabit = (page: import("@playwright/test").Page, title: string) =>
+  page.getByRole("main").locator("ol > li").getByText(title, { exact: true });
+
 test("completes the private Routine lifecycle through the BFF", async ({
   page,
 }) => {
@@ -54,7 +59,7 @@ test("completes the private Routine lifecycle through the BFF", async ({
     .fill(firstHabit);
   await page.getByRole("option", { name: firstHabit }).click();
   await page.getByRole("button", { name: "Thêm vào Nếp sinh hoạt" }).click();
-  await expect(page.getByText(firstHabit, { exact: true })).toBeVisible();
+  await expect(routineHabit(page, firstHabit)).toBeVisible();
 
   await page.getByRole("combobox").click();
   await page
@@ -62,7 +67,7 @@ test("completes the private Routine lifecycle through the BFF", async ({
     .fill(secondHabit);
   await page.getByRole("option", { name: secondHabit }).click();
   await page.getByRole("button", { name: "Thêm vào Nếp sinh hoạt" }).click();
-  await expect(page.getByText(secondHabit, { exact: true })).toBeVisible();
+  await expect(routineHabit(page, secondHabit)).toBeVisible();
 
   await page
     .getByRole("button", { name: `Di chuyển ${secondHabit} lên` })
@@ -74,7 +79,7 @@ test("completes the private Routine lifecycle through the BFF", async ({
   await page
     .getByRole("button", { name: `Gỡ ${firstHabit} khỏi Nếp sinh hoạt` })
     .click();
-  await expect(page.getByText(firstHabit, { exact: true })).not.toBeVisible();
+  await expect(routineHabit(page, firstHabit)).not.toBeVisible();
 
   await page.getByRole("link", { name: "Chỉnh sửa" }).click();
   await page.getByLabel("Tên Nếp sinh hoạt").fill(updatedTitle);
@@ -118,7 +123,7 @@ test("reorders Routine Habits by dragging the grip handle", async ({
     .fill(firstHabit);
   await page.getByRole("option", { name: firstHabit }).click();
   await page.getByRole("button", { name: "Thêm vào Nếp sinh hoạt" }).click();
-  await expect(page.getByText(firstHabit, { exact: true })).toBeVisible();
+  await expect(routineHabit(page, firstHabit)).toBeVisible();
 
   await page.getByRole("combobox").click();
   await page
@@ -126,7 +131,7 @@ test("reorders Routine Habits by dragging the grip handle", async ({
     .fill(secondHabit);
   await page.getByRole("option", { name: secondHabit }).click();
   await page.getByRole("button", { name: "Thêm vào Nếp sinh hoạt" }).click();
-  await expect(page.getByText(secondHabit, { exact: true })).toBeVisible();
+  await expect(routineHabit(page, secondHabit)).toBeVisible();
 
   const orderedHabits = page.getByRole("main").locator("ol > li");
   await expect(orderedHabits.nth(0)).toContainText(firstHabit);
