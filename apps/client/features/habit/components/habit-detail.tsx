@@ -8,20 +8,18 @@ import { ArrowLeft, CalendarCheck2, Repeat2 } from "lucide-react";
 import Link from "next/link";
 
 import { ContextHero } from "@/components/system/context-hero";
-import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { HabitCheckInControl } from "@/features/habit/components/habit-check-in-control";
 import { HabitHeatmap } from "@/features/habit/components/habit-heatmap";
 import {
   HabitDetailActions,
+  HabitDetailMeta,
   HabitEditableDescription,
   HabitEditableTitle,
   HabitEditProvider,
 } from "@/features/habit/components/habit-edit-sheet";
 import { HabitRelapseControl } from "@/features/habit/components/habit-relapse-control";
-import { formatHabitFrequency } from "@/features/habit/lib/habit-frequency";
-import { formatQuitStartedAt } from "@/features/habit/lib/habit-quit";
 
 type HabitDetailProps =
   | {
@@ -74,21 +72,7 @@ export function HabitDetail(props: HabitDetailProps) {
               }
             />
           }
-          meta={
-            <>
-              <Badge>
-                {isQuit && habit.quitStartedAt
-                  ? `Bắt đầu ${formatQuitStartedAt(habit.quitStartedAt)}`
-                  : formatHabitFrequency(
-                      habit.frequencyType,
-                      habit.frequencyDays,
-                    )}
-              </Badge>
-              <Badge variant={habit.isActive ? "outline" : "secondary"}>
-                {habit.isActive ? "Đang rèn luyện" : "Đã lưu trữ"}
-              </Badge>
-            </>
-          }
+          meta={<HabitDetailMeta />}
           actions={<HabitDetailActions />}
         />
       </HabitEditProvider>

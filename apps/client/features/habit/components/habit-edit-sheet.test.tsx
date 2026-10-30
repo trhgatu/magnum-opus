@@ -7,6 +7,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -34,6 +35,7 @@ vi.mock("@/lib/toast", () => ({ notifySuccess }));
 
 import {
   HabitDetailActions,
+  HabitDetailMeta,
   HabitEditableDescription,
   HabitEditableTitle,
   HabitEditProvider,
@@ -70,26 +72,45 @@ beforeEach(() => vi.clearAllMocks());
 afterEach(cleanup);
 
 describe("HabitEditProvider", () => {
-  it("opens the form from the Edit button with the cursor in the title", () => {
+  it("opens the form from the Edit button with the cursor in the title", async () => {
     renderDetail();
 
     expect(screen.queryByRole("dialog")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Chỉnh sửa" }));
 
     screen.getByRole("dialog", { name: "Chỉnh sửa thói quen" });
-    expect(document.activeElement).toBe(screen.getByLabelText("Tên thói quen"));
+    const title = await screen.findByLabelText("Tên thói quen");
+    await waitFor(() => expect(document.activeElement).toBe(title));
   });
 
-  it("opens the form at the description when the description is clicked", () => {
+  it("opens the form at the title when the title is clicked", async () => {
+    renderDetail();
+
+    // Gợi ý cho trình đọc màn hình không lọt vào tên của tiêu đề trang.
+    const heading = screen.getByRole("heading", { name: "Thiền 10 phút" });
+    fireEvent.click(
+      within(heading).getByRole("button", {
+        name: "Thiền 10 phút",
+        description: "Bấm để chỉnh sửa tên thói quen",
+      }),
+    );
+
+    const title = await screen.findByLabelText("Tên thói quen");
+    await waitFor(() => expect(document.activeElement).toBe(title));
+  });
+
+  it("opens the form at the description when the description is clicked", async () => {
     renderDetail();
 
     fireEvent.click(
       screen.getByRole("button", {
         name: "Một hành động nhỏ. Bấm để thêm mô tả.",
+        description: "Bấm để chỉnh sửa mô tả thói quen",
       }),
     );
 
-    expect(document.activeElement).toBe(screen.getByLabelText("Ý nghĩa"));
+    const description = await screen.findByLabelText("Ý nghĩa");
+    await waitFor(() => expect(document.activeElement).toBe(description));
   });
 
   it("closes after saving, shows the new title and archives the new revision", async () => {
@@ -102,13 +123,13 @@ describe("HabitEditProvider", () => {
     renderDetail();
 
     fireEvent.click(screen.getByRole("button", { name: "Chỉnh sửa" }));
-    fireEvent.change(screen.getByLabelText("Tên thói quen"), {
+    fireEvent.change(await screen.findByLabelText("Tên thói quen"), {
       target: { value: "Thiền 15 phút" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Lưu thay đổi" }));
 
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-    expect(screen.getByRole("heading").textContent).toBe("Thiền 15 phút");
+    screen.getByRole("heading", { name: "Thiền 15 phút" });
     expect(refresh).toHaveBeenCalledOnce();
 
     // Chưa kịp refresh mà bấm Lưu trữ ngay vẫn phải dùng revision vừa lưu.
@@ -122,12 +143,37 @@ describe("HabitEditProvider", () => {
     );
   });
 
-  it("asks before throwing away unsaved changes", () => {
+  it("shows the saved schedule without waiting for the page to refresh", async () => {
+    updateHabit.mockResolvedValue({
+      status: "success",
+      habit: {
+        ...habit,
+        frequencyType: "WEEKLY",
+        frequencyDays: [1, 3, 5],
+        revision: 4,
+      },
+    });
+    render(
+      <HabitEditProvider initialHabit={habit}>
+        <HabitDetailMeta />
+        <HabitDetailActions />
+      </HabitEditProvider>,
+    );
+    expect(screen.getByText("Mỗi ngày")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Chỉnh sửa" }));
+    await screen.findByLabelText("Tên thói quen");
+    fireEvent.click(screen.getByRole("button", { name: "Lưu thay đổi" }));
+
+    expect(await screen.findByText("T2 · T4 · T6")).toBeTruthy();
+  });
+
+  it("asks before throwing away unsaved changes", async () => {
     const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
     renderDetail();
 
     fireEvent.click(screen.getByRole("button", { name: "Chỉnh sửa" }));
-    fireEvent.change(screen.getByLabelText("Tên thói quen"), {
+    fireEvent.change(await screen.findByLabelText("Tên thói quen"), {
       target: { value: "Thiền 20 phút" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Hủy" }));
@@ -142,12 +188,12 @@ describe("HabitEditProvider", () => {
     confirmSpy.mockRestore();
   });
 
-  it("closes without asking when nothing changed", () => {
+  it("closes without asking when nothing changed", async () => {
     const confirmSpy = vi.spyOn(window, "confirm");
     renderDetail();
 
     fireEvent.click(screen.getByRole("button", { name: "Chỉnh sửa" }));
-    fireEvent.click(screen.getByRole("button", { name: "Hủy" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Hủy" }));
 
     expect(confirmSpy).not.toHaveBeenCalled();
     expect(screen.queryByRole("dialog")).toBeNull();
@@ -158,7 +204,14 @@ describe("HabitEditProvider", () => {
     renderDetail({ ...habit, isActive: false });
 
     expect(screen.queryByRole("button", { name: "Chỉnh sửa" })).toBeNull();
-    expect(screen.getByRole("heading").textContent).toBe("Thiền 10 phút");
+    // Tên và mô tả chỉ là chữ, không còn là nút mở sheet.
+    expect(
+      within(screen.getByRole("heading")).queryByRole("button"),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: /Một hành động nhỏ/ }),
+    ).toBeNull();
+    screen.getByRole("heading", { name: "Thiền 10 phút" });
     expect(screen.getByText("Một hành động nhỏ.")).toBeTruthy();
     screen.getByRole("button", { name: "Khôi phục" });
   });

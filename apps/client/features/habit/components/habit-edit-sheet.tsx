@@ -2,9 +2,18 @@
 
 import type { HabitResponse } from "@repo/contracts";
 import { Pencil } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { createContext, type ReactNode, useContext, useState } from "react";
+import {
+  createContext,
+  type ReactNode,
+  useContext,
+  useEffect,
+  useId,
+  useState,
+} from "react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -13,11 +22,24 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { HabitEditor } from "@/features/habit/components/habit-editor";
 import { HabitLifecycleControls } from "@/features/habit/components/habit-lifecycle-controls";
+import { formatHabitFrequency } from "@/features/habit/lib/habit-frequency";
+import { formatQuitStartedAt } from "@/features/habit/lib/habit-quit";
 import { cn } from "@/lib/utils";
 
 type HabitField = "title" | "description";
+
+// Form kéo theo Select, Calendar và date-fns: chỉ cần khi mở sheet, nên
+// không nằm trong JS tải lần đầu của trang chi tiết.
+const loadHabitEditor = () =>
+  import("@/features/habit/components/habit-editor").then(
+    (module) => module.HabitEditor,
+  );
+
+const HabitEditor = dynamic(loadHabitEditor, {
+  ssr: false,
+  loading: () => <div className="h-96 animate-pulse rounded-xl bg-muted/35" />,
+});
 
 const DISCARD_WARNING =
   "Nội dung chưa được lưu. Đóng lúc này sẽ làm mất phần đang viết.";
@@ -54,6 +76,11 @@ export function HabitEditProvider({
   const [open, setOpen] = useState(false);
   const [focusField, setFocusField] = useState<HabitField>("title");
   const [isDirty, setIsDirty] = useState(false);
+
+  // Tải sẵn form sau khi trang đã hiện, để bấm Chỉnh sửa là có ngay.
+  useEffect(() => {
+    if (initialHabit.isActive) void loadHabitEditor();
+  }, [initialHabit.isActive]);
 
   const openEditor = (field: HabitField) => {
     setFocusField(field);
@@ -108,18 +135,32 @@ export function HabitEditProvider({
 const pencilClassName =
   "shrink-0 text-muted-foreground opacity-40 transition-opacity group-hover:opacity-80 group-focus-visible:opacity-80";
 
+/** Báo cho trình đọc màn hình biết bấm vào là sửa. Dùng aria-describedby
+ * chứ không aria-label: aria-label đè mất tên của tiêu đề trang. `hidden`
+ * để chữ này không cộng vào tên nút, aria-describedby vẫn đọc được. */
+function EditHint({ id, children }: { id: string; children: string }) {
+  return (
+    <span id={id} hidden>
+      {children}
+    </span>
+  );
+}
+
 export function HabitEditableTitle() {
   const { habit, openEditor } = useHabitEdit();
+  const hintId = useId();
   if (!habit.isActive) return habit.title;
 
   return (
     <button
       type="button"
+      aria-describedby={hintId}
       onClick={() => openEditor("title")}
       className="group inline-flex items-baseline gap-2 rounded-md text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
     >
       {habit.title}
       <Pencil className={cn(pencilClassName, "size-4")} aria-hidden="true" />
+      <EditHint id={hintId}>Bấm để chỉnh sửa tên thói quen</EditHint>
     </button>
   );
 }
@@ -130,6 +171,7 @@ export function HabitEditableDescription({
   placeholder: string;
 }) {
   const { habit, openEditor } = useHabitEdit();
+  const hintId = useId();
   const text = habit.description ?? placeholder;
   if (!habit.isActive) {
     return <span className={cn(!habit.description && "italic")}>{text}</span>;
@@ -138,6 +180,7 @@ export function HabitEditableDescription({
   return (
     <button
       type="button"
+      aria-describedby={hintId}
       onClick={() => openEditor("description")}
       className={cn(
         "group inline-flex items-start gap-2 rounded-md text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
@@ -149,7 +192,26 @@ export function HabitEditableDescription({
         className={cn(pencilClassName, "mt-1 size-3.5")}
         aria-hidden="true"
       />
+      <EditHint id={hintId}>Bấm để chỉnh sửa mô tả thói quen</EditHint>
     </button>
+  );
+}
+
+/** Lịch (hoặc ngày bắt đầu từ bỏ) và trạng thái: đọc bản vừa lưu, không
+ * chờ router.refresh(). */
+export function HabitDetailMeta() {
+  const { habit } = useHabitEdit();
+  return (
+    <>
+      <Badge>
+        {habit.type === "QUIT" && habit.quitStartedAt
+          ? `Bắt đầu ${formatQuitStartedAt(habit.quitStartedAt)}`
+          : formatHabitFrequency(habit.frequencyType, habit.frequencyDays)}
+      </Badge>
+      <Badge variant={habit.isActive ? "outline" : "secondary"}>
+        {habit.isActive ? "Đang rèn luyện" : "Đã lưu trữ"}
+      </Badge>
+    </>
   );
 }
 
