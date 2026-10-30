@@ -164,6 +164,28 @@ describe('ActivitySyncService', () => {
     expect(feeds.saveSyncResult).not.toHaveBeenCalled();
   });
 
+  it('copies a fresh feed whose ledger stops short of the needed end', async () => {
+    const fresh = newFeed();
+    const lastSync = new Date(NOW.getTime() - 60_000);
+    fresh.recordSuccess({
+      window: { from: NEEDED_FROM, to: lastSync },
+      displayName: 'trhgatu/magnum-opus',
+      now: lastSync,
+    });
+    feeds.findById.mockResolvedValue(fresh);
+
+    const feed = await service.syncFeed({
+      ownerId: 'owner-id',
+      feedId: 'feed-id',
+      neededFrom: NEEDED_FROM,
+      neededUntil: new Date(NOW.getTime() - 30_000),
+    });
+
+    expect(github.fetchEvents).toHaveBeenCalledTimes(1);
+    expect(feed?.syncedUntil).toEqual(NOW);
+    expect(feeds.saveSyncResult).toHaveBeenCalledWith(fresh);
+  });
+
   it('records a source failure on the feed and keeps the ledger as it is', async () => {
     github.fetchEvents.mockRejectedValue(
       new ActivitySourceError('GITHUB_TOKEN_EXPIRED'),

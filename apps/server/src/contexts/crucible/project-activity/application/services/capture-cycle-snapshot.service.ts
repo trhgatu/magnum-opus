@@ -82,11 +82,18 @@ export class CaptureCycleSnapshotService {
     }
 
     // Lần chép cuối: thất bại hay quá giờ thì chụp từ sổ đang có (BR-PAC-030).
+    // Chép tới lúc khép dù vừa chép xong; nếu không, sổ dừng trước lúc khép
+    // vài phút và snapshot bị ghi là thiếu dữ liệu.
     const feedIds = links.map((link) => link.feedId);
     await withinTimeLimit(
       Promise.allSettled(
         feedIds.map((feedId) =>
-          this.sync.syncFeed({ ownerId, feedId, neededFrom: cycleStart }),
+          this.sync.syncFeed({
+            ownerId,
+            feedId,
+            neededFrom: cycleStart,
+            neededUntil: closedAt,
+          }),
         ),
       ).then((results) =>
         results.forEach((result, index) => {

@@ -43,6 +43,8 @@ export class ActivitySyncService {
     feedId: string;
     /** Sổ cần phủ từ thời điểm này (lúc Cycle mở, lúc gắn nguồn). */
     neededFrom: Date;
+    /** Sổ cần phủ tới thời điểm này, bất kể lần chép trước còn mới (lúc Cycle khép). */
+    neededUntil?: Date;
   }): Promise<ActivityFeed | null> {
     const feed = await this.feeds.findById(input.ownerId, input.feedId);
     if (!feed) return null;
@@ -52,6 +54,7 @@ export class ActivitySyncService {
     const now = this.clock.now();
     const plan = {
       neededFrom: input.neededFrom,
+      neededUntil: input.neededUntil,
       now,
       historyWindowDays: provider.capabilities.historyWindowDays,
     };

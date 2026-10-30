@@ -103,10 +103,12 @@ describe('CaptureCycleSnapshotService', () => {
   it('copies one last time, then freezes the cycle activity up to the close', async () => {
     await capture();
 
+    // Chép tới lúc khép, kể cả khi feed vừa chép lúc mở trang.
     expect(sync.syncFeed).toHaveBeenCalledWith({
       ownerId: 'owner-id',
       feedId: 'feed-id',
       neededFrom: START,
+      neededUntil: CLOSED,
     });
     expect(ledger.listEvents).toHaveBeenCalledWith({
       ownerId: 'owner-id',
