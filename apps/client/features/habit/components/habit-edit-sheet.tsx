@@ -31,15 +31,23 @@ type HabitField = "title" | "description";
 
 // Form kéo theo Select, Calendar và date-fns: chỉ cần khi mở sheet, nên
 // không nằm trong JS tải lần đầu của trang chi tiết.
-const loadHabitEditor = () =>
-  import("@/features/habit/components/habit-editor").then(
-    (module) => module.HabitEditor,
-  );
+// import() phải viết thẳng trong dynamic() thì Next mới nhận ra chunk này;
+// loadHabitEditor chỉ dùng để tải sẵn ở nền.
+const HabitEditor = dynamic(
+  () =>
+    import("@/features/habit/components/habit-editor").then(
+      (module) => module.HabitEditor,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-96 animate-pulse rounded-xl bg-muted/35" />
+    ),
+  },
+);
 
-const HabitEditor = dynamic(loadHabitEditor, {
-  ssr: false,
-  loading: () => <div className="h-96 animate-pulse rounded-xl bg-muted/35" />,
-});
+const loadHabitEditor = () =>
+  import("@/features/habit/components/habit-editor");
 
 const DISCARD_WARNING =
   "Nội dung chưa được lưu. Đóng lúc này sẽ làm mất phần đang viết.";
