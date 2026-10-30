@@ -9,7 +9,15 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 
 const { updateHabit, changeHabitState, refresh, notifySuccess } = vi.hoisted(
   () => ({
@@ -68,6 +76,9 @@ const renderDetail = (initialHabit = habit) =>
     </HabitEditProvider>,
   );
 
+// Form được tải khi mở sheet; biên dịch nó lần đầu có thể quá thời gian chờ
+// của findBy* khi máy bận, nên tải sẵn một lần trước các test.
+beforeAll(() => import("./habit-editor"), 30_000);
 beforeEach(() => vi.clearAllMocks());
 afterEach(cleanup);
 
