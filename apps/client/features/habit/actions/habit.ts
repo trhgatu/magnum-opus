@@ -13,16 +13,13 @@ import { apiFetch, type MutationError, toMutationError } from "@/lib/api";
 import { validId, validRevision } from "@/lib/validation";
 
 export type HabitMutationResult =
-  | { status: "success"; habit: HabitResponse }
-  | MutationError;
+  { status: "success"; habit: HabitResponse } | MutationError;
 
 export type HabitCheckInMutationResult =
-  | { status: "success"; today: HabitCheckInTodayResponse }
-  | MutationError;
+  { status: "success"; today: HabitCheckInTodayResponse } | MutationError;
 
 export type HabitProgressMutationResult =
-  | { status: "success"; progress: HabitProgressResponse | null }
-  | MutationError;
+  { status: "success"; progress: HabitProgressResponse | null } | MutationError;
 
 export type HabitFormInput =
   | {

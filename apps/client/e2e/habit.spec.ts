@@ -52,9 +52,10 @@ test("completes the private Habit lifecycle through the BFF", async ({
     page.getByRole("button", { name: "Hoàn thành hôm nay" }),
   ).toBeVisible();
 
-  await page.getByRole("link", { name: "Chỉnh sửa" }).click();
+  await page.getByRole("button", { name: "Chỉnh sửa" }).click();
   await page.getByLabel("Tên thói quen").fill(updatedTitle);
   await page.getByRole("button", { name: "Lưu thay đổi" }).click();
+  await expect(page.getByRole("dialog")).toBeHidden();
   await expect(page.getByRole("heading", { name: updatedTitle })).toBeVisible();
   await expect(page.getByText(`Đã cập nhật "${updatedTitle}"`)).toBeVisible();
 
