@@ -31,7 +31,7 @@ export function ProjectOutcomeEditor({
   intendedOutcome: string | null;
   /** Tăng lên khi có cập nhật project từ bên ngoài (không phải do chính
    * editor này lưu) — dùng để tự đóng + bỏ draft cũ, cùng cơ chế với
-   * ProjectInlineTitle/ProjectInlineDescription. */
+   * sheet Chỉnh sửa tên/mô tả (ProjectEditAction). */
   externalUpdateToken: number;
   onSubmit: (intendedOutcome: string) => Promise<ProjectOutcomeSubmitResult>;
   onReload: () => void;
@@ -69,7 +69,7 @@ export function ProjectOutcomeEditor({
     onReload();
   };
 
-  // Xem giải thích ở ProjectInlineTitle — đóng editor + bỏ draft khi
+  // Đóng editor + bỏ draft khi
   // context vừa nhận project mới từ bên ngoài (không phải tự lưu), tránh
   // gửi đè draft cũ lên dữ liệu vừa tải về. Chỉ cần xử lý khi đang mở —
   // lúc đóng, `startEditing` đã tự nạp lại giá trị mới nhất mỗi lần mở.

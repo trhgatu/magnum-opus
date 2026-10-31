@@ -72,6 +72,7 @@ Không dùng trong sản phẩm: "năng suất", "điểm", "streak", "mục ti�
 
 /projects/:id
   ├── Hero (trạng thái, Cycle)
+  │     ├── Nút "Chỉnh sửa" → sheet tên, mô tả
   │     ├── Nút "Nguồn hoạt động" → sheet    (§7)
   │     └── Dòng thông tin D3 / D4           (§9)   khi không có Cycle mở
   ├── Card Cycle đang mở
@@ -82,7 +83,7 @@ Không dùng trong sản phẩm: "năng suất", "điểm", "streak", "mục ti�
         └── Hoạt động của vòng (snapshot)     (§10)
 ```
 
-**Vì sao quản lý nguồn nằm trong sheet:** BR-PAC-034 không cho trang chi tiết của Project không có nguồn hiển thị khung trống hay lời mời kết nối. Nút "Nguồn hoạt động" là một hành động trung tính cạnh các nút trạng thái, như nút Chỉnh sửa trước đây; danh sách nguồn và lời nhắc kết nối chỉ hiện khi người dùng chủ động mở sheet, nên Project không trông như đang thiếu gì. Trang chi tiết chỉ hiển thị hoạt động khi đã có nguồn.
+**Vì sao quản lý nguồn nằm trong sheet:** BR-PAC-034 không cho trang chi tiết của Project không có nguồn hiển thị khung trống hay lời mời kết nối. Nút "Nguồn hoạt động" là một hành động trung tính cạnh các nút trạng thái, như nút Chỉnh sửa; danh sách nguồn và lời nhắc kết nối chỉ hiện khi người dùng chủ động mở sheet, nên Project không trông như đang thiếu gì. Trang chi tiết chỉ hiển thị hoạt động khi đã có nguồn.
 
 Trước 2026-10-27 mục này nằm ở `/projects/:id/edit`. Tên và mô tả đã sửa được ngay trên trang chi tiết, nên trang Chỉnh sửa bị bỏ; đường dẫn cũ chuyển hướng về `/projects/:id`.
 
