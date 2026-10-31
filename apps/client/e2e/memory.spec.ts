@@ -107,27 +107,28 @@ test("completes the private Memory lifecycle through the BFF", async ({
   await expect(page.getByText(`Đã lưu ký ức "${originalTitle}"`)).toBeVisible();
 
   await page
-    .getByRole("link", {
+    .getByRole("button", {
       name: "Chỉnh sửa",
     })
     .click();
 
-  await expect(page).toHaveURL(/\/memories\/[0-9a-f-]+\/edit$/);
+  const editSheet = page.getByRole("dialog", { name: "Chỉnh sửa ký ức" });
 
-  await page.getByLabel("Tiêu đề").fill(updatedTitle);
+  await editSheet.getByLabel("Tiêu đề").fill(updatedTitle);
 
-  await page
+  await editSheet
     .getByLabel("Nội dung", {
       exact: true,
     })
     .fill(updatedContent);
 
-  await page
+  await editSheet
     .getByRole("button", {
       name: "Lưu thay đổi",
     })
     .click();
 
+  await expect(editSheet).toBeHidden();
   await expect(page).toHaveURL(/\/memories\/[0-9a-f-]+$/);
 
   await expect(
@@ -166,7 +167,7 @@ test("completes the private Memory lifecycle through the BFF", async ({
   await expect(page.getByText(`Đã khôi phục "${updatedTitle}"`)).toBeVisible();
 
   await expect(
-    page.getByRole("link", {
+    page.getByRole("button", {
       name: "Chỉnh sửa",
     }),
   ).toBeVisible();

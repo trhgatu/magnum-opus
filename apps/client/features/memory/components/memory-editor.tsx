@@ -4,7 +4,13 @@ import type { MemoryDatePrecision, MemoryResponse } from "@repo/contracts";
 import { BookOpenText, Save } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useState, useTransition } from "react";
+import {
+  type FormEvent,
+  useEffect,
+  useId,
+  useState,
+  useTransition,
+} from "react";
 
 import { ConflictAlert } from "@/components/system/conflict-alert";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -31,20 +37,30 @@ export interface MemoryCreationSeed {
   content: string;
 }
 
+/**
+ * Trang tạo mới dùng form một mình; sửa ký ức có sẵn thì form nằm trong
+ * sheet ở trang chi tiết, và sheet quyết định việc đóng sau khi lưu/hủy.
+ */
 type MemoryEditorProps =
   | {
       initialMemory: MemoryResponse;
       creationSeed?: never;
+      onSaved: (memory: MemoryResponse) => void;
+      onCancel: () => void;
+      onDirtyChange?: (isDirty: boolean) => void;
+      /** Đã tải bản mới nhất khi xung đột: trang phía sau cũng phải dùng nó. */
+      onLatestLoaded?: (memory: MemoryResponse) => void;
     }
   | {
       initialMemory?: undefined;
       creationSeed?: MemoryCreationSeed;
     };
 
-export function MemoryEditor({
-  initialMemory,
-  creationSeed,
-}: MemoryEditorProps) {
+export function MemoryEditor(props: MemoryEditorProps) {
+  const { initialMemory, creationSeed } = props;
+  const inSheet = props.initialMemory !== undefined;
+  const titleId = useId();
+  const contentId = useId();
   const router = useRouter();
   const [persistedMemory, setPersistedMemory] = useState(initialMemory);
 
@@ -87,14 +103,26 @@ export function MemoryEditor({
           )
         : "");
   useUnsavedChangesWarning(isDirty);
+  const onDirtyChange = inSheet ? props.onDirtyChange : undefined;
+  useEffect(() => onDirtyChange?.(isDirty), [isDirty, onDirtyChange]);
+  const onLatestLoaded = inSheet ? props.onLatestLoaded : undefined;
+
+  const finishSaving = (memory: MemoryResponse) => {
+    if (props.initialMemory !== undefined) {
+      void notifySuccess(`Đã cập nhật "${memory.title}"`);
+      props.onSaved(memory);
+      return;
+    }
+    void notifySuccess(`Đã lưu ký ức "${memory.title}"`);
+    router.push(`/memories/${memory.id}`);
+    router.refresh();
+  };
 
   const isEditing = Boolean(persistedMemory);
 
-  const cancelHref = persistedMemory
-    ? `/memories/${persistedMemory.id}`
-    : creationSeed
-      ? `/journal/${creationSeed.sourceJournalEntryId}`
-      : "/memories";
+  const cancelHref = creationSeed
+    ? `/journal/${creationSeed.sourceJournalEntryId}`
+    : "/memories";
 
   const handlePrecisionChange = (nextPrecision: MemoryDatePrecision) => {
     setPrecision(nextPrecision);
@@ -160,14 +188,7 @@ export function MemoryEditor({
         return;
       }
 
-      void notifySuccess(
-        persistedMemory
-          ? `Đã cập nhật "${result.memory.title}"`
-          : `Đã lưu ký ức "${result.memory.title}"`,
-      );
-
-      router.push(`/memories/${result.memory.id}`);
-      router.refresh();
+      finishSaving(result.memory);
     });
   };
 
@@ -185,6 +206,7 @@ export function MemoryEditor({
         setRecoveryError(latest.message);
         return;
       }
+      onLatestLoaded?.(latest.memory);
 
       if (!keepLocal) {
         applyPersistedMemory(latest.memory);
@@ -236,10 +258,7 @@ export function MemoryEditor({
         return;
       }
 
-      void notifySuccess(`Đã cập nhật "${result.memory.title}"`);
-
-      router.push(`/memories/${result.memory.id}`);
-      router.refresh();
+      finishSaving(result.memory);
     });
   };
 
@@ -275,10 +294,10 @@ export function MemoryEditor({
       ) : null}
 
       <div className="space-y-2 border-b pb-7">
-        <Label htmlFor="memory-title">Tiêu đề</Label>
+        <Label htmlFor={titleId}>Tiêu đề</Label>
 
         <Input
-          id="memory-title"
+          id={titleId}
           name="title"
           value={title}
           onChange={(event) => setTitle(event.target.value)}
@@ -288,6 +307,7 @@ export function MemoryEditor({
           placeholder="Tên của khoảnh khắc được lưu giữ"
           className="h-auto border-0 bg-transparent px-0 py-2 font-display text-3xl font-semibold shadow-none focus-visible:ring-0 sm:text-4xl md:text-4xl"
           autoComplete="off"
+          autoFocus={inSheet}
         />
 
         <p className="text-xs text-muted-foreground">
@@ -296,10 +316,10 @@ export function MemoryEditor({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="memory-content">Nội dung</Label>
+        <Label htmlFor={contentId}>Nội dung</Label>
 
         <Textarea
-          id="memory-content"
+          id={contentId}
           name="content"
           value={content}
           onChange={(event) => setContent(event.target.value)}
@@ -319,16 +339,28 @@ export function MemoryEditor({
       />
 
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-        <Link
-          href={cancelHref}
-          className={buttonVariants({
-            variant: "outline",
-            size: "lg",
-          })}
-          aria-disabled={isPending}
-        >
-          Hủy
-        </Link>
+        {props.initialMemory !== undefined ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            disabled={isPending}
+            onClick={props.onCancel}
+          >
+            Hủy
+          </Button>
+        ) : (
+          <Link
+            href={cancelHref}
+            className={buttonVariants({
+              variant: "outline",
+              size: "lg",
+            })}
+            aria-disabled={isPending}
+          >
+            Hủy
+          </Link>
+        )}
 
         <Button type="submit" size="lg" disabled={isPending || !isEditable}>
           <Save data-icon="inline-start" aria-hidden="true" />

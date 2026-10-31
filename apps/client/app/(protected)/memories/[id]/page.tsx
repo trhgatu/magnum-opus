@@ -1,7 +1,9 @@
 import type { MemoryResponse } from "@repo/contracts";
+import type { User } from "@repo/types";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { getCurrentUser } from "@/features/account/api/current-user";
 import { getMemory } from "@/features/memory/api/memory";
 import { MemoryDetail } from "@/features/memory/components/memory-detail";
 import { ApiError } from "@/lib/api";
@@ -26,9 +28,10 @@ export default async function MemoryDetailPage({
   const { id } = await params;
 
   let memory: MemoryResponse;
+  let user: User;
 
   try {
-    memory = await getMemory(id);
+    [memory, user] = await Promise.all([getMemory(id), getCurrentUser()]);
   } catch (error) {
     if (
       error instanceof ApiError &&
@@ -40,5 +43,5 @@ export default async function MemoryDetailPage({
     throw error;
   }
 
-  return <MemoryDetail memory={memory} />;
+  return <MemoryDetail memory={memory} timeZone={user.timeZone} />;
 }
