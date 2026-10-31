@@ -225,7 +225,12 @@ describe("RoutineEditProvider", () => {
         (screen.getByLabelText("Tên Nếp sinh hoạt") as HTMLInputElement).value,
       ).toBe("Bản mới nhất từ server"),
     );
-    fireEvent.click(screen.getByRole("button", { name: "Hủy" }));
+    // Ô đã có bản mới nhưng form còn bận thêm một nhịp; Hủy bị khóa tới lúc đó.
+    const cancel = screen.getByRole("button", { name: "Hủy" });
+    await waitFor(() =>
+      expect((cancel as HTMLButtonElement).disabled).toBe(false),
+    );
+    fireEvent.click(cancel);
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 
     await screen.findByRole("heading", { name: "Bản mới nhất từ server" });
