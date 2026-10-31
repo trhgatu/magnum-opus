@@ -8,9 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
+  ProjectDetailDescription,
+  ProjectDetailTitle,
+  ProjectEditAction,
   ProjectFieldsProvider,
-  ProjectInlineDescription,
-  ProjectInlineTitle,
   ProjectLifecycleControlsInline,
   ProjectOutcomeEditorInline,
   ProjectTargetEndEditorInline,
@@ -71,9 +72,9 @@ export function ProjectDetail({
           id="project-title"
           icon={FolderKanban}
           eyebrow="Crucible · Project"
-          title={<ProjectInlineTitle />}
+          title={<ProjectDetailTitle />}
           description={
-            <ProjectInlineDescription placeholder="Chưa có mô tả cho effort này." />
+            <ProjectDetailDescription placeholder="Chưa có mô tả cho effort này." />
           }
           meta={
             <>
@@ -95,6 +96,7 @@ export function ProjectDetail({
           }
           actions={
             <>
+              <ProjectEditAction />
               {sourcesAction}
               <ProjectLifecycleControlsInline />
             </>

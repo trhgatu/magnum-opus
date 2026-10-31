@@ -1,11 +1,11 @@
 "use client";
 
 import type { ProjectResponse } from "@repo/contracts";
-import { Pencil } from "lucide-react";
+import { Pencil, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   createContext,
-  type KeyboardEvent,
+  type FormEvent,
   type ReactNode,
   useContext,
   useEffect,
@@ -14,9 +14,15 @@ import {
   useTransition,
 } from "react";
 
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import {
   type ProjectMutationResult,
   setProjectIntendedOutcome,
@@ -33,23 +39,26 @@ import {
   type ProjectOutcomeSubmitResult,
 } from "@/features/project/components/project-outcome-editor";
 import { ProjectOutcomeHistory } from "@/features/project/components/project-outcome-history";
+import { ProjectDetailsFields } from "@/features/project/components/project-editor";
 import { ProjectTargetEndEditor } from "@/features/project/components/project-target-end-editor";
+import { useUnsavedChangesWarning } from "@/hooks/use-unsaved-changes-warning";
+import { notifySuccess } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
 const isRevisionConflict = (code?: string) =>
   code === "PROJECT_REVISION_CONFLICT";
 
-/** title/description dùng chung `expectedRevision`, nên hai field inline
- * phải chia sẻ một bản `project` — nếu mỗi field tự giữ prop `project`
- * riêng, sửa title rồi sửa description ngay sau đó sẽ gửi cùng revision cũ
- * và bị 409 dù hai lần sửa là tuần tự, không thật sự xung đột.
+/** Tên/mô tả (sheet Chỉnh sửa), outcome, ngày dự kiến và nút đổi trạng thái
+ * dùng chung `expectedRevision`, nên phải chia sẻ một bản `project` — nếu
+ * mỗi chỗ tự giữ prop `project` riêng, lưu chỗ này rồi lưu chỗ kia ngay sau
+ * đó sẽ gửi cùng revision cũ và bị 409 dù hai lần lưu là tuần tự, không thật
+ * sự xung đột.
  *
- * `projectRef`/`runExclusive` xử lý trường hợp còn lại: sửa xong field này
- * blur sang field kia *trước khi* request đầu hoàn tất. `runExclusive` xếp
- * hàng request thứ hai sau request thứ nhất; đọc `projectRef.current` (chứ
- * không phải `project` đóng gói lúc render) đảm bảo nó luôn thấy revision
- * mới nhất tại thời điểm thật sự gửi đi, bất kể state React đã re-render
- * kịp hay chưa. Mô hình này giống hệt `habit-inline-fields.tsx`. */
+ * `projectRef`/`runExclusive` xử lý trường hợp còn lại: lần lưu thứ hai bắt
+ * đầu *trước khi* request đầu hoàn tất. `runExclusive` xếp hàng request thứ
+ * hai sau request thứ nhất; đọc `projectRef.current` (chứ không phải
+ * `project` đóng gói lúc render) đảm bảo nó luôn thấy revision mới nhất tại
+ * thời điểm thật sự gửi đi, bất kể state React đã re-render kịp hay chưa. */
 const ProjectFieldsContext = createContext<{
   project: ProjectResponse;
   projectRef: React.RefObject<ProjectResponse>;
@@ -75,9 +84,7 @@ const ProjectFieldsContext = createContext<{
 function useProjectFields() {
   const context = useContext(ProjectFieldsContext);
   if (!context) {
-    throw new Error(
-      "ProjectInlineTitle/ProjectInlineDescription phải nằm trong ProjectFieldsProvider",
-    );
+    throw new Error("Phải nằm trong ProjectFieldsProvider");
   }
   return context;
 }
@@ -108,16 +115,16 @@ export function ProjectFieldsProvider({
   };
 
   // Không dùng `key` để remount Provider mỗi khi `project.revision` đổi —
-  // sau một lần lưu inline thành công, `setProject` đã đồng bộ state cục
-  // bộ ngay lập tức; nếu router.refresh() sau đó khiến Server Component
-  // re-render với cùng revision rồi remount cả cây, field còn lại (title
-  // hoặc description) đang gõ dở sẽ mất trắng draft chưa lưu. Thay vào đó,
+  // sau một lần lưu thành công, `setProject` đã đồng bộ state cục bộ ngay
+  // lập tức; nếu router.refresh() sau đó khiến Server Component re-render
+  // với cùng revision rồi remount cả cây, ô đang gõ dở ở chỗ khác sẽ mất
+  // trắng draft chưa lưu. Thay vào đó,
   // chỉ đồng bộ khi prop mới thật sự MỚI HƠN state cục bộ hiện tại — case
   // này chỉ xảy ra khi có nguồn khác cập nhật project (vd bấm "Tải bản mới
   // nhất" sau conflict), không xảy ra ở nhánh tự lưu thành công (lúc đó
   // state cục bộ đã ở đúng revision mới rồi, so sánh không thấy "mới hơn").
-  // `externalUpdateToken` tăng lên đúng ở nhánh này — field nào đang mở dở
-  // sẽ tự đóng lại + bỏ draft cũ, không âm thầm giữ draft rồi lỡ gửi đè lên
+  // `externalUpdateToken` tăng lên đúng ở nhánh này — ô nào đang mở dở sẽ
+  // tự theo bản mới + bỏ draft cũ, không âm thầm giữ draft rồi lỡ gửi đè lên
   // dữ liệu vừa tải về.
   useEffect(() => {
     if (initialProject.revision > projectRef.current.revision) {
@@ -152,375 +159,243 @@ export function ProjectFieldsProvider({
   );
 }
 
-/** Lỗi hiển thị ngay trong lúc sửa — dựng bằng phrasing content thuần
- * (span/button, không div) vì nội dung này nằm bên trong <h1>/<p> của
- * ContextHero; một khối `<div>` ở đây là HTML không hợp lệ và trình
- * duyệt sẽ tự đóng thẻ cha, làm vỡ layout. */
-function InlineFieldError({
-  message,
-  hasConflict,
-  onReload,
-}: {
-  message: string;
-  hasConflict: boolean;
-  onReload: () => void;
-}) {
-  return (
-    <span
-      role="alert"
-      className="mt-1 block text-sm font-medium text-destructive"
-    >
-      {message}
-      {hasConflict ? (
-        <Button
-          type="button"
-          variant="link"
-          size="sm"
-          className="ml-1 h-auto p-0 align-baseline text-destructive"
-          // Ngăn nút này lấy focus khi mousedown — nếu không, input/textarea
-          // đang sửa sẽ blur trước, tự kích hoạt lưu lại với cùng revision
-          // đã xung đột, trước khi onClick reload kịp chạy.
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={onReload}
-        >
-          Tải bản mới nhất
-        </Button>
-      ) : null}
-    </span>
-  );
-}
-
-function useInlineProjectField() {
+/** Gửi một thay đổi của Project (tên/mô tả trong sheet, outcome, ngày dự
+ * kiến) qua một hàng đợi `runExclusive` chung, đọc `id`/`revision` từ
+ * context tại đúng lúc gửi — cùng lý do với `ProjectLifecycleControlsInline`:
+ * 2 lần lưu gần nhau (dù không thật sự xung đột) không được cùng gửi 1
+ * revision cũ. Các editor thuần UI không biết gì về context; toàn bộ phần
+ * này nằm ở hàm mà hook trả về. */
+function useQueuedProjectSubmit() {
   const router = useRouter();
-  const {
-    project,
-    projectRef,
-    setProject,
-    runExclusive,
-    externalUpdateToken,
-    externalUpdateTokenRef,
-  } = useProjectFields();
-  const [message, setMessage] = useState<string>();
-  const [hasConflict, setHasConflict] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const { projectRef, setProject, runExclusive, externalUpdateTokenRef } =
+    useProjectFields();
 
-  const clearError = () => {
-    setMessage(undefined);
-    setHasConflict(false);
-  };
-
-  const reloadLatestRevision = () => {
-    clearError();
-    router.refresh();
-  };
-
-  const commit = (
-    patch: { title: string } | { description: string | null },
-    onSettled: (didSave: boolean) => void,
-  ) => {
-    clearError();
-    // Chụp lại token TẠI THỜI ĐIỂM bấm lưu — không phải lúc dispatch thật
-    // sự (có thể muộn hơn do đang xếp hàng sau field kia).
-    const tokenAtCommit = externalUpdateTokenRef.current;
-    startTransition(async () => {
-      // `runExclusive` xếp request này sau bất kỳ commit nào (của field
-      // title hoặc description) đang chạy dở. Field không đổi được lấy từ
-      // `projectRef.current` *ngay trước khi gửi* — không phải từ closure
-      // của component đang sửa — nên nếu field kia vừa lưu xong trong lúc
-      // field này chờ tới lượt, request này vẫn mang theo giá trị mới nhất
-      // của field kia (và cả revision mới nhất) thay vì ghi đè bằng bản cũ.
-      const result = await runExclusive<
-        ProjectMutationResult | { status: "stale" }
-      >(() => {
-        // Ngay trước khi thật sự gửi — nếu có cập nhật từ bên ngoài xen
-        // vào giữa lúc xếp hàng (vd field khác conflict-reload), field này
-        // đã tự đóng qua effect (xem ProjectInlineTitle/Description) —
-        // patch đang cầm là draft đã bị bỏ, không được gửi đè lên dữ liệu
-        // vừa tải về.
-        if (externalUpdateTokenRef.current !== tokenAtCommit) {
-          return Promise.resolve({ status: "stale" as const });
-        }
-        const current = projectRef.current;
-        return updateProject({
-          id: current.id,
-          expectedRevision: current.revision,
-          title: "title" in patch ? patch.title : current.title,
-          description:
-            "description" in patch ? patch.description : current.description,
-        });
-      });
-
-      if (result.status === "stale") {
-        onSettled(false);
-        return;
+  return async (
+    mutate: (current: ProjectResponse) => Promise<ProjectMutationResult>,
+  ): Promise<ProjectOutcomeSubmitResult> => {
+    // Chụp token TẠI THỜI ĐIỂM bấm Lưu, không phải lúc dispatch thật sự
+    // (có thể muộn hơn do đang xếp hàng sau một lần lưu khác). Nếu có cập
+    // nhật từ bên ngoài xen vào giữa, ô sửa đã tự theo bản mới qua
+    // `externalUpdateToken`; bản nháp đang cầm không được gửi đè lên.
+    const tokenAtSubmit = externalUpdateTokenRef.current;
+    const result = await runExclusive<
+      ProjectMutationResult | { status: "stale" }
+    >(() => {
+      if (externalUpdateTokenRef.current !== tokenAtSubmit) {
+        return Promise.resolve({ status: "stale" as const });
       }
+      return mutate(projectRef.current);
+    });
 
-      if (result.status === "error") {
-        setMessage(
-          isRevisionConflict(result.code)
-            ? "Project đã thay đổi ở một phiên làm việc khác."
-            : result.message,
-        );
-        setHasConflict(isRevisionConflict(result.code));
-        onSettled(false);
-        return;
-      }
+    if (result.status === "stale") {
+      return { status: "stale" };
+    }
 
-      // Request đã thật sự gửi đi trước khi có token check ở trên — nếu
-      // một cập nhật từ bên ngoài đến TRONG LÚC request này đang bay
-      // (không phải lúc còn xếp hàng, mà là sau khi đã dispatch), kết quả
-      // trả về vẫn hợp lệ (server đã ghi thành công) nhưng KHÔNG được áp
-      // vào state dùng chung — nó phản ánh revision tại thời điểm gửi,
-      // cũ hơn dữ liệu mới nhất đã biết, áp vào sẽ làm state thụt lùi.
-      // router.refresh() sẽ tự đồng bộ lại đúng sự thật mới nhất từ server.
-      if (externalUpdateTokenRef.current !== tokenAtCommit) {
-        onSettled(true);
-        router.refresh();
-        return;
-      }
+    if (result.status === "error") {
+      return {
+        status: "error",
+        message: isRevisionConflict(result.code)
+          ? "Project đã thay đổi ở một phiên làm việc khác."
+          : result.message,
+        hasConflict: isRevisionConflict(result.code),
+      };
+    }
 
-      // Cập nhật ngay bản `project` dùng chung để field còn lại (title hoặc
-      // description) thấy revision mới nhất mà không phải chờ
-      // router.refresh() round-trip qua server.
-      setProject(result.project);
-      onSettled(true);
+    // Request đã dispatch trước token check, nhưng có cập nhật từ bên ngoài
+    // đến trong lúc nó đang bay thì không được áp result (phản ánh revision
+    // lúc gửi, cũ hơn) đè lên state dùng chung; router.refresh() sẽ tự đồng
+    // bộ lại đúng sự thật mới nhất.
+    if (externalUpdateTokenRef.current !== tokenAtSubmit) {
       router.refresh();
-    });
-  };
+      return { status: "success" };
+    }
 
-  return {
-    project,
-    message,
-    hasConflict,
-    isPending,
-    commit,
-    clearError,
-    reloadLatestRevision,
-    externalUpdateToken,
+    setProject(result.project);
+    router.refresh();
+    return { status: "success" };
   };
 }
 
-export function ProjectInlineTitle() {
-  const {
-    project,
-    message,
-    hasConflict,
-    isPending,
-    commit,
-    clearError,
-    reloadLatestRevision,
-    externalUpdateToken,
-  } = useInlineProjectField();
-  const [isEditing, setIsEditing] = useState(false);
-  const [value, setValue] = useState(project.title);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const headingClassName =
-    "font-display text-4xl font-semibold leading-none tracking-[-0.035em] text-balance sm:text-5xl lg:text-6xl";
-
-  const startEditing = () => {
-    clearError();
-    setValue(project.title);
-    setIsEditing(true);
-  };
-
-  const cancel = () => {
-    clearError();
-    setValue(project.title);
-    setIsEditing(false);
-  };
-
-  // Nếu context vừa nhận `project` mới TỪ BÊN NGOÀI (vd "Tải bản mới
-  // nhất" sau conflict, không phải do chính field này tự lưu), đóng
-  // editor và bỏ draft cũ ngay — nếu không, blur sau đó sẽ so sánh draft
-  // cũ với `project.title` MỚI rồi lỡ gửi đè lên dữ liệu vừa tải về.
-  useEffect(() => {
-    // Cố ý: đóng editor đang mở khi có tín hiệu cập nhật từ bên ngoài,
-    // không phải suy ra UI state từ prop.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (isEditing) cancel();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [externalUpdateToken]);
-
-  const save = () => {
-    const trimmed = value.trim();
-    if (!trimmed || trimmed === project.title) {
-      setValue(project.title);
-      setIsEditing(false);
-      return;
-    }
-
-    commit({ title: trimmed }, (didSave) => {
-      if (didSave) setIsEditing(false);
-    });
-  };
-
-  const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      inputRef.current?.blur();
-    } else if (event.key === "Escape") {
-      event.preventDefault();
-      cancel();
-    }
-  };
-
-  if (isEditing) {
-    return (
-      <span className="block">
-        <Input
-          ref={inputRef}
-          autoFocus
-          value={value}
-          maxLength={200}
-          disabled={isPending}
-          aria-label="Tên Project"
-          onChange={(event) => setValue(event.target.value)}
-          onBlur={save}
-          onKeyDown={onKeyDown}
-          className={cn(
-            headingClassName,
-            "h-auto w-full rounded-md border-0 border-b border-dashed border-input bg-transparent px-0 py-0 shadow-none focus-visible:ring-0",
-          )}
-        />
-        {message ? (
-          <InlineFieldError
-            message={message}
-            hasConflict={hasConflict}
-            onReload={reloadLatestRevision}
-          />
-        ) : null}
-      </span>
-    );
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={startEditing}
-      className={cn(
-        headingClassName,
-        "group inline-flex w-full items-baseline gap-2 rounded-md text-left hover:cursor-text",
-      )}
-    >
-      {project.title}
-      <Pencil
-        className="size-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-60"
-        aria-hidden="true"
-      />
-    </button>
-  );
+/** Tên và mô tả trên trang chi tiết: chỉ hiển thị, sửa qua sheet. Đọc từ
+ * context để thấy ngay bản vừa lưu, không chờ router.refresh(). */
+export function ProjectDetailTitle() {
+  return useProjectFields().project.title;
 }
 
-export function ProjectInlineDescription({
+export function ProjectDetailDescription({
   placeholder,
 }: {
   placeholder: string;
 }) {
-  const {
-    project,
-    message,
-    hasConflict,
-    isPending,
-    commit,
-    clearError,
-    reloadLatestRevision,
-    externalUpdateToken,
-  } = useInlineProjectField();
-  const [isEditing, setIsEditing] = useState(false);
-  const [value, setValue] = useState(project.description ?? "");
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { project } = useProjectFields();
+  return (
+    <span className={cn(!project.description && "italic")}>
+      {project.description ?? placeholder}
+    </span>
+  );
+}
 
-  const bodyClassName =
-    "max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base sm:leading-7";
+const DISCARD_WARNING =
+  "Nội dung chưa được lưu. Đóng lúc này sẽ làm mất phần đang viết.";
 
-  const startEditing = () => {
-    clearError();
-    setValue(project.description ?? "");
-    setIsEditing(true);
+/** Nút Chỉnh sửa và sheet sửa tên/mô tả. Lưu đi qua cùng hàng đợi với các
+ * ô sửa của Cycle, nên không bao giờ gửi một revision cũ. */
+export function ProjectEditAction() {
+  const router = useRouter();
+  const { project, externalUpdateToken } = useProjectFields();
+  const submit = useQueuedProjectSubmit();
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState(project.title);
+  const [description, setDescription] = useState(project.description ?? "");
+  const [message, setMessage] = useState<string>();
+  const [hasConflict, setHasConflict] = useState(false);
+  const [isPending, startTransition] = useTransition();
+
+  const isDirty =
+    open &&
+    (title !== project.title || description !== (project.description ?? ""));
+  useUnsavedChangesWarning(isDirty);
+
+  const resetTo = (latest: ProjectResponse) => {
+    setTitle(latest.title);
+    setDescription(latest.description ?? "");
+    setMessage(undefined);
+    setHasConflict(false);
   };
 
-  const cancel = () => {
-    clearError();
-    setValue(project.description ?? "");
-    setIsEditing(false);
-  };
-
-  // Xem giải thích ở ProjectInlineTitle — đóng editor + bỏ draft khi
-  // context vừa nhận project mới từ bên ngoài (không phải tự lưu).
+  // Có bản mới từ bên ngoài (vd "Tải bản mới nhất" sau xung đột): form theo
+  // bản mới và bỏ bản nháp cũ, như các ô sửa khác của Project — không lỡ
+  // gửi đè bản nháp lên dữ liệu vừa tải về.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (isEditing) cancel();
+    resetTo(project);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [externalUpdateToken]);
 
-  const save = () => {
-    const trimmed = value.trim();
-    if (trimmed === (project.description ?? "")) {
-      setIsEditing(false);
+  const openSheet = () => {
+    resetTo(project);
+    setOpen(true);
+  };
+
+  const requestClose = () => {
+    if (isDirty && !window.confirm(DISCARD_WARNING)) return;
+    setOpen(false);
+  };
+
+  const save = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const nextTitle = title.trim();
+    const nextDescription = description.trim() || null;
+    if (!nextTitle) {
+      setMessage("Tên Project không được để trống.");
+      setHasConflict(false);
+      return;
+    }
+    if (
+      nextTitle === project.title &&
+      nextDescription === project.description
+    ) {
+      setOpen(false);
       return;
     }
 
-    commit({ description: trimmed || null }, (didSave) => {
-      if (didSave) setIsEditing(false);
+    setMessage(undefined);
+    setHasConflict(false);
+    startTransition(async () => {
+      const result = await submit((current) =>
+        updateProject({
+          id: current.id,
+          expectedRevision: current.revision,
+          title: nextTitle,
+          description: nextDescription,
+        }),
+      );
+
+      // stale: form đã tự theo bản mới (effect ở trên), không có gì để báo.
+      if (result.status === "stale") return;
+      if (result.status === "error") {
+        setMessage(result.message);
+        setHasConflict(result.hasConflict === true);
+        return;
+      }
+
+      void notifySuccess(`Đã cập nhật "${nextTitle}"`);
+      setOpen(false);
     });
   };
 
-  if (isEditing) {
-    return (
-      <span className="mt-4 block max-w-2xl">
-        <Textarea
-          ref={textareaRef}
-          autoFocus
-          value={value}
-          disabled={isPending}
-          aria-label="Mô tả Project"
-          onChange={(event) => setValue(event.target.value)}
-          onBlur={save}
-          onKeyDown={(event) => {
-            if (event.key === "Escape") {
-              event.preventDefault();
-              cancel();
-            }
-          }}
-          className={cn(
-            bodyClassName,
-            "min-h-16 rounded-md border-dashed bg-transparent px-2.5 py-1.5",
-          )}
-        />
-        {message ? (
-          <InlineFieldError
-            message={message}
-            hasConflict={hasConflict}
-            onReload={reloadLatestRevision}
-          />
-        ) : null}
-      </span>
-    );
-  }
-
   return (
-    <button
-      type="button"
-      onClick={startEditing}
-      className={cn(
-        bodyClassName,
-        "group mt-4 inline-flex w-full items-start gap-2 rounded-md text-left hover:cursor-text",
-        !project.description && "italic",
-      )}
-    >
-      <span>{project.description ?? `${placeholder} Bấm để thêm mô tả.`}</span>
-      <Pencil
-        className="mt-1 size-3.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-60"
-        aria-hidden="true"
-      />
-    </button>
+    <>
+      <Button type="button" variant="outline" onClick={openSheet}>
+        <Pencil aria-hidden="true" /> Chỉnh sửa
+      </Button>
+      <Sheet
+        open={open}
+        onOpenChange={(next) => (next ? setOpen(true) : requestClose())}
+      >
+        {/* Cùng biến thể data-[side=right] với sheet.tsx thì mới đè được. */}
+        <SheetContent className="overflow-y-auto data-[side=right]:w-full data-[side=right]:sm:max-w-lg">
+          <SheetHeader className="pr-12">
+            <SheetTitle>Chỉnh sửa Project</SheetTitle>
+            <SheetDescription>
+              Đổi tên hoặc mô tả. Các Cycle và hoạt động đã ghi vẫn giữ nguyên.
+            </SheetDescription>
+          </SheetHeader>
+          <form
+            onSubmit={save}
+            className="space-y-5 px-4 pb-6"
+            aria-busy={isPending}
+          >
+            {message ? (
+              <Alert variant="destructive">
+                <AlertDescription>
+                  {message}
+                  {hasConflict ? (
+                    <Button
+                      type="button"
+                      variant="link"
+                      size="sm"
+                      className="h-auto p-0 text-destructive"
+                      onClick={() => router.refresh()}
+                    >
+                      Tải bản mới nhất
+                    </Button>
+                  ) : null}
+                </AlertDescription>
+              </Alert>
+            ) : null}
+            <ProjectDetailsFields
+              title={title}
+              description={description}
+              onTitleChange={setTitle}
+              onDescriptionChange={setDescription}
+              disabled={isPending}
+            />
+            <footer className="flex flex-col-reverse gap-3 border-t pt-4 sm:flex-row sm:justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                disabled={isPending}
+                onClick={requestClose}
+              >
+                Hủy
+              </Button>
+              <Button type="submit" size="lg" disabled={isPending}>
+                <Save aria-hidden="true" />
+                {isPending ? "Đang lưu…" : "Lưu thay đổi"}
+              </Button>
+            </footer>
+          </form>
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }
 
 /** `ProjectLifecycleControls` phải đọc `project` từ context chia sẻ này,
  * không phải prop truyền từ Server Component cha — nếu không, một hành
- * động lifecycle (pause/stop/...) ngay sau một lần lưu inline (trước khi
+ * động lifecycle (pause/stop/...) ngay sau một lần lưu khác (trước khi
  * router.refresh() kịp round-trip) sẽ gửi `expectedRevision` cũ và bị 409
  * dù lần lưu title/description trước đó đã thành công. */
 export function ProjectLifecycleControlsInline() {
@@ -550,65 +425,10 @@ export function ProjectResumeInline() {
   );
 }
 
-/** Gửi một thay đổi của Cycle đang mở (outcome, ngày dự kiến) qua cùng
- * hàng đợi `runExclusive` với title/description, đọc `id`/`revision` từ
- * context tại đúng lúc gửi — cùng lý do với `ProjectLifecycleControlsInline`:
- * 2 lần lưu gần nhau (dù không thật sự xung đột) không được cùng gửi 1
- * revision cũ. Các editor thuần UI không biết gì về context; toàn bộ phần
- * này nằm ở `onSubmit` mà hook trả về. */
-function useCycleFieldSubmit() {
-  const router = useRouter();
-  const { projectRef, setProject, runExclusive, externalUpdateTokenRef } =
-    useProjectFields();
-
-  return async (
-    mutate: (current: ProjectResponse) => Promise<ProjectMutationResult>,
-  ): Promise<ProjectOutcomeSubmitResult> => {
-    // Xem giải thích ở useInlineProjectField.commit — chụp token TẠI THỜI
-    // ĐIỂM bấm Lưu, không phải lúc dispatch thật sự (có thể muộn hơn do
-    // đang xếp hàng sau title/description).
-    const tokenAtSubmit = externalUpdateTokenRef.current;
-    const result = await runExclusive<
-      ProjectMutationResult | { status: "stale" }
-    >(() => {
-      if (externalUpdateTokenRef.current !== tokenAtSubmit) {
-        return Promise.resolve({ status: "stale" as const });
-      }
-      return mutate(projectRef.current);
-    });
-
-    if (result.status === "stale") {
-      return { status: "stale" };
-    }
-
-    if (result.status === "error") {
-      return {
-        status: "error",
-        message: isRevisionConflict(result.code)
-          ? "Project đã thay đổi ở một phiên làm việc khác."
-          : result.message,
-        hasConflict: isRevisionConflict(result.code),
-      };
-    }
-
-    // Xem giải thích ở useInlineProjectField.commit — request đã dispatch
-    // trước token check, nhưng có cập nhật từ bên ngoài đến trong lúc nó
-    // đang bay thì không được áp result (cũ hơn) đè lên state dùng chung.
-    if (externalUpdateTokenRef.current !== tokenAtSubmit) {
-      router.refresh();
-      return { status: "success" };
-    }
-
-    setProject(result.project);
-    router.refresh();
-    return { status: "success" };
-  };
-}
-
 export function ProjectOutcomeEditorInline({ timeZone }: { timeZone: string }) {
   const router = useRouter();
   const { project, externalUpdateToken } = useProjectFields();
-  const submit = useCycleFieldSubmit();
+  const submit = useQueuedProjectSubmit();
 
   if (!project.currentCycle) return null;
 
@@ -639,7 +459,7 @@ export function ProjectOutcomeEditorInline({ timeZone }: { timeZone: string }) {
 export function ProjectTargetEndEditorInline({ today }: { today: string }) {
   const router = useRouter();
   const { project } = useProjectFields();
-  const submit = useCycleFieldSubmit();
+  const submit = useQueuedProjectSubmit();
 
   if (!project.currentCycle) return null;
 
