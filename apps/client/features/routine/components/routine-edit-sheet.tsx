@@ -74,7 +74,16 @@ export function RoutineEditProvider({
   children: ReactNode;
 }) {
   const router = useRouter();
-  const [routine, setRoutine] = useState(initialRoutine);
+  // Bản từ sheet (vừa lưu, hoặc vừa tải khi xung đột) chỉ dùng khi mới hơn
+  // bản server đang có. Không remount theo revision: refresh xong trong lúc
+  // sheet đang mở thì chữ đang gõ vẫn còn.
+  const [latest, setLatest] = useState<
+    Partial<RoutineDetailResponse> & Pick<RoutineDetailResponse, "revision">
+  >();
+  const routine =
+    latest && latest.revision > initialRoutine.revision
+      ? { ...initialRoutine, ...latest }
+      : initialRoutine;
   const [open, setOpen] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
 
@@ -115,16 +124,16 @@ export function RoutineEditProvider({
             <RoutineEditor
               initialRoutine={routine}
               onDirtyChange={setIsDirty}
+              onLatestLoaded={setLatest}
               onCancel={requestClose}
               onSaved={(saved) => {
-                // Giữ nguyên danh sách Thói quen (cùng tham chiếu): đổi tên
-                // không đụng tới chúng.
-                setRoutine((current) => ({
-                  ...current,
+                // Không kèm danh sách Thói quen: đổi tên không đụng tới chúng.
+                setLatest({
                   title: saved.title,
+                  isActive: saved.isActive,
                   revision: saved.revision,
                   updatedAt: saved.updatedAt,
-                }));
+                });
                 close();
                 router.refresh();
               }}

@@ -54,10 +54,7 @@ export function HabitDetail(props: HabitDetailProps) {
         <ArrowLeft aria-hidden="true" /> Tất cả thói quen
       </Link>
 
-      <HabitEditProvider
-        key={`${habit.id}-${habit.revision}`}
-        initialHabit={habit}
-      >
+      <HabitEditProvider key={habit.id} initialHabit={habit}>
         <ContextHero
           id="habit-title"
           icon={Repeat2}

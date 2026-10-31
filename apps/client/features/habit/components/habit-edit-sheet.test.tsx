@@ -19,14 +19,14 @@ import {
   vi,
 } from "vitest";
 
-const { updateHabit, changeHabitState, refresh, notifySuccess } = vi.hoisted(
-  () => ({
+const { updateHabit, reloadHabit, changeHabitState, refresh, notifySuccess } =
+  vi.hoisted(() => ({
     updateHabit: vi.fn(),
+    reloadHabit: vi.fn(),
     changeHabitState: vi.fn(),
     refresh: vi.fn(),
     notifySuccess: vi.fn(),
-  }),
-);
+  }));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh }),
@@ -34,7 +34,7 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@/features/habit/actions/habit", () => ({
   createHabit: vi.fn(),
-  reloadHabit: vi.fn(),
+  reloadHabit,
   updateHabit,
   changeHabitState,
 }));
@@ -63,18 +63,19 @@ const habit: HabitResponse = {
   updatedAt: "2026-08-14T11:00:00.000Z",
 };
 
-const renderDetail = (initialHabit = habit) =>
-  render(
-    <HabitEditProvider initialHabit={initialHabit}>
-      <h1>
-        <HabitDetailTitle />
-      </h1>
-      <p>
-        <HabitDetailDescription placeholder="Một hành động nhỏ." />
-      </p>
-      <HabitDetailActions />
-    </HabitEditProvider>,
-  );
+const detail = (initialHabit: HabitResponse) => (
+  <HabitEditProvider initialHabit={initialHabit}>
+    <h1>
+      <HabitDetailTitle />
+    </h1>
+    <p>
+      <HabitDetailDescription placeholder="Một hành động nhỏ." />
+    </p>
+    <HabitDetailActions />
+  </HabitEditProvider>
+);
+
+const renderDetail = (initialHabit = habit) => render(detail(initialHabit));
 
 // Form được tải khi mở sheet; biên dịch nó lần đầu có thể quá thời gian chờ
 // của findBy* khi máy bận, nên tải sẵn một lần trước các test.
@@ -190,6 +191,68 @@ describe("HabitEditProvider", () => {
     expect(confirmSpy).not.toHaveBeenCalled();
     expect(screen.queryByRole("dialog")).toBeNull();
     confirmSpy.mockRestore();
+  });
+
+  it("keeps the typed title when the page refreshes underneath the sheet", async () => {
+    const { rerender } = renderDetail();
+
+    fireEvent.click(screen.getByRole("button", { name: "Chỉnh sửa" }));
+    fireEvent.change(await screen.findByLabelText("Tên thói quen"), {
+      target: { value: "Tên đang viết dở" },
+    });
+    // Một thao tác khác (vd ghi dấu hôm nay) vừa refresh xong.
+    rerender(detail({ ...habit, title: "Tên từ server", revision: 4 }));
+
+    expect(
+      (screen.getByLabelText("Tên thói quen") as HTMLInputElement).value,
+    ).toBe("Tên đang viết dở");
+    // Trang phía sau (đang bị sheet che) đã nhận bản mới của server.
+    expect(document.querySelector("h1")?.textContent).toBe("Tên từ server");
+  });
+
+  it("uses the latest revision on the page after loading it during a conflict", async () => {
+    updateHabit.mockResolvedValue({
+      status: "error",
+      kind: "conflict",
+      code: "HABIT_REVISION_CONFLICT",
+      message: "Thói quen đã thay đổi ở một phiên làm việc khác.",
+    });
+    reloadHabit.mockResolvedValue({
+      status: "success",
+      habit: { ...habit, title: "Bản mới nhất từ server", revision: 5 },
+    });
+    changeHabitState.mockResolvedValue({
+      status: "success",
+      habit: { ...habit, isActive: false, revision: 6 },
+    });
+    renderDetail();
+
+    fireEvent.click(screen.getByRole("button", { name: "Chỉnh sửa" }));
+    await screen.findByLabelText("Tên thói quen");
+    fireEvent.click(screen.getByRole("button", { name: "Lưu thay đổi" }));
+    const useLatest = await screen.findByRole("button", {
+      name: "Dùng bản mới nhất",
+    });
+    await waitFor(() =>
+      expect((useLatest as HTMLButtonElement).disabled).toBe(false),
+    );
+    fireEvent.click(useLatest);
+    await waitFor(() =>
+      expect(
+        (screen.getByLabelText("Tên thói quen") as HTMLInputElement).value,
+      ).toBe("Bản mới nhất từ server"),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Hủy" }));
+
+    screen.getByRole("heading", { name: "Bản mới nhất từ server" });
+    fireEvent.click(screen.getByRole("button", { name: "Lưu trữ" }));
+    await waitFor(() =>
+      expect(changeHabitState).toHaveBeenCalledWith({
+        id: habit.id,
+        expectedRevision: 5,
+        action: "archive",
+      }),
+    );
   });
 
   it("offers no editing for an archived habit", () => {

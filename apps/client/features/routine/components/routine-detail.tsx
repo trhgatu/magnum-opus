@@ -29,10 +29,7 @@ export function RoutineDetail({ routine }: { routine: RoutineDetailResponse }) {
         <ArrowLeft aria-hidden="true" /> Tất cả Nếp sinh hoạt
       </Link>
 
-      <RoutineEditProvider
-        key={`${routine.id}-${routine.revision}`}
-        initialRoutine={routine}
-      >
+      <RoutineEditProvider key={routine.id} initialRoutine={routine}>
         <ContextHero
           id="routine-title"
           icon={ListChecks}

@@ -55,6 +55,8 @@ type HabitEditorProps =
       onSaved: (habit: HabitResponse) => void;
       onCancel: () => void;
       onDirtyChange?: (isDirty: boolean) => void;
+      /** Đã tải bản mới nhất khi xung đột: trang phía sau cũng phải dùng nó. */
+      onLatestLoaded?: (habit: HabitResponse) => void;
     };
 
 export function HabitEditor(props: HabitEditorProps) {
@@ -97,6 +99,7 @@ export function HabitEditor(props: HabitEditorProps) {
   useUnsavedChangesWarning(isDirty);
   const onDirtyChange = inSheet ? props.onDirtyChange : undefined;
   useEffect(() => onDirtyChange?.(isDirty), [isDirty, onDirtyChange]);
+  const onLatestLoaded = inSheet ? props.onLatestLoaded : undefined;
 
   const finishSaving = (habit: HabitResponse) => {
     if (props.initialHabit !== undefined) {
@@ -180,6 +183,7 @@ export function HabitEditor(props: HabitEditorProps) {
         setRecoveryError(latest.message);
         return;
       }
+      onLatestLoaded?.(latest.habit);
 
       if (!keepLocal) {
         applyPersistedHabit(latest.habit);

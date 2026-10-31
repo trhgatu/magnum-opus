@@ -18,13 +18,19 @@ import {
   vi,
 } from "vitest";
 
-const { updateRoutineTitle, changeRoutineState, refresh, notifySuccess } =
-  vi.hoisted(() => ({
-    updateRoutineTitle: vi.fn(),
-    changeRoutineState: vi.fn(),
-    refresh: vi.fn(),
-    notifySuccess: vi.fn(),
-  }));
+const {
+  updateRoutineTitle,
+  reloadRoutine,
+  changeRoutineState,
+  refresh,
+  notifySuccess,
+} = vi.hoisted(() => ({
+  updateRoutineTitle: vi.fn(),
+  reloadRoutine: vi.fn(),
+  changeRoutineState: vi.fn(),
+  refresh: vi.fn(),
+  notifySuccess: vi.fn(),
+}));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh }),
@@ -32,7 +38,7 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@/features/routine/actions/routine", () => ({
   createRoutine: vi.fn(),
-  reloadRoutine: vi.fn(),
+  reloadRoutine,
   updateRoutineTitle,
   changeRoutineState,
 }));
@@ -63,16 +69,18 @@ const routine: RoutineDetailResponse = {
   updatedAt: "2026-08-14T11:00:00.000Z",
 };
 
+const detail = (initialRoutine: RoutineDetailResponse) => (
+  <RoutineEditProvider initialRoutine={initialRoutine}>
+    <h1>
+      <RoutineDetailTitle />
+    </h1>
+    <RoutineDetailMeta />
+    <RoutineDetailActions />
+  </RoutineEditProvider>
+);
+
 const renderDetail = (initialRoutine = routine) =>
-  render(
-    <RoutineEditProvider initialRoutine={initialRoutine}>
-      <h1>
-        <RoutineDetailTitle />
-      </h1>
-      <RoutineDetailMeta />
-      <RoutineDetailActions />
-    </RoutineEditProvider>,
-  );
+  render(detail(initialRoutine));
 
 // Form được tải khi mở sheet; biên dịch nó lần đầu có thể quá thời gian chờ
 // của findBy* khi máy bận, nên tải sẵn một lần trước các test.
@@ -164,6 +172,68 @@ describe("RoutineEditProvider", () => {
     expect(confirmSpy).not.toHaveBeenCalled();
     expect(screen.queryByRole("dialog")).toBeNull();
     confirmSpy.mockRestore();
+  });
+
+  it("keeps the typed name when the page refreshes underneath the sheet", async () => {
+    const { rerender } = renderDetail();
+
+    fireEvent.click(screen.getByRole("button", { name: "Chỉnh sửa" }));
+    fireEvent.change(await screen.findByLabelText("Tên Nếp sinh hoạt"), {
+      target: { value: "Tên đang viết dở" },
+    });
+    // Một thao tác khác (vd sắp xếp Thói quen) vừa refresh xong.
+    rerender(detail({ ...routine, title: "Tên từ server", revision: 4 }));
+
+    expect(
+      (screen.getByLabelText("Tên Nếp sinh hoạt") as HTMLInputElement).value,
+    ).toBe("Tên đang viết dở");
+    // Trang phía sau (đang bị sheet che) đã nhận bản mới của server.
+    expect(document.querySelector("h1")?.textContent).toBe("Tên từ server");
+  });
+
+  it("uses the latest revision on the page after loading it during a conflict", async () => {
+    updateRoutineTitle.mockResolvedValue({
+      status: "error",
+      kind: "conflict",
+      code: "ROUTINE_REVISION_CONFLICT",
+      message: "Nếp sinh hoạt đã thay đổi ở một phiên làm việc khác.",
+    });
+    reloadRoutine.mockResolvedValue({
+      status: "success",
+      routine: { ...routine, title: "Bản mới nhất từ server", revision: 5 },
+    });
+    changeRoutineState.mockResolvedValue({
+      status: "success",
+      routine: { ...routine, isActive: false, revision: 6 },
+    });
+    renderDetail();
+
+    fireEvent.click(screen.getByRole("button", { name: "Chỉnh sửa" }));
+    await screen.findByLabelText("Tên Nếp sinh hoạt");
+    fireEvent.click(screen.getByRole("button", { name: "Lưu thay đổi" }));
+    const useLatest = await screen.findByRole("button", {
+      name: "Dùng bản mới nhất",
+    });
+    await waitFor(() =>
+      expect((useLatest as HTMLButtonElement).disabled).toBe(false),
+    );
+    fireEvent.click(useLatest);
+    await waitFor(() =>
+      expect(
+        (screen.getByLabelText("Tên Nếp sinh hoạt") as HTMLInputElement).value,
+      ).toBe("Bản mới nhất từ server"),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Hủy" }));
+
+    screen.getByRole("heading", { name: "Bản mới nhất từ server" });
+    fireEvent.click(screen.getByRole("button", { name: "Lưu trữ" }));
+    await waitFor(() =>
+      expect(changeRoutineState).toHaveBeenCalledWith({
+        id: routine.id,
+        expectedRevision: 5,
+        action: "archive",
+      }),
+    );
   });
 
   it("offers no editing for an archived routine", () => {

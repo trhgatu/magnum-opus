@@ -1,6 +1,6 @@
 "use client";
 
-import type { RoutineResponse } from "@repo/contracts";
+import type { RoutineDetailResponse, RoutineResponse } from "@repo/contracts";
 import { ArrowRight, ListChecks, Save } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -40,6 +40,8 @@ type RoutineEditorProps =
       onSaved: (routine: RoutineResponse) => void;
       onCancel: () => void;
       onDirtyChange?: (isDirty: boolean) => void;
+      /** Đã tải bản mới nhất khi xung đột: trang phía sau cũng phải dùng nó. */
+      onLatestLoaded?: (routine: RoutineDetailResponse) => void;
     };
 
 export function RoutineEditor(props: RoutineEditorProps) {
@@ -59,6 +61,7 @@ export function RoutineEditor(props: RoutineEditorProps) {
   useUnsavedChangesWarning(isDirty);
   const onDirtyChange = inSheet ? props.onDirtyChange : undefined;
   useEffect(() => onDirtyChange?.(isDirty), [isDirty, onDirtyChange]);
+  const onLatestLoaded = inSheet ? props.onLatestLoaded : undefined;
 
   const finishSaving = (routine: RoutineResponse) => {
     if (props.initialRoutine !== undefined) {
@@ -118,6 +121,7 @@ export function RoutineEditor(props: RoutineEditorProps) {
         setRecoveryError(latest.message);
         return;
       }
+      onLatestLoaded?.(latest.routine);
 
       if (!keepLocal) {
         applyPersistedRoutine(latest.routine);

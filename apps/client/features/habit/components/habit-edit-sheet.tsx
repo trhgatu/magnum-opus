@@ -76,7 +76,12 @@ export function HabitEditProvider({
   children: ReactNode;
 }) {
   const router = useRouter();
-  const [habit, setHabit] = useState(initialHabit);
+  // Bản từ sheet (vừa lưu, hoặc vừa tải khi xung đột) chỉ dùng khi mới hơn
+  // bản server đang có. Không remount theo revision: refresh xong trong lúc
+  // sheet đang mở thì chữ đang gõ vẫn còn.
+  const [latest, setLatest] = useState<HabitResponse>();
+  const habit =
+    latest && latest.revision > initialHabit.revision ? latest : initialHabit;
   const [open, setOpen] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
 
@@ -117,9 +122,10 @@ export function HabitEditProvider({
             <HabitEditor
               initialHabit={habit}
               onDirtyChange={setIsDirty}
+              onLatestLoaded={setLatest}
               onCancel={requestClose}
               onSaved={(saved) => {
-                setHabit(saved);
+                setLatest(saved);
                 close();
                 router.refresh();
               }}
