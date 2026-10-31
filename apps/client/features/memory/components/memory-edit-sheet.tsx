@@ -3,13 +3,7 @@
 import type { MemoryResponse } from "@repo/contracts";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import {
-  createContext,
-  type ReactNode,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import { createContext, type ReactNode, useContext, useState } from "react";
 
 import {
   Sheet,
@@ -22,7 +16,7 @@ import {
 // Form kéo theo Calendar và date-fns: chỉ cần khi mở sheet, nên không nằm
 // trong JS tải lần đầu của trang chi tiết. import() phải viết thẳng trong
 // dynamic() thì Next mới nhận ra chunk này; loadMemoryEditor chỉ dùng để
-// tải sẵn ở nền.
+// tải sẵn khi người dùng sắp bấm Chỉnh sửa.
 const MemoryEditor = dynamic(
   () =>
     import("@/features/memory/components/memory-editor").then(
@@ -51,6 +45,9 @@ const DISCARD_WARNING =
 const MemoryEditContext = createContext<{
   memory: MemoryResponse;
   openEditor: () => void;
+  /** Rê chuột hoặc focus vào nút Chỉnh sửa: tải form trước khi bấm, mà không
+   * tốn băng thông cho người chỉ đọc. */
+  preloadEditor: () => void;
 } | null>(null);
 
 export function useMemoryEdit() {
@@ -80,11 +77,6 @@ export function MemoryEditProvider({
   const [open, setOpen] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
 
-  // Tải sẵn form sau khi trang đã hiện, để bấm Chỉnh sửa là có ngay.
-  useEffect(() => {
-    if (initialMemory.state === "ACTIVE") void loadMemoryEditor();
-  }, [initialMemory.state]);
-
   const close = () => {
     setOpen(false);
     setIsDirty(false);
@@ -97,7 +89,11 @@ export function MemoryEditProvider({
 
   return (
     <MemoryEditContext.Provider
-      value={{ memory, openEditor: () => setOpen(true) }}
+      value={{
+        memory,
+        openEditor: () => setOpen(true),
+        preloadEditor: () => void loadMemoryEditor(),
+      }}
     >
       {children}
       <Sheet

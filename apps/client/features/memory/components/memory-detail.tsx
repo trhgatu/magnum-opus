@@ -18,25 +18,28 @@ import { MemoryLifecycleControls } from "@/features/memory/components/memory-lif
 
 interface MemoryDetailProps {
   memory: MemoryResponse;
+  /** Múi giờ của tài khoản: server và trình duyệt định dạng giờ giống nhau. */
+  timeZone: string;
 }
 
-const formatUpdatedAt = (value: string) =>
+const formatUpdatedAt = (value: string, timeZone: string) =>
   new Intl.DateTimeFormat("vi-VN", {
     dateStyle: "medium",
     timeStyle: "short",
+    timeZone,
   }).format(new Date(value));
 
-export function MemoryDetail({ memory }: MemoryDetailProps) {
+export function MemoryDetail({ memory, timeZone }: MemoryDetailProps) {
   return (
     <MemoryEditProvider key={memory.id} initialMemory={memory}>
-      <MemoryDetailBody />
+      <MemoryDetailBody timeZone={timeZone} />
     </MemoryEditProvider>
   );
 }
 
 /** Đọc ký ức từ provider để hiện ngay bản vừa lưu trong sheet. */
-function MemoryDetailBody() {
-  const { memory, openEditor } = useMemoryEdit();
+function MemoryDetailBody({ timeZone }: { timeZone: string }) {
+  const { memory, openEditor, preloadEditor } = useMemoryEdit();
   const occurredOnLabel = formatMemoryOccurredOn(
     memory.occurredOn,
     memory.occurredOnPrecision,
@@ -73,7 +76,13 @@ function MemoryDetailBody() {
             <>
               <Badge variant="outline">Đang lưu giữ</Badge>
 
-              <Button type="button" variant="outline" onClick={openEditor}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={openEditor}
+                onPointerEnter={preloadEditor}
+                onFocus={preloadEditor}
+              >
                 <Pencil data-icon="inline-start" aria-hidden="true" />
                 Chỉnh sửa
               </Button>
@@ -147,7 +156,7 @@ function MemoryDetailBody() {
 
           <footer className="mt-10 flex flex-col gap-1 border-t pt-5 font-mono text-[11px] text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
             <time dateTime={memory.updatedAt}>
-              Cập nhật {formatUpdatedAt(memory.updatedAt)}
+              Cập nhật {formatUpdatedAt(memory.updatedAt, timeZone)}
             </time>
 
             <span>Magnum Opus · Reflection</span>

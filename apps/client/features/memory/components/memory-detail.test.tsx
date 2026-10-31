@@ -66,7 +66,7 @@ afterEach(cleanup);
 
 describe("MemoryDetail", () => {
   it("renders the Memory and preserves date precision", () => {
-    render(<MemoryDetail memory={memory} />);
+    render(<MemoryDetail memory={memory} timeZone="Asia/Ho_Chi_Minh" />);
 
     expect(
       screen.getByRole("heading", {
@@ -80,7 +80,7 @@ describe("MemoryDetail", () => {
   });
 
   it("links to the source Journal entry", () => {
-    render(<MemoryDetail memory={memory} />);
+    render(<MemoryDetail memory={memory} timeZone="Asia/Ho_Chi_Minh" />);
 
     expect(
       screen
@@ -100,7 +100,7 @@ describe("MemoryDetail", () => {
         revision: 3,
       },
     });
-    render(<MemoryDetail memory={memory} />);
+    render(<MemoryDetail memory={memory} timeZone="Asia/Ho_Chi_Minh" />);
 
     fireEvent.click(screen.getByRole("button", { name: "Chỉnh sửa" }));
     screen.getByRole("dialog", { name: "Chỉnh sửa ký ức" });
@@ -121,7 +121,7 @@ describe("MemoryDetail", () => {
 
   it("asks before closing the sheet with unsaved changes", async () => {
     const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
-    render(<MemoryDetail memory={memory} />);
+    render(<MemoryDetail memory={memory} timeZone="Asia/Ho_Chi_Minh" />);
 
     fireEvent.click(screen.getByRole("button", { name: "Chỉnh sửa" }));
     fireEvent.change(await screen.findByLabelText("Nội dung"), {
@@ -134,6 +134,13 @@ describe("MemoryDetail", () => {
     confirmSpy.mockRestore();
   });
 
+  it("shows the update time in the account time zone", () => {
+    // 11:00 UTC là 18:00 ở Việt Nam — không phụ thuộc múi giờ của máy chạy.
+    render(<MemoryDetail memory={memory} timeZone="Asia/Ho_Chi_Minh" />);
+
+    expect(screen.getByText(/Cập nhật .*18:00/)).toBeTruthy();
+  });
+
   it("marks a trashed Memory", () => {
     render(
       <MemoryDetail
@@ -142,6 +149,7 @@ describe("MemoryDetail", () => {
           state: "TRASHED",
           trashedAt: "2026-08-15T10:00:00.000Z",
         }}
+        timeZone="Asia/Ho_Chi_Minh"
       />,
     );
 
