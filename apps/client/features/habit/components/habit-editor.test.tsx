@@ -132,17 +132,16 @@ describe("HabitEditor", () => {
     expect(screen.queryByText("Loại thói quen")).toBeNull();
   });
 
-  it("puts the cursor in the field the user clicked on", () => {
+  it("puts the cursor in the title when editing", () => {
     render(
       <HabitEditor
         initialHabit={existingHabit}
-        focusField="description"
         onSaved={onSaved}
         onCancel={onCancel}
       />,
     );
 
-    expect(document.activeElement).toBe(screen.getByLabelText("Ý nghĩa"));
+    expect(document.activeElement).toBe(screen.getByLabelText("Tên thói quen"));
   });
 
   it("updates the current revision in edit mode", async () => {

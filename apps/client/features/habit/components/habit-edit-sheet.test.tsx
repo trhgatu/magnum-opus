@@ -43,9 +43,9 @@ vi.mock("@/lib/toast", () => ({ notifySuccess }));
 
 import {
   HabitDetailActions,
+  HabitDetailDescription,
   HabitDetailMeta,
-  HabitEditableDescription,
-  HabitEditableTitle,
+  HabitDetailTitle,
   HabitEditProvider,
 } from "./habit-edit-sheet";
 
@@ -67,10 +67,10 @@ const renderDetail = (initialHabit = habit) =>
   render(
     <HabitEditProvider initialHabit={initialHabit}>
       <h1>
-        <HabitEditableTitle />
+        <HabitDetailTitle />
       </h1>
       <p>
-        <HabitEditableDescription placeholder="Một hành động nhỏ." />
+        <HabitDetailDescription placeholder="Một hành động nhỏ." />
       </p>
       <HabitDetailActions />
     </HabitEditProvider>,
@@ -94,34 +94,15 @@ describe("HabitEditProvider", () => {
     await waitFor(() => expect(document.activeElement).toBe(title));
   });
 
-  it("opens the form at the title when the title is clicked", async () => {
+  it("shows the title and description as plain text, edited only from the button", () => {
     renderDetail();
 
-    // Gợi ý cho trình đọc màn hình không lọt vào tên của tiêu đề trang.
     const heading = screen.getByRole("heading", { name: "Thiền 10 phút" });
-    fireEvent.click(
-      within(heading).getByRole("button", {
-        name: "Thiền 10 phút",
-        description: "Bấm để chỉnh sửa tên thói quen",
-      }),
-    );
-
-    const title = await screen.findByLabelText("Tên thói quen");
-    await waitFor(() => expect(document.activeElement).toBe(title));
-  });
-
-  it("opens the form at the description when the description is clicked", async () => {
-    renderDetail();
-
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: "Một hành động nhỏ. Bấm để thêm mô tả.",
-        description: "Bấm để chỉnh sửa mô tả thói quen",
-      }),
-    );
-
-    const description = await screen.findByLabelText("Ý nghĩa");
-    await waitFor(() => expect(document.activeElement).toBe(description));
+    expect(within(heading).queryByRole("button")).toBeNull();
+    expect(screen.getByText("Một hành động nhỏ.")).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: /Một hành động nhỏ/ }),
+    ).toBeNull();
   });
 
   it("closes after saving, shows the new title and archives the new revision", async () => {
