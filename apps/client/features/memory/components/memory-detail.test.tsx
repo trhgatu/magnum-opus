@@ -1,11 +1,45 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import type { MemoryResponse } from "@repo/contracts";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 
+const { updateMemory, refresh } = vi.hoisted(() => ({
+  updateMemory: vi.fn(),
+  refresh: vi.fn(),
+}));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), refresh }),
+}));
+
+vi.mock("@/features/memory/actions/memory", () => ({
+  createMemory: vi.fn(),
+  reloadMemory: vi.fn(),
+  updateMemory,
+}));
+
+vi.mock("@/lib/toast", () => ({ notifySuccess: vi.fn() }));
+
+// Chỉ cần biết nút Thùng rác nhận revision nào.
 vi.mock("@/features/memory/components/memory-lifecycle-controls", () => ({
-  MemoryLifecycleControls: () => null,
+  MemoryLifecycleControls: ({ revision }: { revision: number }) => (
+    <span>revision {revision}</span>
+  ),
 }));
 
 import { MemoryDetail } from "./memory-detail";
@@ -24,6 +58,10 @@ const memory: MemoryResponse = {
   updatedAt: "2026-08-14T11:00:00.000Z",
 };
 
+// Form được tải khi mở sheet; biên dịch nó lần đầu có thể quá thời gian chờ
+// của findBy* khi máy bận, nên tải sẵn một lần trước các test.
+beforeAll(() => import("./memory-editor"), 30_000);
+beforeEach(() => vi.clearAllMocks());
 afterEach(cleanup);
 
 describe("MemoryDetail", () => {
@@ -53,16 +91,47 @@ describe("MemoryDetail", () => {
     ).toBe("/journal/cc2a5d7a-72ba-41ce-9ad8-c82941270f35");
   });
 
-  it("links an active Memory to its edit page", () => {
+  it("edits an active Memory in a sheet and shows the saved version", async () => {
+    updateMemory.mockResolvedValue({
+      status: "success",
+      memory: {
+        ...memory,
+        content: "Ánh nắng vẫn còn đó.",
+        revision: 3,
+      },
+    });
     render(<MemoryDetail memory={memory} />);
 
-    expect(
-      screen
-        .getByRole("link", {
-          name: "Chỉnh sửa",
-        })
-        .getAttribute("href"),
-    ).toBe(`/memories/${memory.id}/edit`);
+    fireEvent.click(screen.getByRole("button", { name: "Chỉnh sửa" }));
+    screen.getByRole("dialog", { name: "Chỉnh sửa ký ức" });
+    const title = await screen.findByLabelText("Tiêu đề");
+    await waitFor(() => expect(document.activeElement).toBe(title));
+
+    fireEvent.change(screen.getByLabelText("Nội dung"), {
+      target: { value: "Ánh nắng vẫn còn đó." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Lưu thay đổi" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(await screen.findByText("Ánh nắng vẫn còn đó.")).toBeTruthy();
+    // Thùng rác dùng ngay revision vừa lưu, không chờ refresh.
+    expect(screen.getByText("revision 3")).toBeTruthy();
+    expect(refresh).toHaveBeenCalledOnce();
+  });
+
+  it("asks before closing the sheet with unsaved changes", async () => {
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+    render(<MemoryDetail memory={memory} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Chỉnh sửa" }));
+    fireEvent.change(await screen.findByLabelText("Nội dung"), {
+      target: { value: "Bản nháp" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Hủy" }));
+
+    expect(confirmSpy).toHaveBeenCalledOnce();
+    screen.getByRole("dialog");
+    confirmSpy.mockRestore();
   });
 
   it("marks a trashed Memory", () => {
@@ -79,7 +148,7 @@ describe("MemoryDetail", () => {
     expect(screen.getByText("Thùng rác")).toBeTruthy();
 
     expect(
-      screen.queryByRole("link", {
+      screen.queryByRole("button", {
         name: "Chỉnh sửa",
       }),
     ).toBeNull();

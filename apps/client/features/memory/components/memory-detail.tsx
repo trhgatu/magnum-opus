@@ -1,13 +1,19 @@
+"use client";
+
 import type { MemoryResponse } from "@repo/contracts";
 import { ArrowLeft, BookOpenText, Pencil } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   formatMemoryOccurredOn,
   memoryOccurredOnDateTime,
 } from "@/features/memory/lib/memory-date";
+import {
+  MemoryEditProvider,
+  useMemoryEdit,
+} from "@/features/memory/components/memory-edit-sheet";
 import { MemoryLifecycleControls } from "@/features/memory/components/memory-lifecycle-controls";
 
 interface MemoryDetailProps {
@@ -21,6 +27,16 @@ const formatUpdatedAt = (value: string) =>
   }).format(new Date(value));
 
 export function MemoryDetail({ memory }: MemoryDetailProps) {
+  return (
+    <MemoryEditProvider key={memory.id} initialMemory={memory}>
+      <MemoryDetailBody />
+    </MemoryEditProvider>
+  );
+}
+
+/** Đọc ký ức từ provider để hiện ngay bản vừa lưu trong sheet. */
+function MemoryDetailBody() {
+  const { memory, openEditor } = useMemoryEdit();
   const occurredOnLabel = formatMemoryOccurredOn(
     memory.occurredOn,
     memory.occurredOnPrecision,
@@ -57,15 +73,10 @@ export function MemoryDetail({ memory }: MemoryDetailProps) {
             <>
               <Badge variant="outline">Đang lưu giữ</Badge>
 
-              <Link
-                href={`/memories/${memory.id}/edit`}
-                className={buttonVariants({
-                  variant: "outline",
-                })}
-              >
+              <Button type="button" variant="outline" onClick={openEditor}>
                 <Pencil data-icon="inline-start" aria-hidden="true" />
                 Chỉnh sửa
-              </Link>
+              </Button>
             </>
           )}
           <MemoryLifecycleControls
