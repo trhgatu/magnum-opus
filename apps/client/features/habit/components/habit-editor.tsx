@@ -8,11 +8,16 @@ import type {
 import { Save } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useState, useTransition } from "react";
+import {
+  type FormEvent,
+  useEffect,
+  useId,
+  useState,
+  useTransition,
+} from "react";
 
 import { ConflictAlert } from "@/components/system/conflict-alert";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,11 +44,25 @@ import { useUnsavedChangesWarning } from "@/hooks/use-unsaved-changes-warning";
 import { notifySuccess } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
-export function HabitEditor({
-  initialHabit,
-}: {
-  initialHabit?: HabitResponse;
-}) {
+/**
+ * Trang tạo mới dùng form một mình; sửa thói quen có sẵn thì form nằm trong
+ * sheet ở trang chi tiết, và sheet quyết định việc đóng sau khi lưu/hủy.
+ */
+type HabitEditorProps =
+  | { initialHabit?: undefined }
+  | {
+      initialHabit: HabitResponse;
+      focusField?: "title" | "description";
+      onSaved: (habit: HabitResponse) => void;
+      onCancel: () => void;
+      onDirtyChange?: (isDirty: boolean) => void;
+    };
+
+export function HabitEditor(props: HabitEditorProps) {
+  const { initialHabit } = props;
+  const inSheet = props.initialHabit !== undefined;
+  const titleId = useId();
+  const descriptionId = useId();
   const router = useRouter();
   const [persistedHabit, setPersistedHabit] = useState(initialHabit);
   const [type, setType] = useState<HabitType>(initialHabit?.type ?? "BUILD");
@@ -77,6 +96,19 @@ export function HabitEditor({
           JSON.stringify([...(persistedHabit?.frequencyDays ?? [])].sort())
       : quitStartedAt !== (persistedHabit?.quitStartedAt ?? quitStartedAt));
   useUnsavedChangesWarning(isDirty);
+  const onDirtyChange = inSheet ? props.onDirtyChange : undefined;
+  useEffect(() => onDirtyChange?.(isDirty), [isDirty, onDirtyChange]);
+
+  const finishSaving = (habit: HabitResponse) => {
+    if (props.initialHabit !== undefined) {
+      void notifySuccess(`Đã cập nhật "${habit.title}"`);
+      props.onSaved(habit);
+      return;
+    }
+    void notifySuccess(`Đã tạo "${habit.title}"`);
+    router.push(`/habits/${habit.id}`);
+    router.refresh();
+  };
 
   const toggleDay = (day: number) =>
     setDays((current) =>
@@ -131,13 +163,7 @@ export function HabitEditor({
         setHasConflict(result.code === "HABIT_REVISION_CONFLICT");
         return;
       }
-      void notifySuccess(
-        persistedHabit
-          ? `Đã cập nhật "${result.habit.title}"`
-          : `Đã tạo "${result.habit.title}"`,
-      );
-      router.push(`/habits/${result.habit.id}`);
-      router.refresh();
+      finishSaving(result.habit);
     });
   };
 
@@ -193,12 +219,11 @@ export function HabitEditor({
         return;
       }
 
-      void notifySuccess(`Đã cập nhật "${result.habit.title}"`);
-
-      router.push(`/habits/${result.habit.id}`);
-      router.refresh();
+      finishSaving(result.habit);
     });
   };
+
+  const focusField = inSheet ? (props.focusField ?? "title") : undefined;
 
   return (
     <form onSubmit={submit} className="space-y-4" aria-busy={isPending}>
@@ -216,40 +241,42 @@ export function HabitEditor({
           <AlertDescription>{message}</AlertDescription>
         </Alert>
       ) : null}
-      <section className="overflow-hidden rounded-3xl bg-card/70 shadow-sm ring-1 ring-foreground/10">
-        <header className="border-b px-5 py-5 sm:px-7 sm:py-6">
-          <div className="flex items-start gap-3">
-            <span className="grid size-10 shrink-0 place-items-center rounded-full border border-primary/20 bg-primary/10 text-primary">
-              <span
-                className="font-mono text-xs font-semibold"
-                aria-hidden="true"
-              >
-                01
+      <section
+        className={
+          inSheet
+            ? "space-y-6"
+            : "overflow-hidden rounded-3xl bg-card/70 shadow-sm ring-1 ring-foreground/10"
+        }
+      >
+        {inSheet ? null : (
+          <header className="border-b px-5 py-5 sm:px-7 sm:py-6">
+            <div className="flex items-start gap-3">
+              <span className="grid size-10 shrink-0 place-items-center rounded-full border border-primary/20 bg-primary/10 text-primary">
+                <span
+                  className="font-mono text-xs font-semibold"
+                  aria-hidden="true"
+                >
+                  01
+                </span>
               </span>
-            </span>
-            <div>
-              <h2 className="font-display text-xl font-semibold">
-                Định nghĩa thực hành
-              </h2>
-              <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                Viết rõ hành động và lý do khiến nó đáng được quay lại.
-              </p>
-            </div>
-          </div>
-        </header>
-        <div className="space-y-6 px-5 py-6 sm:px-7 sm:py-7">
-          <div className="space-y-3">
-            <Label>Loại thói quen</Label>
-            {persistedHabit ? (
               <div>
-                <Badge variant="outline">
-                  {type === "BUILD" ? "Xây dựng điều tốt" : "Từ bỏ điều xấu"}
-                </Badge>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Loại thói quen không thể đổi sau khi tạo.
+                <h2 className="font-display text-xl font-semibold">
+                  Định nghĩa thực hành
+                </h2>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                  Viết rõ hành động và lý do khiến nó đáng được quay lại.
                 </p>
               </div>
-            ) : (
+            </div>
+          </header>
+        )}
+        <div
+          className={cn("space-y-6", !inSheet && "px-5 py-6 sm:px-7 sm:py-7")}
+        >
+          {/* Loại thói quen không đổi được sau khi tạo: sửa thì không hiện. */}
+          {inSheet ? null : (
+            <div className="space-y-3">
+              <Label>Loại thói quen</Label>
               <div
                 role="radiogroup"
                 aria-label="Loại thói quen"
@@ -291,17 +318,18 @@ export function HabitEditor({
                   </button>
                 ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-3">
-              <Label htmlFor="habit-title">Tên thói quen</Label>
+              <Label htmlFor={titleId}>Tên thói quen</Label>
               <span className="font-mono text-[11px] text-muted-foreground">
                 {title.length}/200
               </span>
             </div>
             <Input
-              id="habit-title"
+              id={titleId}
+              autoFocus={focusField === "title"}
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               maxLength={200}
@@ -316,9 +344,10 @@ export function HabitEditor({
             />
           </div>
           <div className="space-y-3">
-            <Label htmlFor="habit-description">Ý nghĩa</Label>
+            <Label htmlFor={descriptionId}>Ý nghĩa</Label>
             <Textarea
-              id="habit-description"
+              id={descriptionId}
+              autoFocus={focusField === "description"}
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               disabled={isPending}
@@ -328,27 +357,33 @@ export function HabitEditor({
           </div>
         </div>
 
-        <div className="border-y bg-muted/20 px-5 py-5 sm:px-7">
-          <div className="mb-5 flex items-center gap-3">
-            <span className="grid size-9 place-items-center rounded-full bg-primary/10 text-primary">
-              <span
-                className="font-mono text-xs font-semibold"
-                aria-hidden="true"
-              >
-                02
+        <div
+          className={
+            inSheet ? undefined : "border-y bg-muted/20 px-5 py-5 sm:px-7"
+          }
+        >
+          {inSheet ? null : (
+            <div className="mb-5 flex items-center gap-3">
+              <span className="grid size-9 place-items-center rounded-full bg-primary/10 text-primary">
+                <span
+                  className="font-mono text-xs font-semibold"
+                  aria-hidden="true"
+                >
+                  02
+                </span>
               </span>
-            </span>
-            <div>
-              <p className="font-display text-lg font-semibold">
-                {type === "BUILD" ? "Nhịp thực hiện" : "Mốc bắt đầu"}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {type === "BUILD"
-                  ? "Chọn lịch có thể duy trì trong đời sống thực."
-                  : "Ngày bắt đầu từ bỏ — có thể sửa lại sau này."}
-              </p>
+              <div>
+                <p className="font-display text-lg font-semibold">
+                  {type === "BUILD" ? "Nhịp thực hiện" : "Mốc bắt đầu"}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {type === "BUILD"
+                    ? "Chọn lịch có thể duy trì trong đời sống thực."
+                    : "Ngày bắt đầu từ bỏ — có thể sửa lại sau này."}
+                </p>
+              </div>
             </div>
-          </div>
+          )}
 
           {type === "BUILD" ? (
             <>
@@ -409,18 +444,35 @@ export function HabitEditor({
           )}
         </div>
 
-        <footer className="flex flex-col-reverse gap-3 bg-muted/30 px-5 py-4 sm:flex-row sm:justify-end sm:px-7">
-          <Link
-            href={persistedHabit ? `/habits/${persistedHabit.id}` : "/habits"}
-            className={buttonVariants({ variant: "outline", size: "lg" })}
-          >
-            Hủy
-          </Link>
+        <footer
+          className={cn(
+            "flex flex-col-reverse gap-3 sm:flex-row sm:justify-end",
+            inSheet ? "border-t pt-4" : "bg-muted/30 px-5 py-4 sm:px-7",
+          )}
+        >
+          {props.initialHabit !== undefined ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              disabled={isPending}
+              onClick={props.onCancel}
+            >
+              Hủy
+            </Button>
+          ) : (
+            <Link
+              href="/habits"
+              className={buttonVariants({ variant: "outline", size: "lg" })}
+            >
+              Hủy
+            </Link>
+          )}
           <Button type="submit" size="lg" disabled={isPending || !isEditable}>
             <Save aria-hidden="true" />
             {isPending
               ? "Đang lưu…"
-              : persistedHabit
+              : inSheet
                 ? "Lưu thay đổi"
                 : "Tạo thói quen"}
           </Button>

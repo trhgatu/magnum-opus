@@ -4,24 +4,22 @@ import type {
   HabitProgressResponse,
   HabitResponse,
 } from "@repo/contracts";
-import { ArrowLeft, CalendarCheck2, Pencil, Repeat2 } from "lucide-react";
+import { ArrowLeft, CalendarCheck2, Repeat2 } from "lucide-react";
 import Link from "next/link";
 
 import { ContextHero } from "@/components/system/context-hero";
-import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { HabitCheckInControl } from "@/features/habit/components/habit-check-in-control";
 import { HabitHeatmap } from "@/features/habit/components/habit-heatmap";
 import {
-  HabitFieldsProvider,
-  HabitInlineDescription,
-  HabitInlineTitle,
-  HabitLifecycleControlsInline,
-} from "@/features/habit/components/habit-inline-fields";
+  HabitDetailActions,
+  HabitDetailMeta,
+  HabitEditableDescription,
+  HabitEditableTitle,
+  HabitEditProvider,
+} from "@/features/habit/components/habit-edit-sheet";
 import { HabitRelapseControl } from "@/features/habit/components/habit-relapse-control";
-import { formatHabitFrequency } from "@/features/habit/lib/habit-frequency";
-import { formatQuitStartedAt } from "@/features/habit/lib/habit-quit";
 
 type HabitDetailProps =
   | {
@@ -56,7 +54,7 @@ export function HabitDetail(props: HabitDetailProps) {
         <ArrowLeft aria-hidden="true" /> Tất cả thói quen
       </Link>
 
-      <HabitFieldsProvider
+      <HabitEditProvider
         key={`${habit.id}-${habit.revision}`}
         initialHabit={habit}
       >
@@ -64,9 +62,9 @@ export function HabitDetail(props: HabitDetailProps) {
           id="habit-title"
           icon={Repeat2}
           eyebrow="Forge · Thói quen"
-          title={<HabitInlineTitle />}
+          title={<HabitEditableTitle />}
           description={
-            <HabitInlineDescription
+            <HabitEditableDescription
               placeholder={
                 isQuit
                   ? "Một nỗ lực từ bỏ đang được theo dõi từng ngày."
@@ -74,36 +72,10 @@ export function HabitDetail(props: HabitDetailProps) {
               }
             />
           }
-          meta={
-            <>
-              <Badge>
-                {isQuit && habit.quitStartedAt
-                  ? `Bắt đầu ${formatQuitStartedAt(habit.quitStartedAt)}`
-                  : formatHabitFrequency(
-                      habit.frequencyType,
-                      habit.frequencyDays,
-                    )}
-              </Badge>
-              <Badge variant={habit.isActive ? "outline" : "secondary"}>
-                {habit.isActive ? "Đang rèn luyện" : "Đã lưu trữ"}
-              </Badge>
-            </>
-          }
-          actions={
-            <>
-              {habit.isActive ? (
-                <Link
-                  href={`/habits/${habit.id}/edit`}
-                  className={buttonVariants({ variant: "outline" })}
-                >
-                  <Pencil aria-hidden="true" /> Chỉnh sửa
-                </Link>
-              ) : null}
-              <HabitLifecycleControlsInline />
-            </>
-          }
+          meta={<HabitDetailMeta />}
+          actions={<HabitDetailActions />}
         />
-      </HabitFieldsProvider>
+      </HabitEditProvider>
 
       {isQuit ? (
         <Card className="gap-0 rounded-3xl bg-card/70 py-0 shadow-sm">

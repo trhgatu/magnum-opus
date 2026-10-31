@@ -32,6 +32,10 @@ vi.mock("@/features/habit/actions/habit", () => ({
 
 vi.mock("@/lib/toast", () => ({ notifySuccess }));
 
+const onSaved = vi.fn();
+const onCancel = vi.fn();
+const onDirtyChange = vi.fn();
+
 import { HabitEditor } from "./habit-editor";
 
 const existingHabit: HabitResponse = {
@@ -115,16 +119,30 @@ describe("HabitEditor", () => {
     expect(push).toHaveBeenCalledWith(`/habits/${quitHabit.id}`);
   });
 
-  it("shows the type as a read-only badge when editing", () => {
-    render(<HabitEditor initialHabit={existingHabit} />);
+  it("leaves out the type when editing, since it cannot change", () => {
+    render(
+      <HabitEditor
+        initialHabit={existingHabit}
+        onSaved={onSaved}
+        onCancel={onCancel}
+      />,
+    );
 
-    expect(
-      screen.queryByRole("radio", { name: "Xây dựng điều tốt" }),
-    ).toBeNull();
-    expect(screen.getByText("Xây dựng điều tốt")).toBeTruthy();
-    expect(
-      screen.getByText("Loại thói quen không thể đổi sau khi tạo."),
-    ).toBeTruthy();
+    expect(screen.queryByRole("radiogroup")).toBeNull();
+    expect(screen.queryByText("Loại thói quen")).toBeNull();
+  });
+
+  it("puts the cursor in the field the user clicked on", () => {
+    render(
+      <HabitEditor
+        initialHabit={existingHabit}
+        focusField="description"
+        onSaved={onSaved}
+        onCancel={onCancel}
+      />,
+    );
+
+    expect(document.activeElement).toBe(screen.getByLabelText("Ý nghĩa"));
   });
 
   it("updates the current revision in edit mode", async () => {
@@ -133,7 +151,14 @@ describe("HabitEditor", () => {
       habit: { ...existingHabit, title: "Thiền 15 phút", revision: 4 },
     });
 
-    render(<HabitEditor initialHabit={existingHabit} />);
+    render(
+      <HabitEditor
+        initialHabit={existingHabit}
+        onSaved={onSaved}
+        onCancel={onCancel}
+        onDirtyChange={onDirtyChange}
+      />,
+    );
 
     fireEvent.change(screen.getByLabelText("Tên thói quen"), {
       target: { value: "Thiền 15 phút" },
@@ -154,7 +179,13 @@ describe("HabitEditor", () => {
     );
 
     expect(createHabit).not.toHaveBeenCalled();
-    expect(push).toHaveBeenCalledWith(`/habits/${existingHabit.id}`);
+    // Sheet tự đóng và làm mới trang; form không điều hướng.
+    expect(onSaved).toHaveBeenCalledWith({
+      ...existingHabit,
+      title: "Thiền 15 phút",
+      revision: 4,
+    });
+    expect(push).not.toHaveBeenCalled();
     expect(notifySuccess).toHaveBeenCalledWith('Đã cập nhật "Thiền 15 phút"');
   });
 
@@ -174,7 +205,14 @@ describe("HabitEditor", () => {
       },
     });
 
-    render(<HabitEditor initialHabit={existingHabit} />);
+    render(
+      <HabitEditor
+        initialHabit={existingHabit}
+        onSaved={onSaved}
+        onCancel={onCancel}
+        onDirtyChange={onDirtyChange}
+      />,
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Lưu thay đổi" }));
 
@@ -226,7 +264,14 @@ describe("HabitEditor", () => {
       habit: { ...existingHabit, title: "Bản mới nhất từ server", revision: 4 },
     });
 
-    render(<HabitEditor initialHabit={existingHabit} />);
+    render(
+      <HabitEditor
+        initialHabit={existingHabit}
+        onSaved={onSaved}
+        onCancel={onCancel}
+        onDirtyChange={onDirtyChange}
+      />,
+    );
 
     fireEvent.change(screen.getByLabelText("Tên thói quen"), {
       target: { value: "Bản local được giữ lại" },
@@ -256,8 +301,10 @@ describe("HabitEditor", () => {
       expectedRevision: 4,
     });
 
-    expect(push).toHaveBeenCalledWith(`/habits/${existingHabit.id}`);
-    expect(refresh).toHaveBeenCalledOnce();
+    expect(onSaved).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Bản local được giữ lại", revision: 5 }),
+    );
+    expect(push).not.toHaveBeenCalled();
     expect(notifySuccess).toHaveBeenCalledWith(
       'Đã cập nhật "Bản local được giữ lại"',
     );
@@ -275,7 +322,14 @@ describe("HabitEditor", () => {
       habit: { ...existingHabit, isActive: false, revision: 4 },
     });
 
-    render(<HabitEditor initialHabit={existingHabit} />);
+    render(
+      <HabitEditor
+        initialHabit={existingHabit}
+        onSaved={onSaved}
+        onCancel={onCancel}
+        onDirtyChange={onDirtyChange}
+      />,
+    );
 
     fireEvent.change(screen.getByLabelText("Tên thói quen"), {
       target: { value: "Bản đang viết dở" },
@@ -306,31 +360,39 @@ describe("HabitEditor", () => {
     expect(push).not.toHaveBeenCalled();
   });
 
-  it("does not warn about leaving before any field is edited", () => {
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
-    render(<HabitEditor initialHabit={existingHabit} />);
+  it("hands Cancel to the sheet", () => {
+    render(
+      <HabitEditor
+        initialHabit={existingHabit}
+        onSaved={onSaved}
+        onCancel={onCancel}
+      />,
+    );
 
-    fireEvent.click(screen.getByRole("link", { name: "Hủy" }));
+    fireEvent.click(screen.getByRole("button", { name: "Hủy" }));
 
-    expect(confirmSpy).not.toHaveBeenCalled();
-    confirmSpy.mockRestore();
+    expect(onCancel).toHaveBeenCalledOnce();
   });
 
-  it("warns about leaving once a field has unsaved changes", () => {
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
-    render(<HabitEditor initialHabit={existingHabit} />);
+  it("tells the sheet when a field has unsaved changes", () => {
+    render(
+      <HabitEditor
+        initialHabit={existingHabit}
+        onSaved={onSaved}
+        onCancel={onCancel}
+        onDirtyChange={onDirtyChange}
+      />,
+    );
+    expect(onDirtyChange).toHaveBeenLastCalledWith(false);
 
     fireEvent.change(screen.getByLabelText("Tên thói quen"), {
       target: { value: "Thiền 20 phút" },
     });
-    fireEvent.click(screen.getByRole("link", { name: "Hủy" }));
 
-    expect(confirmSpy).toHaveBeenCalledOnce();
-    confirmSpy.mockRestore();
+    expect(onDirtyChange).toHaveBeenLastCalledWith(true);
   });
 
-  it("stops warning again once the days selection matches the persisted habit", () => {
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+  it("is clean again once the days selection matches the persisted habit", () => {
     render(
       <HabitEditor
         initialHabit={{
@@ -338,15 +400,33 @@ describe("HabitEditor", () => {
           frequencyType: "WEEKLY",
           frequencyDays: [1, 3],
         }}
+        onSaved={onSaved}
+        onCancel={onCancel}
+        onDirtyChange={onDirtyChange}
       />,
     );
 
     const dayOne = screen.getByRole("button", { name: "T2" });
     fireEvent.click(dayOne);
+    expect(onDirtyChange).toHaveBeenLastCalledWith(true);
     fireEvent.click(dayOne);
+
+    expect(onDirtyChange).toHaveBeenLastCalledWith(false);
+  });
+
+  it("warns about leaving the create form once something is typed", () => {
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    render(<HabitEditor />);
+
+    fireEvent.click(screen.getByRole("link", { name: "Hủy" }));
+    expect(confirmSpy).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByLabelText("Tên thói quen"), {
+      target: { value: "Thiền 20 phút" },
+    });
     fireEvent.click(screen.getByRole("link", { name: "Hủy" }));
 
-    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(confirmSpy).toHaveBeenCalledOnce();
     confirmSpy.mockRestore();
   });
 });
