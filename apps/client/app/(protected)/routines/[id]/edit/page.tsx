@@ -1,49 +1,14 @@
-import type { RoutineDetailResponse } from "@repo/contracts";
-import { ListChecks } from "lucide-react";
-import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { permanentRedirect } from "next/navigation";
 
-import { ContextHero } from "@/components/system/context-hero";
-import { getRoutine } from "@/features/routine/api/routine";
-import { RoutineEditor } from "@/features/routine/components/routine-editor";
-import { ApiError } from "@/lib/api";
-
-export const metadata: Metadata = {
-  title: "Chỉnh sửa Nếp sinh hoạt",
-  robots: { index: false, follow: false },
-};
-
+/**
+ * Trang chỉnh sửa cũ: giờ đổi tên trong sheet ngay trên trang chi tiết. Giữ
+ * đường dẫn để link và bookmark cũ vẫn tới đúng Nếp sinh hoạt.
+ */
 export default async function EditRoutinePage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  let routine: RoutineDetailResponse;
-
-  try {
-    routine = await getRoutine(id);
-  } catch (error) {
-    if (
-      error instanceof ApiError &&
-      (error.status === 400 || error.status === 404)
-    ) {
-      notFound();
-    }
-    throw error;
-  }
-
-  if (!routine.isActive) notFound();
-
-  return (
-    <section className="mx-auto flex w-full max-w-4xl flex-col gap-6">
-      <ContextHero
-        icon={ListChecks}
-        eyebrow="Forge · Nếp sinh hoạt"
-        title="Chỉnh sửa Nếp sinh hoạt"
-        description="Tinh chỉnh định danh của Nếp sinh hoạt; những Thói quen đã kết nối và thứ tự thực hiện vẫn được giữ nguyên."
-      />
-      <RoutineEditor initialRoutine={routine} />
-    </section>
-  );
+  permanentRedirect(`/routines/${encodeURIComponent(id)}`);
 }

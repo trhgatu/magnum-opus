@@ -47,6 +47,20 @@ const routine = {
   revision: 3,
 };
 
+const onSaved = vi.fn();
+const onCancel = vi.fn();
+const onDirtyChange = vi.fn();
+
+const renderInSheet = () =>
+  render(
+    <RoutineEditor
+      initialRoutine={routine}
+      onSaved={onSaved}
+      onCancel={onCancel}
+      onDirtyChange={onDirtyChange}
+    />,
+  );
+
 beforeEach(() => {
   vi.clearAllMocks();
 });
@@ -80,7 +94,7 @@ describe("RoutineEditor", () => {
       status: "success",
       routine: { ...routine, title: "Evening ritual" },
     });
-    render(<RoutineEditor initialRoutine={routine} />);
+    renderInSheet();
 
     fireEvent.change(screen.getByLabelText("Tên Nếp sinh hoạt"), {
       target: { value: "Evening ritual" },
@@ -98,6 +112,12 @@ describe("RoutineEditor", () => {
     );
 
     expect(notifySuccess).toHaveBeenCalledWith('Đã cập nhật "Evening ritual"');
+    // Sheet tự đóng và làm mới trang; form không điều hướng.
+    expect(onSaved).toHaveBeenCalledWith({
+      ...routine,
+      title: "Evening ritual",
+    });
+    expect(push).not.toHaveBeenCalled();
   });
 
   it("offers to reload when the revision is stale", async () => {
@@ -117,7 +137,7 @@ describe("RoutineEditor", () => {
       },
     });
 
-    render(<RoutineEditor initialRoutine={routine} />);
+    renderInSheet();
 
     fireEvent.submit(
       screen.getByRole("button", { name: "Lưu thay đổi" }).closest("form")!,
@@ -169,7 +189,7 @@ describe("RoutineEditor", () => {
       },
     });
 
-    render(<RoutineEditor initialRoutine={routine} />);
+    renderInSheet();
 
     fireEvent.change(screen.getByLabelText("Tên Nếp sinh hoạt"), {
       target: { value: "Bản local được giữ lại" },
@@ -197,8 +217,10 @@ describe("RoutineEditor", () => {
       expectedRevision: 4,
     });
 
-    expect(push).toHaveBeenCalledWith(`/routines/${routine.id}`);
-    expect(refresh).toHaveBeenCalledOnce();
+    expect(onSaved).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Bản local được giữ lại", revision: 5 }),
+    );
+    expect(push).not.toHaveBeenCalled();
     expect(notifySuccess).toHaveBeenCalledWith(
       'Đã cập nhật "Bản local được giữ lại"',
     );
@@ -216,7 +238,7 @@ describe("RoutineEditor", () => {
       routine: { ...routine, isActive: false, revision: 4 },
     });
 
-    render(<RoutineEditor initialRoutine={routine} />);
+    renderInSheet();
 
     fireEvent.change(screen.getByLabelText("Tên Nếp sinh hoạt"), {
       target: { value: "Bản đang viết dở" },
@@ -249,19 +271,31 @@ describe("RoutineEditor", () => {
     expect(push).not.toHaveBeenCalled();
   });
 
-  it("does not warn about leaving before the title is edited", () => {
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
-    render(<RoutineEditor initialRoutine={routine} />);
+  it("hands Cancel to the sheet", () => {
+    renderInSheet();
 
-    fireEvent.click(screen.getByRole("link", { name: "Hủy" }));
+    fireEvent.click(screen.getByRole("button", { name: "Hủy" }));
 
-    expect(confirmSpy).not.toHaveBeenCalled();
-    confirmSpy.mockRestore();
+    expect(onCancel).toHaveBeenCalledOnce();
   });
 
-  it("warns about leaving once the title has unsaved changes", () => {
+  it("tells the sheet when the title has unsaved changes", () => {
+    renderInSheet();
+    expect(onDirtyChange).toHaveBeenLastCalledWith(false);
+
+    fireEvent.change(screen.getByLabelText("Tên Nếp sinh hoạt"), {
+      target: { value: "Evening ritual" },
+    });
+
+    expect(onDirtyChange).toHaveBeenLastCalledWith(true);
+  });
+
+  it("warns about leaving the create form once something is typed", () => {
     const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
-    render(<RoutineEditor initialRoutine={routine} />);
+    render(<RoutineEditor />);
+
+    fireEvent.click(screen.getByRole("link", { name: "Hủy" }));
+    expect(confirmSpy).not.toHaveBeenCalled();
 
     fireEvent.change(screen.getByLabelText("Tên Nếp sinh hoạt"), {
       target: { value: "Evening ritual" },

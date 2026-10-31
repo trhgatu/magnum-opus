@@ -9,7 +9,6 @@ import {
   type ReactNode,
   useContext,
   useEffect,
-  useId,
   useState,
 } from "react";
 
@@ -26,8 +25,6 @@ import { HabitLifecycleControls } from "@/features/habit/components/habit-lifecy
 import { formatHabitFrequency } from "@/features/habit/lib/habit-frequency";
 import { formatQuitStartedAt } from "@/features/habit/lib/habit-quit";
 import { cn } from "@/lib/utils";
-
-type HabitField = "title" | "description";
 
 // Form kéo theo Select, Calendar và date-fns: chỉ cần khi mở sheet, nên
 // không nằm trong JS tải lần đầu của trang chi tiết.
@@ -59,7 +56,7 @@ const DISCARD_WARNING =
  */
 const HabitEditContext = createContext<{
   habit: HabitResponse;
-  openEditor: (field: HabitField) => void;
+  openEditor: () => void;
 } | null>(null);
 
 function useHabitEdit() {
@@ -70,8 +67,7 @@ function useHabitEdit() {
   return context;
 }
 
-/** Trang chi tiết thói quen: một sheet chỉnh sửa, mở từ nút Chỉnh sửa hoặc
- * bấm thẳng vào tên/mô tả (con trỏ vào sẵn đúng ô đó). */
+/** Trang chi tiết thói quen: một sheet chỉnh sửa, mở từ nút Chỉnh sửa. */
 export function HabitEditProvider({
   initialHabit,
   children,
@@ -80,9 +76,13 @@ export function HabitEditProvider({
   children: ReactNode;
 }) {
   const router = useRouter();
-  const [habit, setHabit] = useState(initialHabit);
+  // Bản từ sheet (vừa lưu, hoặc vừa tải khi xung đột) chỉ dùng khi mới hơn
+  // bản server đang có. Không remount theo revision: refresh xong trong lúc
+  // sheet đang mở thì chữ đang gõ vẫn còn.
+  const [latest, setLatest] = useState<HabitResponse>();
+  const habit =
+    latest && latest.revision > initialHabit.revision ? latest : initialHabit;
   const [open, setOpen] = useState(false);
-  const [focusField, setFocusField] = useState<HabitField>("title");
   const [isDirty, setIsDirty] = useState(false);
 
   // Tải sẵn form sau khi trang đã hiện, để bấm Chỉnh sửa là có ngay.
@@ -90,10 +90,7 @@ export function HabitEditProvider({
     if (initialHabit.isActive) void loadHabitEditor();
   }, [initialHabit.isActive]);
 
-  const openEditor = (field: HabitField) => {
-    setFocusField(field);
-    setOpen(true);
-  };
+  const openEditor = () => setOpen(true);
 
   const close = () => {
     setOpen(false);
@@ -124,11 +121,11 @@ export function HabitEditProvider({
           <div className="px-4 pb-6">
             <HabitEditor
               initialHabit={habit}
-              focusField={focusField}
               onDirtyChange={setIsDirty}
+              onLatestLoaded={setLatest}
               onCancel={requestClose}
               onSaved={(saved) => {
-                setHabit(saved);
+                setLatest(saved);
                 close();
                 router.refresh();
               }}
@@ -140,73 +137,25 @@ export function HabitEditProvider({
   );
 }
 
-const pencilClassName =
-  "shrink-0 text-muted-foreground opacity-40 transition-opacity group-hover:opacity-80 group-focus-visible:opacity-80";
-
-/** Báo cho trình đọc màn hình biết bấm vào là sửa. Dùng aria-describedby
- * chứ không aria-label: aria-label đè mất tên của tiêu đề trang. `hidden`
- * để chữ này không cộng vào tên nút, aria-describedby vẫn đọc được. */
-function EditHint({ id, children }: { id: string; children: string }) {
-  return (
-    <span id={id} hidden>
-      {children}
-    </span>
-  );
+/** Tên, mô tả, lịch và trạng thái đọc bản vừa lưu, không chờ
+ * router.refresh(). */
+export function HabitDetailTitle() {
+  return useHabitEdit().habit.title;
 }
 
-export function HabitEditableTitle() {
-  const { habit, openEditor } = useHabitEdit();
-  const hintId = useId();
-  if (!habit.isActive) return habit.title;
-
-  return (
-    <button
-      type="button"
-      aria-describedby={hintId}
-      onClick={() => openEditor("title")}
-      className="group inline-flex items-baseline gap-2 rounded-md text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-    >
-      {habit.title}
-      <Pencil className={cn(pencilClassName, "size-4")} aria-hidden="true" />
-      <EditHint id={hintId}>Bấm để chỉnh sửa tên thói quen</EditHint>
-    </button>
-  );
-}
-
-export function HabitEditableDescription({
+export function HabitDetailDescription({
   placeholder,
 }: {
   placeholder: string;
 }) {
-  const { habit, openEditor } = useHabitEdit();
-  const hintId = useId();
-  const text = habit.description ?? placeholder;
-  if (!habit.isActive) {
-    return <span className={cn(!habit.description && "italic")}>{text}</span>;
-  }
-
+  const { habit } = useHabitEdit();
   return (
-    <button
-      type="button"
-      aria-describedby={hintId}
-      onClick={() => openEditor("description")}
-      className={cn(
-        "group inline-flex items-start gap-2 rounded-md text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-        !habit.description && "italic",
-      )}
-    >
-      <span>{habit.description ?? `${placeholder} Bấm để thêm mô tả.`}</span>
-      <Pencil
-        className={cn(pencilClassName, "mt-1 size-3.5")}
-        aria-hidden="true"
-      />
-      <EditHint id={hintId}>Bấm để chỉnh sửa mô tả thói quen</EditHint>
-    </button>
+    <span className={cn(!habit.description && "italic")}>
+      {habit.description ?? placeholder}
+    </span>
   );
 }
 
-/** Lịch (hoặc ngày bắt đầu từ bỏ) và trạng thái: đọc bản vừa lưu, không
- * chờ router.refresh(). */
 export function HabitDetailMeta() {
   const { habit } = useHabitEdit();
   return (
@@ -229,11 +178,7 @@ export function HabitDetailActions() {
   return (
     <>
       {habit.isActive ? (
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => openEditor("title")}
-        >
+        <Button type="button" variant="outline" onClick={openEditor}>
           <Pencil aria-hidden="true" /> Chỉnh sửa
         </Button>
       ) : null}

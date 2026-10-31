@@ -52,10 +52,11 @@ type HabitEditorProps =
   | { initialHabit?: undefined }
   | {
       initialHabit: HabitResponse;
-      focusField?: "title" | "description";
       onSaved: (habit: HabitResponse) => void;
       onCancel: () => void;
       onDirtyChange?: (isDirty: boolean) => void;
+      /** Đã tải bản mới nhất khi xung đột: trang phía sau cũng phải dùng nó. */
+      onLatestLoaded?: (habit: HabitResponse) => void;
     };
 
 export function HabitEditor(props: HabitEditorProps) {
@@ -98,6 +99,7 @@ export function HabitEditor(props: HabitEditorProps) {
   useUnsavedChangesWarning(isDirty);
   const onDirtyChange = inSheet ? props.onDirtyChange : undefined;
   useEffect(() => onDirtyChange?.(isDirty), [isDirty, onDirtyChange]);
+  const onLatestLoaded = inSheet ? props.onLatestLoaded : undefined;
 
   const finishSaving = (habit: HabitResponse) => {
     if (props.initialHabit !== undefined) {
@@ -181,6 +183,7 @@ export function HabitEditor(props: HabitEditorProps) {
         setRecoveryError(latest.message);
         return;
       }
+      onLatestLoaded?.(latest.habit);
 
       if (!keepLocal) {
         applyPersistedHabit(latest.habit);
@@ -222,8 +225,6 @@ export function HabitEditor(props: HabitEditorProps) {
       finishSaving(result.habit);
     });
   };
-
-  const focusField = inSheet ? (props.focusField ?? "title") : undefined;
 
   return (
     <form onSubmit={submit} className="space-y-4" aria-busy={isPending}>
@@ -329,7 +330,7 @@ export function HabitEditor(props: HabitEditorProps) {
             </div>
             <Input
               id={titleId}
-              autoFocus={focusField === "title"}
+              autoFocus={inSheet}
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               maxLength={200}
@@ -347,7 +348,6 @@ export function HabitEditor(props: HabitEditorProps) {
             <Label htmlFor={descriptionId}>Ý nghĩa</Label>
             <Textarea
               id={descriptionId}
-              autoFocus={focusField === "description"}
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               disabled={isPending}

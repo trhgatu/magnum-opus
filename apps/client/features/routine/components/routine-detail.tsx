@@ -1,13 +1,17 @@
 import type { RoutineDetailResponse } from "@repo/contracts";
-import { ArrowLeft, ListChecks, Pencil } from "lucide-react";
+import { ArrowLeft, ListChecks } from "lucide-react";
 import Link from "next/link";
 
 import { ContextHero } from "@/components/system/context-hero";
-import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { RoutineHabitManager } from "@/features/routine/components/routine-habit-manager";
-import { RoutineLifecycleControls } from "@/features/routine/components/routine-lifecycle-controls";
+import {
+  RoutineDetailActions,
+  RoutineDetailHabits,
+  RoutineDetailMeta,
+  RoutineDetailTitle,
+  RoutineEditProvider,
+} from "@/features/routine/components/routine-edit-sheet";
 
 export function RoutineDetail({ routine }: { routine: RoutineDetailResponse }) {
   return (
@@ -25,50 +29,28 @@ export function RoutineDetail({ routine }: { routine: RoutineDetailResponse }) {
         <ArrowLeft aria-hidden="true" /> Tất cả Nếp sinh hoạt
       </Link>
 
-      <ContextHero
-        id="routine-title"
-        icon={ListChecks}
-        eyebrow="Forge · Nếp sinh hoạt"
-        title={routine.title}
-        description="Một Nếp sinh hoạt có chủ ý: mỗi Thói quen là một bước, mỗi bước hoàn thành mở đường cho bước kế tiếp."
-        meta={
-          <>
-            <Badge variant="outline">{routine.habits.length} Thói quen</Badge>
-            <Badge variant={routine.isActive ? "outline" : "secondary"}>
-              {routine.isActive ? "Đang rèn luyện" : "Đã lưu trữ"}
-            </Badge>
-          </>
-        }
-        actions={
-          <>
-            {routine.isActive ? (
-              <Link
-                href={`/routines/${routine.id}/edit`}
-                className={buttonVariants({ variant: "outline" })}
-              >
-                <Pencil aria-hidden="true" /> Chỉnh sửa
-              </Link>
-            ) : null}
-            <RoutineLifecycleControls
-              id={routine.id}
-              title={routine.title}
-              isActive={routine.isActive}
-              revision={routine.revision}
-            />
-          </>
-        }
-      />
+      <RoutineEditProvider key={routine.id} initialRoutine={routine}>
+        <ContextHero
+          id="routine-title"
+          icon={ListChecks}
+          eyebrow="Forge · Nếp sinh hoạt"
+          title={<RoutineDetailTitle />}
+          description="Một Nếp sinh hoạt có chủ ý: mỗi Thói quen là một bước, mỗi bước hoàn thành mở đường cho bước kế tiếp."
+          meta={<RoutineDetailMeta />}
+          actions={<RoutineDetailActions />}
+        />
 
-      <Card className="gap-0 rounded-3xl bg-card/65 py-0 shadow-sm">
-        <CardHeader className="border-b px-5 py-5 sm:px-7">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-            Chuỗi thực hành
-          </p>
-        </CardHeader>
-        <CardContent className="px-5 py-6 sm:px-7 sm:py-7">
-          <RoutineHabitManager routine={routine} />
-        </CardContent>
-      </Card>
+        <Card className="gap-0 rounded-3xl bg-card/65 py-0 shadow-sm">
+          <CardHeader className="border-b px-5 py-5 sm:px-7">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+              Chuỗi thực hành
+            </p>
+          </CardHeader>
+          <CardContent className="px-5 py-6 sm:px-7 sm:py-7">
+            <RoutineDetailHabits />
+          </CardContent>
+        </Card>
+      </RoutineEditProvider>
 
       <footer className="flex flex-wrap justify-end gap-2 border-t pt-4 font-mono text-xs text-muted-foreground">
         <time dateTime={routine.updatedAt}>

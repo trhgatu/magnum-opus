@@ -81,9 +81,13 @@ test("completes the private Routine lifecycle through the BFF", async ({
     .click();
   await expect(routineHabit(page, firstHabit)).not.toBeVisible();
 
-  await page.getByRole("link", { name: "Chỉnh sửa" }).click();
-  await page.getByLabel("Tên Nếp sinh hoạt").fill(updatedTitle);
-  await page.getByRole("button", { name: "Lưu thay đổi" }).click();
+  await page.getByRole("button", { name: "Chỉnh sửa" }).click();
+  const editSheet = page.getByRole("dialog", {
+    name: "Chỉnh sửa Nếp sinh hoạt",
+  });
+  await editSheet.getByLabel("Tên Nếp sinh hoạt").fill(updatedTitle);
+  await editSheet.getByRole("button", { name: "Lưu thay đổi" }).click();
+  await expect(editSheet).toBeHidden();
   await expect(page.getByRole("heading", { name: updatedTitle })).toBeVisible();
   await expect(page.getByText(`Đã cập nhật "${updatedTitle}"`)).toBeVisible();
 

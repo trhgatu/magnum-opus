@@ -15,8 +15,8 @@ import { HabitHeatmap } from "@/features/habit/components/habit-heatmap";
 import {
   HabitDetailActions,
   HabitDetailMeta,
-  HabitEditableDescription,
-  HabitEditableTitle,
+  HabitDetailDescription,
+  HabitDetailTitle,
   HabitEditProvider,
 } from "@/features/habit/components/habit-edit-sheet";
 import { HabitRelapseControl } from "@/features/habit/components/habit-relapse-control";
@@ -54,17 +54,14 @@ export function HabitDetail(props: HabitDetailProps) {
         <ArrowLeft aria-hidden="true" /> Tất cả thói quen
       </Link>
 
-      <HabitEditProvider
-        key={`${habit.id}-${habit.revision}`}
-        initialHabit={habit}
-      >
+      <HabitEditProvider key={habit.id} initialHabit={habit}>
         <ContextHero
           id="habit-title"
           icon={Repeat2}
           eyebrow="Forge · Thói quen"
-          title={<HabitEditableTitle />}
+          title={<HabitDetailTitle />}
           description={
-            <HabitEditableDescription
+            <HabitDetailDescription
               placeholder={
                 isQuit
                   ? "Một nỗ lực từ bỏ đang được theo dõi từng ngày."

@@ -1,10 +1,16 @@
 "use client";
 
-import type { RoutineResponse } from "@repo/contracts";
+import type { RoutineDetailResponse, RoutineResponse } from "@repo/contracts";
 import { ArrowRight, ListChecks, Save } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useState, useTransition } from "react";
+import {
+  type FormEvent,
+  useEffect,
+  useId,
+  useState,
+  useTransition,
+} from "react";
 
 import { ConflictAlert } from "@/components/system/conflict-alert";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -18,14 +24,30 @@ import {
 } from "@/features/routine/actions/routine";
 import { useUnsavedChangesWarning } from "@/hooks/use-unsaved-changes-warning";
 import { notifySuccess } from "@/lib/toast";
+import { cn } from "@/lib/utils";
 
 type PersistedRoutine = Pick<RoutineResponse, "id" | "title" | "revision">;
 
-export function RoutineEditor({
-  initialRoutine,
-}: {
-  initialRoutine?: PersistedRoutine;
-}) {
+/**
+ * Trang tạo mới dùng form một mình; đổi tên Nếp sinh hoạt có sẵn thì form
+ * nằm trong sheet ở trang chi tiết, và sheet quyết định việc đóng sau khi
+ * lưu/hủy.
+ */
+type RoutineEditorProps =
+  | { initialRoutine?: undefined }
+  | {
+      initialRoutine: PersistedRoutine;
+      onSaved: (routine: RoutineResponse) => void;
+      onCancel: () => void;
+      onDirtyChange?: (isDirty: boolean) => void;
+      /** Đã tải bản mới nhất khi xung đột: trang phía sau cũng phải dùng nó. */
+      onLatestLoaded?: (routine: RoutineDetailResponse) => void;
+    };
+
+export function RoutineEditor(props: RoutineEditorProps) {
+  const { initialRoutine } = props;
+  const inSheet = props.initialRoutine !== undefined;
+  const titleId = useId();
   const router = useRouter();
   const [persistedRoutine, setPersistedRoutine] = useState(initialRoutine);
   const [title, setTitle] = useState(initialRoutine?.title ?? "");
@@ -37,6 +59,20 @@ export function RoutineEditor({
 
   const isDirty = title !== (persistedRoutine?.title ?? "");
   useUnsavedChangesWarning(isDirty);
+  const onDirtyChange = inSheet ? props.onDirtyChange : undefined;
+  useEffect(() => onDirtyChange?.(isDirty), [isDirty, onDirtyChange]);
+  const onLatestLoaded = inSheet ? props.onLatestLoaded : undefined;
+
+  const finishSaving = (routine: RoutineResponse) => {
+    if (props.initialRoutine !== undefined) {
+      void notifySuccess(`Đã cập nhật "${routine.title}"`);
+      props.onSaved(routine);
+      return;
+    }
+    void notifySuccess(`Đã tạo "${routine.title}"`);
+    router.push(`/routines/${routine.id}`);
+    router.refresh();
+  };
 
   const applyPersistedRoutine = (routine: PersistedRoutine) => {
     setPersistedRoutine(routine);
@@ -67,14 +103,7 @@ export function RoutineEditor({
         return;
       }
 
-      void notifySuccess(
-        persistedRoutine
-          ? `Đã cập nhật "${result.routine.title}"`
-          : `Đã tạo "${result.routine.title}"`,
-      );
-
-      router.push(`/routines/${result.routine.id}`);
-      router.refresh();
+      finishSaving(result.routine);
     });
   };
 
@@ -92,6 +121,7 @@ export function RoutineEditor({
         setRecoveryError(latest.message);
         return;
       }
+      onLatestLoaded?.(latest.routine);
 
       if (!keepLocal) {
         applyPersistedRoutine(latest.routine);
@@ -131,10 +161,7 @@ export function RoutineEditor({
         return;
       }
 
-      void notifySuccess(`Đã cập nhật "${result.routine.title}"`);
-
-      router.push(`/routines/${result.routine.id}`);
-      router.refresh();
+      finishSaving(result.routine);
     });
   };
 
@@ -154,33 +181,43 @@ export function RoutineEditor({
           <AlertDescription>{message}</AlertDescription>
         </Alert>
       ) : null}
-      <section className="overflow-hidden rounded-3xl bg-card/70 shadow-sm ring-1 ring-foreground/10">
-        <header className="border-b px-5 py-5 sm:px-7 sm:py-6">
-          <div className="flex items-start gap-3">
-            <span className="grid size-10 shrink-0 place-items-center rounded-full border border-primary/20 bg-primary/10 text-primary">
-              <ListChecks className="size-4.5" aria-hidden="true" />
-            </span>
-            <div>
-              <h2 className="font-display text-xl font-semibold">
-                Định danh Nếp sinh hoạt
-              </h2>
-              <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                Một tên ngắn, gợi đúng khoảnh khắc Nếp sinh hoạt sẽ được thực
-                hiện.
-              </p>
+      <section
+        className={
+          inSheet
+            ? "space-y-6"
+            : "overflow-hidden rounded-3xl bg-card/70 shadow-sm ring-1 ring-foreground/10"
+        }
+      >
+        {inSheet ? null : (
+          <header className="border-b px-5 py-5 sm:px-7 sm:py-6">
+            <div className="flex items-start gap-3">
+              <span className="grid size-10 shrink-0 place-items-center rounded-full border border-primary/20 bg-primary/10 text-primary">
+                <ListChecks className="size-4.5" aria-hidden="true" />
+              </span>
+              <div>
+                <h2 className="font-display text-xl font-semibold">
+                  Định danh Nếp sinh hoạt
+                </h2>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                  Một tên ngắn, gợi đúng khoảnh khắc Nếp sinh hoạt sẽ được thực
+                  hiện.
+                </p>
+              </div>
             </div>
-          </div>
-        </header>
+          </header>
+        )}
 
-        <div className="space-y-3 px-5 py-6 sm:px-7 sm:py-7">
+        <div
+          className={cn("space-y-3", !inSheet && "px-5 py-6 sm:px-7 sm:py-7")}
+        >
           <div className="flex items-center justify-between gap-3">
-            <Label htmlFor="routine-title">Tên Nếp sinh hoạt</Label>
+            <Label htmlFor={titleId}>Tên Nếp sinh hoạt</Label>
             <span className="font-mono text-[11px] text-muted-foreground">
               {title.length}/200
             </span>
           </div>
           <Input
-            id="routine-title"
+            id={titleId}
             value={title}
             onChange={(event) => setTitle(event.target.value)}
             maxLength={200}
@@ -191,7 +228,7 @@ export function RoutineEditor({
             autoFocus
           />
 
-          {!persistedRoutine ? (
+          {!inSheet ? (
             <div className="mt-5 flex gap-3 rounded-2xl border border-dashed bg-muted/30 p-4 text-sm">
               <span className="grid size-7 shrink-0 place-items-center rounded-full bg-primary/10 font-mono text-xs font-semibold text-primary">
                 02
@@ -204,26 +241,39 @@ export function RoutineEditor({
           ) : null}
         </div>
 
-        <footer className="flex flex-col-reverse gap-3 border-t bg-muted/30 px-5 py-4 sm:flex-row sm:justify-end sm:px-7">
-          <Link
-            href={
-              persistedRoutine
-                ? `/routines/${persistedRoutine.id}`
-                : "/routines"
-            }
-            className={buttonVariants({ variant: "outline", size: "lg" })}
-          >
-            Hủy
-          </Link>
+        <footer
+          className={cn(
+            "flex flex-col-reverse gap-3 border-t sm:flex-row sm:justify-end",
+            inSheet ? "pt-4" : "bg-muted/30 px-5 py-4 sm:px-7",
+          )}
+        >
+          {props.initialRoutine !== undefined ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              disabled={isPending}
+              onClick={props.onCancel}
+            >
+              Hủy
+            </Button>
+          ) : (
+            <Link
+              href="/routines"
+              className={buttonVariants({ variant: "outline", size: "lg" })}
+            >
+              Hủy
+            </Link>
+          )}
           <Button type="submit" size="lg" disabled={isPending || !isEditable}>
-            {persistedRoutine ? (
+            {inSheet ? (
               <Save aria-hidden="true" />
             ) : (
               <ArrowRight aria-hidden="true" />
             )}
             {isPending
               ? "Đang lưu…"
-              : persistedRoutine
+              : inSheet
                 ? "Lưu thay đổi"
                 : "Tạo Nếp sinh hoạt"}
           </Button>
