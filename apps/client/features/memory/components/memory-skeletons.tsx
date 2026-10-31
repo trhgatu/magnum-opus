@@ -124,8 +124,9 @@ export function MemoryEditSkeleton() {
       </div>
       <div
         aria-hidden="true"
-        className="overflow-hidden rounded-3xl border bg-card/70 shadow-sm"
+        className="relative overflow-hidden rounded-3xl border bg-card/70 shadow-sm"
       >
+        <div className="absolute inset-y-0 left-0 w-1 bg-primary/30" />
         <div className="border-b bg-muted/20 px-6 py-3 sm:px-10">
           <Skeleton className="h-3 w-28" />
         </div>
