@@ -1,5 +1,5 @@
-import { MemoryFormSkeleton } from "@/features/memory/components/memory-skeletons";
+import { MemoryEditSkeleton } from "@/features/memory/components/memory-skeletons";
 
 export default function Loading() {
-  return <MemoryFormSkeleton />;
+  return <MemoryEditSkeleton />;
 }

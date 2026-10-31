@@ -1,9 +1,10 @@
 import type { MemoryResponse } from "@repo/contracts";
-import { Pencil } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { ContextHero } from "@/components/system/context-hero";
+import { buttonVariants } from "@/components/ui/button";
 import { getMemory } from "@/features/memory/api/memory";
 import { MemoryEditor } from "@/features/memory/components/memory-editor";
 import { ApiError } from "@/lib/api";
@@ -44,30 +45,50 @@ export default async function EditMemoryPage({ params }: EditMemoryPageProps) {
     redirect(`/memories/${memory.id}`);
   }
 
+  // Cùng khung với trang chi tiết (memory-detail.tsx): bấm Chỉnh sửa thì
+  // nội dung không tụt xuống hay co lại.
   return (
-    <section
-      className="flex flex-col gap-8"
+    <article
+      className="flex w-full flex-col gap-6"
       aria-labelledby="edit-memory-heading"
     >
-      <ContextHero
-        id="edit-memory-heading"
-        icon={Pencil}
-        eyebrow="Reflection · Archive"
-        title="Chỉnh sửa ký ức"
-        description="Điều chỉnh cách khoảnh khắc được ghi lại mà không làm mất nguồn gốc và lịch sử chỉnh sửa."
-      />
+      <nav
+        aria-label="Điều hướng ký ức"
+        className="flex flex-wrap items-center justify-between gap-3"
+      >
+        <Link
+          href={`/memories/${memory.id}`}
+          className={buttonVariants({
+            variant: "ghost",
+          })}
+        >
+          <ArrowLeft data-icon="inline-start" aria-hidden="true" />
+          Trở về ký ức này
+        </Link>
+      </nav>
 
-      <div className="mx-auto w-full max-w-4xl overflow-hidden rounded-3xl border bg-card/70 shadow-sm">
-        <div className="flex items-center justify-between border-b bg-muted/20 px-5 py-3 font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground sm:px-8">
-          <span>Hồ sơ lưu trữ</span>
+      <div className="relative overflow-hidden rounded-3xl border bg-card/70 shadow-sm">
+        <div
+          aria-hidden="true"
+          className="absolute inset-y-0 left-0 w-1 bg-primary/30"
+        />
+        <div className="flex items-center justify-between border-b bg-muted/20 px-6 py-3 sm:px-10">
+          <h1
+            id="edit-memory-heading"
+            className="font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground"
+          >
+            Chỉnh sửa ký ức
+          </h1>
         </div>
-        <div className="p-5 sm:p-8">
-          <MemoryEditor
-            key={`${memory.id}:${memory.revision}`}
-            initialMemory={memory}
-          />
+        <div className="px-6 py-8 sm:px-10 sm:py-12 lg:px-14">
+          <div className="max-w-3xl">
+            <MemoryEditor
+              key={`${memory.id}:${memory.revision}`}
+              initialMemory={memory}
+            />
+          </div>
         </div>
       </div>
-    </section>
+    </article>
   );
 }

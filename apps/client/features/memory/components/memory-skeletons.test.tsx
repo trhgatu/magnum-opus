@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   MemoryCollectionSkeleton,
   MemoryDetailSkeleton,
+  MemoryEditSkeleton,
   MemoryFormSkeleton,
   MemoryListSkeleton,
   MemoryMetaSkeleton,
@@ -19,6 +20,7 @@ describe("Memory skeletons", () => {
   it.each([
     [<MemoryCollectionSkeleton key="collection" />, "Đang tải ký ức…"],
     [<MemoryDetailSkeleton key="detail" />, "Đang mở ký ức…"],
+    [<MemoryEditSkeleton key="edit" />, "Đang mở ký ức để chỉnh sửa…"],
     [<MemoryFormSkeleton key="form" />, "Đang chuẩn bị biểu mẫu ký ức…"],
     [<MemoryListSkeleton key="list" />, "Đang tải ký ức…"],
     [<MemoryMetaSkeleton key="meta" />, "Đang tải thông tin ký ức…"],

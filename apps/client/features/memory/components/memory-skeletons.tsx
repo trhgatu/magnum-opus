@@ -110,6 +110,41 @@ export function MemoryDetailSkeleton() {
   );
 }
 
+/** Trang sửa: cùng khung với trang chi tiết (MemoryDetailSkeleton). */
+export function MemoryEditSkeleton() {
+  return (
+    <article
+      className="flex w-full flex-col gap-6"
+      role="status"
+      aria-live="polite"
+    >
+      <span className="sr-only">Đang mở ký ức để chỉnh sửa…</span>
+      <div aria-hidden="true" className="flex justify-between">
+        <Skeleton className="h-9 w-36" />
+      </div>
+      <div
+        aria-hidden="true"
+        className="overflow-hidden rounded-3xl border bg-card/70 shadow-sm"
+      >
+        <div className="border-b bg-muted/20 px-6 py-3 sm:px-10">
+          <Skeleton className="h-3 w-28" />
+        </div>
+        <div className="px-6 py-8 sm:px-10 sm:py-12 lg:px-14">
+          <div className="max-w-3xl space-y-7">
+            <Skeleton className="h-14 w-full" />
+            <Skeleton className="h-64 w-full" />
+            <Skeleton className="h-40 w-full rounded-2xl" />
+            <div className="flex justify-end gap-3">
+              <Skeleton className="h-10 w-20" />
+              <Skeleton className="h-10 w-32" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
 export function MemoryFormSkeleton() {
   return (
     <section className="flex flex-col gap-8" role="status" aria-live="polite">
