@@ -53,7 +53,6 @@ test("completes the private Habit lifecycle through the BFF", async ({
   ).toBeVisible();
 
   await page.getByRole("button", { name: "Chỉnh sửa" }).click();
-  // Trong sheet: nút tiêu đề phía sau cũng nhắc tới "tên thói quen".
   const editSheet = page.getByRole("dialog", { name: "Chỉnh sửa thói quen" });
   await editSheet.getByLabel("Tên thói quen").fill(updatedTitle);
   await editSheet.getByRole("button", { name: "Lưu thay đổi" }).click();

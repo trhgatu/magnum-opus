@@ -52,7 +52,6 @@ type HabitEditorProps =
   | { initialHabit?: undefined }
   | {
       initialHabit: HabitResponse;
-      focusField?: "title" | "description";
       onSaved: (habit: HabitResponse) => void;
       onCancel: () => void;
       onDirtyChange?: (isDirty: boolean) => void;
@@ -223,8 +222,6 @@ export function HabitEditor(props: HabitEditorProps) {
     });
   };
 
-  const focusField = inSheet ? (props.focusField ?? "title") : undefined;
-
   return (
     <form onSubmit={submit} className="space-y-4" aria-busy={isPending}>
       {hasConflict ? (
@@ -329,7 +326,7 @@ export function HabitEditor(props: HabitEditorProps) {
             </div>
             <Input
               id={titleId}
-              autoFocus={focusField === "title"}
+              autoFocus={inSheet}
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               maxLength={200}
@@ -347,7 +344,6 @@ export function HabitEditor(props: HabitEditorProps) {
             <Label htmlFor={descriptionId}>Ý nghĩa</Label>
             <Textarea
               id={descriptionId}
-              autoFocus={focusField === "description"}
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               disabled={isPending}
