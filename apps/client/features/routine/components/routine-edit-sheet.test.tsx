@@ -191,6 +191,8 @@ describe("RoutineEditProvider", () => {
     expect(document.querySelector("h1")?.textContent).toBe("Tên từ server");
   });
 
+  // Nhiều bước bất đồng bộ nối nhau: khi cả bộ test chạy song song, 5 giây
+  // mặc định không đủ.
   it("uses the latest revision on the page after loading it during a conflict", async () => {
     updateRoutineTitle.mockResolvedValue({
       status: "error",
@@ -224,8 +226,9 @@ describe("RoutineEditProvider", () => {
       ).toBe("Bản mới nhất từ server"),
     );
     fireEvent.click(screen.getByRole("button", { name: "Hủy" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 
-    screen.getByRole("heading", { name: "Bản mới nhất từ server" });
+    await screen.findByRole("heading", { name: "Bản mới nhất từ server" });
     fireEvent.click(screen.getByRole("button", { name: "Lưu trữ" }));
     await waitFor(() =>
       expect(changeRoutineState).toHaveBeenCalledWith({
@@ -234,7 +237,7 @@ describe("RoutineEditProvider", () => {
         action: "archive",
       }),
     );
-  });
+  }, 15_000);
 
   it("offers no editing for an archived routine", () => {
     renderDetail({ ...routine, isActive: false });
