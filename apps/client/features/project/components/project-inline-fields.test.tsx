@@ -196,6 +196,24 @@ describe("ProjectEditAction", () => {
 
     expect(mutation).not.toHaveBeenCalled();
     screen.getByRole("dialog");
+    expect(screen.getByText("Tên Project không được để trống.")).toBeTruthy();
+  });
+
+  it("asks before Escape throws away unsaved changes", () => {
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+    render(<Details project={baseProject} />);
+
+    openSheet();
+    fillSheet({ title: "Bản nháp" });
+    fireEvent.keyDown(screen.getByLabelText("Tên Project"), { key: "Escape" });
+    expect(confirmSpy).toHaveBeenCalledOnce();
+    screen.getByRole("dialog");
+
+    confirmSpy.mockReturnValue(true);
+    fireEvent.keyDown(screen.getByLabelText("Tên Project"), { key: "Escape" });
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(mutation).not.toHaveBeenCalled();
+    confirmSpy.mockRestore();
   });
 
   it("closes without saving when nothing changed", () => {

@@ -286,7 +286,11 @@ export function ProjectEditAction() {
     event.preventDefault();
     const nextTitle = title.trim();
     const nextDescription = description.trim() || null;
-    if (!nextTitle) return;
+    if (!nextTitle) {
+      setMessage("Tên Project không được để trống.");
+      setHasConflict(false);
+      return;
+    }
     if (
       nextTitle === project.title &&
       nextDescription === project.description
