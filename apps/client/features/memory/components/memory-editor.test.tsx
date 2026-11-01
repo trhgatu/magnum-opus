@@ -97,6 +97,22 @@ const existingMemory: MemoryResponse = {
   updatedAt: "2026-08-14T11:00:00.000Z",
 };
 
+const onSaved = vi.fn();
+const onCancel = vi.fn();
+const onDirtyChange = vi.fn();
+const onLatestLoaded = vi.fn();
+
+const renderInSheet = () =>
+  render(
+    <MemoryEditor
+      initialMemory={existingMemory}
+      onSaved={onSaved}
+      onCancel={onCancel}
+      onDirtyChange={onDirtyChange}
+      onLatestLoaded={onLatestLoaded}
+    />,
+  );
+
 beforeEach(() => {
   vi.clearAllMocks();
 });
@@ -323,7 +339,7 @@ describe("MemoryEditor", () => {
     expect(push).not.toHaveBeenCalled();
   });
   it("initializes edit mode from the persisted Memory", () => {
-    render(<MemoryEditor initialMemory={existingMemory} />);
+    renderInSheet();
 
     expect((screen.getByLabelText("Tiêu đề") as HTMLInputElement).value).toBe(
       "Buổi chiều bên cửa sổ",
@@ -341,14 +357,6 @@ describe("MemoryEditor", () => {
     expect(
       (screen.getByLabelText("Thời điểm xảy ra") as HTMLInputElement).value,
     ).toBe("2024-08");
-
-    expect(
-      screen
-        .getByRole("link", {
-          name: "Hủy",
-        })
-        .getAttribute("href"),
-    ).toBe(`/memories/${existingMemory.id}`);
   });
 
   it("updates the current revision in edit mode", async () => {
@@ -361,7 +369,7 @@ describe("MemoryEditor", () => {
       },
     });
 
-    render(<MemoryEditor initialMemory={existingMemory} />);
+    renderInSheet();
 
     fireEvent.change(screen.getByLabelText("Tiêu đề"), {
       target: {
@@ -388,7 +396,11 @@ describe("MemoryEditor", () => {
 
     expect(createMemory).not.toHaveBeenCalled();
 
-    expect(push).toHaveBeenCalledWith(`/memories/${existingMemory.id}`);
+    // Sheet tự đóng và làm mới trang; form không điều hướng.
+    expect(onSaved).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Buổi chiều được nhớ lại" }),
+    );
+    expect(push).not.toHaveBeenCalled();
     expect(notifySuccess).toHaveBeenCalledWith(
       'Đã cập nhật "Buổi chiều được nhớ lại"',
     );
@@ -411,7 +423,7 @@ describe("MemoryEditor", () => {
       },
     });
 
-    render(<MemoryEditor initialMemory={existingMemory} />);
+    renderInSheet();
 
     fireEvent.click(
       screen.getByRole("button", {
@@ -447,6 +459,10 @@ describe("MemoryEditor", () => {
     ).toBe("Nội dung mới nhất từ server.");
     expect(refresh).not.toHaveBeenCalled();
     expect(push).not.toHaveBeenCalled();
+    // Trang phía sau cũng phải dùng bản vừa tải.
+    expect(onLatestLoaded).toHaveBeenCalledWith(
+      expect.objectContaining({ revision: 4 }),
+    );
   });
 
   it("rebases preserved local content onto the latest revision", async () => {
@@ -474,7 +490,7 @@ describe("MemoryEditor", () => {
       },
     });
 
-    render(<MemoryEditor initialMemory={existingMemory} />);
+    renderInSheet();
 
     fireEvent.change(screen.getByLabelText("Tiêu đề"), {
       target: {
@@ -509,26 +525,46 @@ describe("MemoryEditor", () => {
       expectedRevision: 4,
     });
 
-    expect(push).toHaveBeenCalledWith(`/memories/${existingMemory.id}`);
-    expect(refresh).toHaveBeenCalledOnce();
+    expect(onSaved).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Bản local được giữ lại", revision: 5 }),
+    );
+    expect(push).not.toHaveBeenCalled();
     expect(notifySuccess).toHaveBeenCalledWith(
       'Đã cập nhật "Bản local được giữ lại"',
     );
   });
 
-  it("does not warn about leaving before any field is edited", () => {
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
-    render(<MemoryEditor initialMemory={existingMemory} />);
+  it("hands Cancel to the sheet", () => {
+    renderInSheet();
 
-    fireEvent.click(screen.getByRole("link", { name: "Hủy" }));
+    fireEvent.click(screen.getByRole("button", { name: "Hủy" }));
 
-    expect(confirmSpy).not.toHaveBeenCalled();
-    confirmSpy.mockRestore();
+    expect(onCancel).toHaveBeenCalledOnce();
   });
 
-  it("warns about leaving once a field has unsaved changes", () => {
+  it("puts the cursor in the title when editing", () => {
+    renderInSheet();
+
+    expect(document.activeElement).toBe(screen.getByLabelText("Tiêu đề"));
+  });
+
+  it("tells the sheet when a field has unsaved changes", () => {
+    renderInSheet();
+    expect(onDirtyChange).toHaveBeenLastCalledWith(false);
+
+    fireEvent.change(screen.getByLabelText("Nội dung"), {
+      target: { value: "Một câu vừa được thêm vào." },
+    });
+
+    expect(onDirtyChange).toHaveBeenLastCalledWith(true);
+  });
+
+  it("warns about leaving the create form once something is typed", () => {
     const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
-    render(<MemoryEditor initialMemory={existingMemory} />);
+    render(<MemoryEditor />);
+
+    fireEvent.click(screen.getByRole("link", { name: "Hủy" }));
+    expect(confirmSpy).not.toHaveBeenCalled();
 
     fireEvent.change(screen.getByLabelText("Nội dung"), {
       target: { value: "Một câu vừa được thêm vào." },

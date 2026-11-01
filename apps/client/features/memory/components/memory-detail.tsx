@@ -1,26 +1,45 @@
+"use client";
+
 import type { MemoryResponse } from "@repo/contracts";
 import { ArrowLeft, BookOpenText, Pencil } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   formatMemoryOccurredOn,
   memoryOccurredOnDateTime,
 } from "@/features/memory/lib/memory-date";
+import {
+  MemoryEditProvider,
+  useMemoryEdit,
+} from "@/features/memory/components/memory-edit-sheet";
 import { MemoryLifecycleControls } from "@/features/memory/components/memory-lifecycle-controls";
 
 interface MemoryDetailProps {
   memory: MemoryResponse;
+  /** Múi giờ của tài khoản: server và trình duyệt định dạng giờ giống nhau. */
+  timeZone: string;
 }
 
-const formatUpdatedAt = (value: string) =>
+const formatUpdatedAt = (value: string, timeZone: string) =>
   new Intl.DateTimeFormat("vi-VN", {
     dateStyle: "medium",
     timeStyle: "short",
+    timeZone,
   }).format(new Date(value));
 
-export function MemoryDetail({ memory }: MemoryDetailProps) {
+export function MemoryDetail({ memory, timeZone }: MemoryDetailProps) {
+  return (
+    <MemoryEditProvider key={memory.id} initialMemory={memory}>
+      <MemoryDetailBody timeZone={timeZone} />
+    </MemoryEditProvider>
+  );
+}
+
+/** Đọc ký ức từ provider để hiện ngay bản vừa lưu trong sheet. */
+function MemoryDetailBody({ timeZone }: { timeZone: string }) {
+  const { memory, openEditor, preloadEditor } = useMemoryEdit();
   const occurredOnLabel = formatMemoryOccurredOn(
     memory.occurredOn,
     memory.occurredOnPrecision,
@@ -57,15 +76,16 @@ export function MemoryDetail({ memory }: MemoryDetailProps) {
             <>
               <Badge variant="outline">Đang lưu giữ</Badge>
 
-              <Link
-                href={`/memories/${memory.id}/edit`}
-                className={buttonVariants({
-                  variant: "outline",
-                })}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={openEditor}
+                onPointerEnter={preloadEditor}
+                onFocus={preloadEditor}
               >
                 <Pencil data-icon="inline-start" aria-hidden="true" />
                 Chỉnh sửa
-              </Link>
+              </Button>
             </>
           )}
           <MemoryLifecycleControls
@@ -136,7 +156,7 @@ export function MemoryDetail({ memory }: MemoryDetailProps) {
 
           <footer className="mt-10 flex flex-col gap-1 border-t pt-5 font-mono text-[11px] text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
             <time dateTime={memory.updatedAt}>
-              Cập nhật {formatUpdatedAt(memory.updatedAt)}
+              Cập nhật {formatUpdatedAt(memory.updatedAt, timeZone)}
             </time>
 
             <span>Magnum Opus · Reflection</span>
