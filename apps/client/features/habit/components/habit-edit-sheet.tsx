@@ -4,13 +4,7 @@ import type { HabitResponse } from "@repo/contracts";
 import { Pencil } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import {
-  createContext,
-  type ReactNode,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import { createContext, type ReactNode, useContext, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,7 +23,7 @@ import { cn } from "@/lib/utils";
 // Form kéo theo Select, Calendar và date-fns: chỉ cần khi mở sheet, nên
 // không nằm trong JS tải lần đầu của trang chi tiết.
 // import() phải viết thẳng trong dynamic() thì Next mới nhận ra chunk này;
-// loadHabitEditor chỉ dùng để tải sẵn ở nền.
+// loadHabitEditor chỉ dùng để tải sẵn khi người dùng sắp bấm Chỉnh sửa.
 const HabitEditor = dynamic(
   () =>
     import("@/features/habit/components/habit-editor").then(
@@ -84,11 +78,6 @@ export function HabitEditProvider({
     latest && latest.revision > initialHabit.revision ? latest : initialHabit;
   const [open, setOpen] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
-
-  // Tải sẵn form sau khi trang đã hiện, để bấm Chỉnh sửa là có ngay.
-  useEffect(() => {
-    if (initialHabit.isActive) void loadHabitEditor();
-  }, [initialHabit.isActive]);
 
   const openEditor = () => setOpen(true);
 
@@ -175,10 +164,19 @@ export function HabitDetailMeta() {
 /** Nút Chỉnh sửa và Lưu trữ/Khôi phục ở đầu trang. */
 export function HabitDetailActions() {
   const { habit, openEditor } = useHabitEdit();
+  const preloadEditor = () => void loadHabitEditor();
   return (
     <>
       {habit.isActive ? (
-        <Button type="button" variant="outline" onClick={openEditor}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={openEditor}
+          // Tải form khi sắp bấm: bấm là có ngay, mà người chỉ xem không tốn
+          // gì. Giống trang Ký ức.
+          onPointerEnter={preloadEditor}
+          onFocus={preloadEditor}
+        >
           <Pencil aria-hidden="true" /> Chỉnh sửa
         </Button>
       ) : null}

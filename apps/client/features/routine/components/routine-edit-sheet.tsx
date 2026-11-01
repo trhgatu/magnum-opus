@@ -4,13 +4,7 @@ import type { RoutineDetailResponse } from "@repo/contracts";
 import { Pencil } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import {
-  createContext,
-  type ReactNode,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import { createContext, type ReactNode, useContext, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,7 +20,8 @@ import { RoutineLifecycleControls } from "@/features/routine/components/routine-
 
 // Form chỉ cần khi mở sheet, nên không nằm trong JS tải lần đầu của trang
 // chi tiết. import() phải viết thẳng trong dynamic() thì Next mới nhận ra
-// chunk này; loadRoutineEditor chỉ dùng để tải sẵn ở nền.
+// chunk này; loadRoutineEditor chỉ dùng để tải sẵn khi người dùng sắp bấm
+// Chỉnh sửa.
 const RoutineEditor = dynamic(
   () =>
     import("@/features/routine/components/routine-editor").then(
@@ -86,11 +81,6 @@ export function RoutineEditProvider({
       : initialRoutine;
   const [open, setOpen] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
-
-  // Tải sẵn form sau khi trang đã hiện, để bấm Chỉnh sửa là có ngay.
-  useEffect(() => {
-    if (initialRoutine.isActive) void loadRoutineEditor();
-  }, [initialRoutine.isActive]);
 
   const close = () => {
     setOpen(false);
@@ -164,10 +154,19 @@ export function RoutineDetailMeta() {
 /** Nút Chỉnh sửa và Lưu trữ/Khôi phục ở đầu trang. */
 export function RoutineDetailActions() {
   const { routine, openEditor } = useRoutineEdit();
+  const preloadEditor = () => void loadRoutineEditor();
   return (
     <>
       {routine.isActive ? (
-        <Button type="button" variant="outline" onClick={openEditor}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={openEditor}
+          // Tải form khi sắp bấm: bấm là có ngay, mà người chỉ xem không tốn
+          // gì. Giống trang Ký ức.
+          onPointerEnter={preloadEditor}
+          onFocus={preloadEditor}
+        >
           <Pencil aria-hidden="true" /> Chỉnh sửa
         </Button>
       ) : null}
