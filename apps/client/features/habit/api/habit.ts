@@ -1,10 +1,8 @@
 import "server-only";
 
 import type {
-  HabitCheckInHistoryResponse,
-  HabitCheckInTodayResponse,
+  HabitOverviewItemEnvelope,
   HabitOverviewResponse,
-  HabitProgressResponse,
   HabitResponse,
 } from "@repo/contracts";
 import type { PaginatedResult } from "@repo/types";
@@ -45,23 +43,9 @@ export function getHabit(id: string): Promise<HabitResponse> {
   return apiFetch<HabitResponse>(`/habits/${id}`);
 }
 
-export function getHabitCheckInToday(
+/** Một Habit (kể cả đã lưu trữ) kèm chuỗi và 13 tuần dấu vết, cho trang chi tiết. */
+export function getHabitOverviewItem(
   id: string,
-): Promise<HabitCheckInTodayResponse> {
-  return apiFetch<HabitCheckInTodayResponse>(`/habits/${id}/check-ins/today`);
-}
-
-export function getHabitCheckInHistory(
-  id: string,
-  from: string,
-  to: string,
-): Promise<HabitCheckInHistoryResponse> {
-  const params = new URLSearchParams({ from, to });
-  return apiFetch<HabitCheckInHistoryResponse>(
-    `/habits/${id}/check-ins?${params.toString()}`,
-  );
-}
-
-export function getHabitProgress(id: string): Promise<HabitProgressResponse> {
-  return apiFetch<HabitProgressResponse>(`/habits/${id}/progress`);
+): Promise<HabitOverviewItemEnvelope> {
+  return apiFetch<HabitOverviewItemEnvelope>(`/habits/${id}/overview`);
 }

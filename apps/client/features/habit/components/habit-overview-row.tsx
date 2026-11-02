@@ -13,16 +13,9 @@ import {
 } from "react";
 
 import { changeHabitCheckIn } from "@/features/habit/actions/habit";
+import { HABIT_DAY_MARK_CLASSES } from "@/features/habit/lib/habit-day-mark";
 import { describeLastSevenDays } from "@/features/habit/lib/habit-overview";
 import { cn } from "@/lib/utils";
-
-const MARK_CLASSES: Record<HabitDayMark, string> = {
-  DONE: "bg-trace-done",
-  MISSED: "border-[1.5px] border-trace-missed",
-  REST: "",
-  PENDING: "border-[1.5px] border-primary bg-ember-soft",
-  UNTRACKED: "",
-};
 
 function DayStrip({
   habit,
@@ -42,7 +35,7 @@ function DayStrip({
           key={day.date}
           className={cn(
             "grid size-3 place-items-center rounded-[3px] transition-colors duration-300",
-            MARK_CLASSES[day.mark],
+            HABIT_DAY_MARK_CLASSES[day.mark],
             index === lastIndex &&
               day.mark === "DONE" &&
               "ring-[1.5px] ring-primary",

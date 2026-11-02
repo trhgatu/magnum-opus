@@ -128,6 +128,11 @@ export function HabitEditProvider({
 
 /** Tên, mô tả, lịch và trạng thái đọc bản vừa lưu, không chờ
  * router.refresh(). */
+/** Bản `habit` mới nhất của trang chi tiết, kể cả sau khi lưu hay lưu trữ. */
+export function useEditedHabit(): HabitResponse {
+  return useHabitEdit().habit;
+}
+
 export function HabitDetailTitle() {
   return useHabitEdit().habit.title;
 }
