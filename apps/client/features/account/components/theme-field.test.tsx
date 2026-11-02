@@ -2,7 +2,13 @@
 
 import "@testing-library/jest-dom/vitest";
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { THEME_STORAGE_KEY } from "@/lib/theme";
@@ -62,5 +68,25 @@ describe("ThemeField", () => {
     fireEvent.click(screen.getByRole("radio", { name: "Theo hệ thống" }));
 
     expect(document.documentElement).toHaveClass("dark");
+  });
+});
+
+describe("ThemeField across tabs", () => {
+  afterEach(() => {
+    cleanup();
+    localStorage.clear();
+  });
+
+  it("shows a choice made in another tab", async () => {
+    render(<ThemeField />);
+
+    localStorage.setItem(THEME_STORAGE_KEY, "dark");
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent("storage", { key: THEME_STORAGE_KEY }),
+      );
+    });
+
+    expect(screen.getByRole("radio", { name: "Tối" })).toBeChecked();
   });
 });

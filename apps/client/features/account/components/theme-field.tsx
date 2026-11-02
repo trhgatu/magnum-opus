@@ -1,11 +1,12 @@
 "use client";
 
 import { Monitor, Moon, Sun } from "lucide-react";
-import { useState, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 
 import {
   readThemeChoice,
   saveThemeChoice,
+  subscribeToThemeChoice,
   type ThemeChoice,
 } from "@/lib/theme";
 import { cn } from "@/lib/utils";
@@ -16,26 +17,17 @@ const OPTIONS = [
   { value: "system", label: "Theo hệ thống", icon: Monitor },
 ] as const;
 
-const subscribe = () => () => {};
-
 /** Lựa chọn nằm ở trình duyệt nên server không biết; chỉ đọc sau khi hydrate. */
 function useStoredChoice() {
   return useSyncExternalStore<ThemeChoice | undefined>(
-    subscribe,
+    subscribeToThemeChoice,
     readThemeChoice,
     () => undefined,
   );
 }
 
 export function ThemeField() {
-  const stored = useStoredChoice();
-  const [picked, setPicked] = useState<ThemeChoice>();
-  const current = picked ?? stored;
-
-  const pick = (choice: ThemeChoice) => {
-    saveThemeChoice(choice);
-    setPicked(choice);
-  };
+  const current = useStoredChoice();
 
   return (
     <fieldset aria-describedby="theme-hint" className="flex flex-col gap-3">
@@ -60,7 +52,7 @@ export function ThemeField() {
               name="theme"
               value={value}
               checked={current === value}
-              onChange={() => pick(value)}
+              onChange={() => saveThemeChoice(value)}
               className="sr-only"
             />
             <Icon className="size-4" aria-hidden="true" />
