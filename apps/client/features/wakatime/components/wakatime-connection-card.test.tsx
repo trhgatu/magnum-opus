@@ -7,6 +7,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -106,10 +107,15 @@ describe("WakaTimeConnectionCard", () => {
       />,
     );
 
-    expect(screen.getByText(/Token không còn dùng được/)).toBeTruthy();
+    // Chính ô cảnh báo phải có link tạo token, không chỉ phần hướng dẫn.
+    const warning = screen
+      .getByText(/Token không còn dùng được/)
+      .closest<HTMLElement>('[role="alert"]')!;
     expect(
-      screen.getAllByRole("link", { name: "wakatime.com/oauth" }),
-    ).not.toHaveLength(0);
+      within(warning)
+        .getByRole("link", { name: "wakatime.com/oauth" })
+        .getAttribute("href"),
+    ).toBe("https://wakatime.com/oauth");
     expect(keyInput()).toBeTruthy();
     expect(screen.getByRole("button", { name: "Lưu token mới" })).toBeTruthy();
     // Không có gì để "Hủy" về: kết nối cũ không dùng được.
