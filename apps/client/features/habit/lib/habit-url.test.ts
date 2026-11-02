@@ -4,72 +4,33 @@ import { buildHabitHref, parseHabitLocation } from "./habit-url";
 
 describe("Habit URL state", () => {
   it("uses the canonical active view for invalid input", () => {
-    expect(
-      parseHabitLocation({ page: "0", status: "NOPE", sortBy: "x" }),
-    ).toEqual({
+    expect(parseHabitLocation({ page: "0", status: "NOPE" })).toEqual({
       page: 1,
       search: "",
       status: "ACTIVE",
-      type: "ALL",
-      sortBy: "updatedAt",
-      sortOrder: "desc",
     });
   });
 
   it("parses a complete archived view", () => {
     expect(
-      parseHabitLocation({
-        page: "3",
-        search: "  thiền ",
-        status: "ARCHIVED",
-        type: "QUIT",
-        sortBy: "title",
-        sortOrder: "asc",
-      }),
-    ).toEqual({
-      page: 3,
-      search: "thiền",
-      status: "ARCHIVED",
-      type: "QUIT",
-      sortBy: "title",
-      sortOrder: "asc",
-    });
+      parseHabitLocation({ page: "3", search: "  thiền ", status: "ARCHIVED" }),
+    ).toEqual({ page: 3, search: "thiền", status: "ARCHIVED" });
   });
 
-  it("ignores an unrecognized type filter", () => {
-    expect(parseHabitLocation({ type: "NOPE" }).type).toBe("ALL");
+  it("ignores the page on the active view, which is not paginated", () => {
+    expect(parseHabitLocation({ page: "3" }).page).toBe(1);
+    expect(buildHabitHref({ page: 3, status: "ACTIVE" })).toBe("/habits");
   });
 
   it("omits default values from canonical links", () => {
-    expect(
-      buildHabitHref({
-        page: 1,
-        status: "ACTIVE",
-        sortBy: "updatedAt",
-        sortOrder: "desc",
-      }),
-    ).toBe("/habits");
+    expect(buildHabitHref({ page: 1, status: "ACTIVE", search: " " })).toBe(
+      "/habits",
+    );
   });
 
   it("preserves meaningful filters", () => {
     expect(
-      buildHabitHref({
-        page: 2,
-        search: "thiền",
-        status: "ARCHIVED",
-        sortBy: "title",
-        sortOrder: "asc",
-      }),
-    ).toBe(
-      "/habits?page=2&search=thi%E1%BB%81n&status=ARCHIVED&sortBy=title&sortOrder=asc",
-    );
-  });
-
-  it("includes a non-default type filter", () => {
-    expect(buildHabitHref({ type: "QUIT" })).toBe("/habits?type=QUIT");
-  });
-
-  it("omits the default ALL type filter", () => {
-    expect(buildHabitHref({ type: "ALL" })).toBe("/habits");
+      buildHabitHref({ page: 2, search: "thiền", status: "ARCHIVED" }),
+    ).toBe("/habits?search=thi%E1%BB%81n&status=ARCHIVED&page=2");
   });
 });

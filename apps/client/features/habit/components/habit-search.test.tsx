@@ -5,29 +5,21 @@ import { describe, expect, it } from "vitest";
 
 import { HabitSearch } from "./habit-search";
 
-const baseLocation = {
-  page: 1,
-  search: "",
-  status: "ACTIVE" as const,
-  type: "ALL" as const,
-  sortBy: "updatedAt" as const,
-  sortOrder: "desc" as const,
-};
+const baseLocation = { page: 1, search: "", status: "ACTIVE" as const };
 
 describe("HabitSearch", () => {
-  it("does not render a hidden type input for the default ALL filter", () => {
+  it("searches the active view without extra fields", () => {
     const { container } = render(<HabitSearch location={baseLocation} />);
 
-    expect(container.querySelector('input[name="type"]')).toBeNull();
+    expect(container.querySelectorAll('input[type="hidden"]')).toHaveLength(0);
   });
 
-  it("preserves a non-default type filter as a hidden input", () => {
+  it("stays on the archived tab when searching there", () => {
     const { container } = render(
-      <HabitSearch location={{ ...baseLocation, type: "QUIT" }} />,
+      <HabitSearch location={{ ...baseLocation, status: "ARCHIVED" }} />,
     );
 
-    const input = container.querySelector('input[name="type"]');
-    expect(input).not.toBeNull();
-    expect((input as HTMLInputElement).value).toBe("QUIT");
+    const input = container.querySelector('input[name="status"]');
+    expect((input as HTMLInputElement | null)?.value).toBe("ARCHIVED");
   });
 });

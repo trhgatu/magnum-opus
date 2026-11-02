@@ -1,55 +1,40 @@
-import {
-  CollectionDividerSkeleton,
-  CollectionFilterBarSkeleton,
-} from "@/components/system/collection-skeleton";
 import { ContextHeroSkeleton } from "@/components/system/context-hero-skeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 
-function HabitCardSkeleton() {
+/** Nằm trong thẻ <p> của tiêu đề trang, nên chỉ dùng <span>. */
+export function HabitSummarySkeleton() {
   return (
-    <div
-      aria-hidden="true"
-      className="flex min-h-64 flex-col overflow-hidden rounded-2xl bg-card/75 ring-1 ring-foreground/10"
-    >
-      <div className="flex items-center justify-between gap-3 px-5 pt-5">
-        <div className="flex items-center gap-3">
-          <Skeleton className="size-9 rounded-full" />
-          <Skeleton className="h-3 w-20" />
-        </div>
-        <Skeleton className="h-6 w-20 rounded-full" />
-      </div>
-      <div className="flex flex-1 flex-col px-5 pb-5 pt-8">
-        <Skeleton className="h-7 w-3/4" />
-        <Skeleton className="mt-3 h-4 w-full" />
-        <Skeleton className="mt-2 h-4 w-2/3" />
-        <Skeleton className="mt-auto h-4 w-40" />
-      </div>
-      <div className="flex items-center justify-between border-t bg-muted/35 px-5 py-3">
-        <Skeleton className="h-3 w-20" />
-        <Skeleton className="h-3 w-20" />
-      </div>
-    </div>
-  );
-}
-
-export function HabitMetaSkeleton() {
-  return (
-    <span className="flex gap-2" role="status" aria-live="polite">
-      <span className="sr-only">Đang tải thông tin Thói quen…</span>
-      <Skeleton className="h-6 w-24 rounded-full" aria-hidden="true" />
-      <Skeleton className="h-6 w-28 rounded-full" aria-hidden="true" />
+    <span role="status" aria-live="polite" className="inline-flex">
+      <span className="sr-only">Đang tải tóm tắt hôm nay…</span>
+      <span
+        aria-hidden="true"
+        className="inline-block h-5 w-72 max-w-full animate-pulse rounded-md bg-muted"
+      />
     </span>
   );
 }
 
-function HabitCardGridSkeleton() {
+function HabitRowsSkeleton() {
   return (
-    <div
-      aria-hidden="true"
-      className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
-    >
-      {Array.from({ length: 6 }).map((_, index) => (
-        <HabitCardSkeleton key={index} />
+    <div aria-hidden="true" className="flex flex-col gap-8">
+      {[2, 2, 1].map((rows, group) => (
+        <div key={group} className="flex flex-col gap-2.5">
+          <Skeleton className="h-6 w-48" />
+          {Array.from({ length: rows }).map((_, index) => (
+            <div
+              key={index}
+              className="flex items-center gap-4 rounded-2xl border bg-card px-4 py-3.5 sm:px-5"
+            >
+              <Skeleton className="size-11 shrink-0 rounded-full" />
+              <div className="flex flex-1 flex-col gap-1.5">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-3.5 w-56 max-w-full" />
+              </div>
+              <Skeleton className="hidden h-3 w-[100px] sm:block" />
+              <Skeleton className="h-7 w-10" />
+            </div>
+          ))}
+        </div>
       ))}
     </div>
   );
@@ -57,22 +42,36 @@ function HabitCardGridSkeleton() {
 
 export function HabitListSkeleton() {
   return (
-    <div className="space-y-4" role="status" aria-live="polite">
+    <div role="status" aria-live="polite">
       <span className="sr-only">Đang tải danh sách Thói quen…</span>
-      <CollectionDividerSkeleton />
-      <HabitCardGridSkeleton />
+      <HabitRowsSkeleton />
     </div>
   );
 }
 
 export function HabitCollectionSkeleton() {
   return (
-    <section className="flex flex-col gap-7" role="status" aria-live="polite">
+    <section className="flex flex-col gap-8" role="status" aria-live="polite">
       <span className="sr-only">Đang tải danh sách Thói quen…</span>
-      <ContextHeroSkeleton />
-      <CollectionFilterBarSkeleton />
-      <CollectionDividerSkeleton />
-      <HabitCardGridSkeleton />
+      <div
+        aria-hidden="true"
+        className="flex flex-wrap items-end justify-between gap-5"
+      >
+        <div className="flex flex-col gap-3">
+          <Skeleton className="h-3 w-14" />
+          <Skeleton className="h-11 w-52" />
+          <Skeleton className="h-5 w-80 max-w-full" />
+        </div>
+        <Skeleton className="h-10 w-40 rounded-lg" />
+      </div>
+      <div
+        aria-hidden="true"
+        className="flex flex-wrap items-center justify-between gap-3"
+      >
+        <Skeleton className="h-10 w-52 rounded-xl" />
+        <Skeleton className="h-11 w-full rounded-xl sm:w-72" />
+      </div>
+      <HabitRowsSkeleton />
     </section>
   );
 }
