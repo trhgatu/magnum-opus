@@ -27,6 +27,7 @@ export class HabitOverviewPresenter {
       date: result.date,
       timeZone: result.timeZone,
       habit: HabitOverviewPresenter.toItem(result.item),
+      trace: result.trace,
     };
   }
 

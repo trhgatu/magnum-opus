@@ -6,7 +6,11 @@ import { DomainException } from '@shared/domain/exceptions/domain.exception';
 import { Result } from '@shared/domain/result';
 
 import { HabitNotFoundException } from '../../../domain';
-import { summarizeHabitOverview } from '../../../domain/services/habit-overview';
+import {
+  summarizeHabitOverview,
+  traceHabitDays,
+  type HabitDayTrace,
+} from '../../../domain/services/habit-overview';
 import { CLOCK, type Clock } from '../../ports/clock.port';
 import {
   HABIT_OVERVIEW_READER,
@@ -18,11 +22,14 @@ import {
 } from '../../ports/user-time-zone-reader.port';
 import { GetHabitOverviewItemQuery } from '../get-habit-overview-item.query';
 import type { HabitOverviewItem } from './get-habit-overview.handler';
+import { toHabitOverviewItem } from './get-habit-overview.handler';
+const TRACE_DAYS = 91;
 
 export interface HabitOverviewItemResult {
   date: CalendarDay;
   timeZone: string;
   item: HabitOverviewItem;
+  trace: HabitDayTrace;
 }
 
 @QueryHandler(GetHabitOverviewItemQuery)
@@ -57,11 +64,9 @@ export class GetHabitOverviewItemHandler implements IQueryHandler<
     return Result.ok({
       date: today,
       timeZone,
-      item: {
-        habit,
-        overview: summarizeHabitOverview(habit, today),
-        checkedInAt: habit.checkInAt.get(today) ?? null,
-      },
+      item: toHabitOverviewItem(habit, today),
+
+      trace: traceHabitDays(habit, today, TRACE_DAYS),
     });
   }
 }

@@ -27,6 +27,17 @@ export interface HabitOverviewItem {
   checkedInAt: Date | null;
 }
 
+export function toHabitOverviewItem(
+  habit: HabitOverviewRow,
+  today: CalendarDay,
+): HabitOverviewItem {
+  return {
+    habit,
+    overview: summarizeHabitOverview(habit, today),
+    checkedInAt: habit.checkInAt.get(today) ?? null,
+  };
+}
+
 export interface HabitOverviewResult {
   date: CalendarDay;
   timeZone: string;
@@ -60,11 +71,7 @@ export class GetHabitOverviewHandler implements IQueryHandler<
     return Result.ok({
       date: today,
       timeZone,
-      items: habits.map((habit) => ({
-        habit,
-        overview: summarizeHabitOverview(habit, today),
-        checkedInAt: habit.checkInAt.get(today) ?? null,
-      })),
+      items: habits.map((habit) => toHabitOverviewItem(habit, today)),
     });
   }
 }

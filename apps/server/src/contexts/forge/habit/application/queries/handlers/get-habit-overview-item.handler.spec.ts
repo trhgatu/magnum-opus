@@ -76,6 +76,15 @@ describe('GetHabitOverviewItemHandler', () => {
     expect(item.checkedInAt).toEqual(new Date('2026-11-01T23:30:00.000Z'));
   });
 
+  it('adds 13 weeks of day marks for the trace grid', async () => {
+    const result = (
+      await handler.execute(new GetHabitOverviewItemQuery('habit-1', 'owner-1'))
+    ).unwrap();
+
+    expect(result.trace).toHaveLength(91);
+    expect(result.trace.slice(-7)).toEqual(result.item.overview.lastSevenDays);
+  });
+
   it('summarises an archived habit without counting the archived days', async () => {
     // Lưu trữ từ 31/10: ba ngày cuối không được theo dõi.
     reader.findOneForOwner.mockResolvedValue(

@@ -322,6 +322,8 @@ describe('Habit (E2E)', () => {
       .expect(({ body }) => {
         expect(body.date).toBe(today);
         expect(body.habit).toEqual(meditate);
+        expect(body.trace).toHaveLength(91);
+        expect(body.trace.slice(-7)).toEqual(meditate.lastSevenDays);
       });
 
     // Habit đã lưu trữ vẫn mở được ở trang chi tiết.
@@ -338,7 +340,8 @@ describe('Habit (E2E)', () => {
     await request(app.getHttpServer())
       .get(`/habits/${build.body.id}/overview`)
       .set('Authorization', `Bearer ${otherToken}`)
-      .expect(HttpStatus.NOT_FOUND);
+      .expect(HttpStatus.NOT_FOUND)
+      .expect(({ body }) => expect(body.code).toBe('HABIT_NOT_FOUND'));
 
     await request(app.getHttpServer())
       .get('/habits/overview')

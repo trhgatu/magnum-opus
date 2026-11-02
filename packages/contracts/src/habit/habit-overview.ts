@@ -56,4 +56,5 @@ export interface HabitOverviewItemEnvelope {
   date: string;
   timeZone: string;
   habit: HabitOverviewItemResponse;
+  trace: HabitOverviewDayResponse[];
 }
