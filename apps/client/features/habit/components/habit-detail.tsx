@@ -11,6 +11,7 @@ import {
 } from "@/features/habit/components/habit-edit-sheet";
 import { HabitStreakPanel } from "@/features/habit/components/habit-streak-panel";
 import { HabitTraceGrid } from "@/features/habit/components/habit-trace-grid";
+import { describeHabitToday } from "@/features/habit/lib/habit-today-labels";
 
 export function HabitDetail({
   habit,
@@ -63,7 +64,10 @@ export function HabitDetail({
           </div>
         </header>
 
-        <HabitStreakPanel overview={overview} />
+        <HabitStreakPanel
+          overview={overview}
+          labels={describeHabitToday(overview)}
+        />
       </HabitEditProvider>
 
       <HabitTraceGrid type={habit.type} trace={overview.trace} />

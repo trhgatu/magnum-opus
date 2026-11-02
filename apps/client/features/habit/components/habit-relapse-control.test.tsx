@@ -34,7 +34,7 @@ describe("HabitRelapseControl", () => {
   afterEach(cleanup);
 
   it("asks for confirmation, then logs and reloads the streak", async () => {
-    mutation.mockResolvedValue({ status: "success", progress: null });
+    mutation.mockResolvedValue({ status: "success" });
     render(<HabitRelapseControl habitId={HABIT_ID} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Tôi đã tái phạm" }));

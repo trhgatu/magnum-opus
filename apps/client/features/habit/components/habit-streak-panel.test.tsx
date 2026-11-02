@@ -16,6 +16,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { changeHabitCheckIn } from "@/features/habit/actions/habit";
+import { describeHabitToday } from "@/features/habit/lib/habit-today-labels";
 import { HabitStreakPanel } from "./habit-streak-panel";
 
 vi.mock("@/features/habit/actions/habit", () => ({
@@ -69,6 +70,16 @@ const overview = (
   ],
 });
 
+/** Như trang chi tiết: chữ của khối Hôm nay soạn từ cùng dữ liệu. */
+function Panel({ overview }: { overview: HabitOverviewItemEnvelope }) {
+  return (
+    <HabitStreakPanel
+      overview={overview}
+      labels={describeHabitToday(overview)}
+    />
+  );
+}
+
 const ring = () => screen.getByRole("button", { name: "Ghi dấu hôm nay" });
 
 describe("HabitStreakPanel", () => {
@@ -80,7 +91,7 @@ describe("HabitStreakPanel", () => {
   afterEach(cleanup);
 
   it("shows the streak, the longest one and 13 weeks of sessions", () => {
-    render(<HabitStreakPanel overview={overview()} />);
+    render(<Panel overview={overview()} />);
 
     expect(screen.getByText("4")).toBeInTheDocument();
     expect(screen.getByText("buổi liên tiếp đúng lịch")).toBeInTheDocument();
@@ -103,13 +114,17 @@ describe("HabitStreakPanel", () => {
       value: Awaited<ReturnType<typeof changeHabitCheckIn>>,
     ) => void;
     mutation.mockReturnValue(new Promise((done) => (resolve = done)));
-    render(<HabitStreakPanel overview={overview()} />);
+    render(<Panel overview={overview()} />);
 
     fireEvent.click(ring());
 
     await waitFor(() => expect(ring()).toHaveAttribute("aria-pressed", "true"));
     expect(screen.getByText("5")).toBeInTheDocument();
     expect(screen.getByText("Đã ghi dấu hôm nay.")).toBeInTheDocument();
+    // Số buổi 13 tuần đổi cùng lúc với chuỗi.
+    expect(screen.getByText(/trong 13 tuần/)).toHaveTextContent(
+      "3 buổi đã ghi dấu, 1 buổi bỏ lỡ trong 13 tuần",
+    );
     expect(mutation).toHaveBeenCalledWith({ id: HABIT_ID, action: "check-in" });
 
     resolve({
@@ -125,7 +140,7 @@ describe("HabitStreakPanel", () => {
       today: { date: TODAY, checkedIn: false, checkIn: null },
     });
     render(
-      <HabitStreakPanel
+      <Panel
         overview={overview({
           checkedInToday: true,
           checkedInAt: "2026-11-01T23:30:00.000Z",
@@ -141,9 +156,25 @@ describe("HabitStreakPanel", () => {
     expect(mutation).toHaveBeenCalledWith({ id: HABIT_ID, action: "undo" });
   });
 
+  it("reloads from the server when the result is unclear", async () => {
+    // Ghi có thể đã thành công dù bước đọc lại lỗi: lấy lại từ server.
+    mutation.mockResolvedValue({
+      status: "error",
+      message: "Không thể tải lại hôm nay.",
+    });
+    render(<Panel overview={overview()} />);
+
+    fireEvent.click(ring());
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Không thể tải lại hôm nay.",
+    );
+    await waitFor(() => expect(refresh).toHaveBeenCalledOnce());
+  });
+
   it("puts the check-in back and explains when saving fails", async () => {
     mutation.mockRejectedValue(new TypeError("Failed to fetch"));
-    render(<HabitStreakPanel overview={overview()} />);
+    render(<Panel overview={overview()} />);
 
     fireEvent.click(ring());
 
@@ -158,7 +189,7 @@ describe("HabitStreakPanel", () => {
 
   it("names the next session on a rest day", () => {
     render(
-      <HabitStreakPanel
+      <Panel
         overview={overview({ dueToday: false, nextDueOn: "2026-11-04" })}
       />,
     );
@@ -170,14 +201,14 @@ describe("HabitStreakPanel", () => {
 
   it("cannot check in an archived habit", () => {
     isActive = false;
-    render(<HabitStreakPanel overview={overview()} />);
+    render(<Panel overview={overview()} />);
 
     expect(ring()).toBeDisabled();
   });
 
   it("shows days without relapse and the relapse button for a QUIT habit", () => {
     render(
-      <HabitStreakPanel
+      <Panel
         overview={overview({
           type: "QUIT",
           frequencyType: null,

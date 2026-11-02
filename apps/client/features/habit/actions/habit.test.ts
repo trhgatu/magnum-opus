@@ -412,26 +412,17 @@ describe("Habit Server Actions", () => {
     });
   });
 
-  it("logs a relapse and returns the fresh progress", async () => {
-    const progress = {
-      habitId: habit.id,
-      since: "2026-08-28",
-      sinceReason: "RELAPSE" as const,
-      daysSince: 0,
-    };
-    apiFetch.mockResolvedValueOnce(undefined).mockResolvedValueOnce(progress);
+  it("logs a relapse with a single request", async () => {
+    apiFetch.mockResolvedValueOnce(undefined);
 
     await expect(logHabitRelapse(habit.id)).resolves.toEqual({
       status: "success",
-      progress,
     });
 
-    expect(apiFetch).toHaveBeenNthCalledWith(
-      1,
-      `/habits/${habit.id}/relapses`,
-      { method: "POST" },
-    );
-    expect(apiFetch).toHaveBeenNthCalledWith(2, `/habits/${habit.id}/progress`);
+    expect(apiFetch).toHaveBeenCalledTimes(1);
+    expect(apiFetch).toHaveBeenCalledWith(`/habits/${habit.id}/relapses`, {
+      method: "POST",
+    });
     expect(revalidatePath).toHaveBeenCalledWith(`/habits/${habit.id}`);
   });
 
@@ -442,22 +433,6 @@ describe("Habit Server Actions", () => {
     });
 
     expect(apiFetch).not.toHaveBeenCalled();
-  });
-
-  it("still reports success when the relapse is logged but refreshing progress fails", async () => {
-    // POST /relapses đã ghi thành công và không thể hoàn tác — một lỗi ở
-    // bước GET /progress sau đó không được biến thành lỗi có thể "thử
-    // lại", vì thử lại sẽ tạo thêm một relapse mới (BR-HAB2-003).
-    apiFetch
-      .mockResolvedValueOnce(undefined)
-      .mockRejectedValueOnce(new Error("network blip"));
-
-    await expect(logHabitRelapse(habit.id)).resolves.toEqual({
-      status: "success",
-      progress: null,
-    });
-
-    expect(revalidatePath).toHaveBeenCalledWith(`/habits/${habit.id}`);
   });
 
   it("does not log a relapse when the POST itself fails", async () => {

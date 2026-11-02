@@ -1,84 +1,43 @@
 "use client";
 
 import type { HabitOverviewItemEnvelope } from "@repo/contracts";
-import { useRouter } from "next/navigation";
-import { useOptimistic, useState, useTransition } from "react";
-
-import { changeHabitCheckIn } from "@/features/habit/actions/habit";
 import { useEditedHabit } from "@/features/habit/components/habit-edit-sheet";
 import { HabitRelapseControl } from "@/features/habit/components/habit-relapse-control";
-import {
-  formatCheckInTime,
-  formatNextDue,
-} from "@/features/habit/lib/habit-overview";
-import { formatQuitStartedAt } from "@/features/habit/lib/habit-quit";
+import { useHabitCheckIn } from "@/features/habit/hooks/use-habit-check-in";
+import type { HabitTodayLabels } from "@/features/habit/lib/habit-today-labels";
 import { tallyHabitTrace } from "@/features/habit/lib/habit-trace";
 import { cn } from "@/lib/utils";
-
-function formatToday(date: string) {
-  return new Intl.DateTimeFormat("vi-VN", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    timeZone: "UTC",
-  }).format(new Date(`${date}T00:00:00.000Z`));
-}
 
 function Stat({ children }: { children: React.ReactNode }) {
   return <p className="text-sm text-muted-foreground">{children}</p>;
 }
 
-/** Con số chuỗi và khối "Hôm nay" dùng chung một trạng thái ghi dấu. */
+/**
+ * Con số chuỗi và khối "Hôm nay" dùng chung một trạng thái ghi dấu. Lưới 13
+ * tuần là server component (giữ bundle trang nhỏ), đổi theo khi refresh.
+ */
 export function HabitStreakPanel({
   overview,
+  labels,
 }: {
   overview: HabitOverviewItemEnvelope;
+  labels: HabitTodayLabels;
 }) {
-  const { habit: item, trace, date, timeZone } = overview;
+  const { habit: item, trace } = overview;
   const { isActive } = useEditedHabit();
-  const router = useRouter();
-  const [checked, setChecked] = useOptimistic(item.checkedInToday);
-  const [message, setMessage] = useState<string>();
-  const [isPending, startTransition] = useTransition();
+  const { checked, streak, withToday, message, isPending, toggle } =
+    useHabitCheckIn(item);
   const isQuit = item.type === "QUIT";
-  // Ghi dấu ngày không có lịch không cộng chuỗi (BR-HAB3-006).
-  const streak =
-    item.currentStreak +
-    (item.dueToday ? Number(checked) - Number(item.checkedInToday) : 0);
-  const { done, missed } = tallyHabitTrace(trace);
-
-  const toggle = () => {
-    setMessage(undefined);
-    startTransition(async () => {
-      setChecked(!checked);
-      try {
-        const result = await changeHabitCheckIn({
-          id: item.id,
-          action: checked ? "undo" : "check-in",
-        });
-        if (result.status === "error") {
-          setMessage(result.message);
-          return;
-        }
-      } catch {
-        setMessage("Không thể ghi dấu lúc này. Thử lại sau.");
-        return;
-      }
-      router.refresh();
-    });
-  };
+  // Các con số 13 tuần đổi cùng lúc với chuỗi.
+  const { done, missed } = tallyHabitTrace(withToday(trace));
 
   const headline = isQuit
     ? "Mỗi ngày giữ được là một ngày."
     : checked
-      ? item.checkedInAt && item.checkedInToday
-        ? `Đã ghi dấu lúc ${formatCheckInTime(item.checkedInAt, timeZone)}.`
+      ? item.checkedInToday && labels.checkedIn
+        ? labels.checkedIn
         : "Đã ghi dấu hôm nay."
-      : item.dueToday
-        ? "Hôm nay có lịch."
-        : item.nextDueOn
-          ? `Hôm nay nghỉ, buổi tới ${formatNextDue(item.nextDueOn, date)}.`
-          : "Hôm nay không có lịch.";
+      : labels.idle;
 
   return (
     <section
@@ -99,11 +58,11 @@ export function HabitStreakPanel({
         <div className="flex flex-col gap-2 pb-1.5">
           {isQuit ? (
             <>
-              {item.quitStartedAt ? (
+              {labels.quitSince ? (
                 <Stat>
                   Tính từ{" "}
                   <strong className="font-semibold text-foreground">
-                    {formatQuitStartedAt(item.quitStartedAt)}
+                    {labels.quitSince}
                   </strong>
                 </Stat>
               ) : null}
@@ -153,7 +112,7 @@ export function HabitStreakPanel({
       <div className="flex flex-[1_1_18rem] flex-col justify-between gap-5 rounded-3xl bg-block p-7 text-block-foreground">
         <div className="flex flex-col gap-1.5">
           <p className="font-mono text-[11px] font-medium tracking-[0.16em] text-block-foreground/75 uppercase">
-            Hôm nay · {formatToday(date)}
+            Hôm nay · {labels.today}
           </p>
           <p className="font-display text-2xl">{headline}</p>
         </div>

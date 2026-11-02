@@ -48,6 +48,15 @@ describe("layoutHabitTrace", () => {
     expect(labels[0]).toBe("Th 8");
   });
 
+  it("puts the month label on the week that holds the 1st", () => {
+    const weeks = layoutHabitTrace(trace("2026-11-02", 91));
+    // 1/9/2026 là Thứ Ba: nằm trong cột bắt đầu Thứ Hai 31/8.
+    const september = weeks.find((week) => week.monthLabel === "Th 9")!;
+
+    expect(september.cells[0]).toMatchObject({ date: "2026-08-31" });
+    expect(september.cells[1]).toMatchObject({ date: "2026-09-01" });
+  });
+
   it("returns no weeks for an empty trace", () => {
     expect(layoutHabitTrace([])).toEqual([]);
   });
@@ -84,5 +93,17 @@ describe("tallyHabitTrace and describeHabitTrace", () => {
     expect(
       describeTraceDay("QUIT", { date: "2026-10-29", mark: "MISSED" }),
     ).toBe("29/10: tái phạm");
+  });
+
+  it.each([
+    ["DONE", "đã ghi dấu", "không tái phạm"],
+    ["REST", "ngày nghỉ theo lịch", "ngày nghỉ"],
+    ["PENDING", "hôm nay, chưa ghi dấu", "hôm nay"],
+    ["UNTRACKED", "chưa theo dõi", "chưa theo dõi"],
+  ] as const)("labels a %s day for both habit types", (mark, build, quit) => {
+    const day = { date: "2026-11-02", mark };
+
+    expect(describeTraceDay("BUILD", day)).toBe(`2/11: ${build}`);
+    expect(describeTraceDay("QUIT", day)).toBe(`2/11: ${quit}`);
   });
 });

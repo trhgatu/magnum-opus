@@ -38,17 +38,17 @@ export function layoutHabitTrace(
   ];
   while (cells.length % 7 !== 0) cells.push({ kind: "after" });
 
+  // Nhãn tháng ở cột chứa ngày mùng 1 (và ở cột đầu), như lịch giấy.
   const weeks: HabitTraceWeek[] = [];
-  let lastMonth = 0;
   for (let start = 0; start < cells.length; start += 7) {
     const week = cells.slice(start, start + 7);
-    const firstDay = week.find((cell) => cell.kind === "day");
-    const month = firstDay?.kind === "day" ? monthOf(firstDay.date) : lastMonth;
+    const days = week.flatMap((cell) => (cell.kind === "day" ? [cell] : []));
+    const firstOfMonth = days.find((day) => day.date.endsWith("-01"));
+    const labelled = firstOfMonth ?? (start === 0 ? days[0] : undefined);
     weeks.push({
-      monthLabel: month !== lastMonth ? `Th ${month}` : "",
+      monthLabel: labelled ? `Th ${monthOf(labelled.date)}` : "",
       cells: week,
     });
-    lastMonth = month;
   }
   return weeks;
 }
