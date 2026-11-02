@@ -56,5 +56,6 @@ export interface HabitOverviewItemEnvelope {
   date: string;
   timeZone: string;
   habit: HabitOverviewItemResponse;
+  /** 91 ngày (13 tuần), cũ nhất trước, ngày cuối là hôm nay; 7 ngày cuối trùng `habit.lastSevenDays`. */
   trace: HabitOverviewDayResponse[];
 }
