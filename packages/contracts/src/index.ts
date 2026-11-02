@@ -12,6 +12,7 @@ export * from './mood/mood.js';
 export * from './memory/memory.js';
 export * from './timeline/timeline.js';
 export * from './habit/habit.js';
+export * from './habit/habit-overview.js';
 export * from './habit-check-in/habit-check-in.js';
 export * from './habit-relapse/habit-relapse.js';
 export * from './routine/routine.js';

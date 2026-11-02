@@ -6,9 +6,11 @@ import { CreateHabitHandler } from './application/commands/handlers/create-habit
 import { RestoreHabitHandler } from './application/commands/handlers/restore-habit.handler';
 import { UpdateHabitHandler } from './application/commands/handlers/update-habit.handler';
 import { CLOCK } from './application/ports/clock.port';
+import { HABIT_OVERVIEW_READER } from './application/ports/habit-overview-reader.port';
 import { HABIT_READER } from './application/ports/habit-reader.port';
 import { USER_TIME_ZONE_READER } from './application/ports/user-time-zone-reader.port';
 import { GetHabitHandler } from './application/queries/handlers/get-habit.handler';
+import { GetHabitOverviewHandler } from './application/queries/handlers/get-habit-overview.handler';
 import { GetHabitsHandler } from './application/queries/handlers/get-habits.handler';
 import {
   HabitMutationService,
@@ -16,6 +18,7 @@ import {
 } from './application/services';
 import { HABIT_REPOSITORY } from './domain/ports/habit.repository';
 import { SystemClock } from './infrastructure/clock/system-clock';
+import { PrismaHabitOverviewReader } from './infrastructure/readers/prisma-habit-overview.reader';
 import { PrismaHabitReader } from './infrastructure/readers/prisma-habit.reader';
 import { PrismaUserTimeZoneReader } from './infrastructure/readers/prisma-user-time-zone.reader';
 import { PrismaHabitRepository } from './infrastructure/repositories/prisma-habit.repository';
@@ -27,7 +30,11 @@ const commandHandlers = [
   RestoreHabitHandler,
   UpdateHabitHandler,
 ];
-const queryHandlers = [GetHabitHandler, GetHabitsHandler];
+const queryHandlers = [
+  GetHabitHandler,
+  GetHabitsHandler,
+  GetHabitOverviewHandler,
+];
 
 @Module({
   imports: [CqrsModule],
@@ -42,6 +49,10 @@ const queryHandlers = [GetHabitHandler, GetHabitsHandler];
     {
       provide: HABIT_READER,
       useClass: PrismaHabitReader,
+    },
+    {
+      provide: HABIT_OVERVIEW_READER,
+      useClass: PrismaHabitOverviewReader,
     },
     HabitMutationService,
     HabitTodayService,
