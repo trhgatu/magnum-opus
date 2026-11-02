@@ -14,7 +14,11 @@ import {
 } from '@nestjs/common';
 import { CommandBus, type ICommand, QueryBus } from '@nestjs/cqrs';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import type { HabitOverviewResponse, HabitResponse } from '@repo/contracts';
+import type {
+  HabitOverviewResponse,
+  HabitResponse,
+  HabitOverviewItemEnvelope,
+} from '@repo/contracts';
 
 import { PaginatedResponsePresenter } from '@presentation/common/presenters/pagination.presenter';
 import { GetUser } from '@presentation/decorators';
@@ -30,8 +34,10 @@ import {
   GetHabitOverviewQuery,
   GetHabitQuery,
   GetHabitsQuery,
+  GetHabitOverviewItemQuery,
 } from '../../application/queries';
 import type { HabitOverviewResult } from '../../application/queries/handlers/get-habit-overview.handler';
+import type { HabitOverviewItemResult } from '../../application/queries/handlers/get-habit-overview-item.handler';
 import { Habit } from '../../domain/habit.aggregate';
 import {
   CreateHabitDto,
@@ -134,6 +140,24 @@ export class HabitController {
     );
 
     return HabitPresenter.toResponse(result.unwrap());
+  }
+
+  @Get(':id/overview')
+  @ApiOperation({
+    summary:
+      "Get one owned Habit with today's status, the last 7 days and its streak",
+  })
+  public async overviewOne(
+    @GetUser('id') ownerId: string,
+    @Param('id', new ParseUUIDPipe()) habitId: string,
+  ): Promise<HabitOverviewItemEnvelope> {
+    const result = await this.queryBus.execute(
+      new GetHabitOverviewItemQuery(habitId, ownerId),
+    );
+
+    return HabitOverviewPresenter.toItemEnvelope(
+      result.unwrap() as HabitOverviewItemResult,
+    );
   }
 
   @Put(':id')

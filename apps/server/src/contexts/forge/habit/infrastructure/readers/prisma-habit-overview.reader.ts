@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-
+import type { Prisma } from '@repo/database';
 import { PrismaService } from '@infrastructure/database/prisma.service';
 import { calendarDayAt, calendarDayOf } from '@shared/domain/calendar-day';
 
@@ -12,12 +12,13 @@ import type {
 export class PrismaHabitOverviewReader implements HabitOverviewReader {
   constructor(private readonly prisma: PrismaService) {}
 
-  public async findActiveForOwner(
+  private async load(
+    where: Prisma.HabitWhereInput,
     ownerId: string,
     timeZone: string,
   ): Promise<HabitOverviewRow[]> {
     const habits = await this.prisma.habit.findMany({
-      where: { ownerId, isActive: true },
+      where,
       select: {
         id: true,
         title: true,
@@ -98,5 +99,21 @@ export class PrismaHabitOverviewReader implements HabitOverviewReader {
         routines: habit.routineLinks.map((link) => link.routine),
       };
     });
+  }
+  public findActiveForOwner(ownerId: string, timeZone: string) {
+    return this.load({ ownerId, isActive: true }, ownerId, timeZone);
+  }
+
+  public async findOneForOwner(
+    ownerId: string,
+    habitId: string,
+    timeZone: string,
+  ) {
+    const [habit] = await this.load(
+      { id: habitId, ownerId },
+      ownerId,
+      timeZone,
+    );
+    return habit ?? null;
   }
 }

@@ -12,6 +12,7 @@ import { USER_TIME_ZONE_READER } from './application/ports/user-time-zone-reader
 import { GetHabitHandler } from './application/queries/handlers/get-habit.handler';
 import { GetHabitOverviewHandler } from './application/queries/handlers/get-habit-overview.handler';
 import { GetHabitsHandler } from './application/queries/handlers/get-habits.handler';
+import { GetHabitOverviewItemHandler } from './application/queries/handlers/get-habit-overview-item.handler';
 import {
   HabitMutationService,
   HabitTodayService,
@@ -34,6 +35,7 @@ const queryHandlers = [
   GetHabitHandler,
   GetHabitsHandler,
   GetHabitOverviewHandler,
+  GetHabitOverviewItemHandler,
 ];
 
 @Module({

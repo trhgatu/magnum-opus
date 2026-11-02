@@ -35,6 +35,7 @@ const row = (overrides: Partial<HabitOverviewRow> = {}): HabitOverviewRow => ({
 describe('GetHabitOverviewHandler', () => {
   const reader: jest.Mocked<HabitOverviewReader> = {
     findActiveForOwner: jest.fn(),
+    findOneForOwner: jest.fn(),
   };
   const timeZones: jest.Mocked<UserTimeZoneReader> = {
     getForUser: jest.fn(),

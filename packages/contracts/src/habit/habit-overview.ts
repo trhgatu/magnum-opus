@@ -50,3 +50,10 @@ export interface HabitOverviewResponse {
   timeZone: string;
   habits: HabitOverviewItemResponse[];
 }
+
+/** Một Habit kèm tổng quan, cho trang chi tiết (BA habit v3). */
+export interface HabitOverviewItemEnvelope {
+  date: string;
+  timeZone: string;
+  habit: HabitOverviewItemResponse;
+}
