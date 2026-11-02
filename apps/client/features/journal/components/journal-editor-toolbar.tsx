@@ -84,7 +84,7 @@ export function JournalEditorToolbar({
 }: JournalEditorToolbarProps) {
   return (
     <header
-      className={`surface-glass sticky z-20 flex flex-wrap items-center gap-2 rounded-2xl border px-2.5 py-2.5 shadow-sm ${focusMode ? "top-0" : "top-17"}`}
+      className={`surface-bar sticky z-20 flex flex-wrap items-center gap-2 rounded-2xl border px-2.5 py-2.5 shadow-sm ${focusMode ? "top-0" : "top-17"}`}
     >
       <Button type="button" onClick={onBack} variant="ghost">
         <ArrowLeft data-icon="inline-start" aria-hidden="true" />

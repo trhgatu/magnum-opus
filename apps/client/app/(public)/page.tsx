@@ -43,7 +43,7 @@ export default function HomePage() {
     <main className="relative isolate min-h-screen overflow-hidden">
       <div
         aria-hidden="true"
-        className="absolute left-1/2 top-[-22rem] -z-10 size-[42rem] -translate-x-1/2 rounded-full border border-primary/10 shadow-[0_0_0_6rem_color-mix(in_oklch,var(--primary)_3%,transparent),0_0_0_12rem_color-mix(in_oklch,var(--primary)_2%,transparent)]"
+        className="absolute left-1/2 top-[-22rem] -z-10 size-[42rem] -translate-x-1/2 rounded-full border border-primary/10"
       />
 
       <nav
@@ -116,7 +116,7 @@ export default function HomePage() {
         <h2 id="principles-heading" className="sr-only">
           Ba nguyên tắc của Magnum Opus
         </h2>
-        <div className="grid overflow-hidden rounded-2xl border bg-card/65 shadow-[0_28px_80px_-50px_color-mix(in_oklch,var(--foreground)_45%,transparent)] backdrop-blur sm:grid-cols-3">
+        <div className="grid overflow-hidden rounded-2xl border bg-card/65 sm:grid-cols-3">
           {principles.map(({ icon: Icon, title, description }, index) => (
             <article
               key={title}
