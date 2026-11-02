@@ -117,17 +117,14 @@ export default function HomePage() {
           Ba nguyên tắc của Magnum Opus
         </h2>
         <div className="grid overflow-hidden rounded-2xl border bg-card/65 sm:grid-cols-3">
-          {principles.map(({ icon: Icon, title, description }, index) => (
+          {principles.map(({ icon: Icon, title, description }) => (
             <article
               key={title}
-              className="relative p-7 sm:p-8 [&:not(:first-child)]:border-t sm:[&:not(:first-child)]:border-l sm:[&:not(:first-child)]:border-t-0"
+              className="p-7 sm:p-8 [&:not(:first-child)]:border-t sm:[&:not(:first-child)]:border-l sm:[&:not(:first-child)]:border-t-0"
             >
               <span className="mb-8 grid size-10 place-items-center rounded-full bg-primary/10 text-primary">
                 <Icon className="size-5" aria-hidden="true" />
               </span>
-              <p className="absolute right-7 top-7 font-mono text-xs text-muted-foreground/60">
-                0{index + 1}
-              </p>
               <h3 className="font-display text-xl font-semibold">{title}</h3>
               <p className="mt-3 text-sm leading-6 text-muted-foreground">
                 {description}
