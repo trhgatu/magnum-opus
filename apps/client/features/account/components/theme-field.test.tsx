@@ -90,3 +90,27 @@ describe("ThemeField across tabs", () => {
     expect(screen.getByRole("radio", { name: "Tối" })).toBeChecked();
   });
 });
+
+describe("ThemeField without storage", () => {
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+  });
+
+  it("keeps the picked option when the browser blocks saving it", () => {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => ({ matches: false })),
+    );
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new DOMException("blocked", "SecurityError");
+    });
+    render(<ThemeField />);
+
+    fireEvent.click(screen.getByRole("radio", { name: "Tối" }));
+
+    expect(screen.getByRole("radio", { name: "Tối" })).toBeChecked();
+    expect(document.documentElement).toHaveClass("dark");
+    vi.unstubAllGlobals();
+  });
+});

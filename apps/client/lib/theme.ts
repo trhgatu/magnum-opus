@@ -9,8 +9,12 @@ const DARK_QUERY = "(prefers-color-scheme: dark)";
 const isThemeChoice = (value: unknown): value is ThemeChoice =>
   THEME_CHOICES.includes(value as ThemeChoice);
 
+// Lựa chọn của phiên này khi không ghi được storage (bị chặn, đầy).
+let unsavedChoice: ThemeChoice | null = null;
+
 /** Lựa chọn lưu ở trình duyệt; storage bị chặn hoặc giá trị lạ thì theo hệ thống. */
 export function readThemeChoice(): ThemeChoice {
+  if (unsavedChoice) return unsavedChoice;
   try {
     const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
     return isThemeChoice(stored) ? stored : "system";
@@ -31,8 +35,10 @@ const THEME_CHANGE_EVENT = "magnum-opus-theme-change";
 export function saveThemeChoice(choice: ThemeChoice) {
   try {
     window.localStorage.setItem(THEME_STORAGE_KEY, choice);
+    unsavedChoice = null;
   } catch {
-    // Không lưu được thì vẫn đổi cho phiên này.
+    // Không lưu được thì vẫn đổi và giữ lựa chọn cho phiên này.
+    unsavedChoice = choice;
   }
   applyThemeChoice(choice);
   window.dispatchEvent(new Event(THEME_CHANGE_EVENT));
