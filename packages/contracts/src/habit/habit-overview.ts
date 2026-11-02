@@ -50,3 +50,12 @@ export interface HabitOverviewResponse {
   timeZone: string;
   habits: HabitOverviewItemResponse[];
 }
+
+/** Một Habit kèm tổng quan, cho trang chi tiết (BA habit v3). */
+export interface HabitOverviewItemEnvelope {
+  date: string;
+  timeZone: string;
+  habit: HabitOverviewItemResponse;
+  /** 91 ngày (13 tuần), cũ nhất trước, ngày cuối là hôm nay; 7 ngày cuối trùng `habit.lastSevenDays`. */
+  trace: HabitOverviewDayResponse[];
+}

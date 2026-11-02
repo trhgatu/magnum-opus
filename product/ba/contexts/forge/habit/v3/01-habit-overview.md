@@ -11,7 +11,8 @@ Trang danh sách Thói quen theo bộ thiết kế Magnum Opus là nơi làm vi�
 
 - Một endpoint tổng hợp trả **mọi Habit đang rèn** của người dùng, không phân trang, kèm trạng thái hôm nay, dải 7 ngày và chuỗi.
 - Trang danh sách: tab **Đang rèn** dùng endpoint này và nhóm theo việc hôm nay; tab **Đã lưu trữ** giữ danh sách cũ có phân trang.
-- Ngoài phạm vi: chuỗi trong trang chi tiết và trang Hôm nay (dùng lại cùng quy tắc ở bước sau), thông báo, mục tiêu chuỗi.
+- Trang chi tiết: một endpoint cho từng Habit (kể cả đã lưu trữ), cùng dữ liệu với một dòng ở danh sách, kèm lưới dấu vết 13 tuần.
+- Ngoài phạm vi: chuỗi ở trang Hôm nay (dùng lại cùng quy tắc ở bước sau), thông báo, mục tiêu chuỗi.
 
 ## 3. Quy tắc
 
@@ -72,6 +73,8 @@ Giao diện hiển thị theo bộ thiết kế: `DONE` ô tô than hồng, `MIS
 
 Chỉ Habit đang rèn, sắp theo tên. Habit đã lưu trữ không có trong kết quả.
 
+`GET /habits/:id/overview` (cần đăng nhập) → `HabitOverviewItemEnvelope`: `{ date, timeZone, habit, trace }`, trong đó `habit` cùng kiểu với một phần tử ở trên và `trace` là 91 ngày (13 tuần) tới hôm nay, cũ nhất trước, mỗi ngày một dấu theo §4 — 7 ngày cuối trùng `lastSevenDays`. Dùng cho trang chi tiết, nên trả cả Habit đã lưu trữ: những ngày đang lưu trữ là `UNTRACKED`, chuỗi giữ nguyên quy tắc §3. Habit không tồn tại hoặc của người khác → 404 (`HABIT_NOT_FOUND`).
+
 ## 6. Tiêu chí chấp nhận
 
 - **Given** Habit hằng ngày đã ghi dấu 4 ngày liền tới hôm qua và hôm nay chưa ghi dấu, **then** chuỗi = 4 và ô hôm nay là `PENDING`.
@@ -81,6 +84,9 @@ Chỉ Habit đang rèn, sắp theo tên. Habit đã lưu trữ không có trong 
 - **Given** Habit lưu trữ hai ngày rồi khôi phục, **then** hai ngày đó là `UNTRACKED` và không làm đứt chuỗi.
 - **Given** Habit QUIT bắt đầu bỏ 5 ngày trước và chưa tái phạm, **then** chuỗi = 5; **given** tái phạm hôm kia, **then** chuỗi = 2 và ô hôm kia là `MISSED`.
 - **Given** người dùng khác gọi endpoint, **then** không thấy Habit của người này.
+- **Given** mở trang chi tiết một Habit đang rèn, **then** chuỗi, dải 7 ngày và buổi tiếp theo khớp đúng dòng của nó ở danh sách.
+- **Given** Habit đã lưu trữ hôm nay, **then** trang chi tiết vẫn có tổng quan và ô hôm nay là `UNTRACKED`.
+- **Given** người khác mở `GET /habits/:id/overview` của Habit này, **then** 404.
 
 ## 7. Quyết định
 

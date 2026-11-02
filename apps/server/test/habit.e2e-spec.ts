@@ -314,6 +314,35 @@ describe('Habit (E2E)', () => {
       dueToday: false,
     });
 
+    // Một Habit cho trang chi tiết: cùng dữ liệu với danh sách.
+    await request(app.getHttpServer())
+      .get(`/habits/${build.body.id}/overview`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(HttpStatus.OK)
+      .expect(({ body }) => {
+        expect(body.date).toBe(today);
+        expect(body.habit).toEqual(meditate);
+        expect(body.trace).toHaveLength(91);
+        expect(body.trace.slice(-7)).toEqual(meditate.lastSevenDays);
+      });
+
+    // Habit đã lưu trữ vẫn mở được ở trang chi tiết.
+    await request(app.getHttpServer())
+      .get(`/habits/${archived.body.id}/overview`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(HttpStatus.OK)
+      .expect(({ body }) => {
+        expect(body.habit.id).toBe(archived.body.id);
+        expect(body.habit.lastSevenDays.at(-1).mark).toBe('UNTRACKED');
+      });
+
+    // Người khác không đọc được.
+    await request(app.getHttpServer())
+      .get(`/habits/${build.body.id}/overview`)
+      .set('Authorization', `Bearer ${otherToken}`)
+      .expect(HttpStatus.NOT_FOUND)
+      .expect(({ body }) => expect(body.code).toBe('HABIT_NOT_FOUND'));
+
     await request(app.getHttpServer())
       .get('/habits/overview')
       .set('Authorization', `Bearer ${otherToken}`)

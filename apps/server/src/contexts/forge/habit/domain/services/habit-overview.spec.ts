@@ -1,6 +1,7 @@
 import {
   type HabitOverviewHistory,
   summarizeHabitOverview,
+  traceHabitDays,
 } from './habit-overview';
 
 // 2026-11-02 là Thứ Hai.
@@ -303,5 +304,61 @@ describe('summarizeHabitOverview — QUIT', () => {
       'DONE',
       'PENDING',
     ]);
+  });
+});
+
+describe('traceHabitDays', () => {
+  it('ends today and agrees with the last seven days of the overview', () => {
+    const habit = build({
+      schedules: [
+        {
+          frequencyType: 'WEEKLY',
+          frequencyDays: [1, 3, 5],
+          effectiveFrom: '2026-10-01',
+          effectiveTo: null,
+        },
+      ],
+      checkInDays: days('2026-10-26', '2026-10-30'),
+    });
+
+    const trace = traceHabitDays(habit, TODAY, 91);
+
+    expect(trace).toHaveLength(91);
+    expect(trace.at(-1)?.date).toBe(TODAY);
+    expect(trace.slice(-7)).toEqual(
+      summarizeHabitOverview(habit, TODAY).lastSevenDays,
+    );
+    // T4 28/10 có lịch mà bỏ lỡ; T3 27/10 là ngày nghỉ.
+    expect(trace.find((day) => day.date === '2026-10-28')?.mark).toBe('MISSED');
+    expect(trace.find((day) => day.date === '2026-10-27')?.mark).toBe('REST');
+  });
+
+  it('leaves the days before the habit was created untracked', () => {
+    const trace = traceHabitDays(build(), TODAY, 91);
+
+    expect(trace[0]?.date).toBe('2026-08-04');
+    expect(
+      trace.filter((day) => day.date < '2026-10-01').map((day) => day.mark),
+    ).toEqual(Array(58).fill('UNTRACKED'));
+  });
+
+  it('marks relapses on a QUIT habit', () => {
+    const trace = traceHabitDays(
+      build({
+        type: 'QUIT',
+        schedules: [],
+        quitStartedOn: '2026-10-10',
+        relapseDays: days('2026-10-20'),
+      }),
+      TODAY,
+      91,
+    );
+
+    expect(trace.find((day) => day.date === '2026-10-20')?.mark).toBe('MISSED');
+    expect(trace.find((day) => day.date === '2026-10-21')?.mark).toBe('DONE');
+    expect(trace.find((day) => day.date === '2026-10-09')?.mark).toBe(
+      'UNTRACKED',
+    );
+    expect(trace.at(-1)?.mark).toBe('PENDING');
   });
 });

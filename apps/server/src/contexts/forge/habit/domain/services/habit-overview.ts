@@ -34,10 +34,12 @@ export interface HabitOverview {
   /** BUILD: chuỗi dài nhất từ lúc tạo. QUIT: null. */
   longestStreak: number | null;
   /** 7 ngày, cũ nhất trước, ngày cuối là hôm nay. */
-  lastSevenDays: Array<{ date: CalendarDay; mark: HabitDayMark }>;
+  lastSevenDays: HabitDayTrace;
   /** BUILD: buổi có lịch tiếp theo sau hôm nay, trong 7 ngày tới. */
   nextDueOn: CalendarDay | null;
 }
+
+export type HabitDayTrace = Array<{ date: CalendarDay; mark: HabitDayMark }>;
 
 const WEEK = 7;
 
@@ -48,6 +50,18 @@ export function summarizeHabitOverview(
   return habit.type === 'QUIT'
     ? summarizeQuit(habit, today)
     : summarizeBuild(habit, today);
+}
+
+export function traceHabitDays(
+  habit: HabitOverviewHistory,
+  today: CalendarDay,
+  count: number,
+): HabitDayTrace {
+  const markOf =
+    habit.type === 'QUIT'
+      ? quitMarkOf(habit, today)
+      : buildMarkOf(habit, today);
+  return lastDays(today, count, markOf);
 }
 
 function summarizeBuild(
@@ -91,13 +105,17 @@ function summarizeBuild(
     checkedInToday: done(today),
     currentStreak,
     longestStreak,
-    lastSevenDays: lastSevenDays(today, (day) => {
-      if (!isAliveOn(habit, day)) return 'UNTRACKED';
-      if (done(day)) return 'DONE';
-      if (!isDueOn(habit, day)) return 'REST';
-      return day === today ? 'PENDING' : 'MISSED';
-    }),
+    lastSevenDays: lastDays(today, WEEK, buildMarkOf(habit, today)),
     nextDueOn,
+  };
+}
+
+function buildMarkOf(habit: HabitOverviewHistory, today: CalendarDay) {
+  return (day: CalendarDay): HabitDayMark => {
+    if (!isAliveOn(habit, day)) return 'UNTRACKED';
+    if (habit.checkInDays.has(day)) return 'DONE';
+    if (!isDueOn(habit, day)) return 'REST';
+    return day === today ? 'PENDING' : 'MISSED';
   };
 }
 
@@ -116,27 +134,33 @@ function summarizeQuit(
     checkedInToday: false,
     currentStreak: since === null ? 0 : Math.max(0, daysBetween(since, today)),
     longestStreak: null,
-    lastSevenDays: lastSevenDays(today, (day) => {
-      if (
-        quitStartedOn === null ||
-        day < quitStartedOn ||
-        !isAliveOn(habit, day)
-      ) {
-        return 'UNTRACKED';
-      }
-      if (habit.relapseDays.has(day)) return 'MISSED';
-      return day === today ? 'PENDING' : 'DONE';
-    }),
+    lastSevenDays: lastDays(today, WEEK, quitMarkOf(habit, today)),
     nextDueOn: null,
   };
 }
 
-function lastSevenDays(
+function quitMarkOf(habit: HabitOverviewHistory, today: CalendarDay) {
+  return (day: CalendarDay): HabitDayMark => {
+    const { quitStartedOn } = habit;
+    if (
+      quitStartedOn === null ||
+      day < quitStartedOn ||
+      !isAliveOn(habit, day)
+    ) {
+      return 'UNTRACKED';
+    }
+    if (habit.relapseDays.has(day)) return 'MISSED';
+    return day === today ? 'PENDING' : 'DONE';
+  };
+}
+
+function lastDays(
   today: CalendarDay,
+  count: number,
   markOf: (day: CalendarDay) => HabitDayMark,
-): HabitOverview['lastSevenDays'] {
-  const days: HabitOverview['lastSevenDays'] = [];
-  for (let offset = WEEK - 1; offset >= 0; offset -= 1) {
+): HabitDayTrace {
+  const days: HabitDayTrace = [];
+  for (let offset = count - 1; offset >= 0; offset -= 1) {
     const day = addDays(today, -offset);
     days.push({ date: day, mark: markOf(day) });
   }

@@ -24,4 +24,9 @@ export interface HabitOverviewReader {
     ownerId: string,
     timeZone: string,
   ): Promise<HabitOverviewRow[]>;
+  findOneForOwner(
+    ownerId: string,
+    habitId: string,
+    timeZone: string,
+  ): Promise<HabitOverviewRow | null>;
 }
