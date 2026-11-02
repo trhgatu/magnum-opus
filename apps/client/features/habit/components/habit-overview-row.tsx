@@ -130,9 +130,8 @@ export function HabitOverviewRow({
           <svg
             aria-hidden="true"
             viewBox="0 0 24 24"
-            className="size-[18px]"
+            className="size-[18px] stroke-ember-foreground"
             fill="none"
-            stroke="var(--ember-foreground)"
             strokeWidth="2.6"
             strokeLinecap="round"
             strokeLinejoin="round"
