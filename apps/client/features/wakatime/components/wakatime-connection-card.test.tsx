@@ -36,7 +36,7 @@ const connection = (
   ...overrides,
 });
 
-const keyInput = () => screen.getByLabelText("API key");
+const keyInput = () => screen.getByLabelText("Token");
 
 const pasteAndSubmit = (key: string, button: string) => {
   fireEvent.change(keyInput(), { target: { value: key } });
@@ -54,7 +54,9 @@ describe("WakaTimeConnectionCard", () => {
     });
     render(<WakaTimeConnectionCard connection={null} timeZone="UTC" />);
 
-    expect(screen.getByText(/wakatime\.com\/settings\/api-key/)).toBeTruthy();
+    expect(
+      screen.getByText(/wakatime\.com\/oauth.*read_heartbeats/),
+    ).toBeTruthy();
     // Ô key là password: không hiện ra màn hình.
     expect(keyInput().getAttribute("type")).toBe("password");
     expect(screen.getByRole("button", { name: "Kết nối" })).toHaveProperty(
@@ -72,7 +74,7 @@ describe("WakaTimeConnectionCard", () => {
     expect(notifySuccess).toHaveBeenCalledWith("Đã kết nối WakaTime");
     // Key không còn ở đâu trên trang.
     expect(document.body.innerHTML).not.toContain("waka_fake-key");
-    expect(screen.queryByLabelText("API key")).toBeNull();
+    expect(screen.queryByLabelText("Token")).toBeNull();
   });
 
   it("shows the account and when it was last checked, in the account time zone", () => {
@@ -86,7 +88,7 @@ describe("WakaTimeConnectionCard", () => {
     expect(screen.getByText("trhgatu")).toBeTruthy();
     // 07:20Z là 14:20 ở Việt Nam.
     expect(screen.getByText("Kiểm tra lần cuối 26/10/2026 14:20")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Thay key" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Thay token" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Ngắt kết nối" })).toBeTruthy();
     // Key không hết hạn: không có nhắc nào.
     expect(screen.queryByText(/hết hạn/)).toBeNull();
@@ -103,11 +105,11 @@ describe("WakaTimeConnectionCard", () => {
 
     expect(
       screen.getByText(
-        "API key không còn dùng được — dán key mới để tiếp tục.",
+        /Token không còn dùng được — tạo token mới ở wakatime\.com\/oauth/,
       ),
     ).toBeTruthy();
     expect(keyInput()).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Lưu key mới" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Lưu token mới" })).toBeTruthy();
     // Không có gì để "Hủy" về: kết nối cũ không dùng được.
     expect(screen.queryByRole("button", { name: "Hủy" })).toBeNull();
 
@@ -140,7 +142,7 @@ describe("WakaTimeConnectionCard", () => {
     await waitFor(() =>
       expect(
         screen.getByText(
-          "WakaTime không chấp nhận API key này. Kiểm tra lại key rồi thử lại.",
+          "WakaTime không chấp nhận token này. Kiểm tra token có quyền read_heartbeats rồi thử lại.",
         ),
       ).toBeTruthy(),
     );
@@ -163,8 +165,8 @@ describe("WakaTimeConnectionCard", () => {
       });
     render(<WakaTimeConnectionCard connection={connection()} timeZone="UTC" />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Thay key" }));
-    pasteAndSubmit("waka_other", "Lưu key mới");
+    fireEvent.click(screen.getByRole("button", { name: "Thay token" }));
+    pasteAndSubmit("waka_other", "Lưu token mới");
 
     await waitFor(() =>
       expect(
@@ -185,9 +187,7 @@ describe("WakaTimeConnectionCard", () => {
     );
 
     await waitFor(() =>
-      expect(notifySuccess).toHaveBeenCalledWith(
-        "Đã cập nhật API key WakaTime",
-      ),
+      expect(notifySuccess).toHaveBeenCalledWith("Đã cập nhật token WakaTime"),
     );
     expect(connectWakaTime).toHaveBeenLastCalledWith({
       apiKey: "waka_other",

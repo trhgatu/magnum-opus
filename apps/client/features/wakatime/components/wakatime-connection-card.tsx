@@ -83,7 +83,7 @@ export function WakaTimeConnectionCard({
       setApiKey("");
       setAccountChange(null);
       void notifySuccess(
-        replaced ? "Đã cập nhật API key WakaTime" : "Đã kết nối WakaTime",
+        replaced ? "Đã cập nhật token WakaTime" : "Đã kết nối WakaTime",
       );
     });
   };
@@ -142,7 +142,8 @@ export function WakaTimeConnectionCard({
         ) : (
           <Alert variant="destructive">
             <AlertDescription>
-              API key không còn dùng được — dán key mới để tiếp tục.
+              Token không còn dùng được — tạo token mới ở wakatime.com/oauth rồi
+              dán vào đây. WakaTime không còn cho dùng API key để đọc dữ liệu.
             </AlertDescription>
           </Alert>
         )
@@ -158,7 +159,7 @@ export function WakaTimeConnectionCard({
         <form className="flex flex-col gap-3" onSubmit={submit}>
           <KeyGuidance id={guidanceId} />
           <div className="grid gap-2">
-            <Label htmlFor={keyId}>API key</Label>
+            <Label htmlFor={keyId}>Token</Label>
             <Input
               id={keyId}
               type="password"
@@ -175,7 +176,7 @@ export function WakaTimeConnectionCard({
               {isPending
                 ? "Đang kiểm tra..."
                 : connection
-                  ? "Lưu key mới"
+                  ? "Lưu token mới"
                   : "Kết nối"}
             </Button>
             {usable ? (
@@ -214,7 +215,7 @@ export function WakaTimeConnectionCard({
             disabled={isPending}
             onClick={() => setEditing(true)}
           >
-            Thay key
+            Thay token
           </Button>
           <Button
             type="button"
@@ -270,7 +271,7 @@ export function WakaTimeConnectionCard({
           <AlertDialogHeader>
             <AlertDialogTitle>Ngắt kết nối WakaTime?</AlertDialogTitle>
             <AlertDialogDescription>
-              Magnum Opus sẽ xóa API key và ngừng cập nhật thời gian code. Hoạt
+              Magnum Opus sẽ xóa token và ngừng cập nhật thời gian code. Hoạt
               động đã có và các tóm tắt của vòng đã đóng vẫn được giữ nguyên.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -297,10 +298,11 @@ function KeyGuidance({ id }: { id: string }) {
       className="list-decimal space-y-1 pl-5 text-sm text-muted-foreground"
     >
       <li>
-        Mở wakatime.com/settings/api-key và sao chép API key (bắt đầu bằng
-        &quot;waka_&quot;).
+        Mở wakatime.com/oauth, tạo token cá nhân có quyền
+        &quot;read_heartbeats&quot; và sao chép nó. API key ở trang cài đặt của
+        WakaTime không còn dùng được để đọc dữ liệu.
       </li>
-      <li>Dán vào ô dưới đây. Key được mã hóa và không bao giờ hiện lại.</li>
+      <li>Dán vào ô dưới đây. Token được mã hóa và không bao giờ hiện lại.</li>
     </ol>
   );
 }

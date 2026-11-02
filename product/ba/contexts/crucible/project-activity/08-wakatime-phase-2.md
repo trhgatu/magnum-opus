@@ -23,7 +23,7 @@ Kiểm chứng ngày 2026-10-21 bằng API key thật của người dùng, ch�
 | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Lịch sử đọc lùi được bao xa? | **Không giới hạn 7 ngày.** `durations` có dữ liệu ở mốc lùi 180 ngày; mốc 365 ngày trả 200 với 0 đoạn vì tài khoản tạo ngày 2026-03-02. `summaries` trả đủ khoảng 91 ngày.                   |
 | Gói tài khoản                | API `users/current` không có trường `plan` → không biết chắc gói. Chỉ biết **thực tế** đọc được hết lịch sử.                                                                                 |
-| Xác thực                     | `Authorization: Basic base64(apiKey)` dùng được.                                                                                                                                             |
+| Xác thực                     | `Authorization: Basic base64(apiKey)` dùng được lúc spike. **Không còn đúng từ 2026-11** — xem §2.1.                                                                                         |
 | Hình dạng `durations?date=`  | Mỗi đoạn có `project` (tên), `time` (giây Unix, lúc bắt đầu), `duration` (giây), kèm nhiều trường AI. Response có `start`, `end`, `timezone` của ngày được hỏi. Mỗi request là **một ngày**. |
 | Danh sách project            | `users/current/projects`: 20 project; mỗi project có `id`, `name`, `repository`, `first_heartbeat_at`, `last_heartbeat_at`.                                                                  |
 | Múi giờ WakaTime             | `Asia/Ho_Chi_Minh` — trùng múi giờ tài khoản Magnum Opus, nhưng thiết kế không dựa vào sự trùng này (§4.3).                                                                                  |
@@ -31,6 +31,14 @@ Kiểm chứng ngày 2026-10-21 bằng API key thật của người dùng, ch�
 **Hệ quả:** OQ-PAC-001 có câu trả lời **cho tài khoản này**: lịch sử đọc được đủ xa, không cần chép định kỳ để giữ lịch sử; WakaTime đi cùng trigger với GitHub (mở trang, khép Cycle, gắn nguồn — `03` §5.1).
 
 Kết quả này **không** được suy rộng thành "WakaTime không giới hạn lịch sử": gói của tài khoản không đọc được qua API, và gói có thể đổi. Thiết kế không dựa vào nó (DEC-PAC-015, §5.3): ngày nào không đọc được thì không được đánh dấu là đã chép, và vẫn là `NO_DATA`.
+
+### 2.1. Authentication Change (2026-11-02)
+
+WakaTime đổi chính sách: **API key chỉ còn dùng cho endpoint của plugin** (gửi heartbeat). Mọi endpoint đọc trả `403` với API key: `{"error": "API Key authentication is only allowed for supported plugin endpoints."}`. Tài liệu WakaTime ghi API key là "write-only"; app đọc dữ liệu phải dùng OAuth 2.0.
+
+Kiểm chứng cùng ngày bằng **OAuth token cá nhân** lấy ở `wakatime.com/oauth` (quyền `read_heartbeats`), gửi `Authorization: Bearer <token>`: `users/current`, `users/current/projects`, `users/current/durations` đều trả `200`. Token tạo theo luồng `code` có hạn 100 năm.
+
+Quyết định (DEC-PAC-019): người dùng **dán token cá nhân** thay cho API key, cùng cách với token GitHub (`03` §9). Không dựng luồng OAuth chuyển hướng (đăng ký app, callback, `state`, refresh token) khi Magnum Opus còn là app cá nhân. Lưu, mã hóa, kiểm tra và thu hồi giữ nguyên như với API key; trong code, trường vẫn tên `apiKey`/`encryptedKey`. `401` (token sai, đã thu hồi) và `403` (thiếu `read_heartbeats`, hoặc vẫn là API key cũ) đều là `WAKATIME_KEY_INVALID`. Các mục bên dưới viết "API key" nay hiểu là token này; câu chữ giao diện ở §7 đã đổi sang "token".
 
 ---
 
@@ -298,12 +306,13 @@ Mỗi ngày là một request. Lần chép tăng dần chỉ cần 1–3 ngày (
 
 ### 6.3. Decisions
 
-| ID          | Decision                                                                                                                                                                                                                                   |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| DEC-PAC-015 | Không chép định kỳ: tài khoản hiện tại đọc được đủ lịch sử (§2). Nhưng không giả định mọi tài khoản như vậy: ngày không đọc được giữ `NO_DATA`; nếu WakaTime không báo giới hạn bằng lỗi thì `historyWindowDays` đặt theo gói (TQ-WAK-04). |
-| DEC-PAC-016 | Đọc `durations` theo từng ngày, không dùng `summaries`: cần thời điểm của từng đoạn để gán đúng trạng thái lúc code (§4.4).                                                                                                                |
-| DEC-PAC-017 | Chỉ lấy thời gian code. Không bộ lọc, không ngôn ngữ/editor/AI (§3.2).                                                                                                                                                                     |
-| DEC-PAC-018 | Nguồn WakaTime trỏ tới **id** project, không phải tên — đổi tên trên WakaTime không làm đứt liên kết.                                                                                                                                      |
+| ID          | Decision                                                                                                                                                                                                                                                                |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DEC-PAC-015 | Không chép định kỳ: tài khoản hiện tại đọc được đủ lịch sử (§2). Nhưng không giả định mọi tài khoản như vậy: ngày không đọc được giữ `NO_DATA`; nếu WakaTime không báo giới hạn bằng lỗi thì `historyWindowDays` đặt theo gói (TQ-WAK-04).                              |
+| DEC-PAC-016 | Đọc `durations` theo từng ngày, không dùng `summaries`: cần thời điểm của từng đoạn để gán đúng trạng thái lúc code (§4.4).                                                                                                                                             |
+| DEC-PAC-017 | Chỉ lấy thời gian code. Không bộ lọc, không ngôn ngữ/editor/AI (§3.2).                                                                                                                                                                                                  |
+| DEC-PAC-018 | Nguồn WakaTime trỏ tới **id** project, không phải tên — đổi tên trên WakaTime không làm đứt liên kết.                                                                                                                                                                   |
+| DEC-PAC-019 | Xác thực bằng OAuth token cá nhân dán tay (`wakatime.com/oauth`, quyền `read_heartbeats`, gửi `Bearer`) thay cho API key, vì từ 2026-11 WakaTime chỉ cho API key gọi endpoint của plugin (§2.1). Chưa dựng luồng OAuth chuyển hướng khi Magnum Opus còn là app cá nhân. |
 
 ---
 
@@ -313,17 +322,17 @@ Mỗi ngày là một request. Lần chép tăng dần chỉ cần 1–3 ngày (
 
 Card riêng, ngay dưới card GitHub, cùng bố cục (`06` §6):
 
-| Trạng thái          | Hiển thị                                                                                            |
-| ------------------- | --------------------------------------------------------------------------------------------------- |
-| Chưa kết nối        | Ô nhập API key (kiểu mật khẩu) + hướng dẫn + **Kết nối**                                            |
-| Đã kết nối          | "Đã kết nối với **{username}**" · "Kiểm tra lần cuối {thời điểm}" · **Thay key** · **Ngắt kết nối** |
-| Key không dùng được | "API key không còn dùng được — dán key mới để tiếp tục." + ô nhập                                   |
+| Trạng thái            | Hiển thị                                                                                                                                       |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Chưa kết nối          | Ô nhập token (kiểu mật khẩu) + hướng dẫn + **Kết nối**                                                                                         |
+| Đã kết nối            | "Đã kết nối với **{username}**" · "Kiểm tra lần cuối {thời điểm}" · **Thay token** · **Ngắt kết nối**                                          |
+| Token không dùng được | "Token không còn dùng được — tạo token mới ở wakatime.com/oauth rồi dán vào đây. WakaTime không còn cho dùng API key để đọc dữ liệu." + ô nhập |
 
 Hướng dẫn:
 
 ```text
-1. Mở wakatime.com/settings/api-key và sao chép API key (bắt đầu bằng "waka_").
-2. Dán vào ô dưới đây. Key được mã hóa và không bao giờ hiện lại.
+1. Mở wakatime.com/oauth, tạo token cá nhân có quyền "read_heartbeats" và sao chép nó. API key ở trang cài đặt của WakaTime không còn dùng được để đọc dữ liệu.
+2. Dán vào ô dưới đây. Token được mã hóa và không bao giờ hiện lại.
 ```
 
 Không có ngày hết hạn nên không có trạng thái "sắp hết hạn".
@@ -382,14 +391,14 @@ Snapshot (`06` §10) hiện giờ code trong dòng tóm tắt khi snapshot có n
 
 ### 7.7. Source Error Copy
 
-| Mã                           | Câu chữ                                                    |
-| ---------------------------- | ---------------------------------------------------------- |
-| `WAKATIME_KEY_INVALID`       | API key WakaTime không còn dùng được — cập nhật ở Cài đặt. |
-| `WAKATIME_NOT_CONNECTED`     | WakaTime chưa được kết nối — kết nối ở Cài đặt.            |
-| `WAKATIME_ACCOUNT_CHANGED`   | Project thuộc tài khoản WakaTime trước — gỡ và gắn lại.    |
-| `WAKATIME_PROJECT_NOT_FOUND` | Không còn thấy project này trên WakaTime.                  |
-| `WAKATIME_RATE_LIMITED`      | WakaTime đang giới hạn yêu cầu — sẽ thử lại sau.           |
-| `WAKATIME_UNAVAILABLE`       | Không kết nối được WakaTime — sẽ thử lại sau.              |
+| Mã                           | Câu chữ                                                  |
+| ---------------------------- | -------------------------------------------------------- |
+| `WAKATIME_KEY_INVALID`       | Token WakaTime không còn dùng được — cập nhật ở Cài đặt. |
+| `WAKATIME_NOT_CONNECTED`     | WakaTime chưa được kết nối — kết nối ở Cài đặt.          |
+| `WAKATIME_ACCOUNT_CHANGED`   | Project thuộc tài khoản WakaTime trước — gỡ và gắn lại.  |
+| `WAKATIME_PROJECT_NOT_FOUND` | Không còn thấy project này trên WakaTime.                |
+| `WAKATIME_RATE_LIMITED`      | WakaTime đang giới hạn yêu cầu — sẽ thử lại sau.         |
+| `WAKATIME_UNAVAILABLE`       | Không kết nối được WakaTime — sẽ thử lại sau.            |
 
 ---
 
@@ -397,8 +406,8 @@ Snapshot (`06` §10) hiện giờ code trong dòng tóm tắt khi snapshot có n
 
 ### UC-PAC-009 — Connect WakaTime
 
-- **Given** chưa kết nối WakaTime, **when** dán API key hợp lệ và chọn Kết nối, **then** card hiện "Đã kết nối với {username}" và key không bao giờ hiện lại.
-- **Given** key sai, **then** hiện "API key không đúng — kiểm tra lại và dán đầy đủ." và không lưu gì.
+- **Given** chưa kết nối WakaTime, **when** dán token hợp lệ và chọn Kết nối, **then** card hiện "Đã kết nối với {username}" và token không bao giờ hiện lại.
+- **Given** token sai hoặc là API key cũ, **then** hiện "WakaTime không chấp nhận token này. Kiểm tra token có quyền read_heartbeats rồi thử lại." và không lưu gì.
 - **Given** đã kết nối, **when** dán key của tài khoản WakaTime khác, **then** hỏi xác nhận; xác nhận xong, các nguồn của tài khoản cũ báo `WAKATIME_ACCOUNT_CHANGED`.
 
 ### UC-PAC-010 — Link a WakaTime Project

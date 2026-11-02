@@ -518,7 +518,7 @@ describe("ActivitySourcesSection", () => {
     });
 
     expect(
-      screen.getByRole("link", { name: "Cập nhật key ở Cài đặt" }),
+      screen.getByRole("link", { name: "Cập nhật token ở Cài đặt" }),
     ).toBeTruthy();
     expect(
       screen.queryByRole("combobox", { name: "Gắn project WakaTime" }),

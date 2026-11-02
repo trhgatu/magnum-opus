@@ -25,7 +25,7 @@ export async function connectWakaTime(
   if (!validKey(apiKey)) {
     return {
       status: "error",
-      message: "Dán API key WakaTime (Không có khoảng trắng) rồi thử lại",
+      message: "Dán token WakaTime (không có khoảng trắng) rồi thử lại",
     };
   }
 

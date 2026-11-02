@@ -10,13 +10,14 @@ import {
 
 export class ConnectWakaTimeDto {
   @ApiProperty({
-    description: 'WakaTime secret API key (wakatime.com/settings/api-key)',
+    description:
+      'WakaTime personal OAuth token with read_heartbeats (wakatime.com/oauth). API keys can no longer read data.',
     writeOnly: true,
   })
   @IsString()
   @IsNotEmpty()
   @MaxLength(255)
-  // Key không bao giờ chứa khoảng trắng; chặn ở đây thay vì để WakaTime trả 401.
+  // Token không bao giờ chứa khoảng trắng; chặn ở đây thay vì để WakaTime trả 401.
   @Matches(/^\S+$/, { message: 'apiKey must not contain whitespace' })
   apiKey!: string;
 
