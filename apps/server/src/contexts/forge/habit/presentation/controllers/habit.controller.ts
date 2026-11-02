@@ -14,7 +14,7 @@ import {
 } from '@nestjs/common';
 import { CommandBus, type ICommand, QueryBus } from '@nestjs/cqrs';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import type { HabitResponse } from '@repo/contracts';
+import type { HabitOverviewResponse, HabitResponse } from '@repo/contracts';
 
 import { PaginatedResponsePresenter } from '@presentation/common/presenters/pagination.presenter';
 import { GetUser } from '@presentation/decorators';
@@ -26,7 +26,12 @@ import {
   RestoreHabitCommand,
   UpdateHabitCommand,
 } from '../../application/commands';
-import { GetHabitQuery, GetHabitsQuery } from '../../application/queries';
+import {
+  GetHabitOverviewQuery,
+  GetHabitQuery,
+  GetHabitsQuery,
+} from '../../application/queries';
+import type { HabitOverviewResult } from '../../application/queries/handlers/get-habit-overview.handler';
 import { Habit } from '../../domain/habit.aggregate';
 import {
   CreateHabitDto,
@@ -34,6 +39,7 @@ import {
   HabitRevisionDto,
   UpdateHabitDto,
 } from '../dtos';
+import { HabitOverviewPresenter } from '../presenters/habit-overview.presenter';
 import { HabitPresenter } from '../presenters/habit.presenter';
 
 @ApiTags('Habits')
@@ -96,6 +102,24 @@ export class HabitController {
       total,
       query.page,
       query.limit,
+    );
+  }
+
+  // Phải đứng trước ':id': nếu không, "overview" bị ParseUUIDPipe của ':id' từ chối.
+  @Get('overview')
+  @ApiOperation({
+    summary:
+      "Get every active Habit with today's status, the last 7 days and its streak",
+  })
+  public async overview(
+    @GetUser('id') ownerId: string,
+  ): Promise<HabitOverviewResponse> {
+    const result = await this.queryBus.execute(
+      new GetHabitOverviewQuery(ownerId),
+    );
+
+    return HabitOverviewPresenter.toResponse(
+      result.unwrap() as HabitOverviewResult,
     );
   }
 

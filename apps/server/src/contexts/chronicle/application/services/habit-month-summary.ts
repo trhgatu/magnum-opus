@@ -1,77 +1,29 @@
 import {
-  CalendarDay,
-  daysBetween,
-  eachDay,
-  isoWeekday,
-} from '../../domain/calendar-day';
+  type HabitScheduleHistory,
+  isAliveOn,
+  isDueOn,
+} from '@shared/domain/habit-schedule';
+
+import { CalendarDay, daysBetween, eachDay } from '../../domain/calendar-day';
 import { HabitSectionData } from '../section-data';
+
+// Quy tắc lịch nằm ở shared (Forge dùng chung); giữ export ở đây cho các nơi
+// trong Chronicle đang import từ file này.
+export {
+  type HabitLifecycleEntry,
+  type HabitScheduleEntry,
+  isAliveOn,
+  isDueOn,
+} from '@shared/domain/habit-schedule';
 
 const MIN_DUE_DAYS_FOR_CONSISTENCY = 7;
 
-export interface HabitLifecycleEntry {
-  action: 'ARCHIVED' | 'RESTORED';
-  effectiveOn: CalendarDay;
-}
-
-export interface HabitScheduleEntry {
-  frequencyType: 'DAILY' | 'WEEKLY';
-  frequencyDays: number[];
-  effectiveFrom: CalendarDay;
-  effectiveTo: CalendarDay | null;
-}
-
-export interface HabitHistory {
+export interface HabitHistory extends HabitScheduleHistory {
   id: string;
   title: string;
-  type: 'BUILD' | 'QUIT';
-  createdOn: CalendarDay;
-  lifecycle: HabitLifecycleEntry[];
-  schedules: HabitScheduleEntry[];
   checkInDays: ReadonlySet<CalendarDay>;
   quitStartedOn: CalendarDay | null;
   relapseDays: CalendarDay[];
-}
-
-// Dùng chung cho Habit và Routine — cùng quy tắc lifecycle (temporal-history
-// 02 §4.1–4.2), nên chỉ cần createdOn và lifecycle.
-export function isAliveOn(
-  subject: Pick<HabitHistory, 'createdOn' | 'lifecycle'>,
-  day: CalendarDay,
-): boolean {
-  if (day < subject.createdOn) {
-    return false;
-  }
-  let alive = true;
-
-  for (const entry of subject.lifecycle) {
-    if (entry.effectiveOn > day) {
-      break;
-    }
-
-    alive = entry.action === 'RESTORED';
-  }
-  return alive;
-}
-
-export function isDueOn(habit: HabitHistory, day: CalendarDay): boolean {
-  if (habit.type !== 'BUILD' || !isAliveOn(habit, day)) {
-    return false;
-  }
-
-  const schedule = habit.schedules.find(
-    (version) =>
-      version.effectiveFrom <= day &&
-      (version.effectiveTo === null || day < version.effectiveTo),
-  );
-
-  if (!schedule) {
-    return false;
-  }
-
-  return (
-    schedule.frequencyType === 'DAILY' ||
-    schedule.frequencyDays.includes(isoWeekday(day))
-  );
 }
 
 export function summarizeHabits(

@@ -228,6 +228,105 @@ describe('Habit (E2E)', () => {
       .expect(({ body }) => expect(body.dates).toEqual([]));
   });
 
+  it("lists active Habits with today's status, the last 7 days and the streak", async () => {
+    // Tài khoản riêng: các test trên đã tạo Habit cho owner.
+    const token = await registerAndLogin('overview');
+    const today = new Date().toISOString().slice(0, 10);
+    const daysAgo = (days: number) =>
+      new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
+
+    const build = await request(app.getHttpServer())
+      .post('/habits')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        title: 'Meditate',
+        type: 'BUILD',
+        frequencyType: 'DAILY',
+        frequencyDays: [],
+      })
+      .expect(HttpStatus.CREATED);
+    await request(app.getHttpServer())
+      .put(`/habits/${build.body.id}/check-ins/today`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(HttpStatus.OK);
+
+    await request(app.getHttpServer())
+      .post('/habits')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        title: 'No phone at night',
+        type: 'QUIT',
+        quitStartedAt: daysAgo(5),
+      })
+      .expect(HttpStatus.CREATED);
+
+    const archived = await request(app.getHttpServer())
+      .post('/habits')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        title: 'Archived habit',
+        type: 'BUILD',
+        frequencyType: 'DAILY',
+        frequencyDays: [],
+      })
+      .expect(HttpStatus.CREATED);
+    await request(app.getHttpServer())
+      .patch(`/habits/${archived.body.id}/archive`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ expectedRevision: 1 })
+      .expect(HttpStatus.OK);
+
+    const overview = await request(app.getHttpServer())
+      .get('/habits/overview')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(HttpStatus.OK);
+
+    expect(overview.body.date).toBe(today);
+    // Sắp theo tên; Habit đã lưu trữ không có.
+    expect(
+      overview.body.habits.map((habit: { title: string }) => habit.title),
+    ).toEqual(['Meditate', 'No phone at night']);
+
+    const [meditate, quit] = overview.body.habits;
+    expect(meditate).toMatchObject({
+      id: build.body.id,
+      type: 'BUILD',
+      dueToday: true,
+      checkedInToday: true,
+      currentStreak: 1,
+      longestStreak: 1,
+      routines: [],
+    });
+    expect(meditate.checkedInAt).toEqual(expect.any(String));
+    expect(meditate.lastSevenDays).toHaveLength(7);
+    expect(meditate.lastSevenDays.at(-1)).toEqual({
+      date: today,
+      mark: 'DONE',
+    });
+    // Habit vừa tạo hôm nay: những ngày trước chưa theo dõi.
+    expect(meditate.lastSevenDays[0].mark).toBe('UNTRACKED');
+
+    expect(quit).toMatchObject({
+      type: 'QUIT',
+      quitStartedAt: daysAgo(5),
+      currentStreak: 5,
+      longestStreak: null,
+      dueToday: false,
+    });
+
+    await request(app.getHttpServer())
+      .get('/habits/overview')
+      .set('Authorization', `Bearer ${otherToken}`)
+      .expect(HttpStatus.OK)
+      .expect(({ body }) =>
+        expect(
+          body.habits.some(
+            (habit: { id: string }) => habit.id === build.body.id,
+          ),
+        ).toBe(false),
+      );
+  });
+
   async function registerAndLogin(label: string): Promise<string> {
     const suffix = `${Date.now()}${Math.random().toString(16).slice(2)}`;
     const email = `habit.${label}.${suffix}@example.com`;
