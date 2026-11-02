@@ -142,8 +142,8 @@ export function WakaTimeConnectionCard({
         ) : (
           <Alert variant="destructive">
             <AlertDescription>
-              Token không còn dùng được — tạo token mới ở wakatime.com/oauth rồi
-              dán vào đây. WakaTime không còn cho dùng API key để đọc dữ liệu.
+              Token không còn dùng được — tạo token mới ở <OAuthLink /> rồi dán
+              vào đây. WakaTime không còn cho dùng API key để đọc dữ liệu.
             </AlertDescription>
           </Alert>
         )
@@ -298,11 +298,25 @@ function KeyGuidance({ id }: { id: string }) {
       className="list-decimal space-y-1 pl-5 text-sm text-muted-foreground"
     >
       <li>
-        Mở wakatime.com/oauth, tạo token cá nhân có quyền
-        &quot;read_heartbeats&quot; và sao chép nó. API key ở trang cài đặt của
-        WakaTime không còn dùng được để đọc dữ liệu.
+        Mở <OAuthLink />, tạo token cá nhân có quyền &quot;read_heartbeats&quot;
+        và sao chép nó. API key ở trang cài đặt của WakaTime không còn dùng được
+        để đọc dữ liệu.
       </li>
       <li>Dán vào ô dưới đây. Token được mã hóa và không bao giờ hiện lại.</li>
     </ol>
+  );
+}
+
+/** Trang tạo token cá nhân của WakaTime, mở ở tab mới. */
+function OAuthLink() {
+  return (
+    <a
+      href="https://wakatime.com/oauth"
+      target="_blank"
+      rel="noreferrer"
+      className="underline underline-offset-4"
+    >
+      wakatime.com/oauth
+    </a>
   );
 }

@@ -54,9 +54,12 @@ describe("WakaTimeConnectionCard", () => {
     });
     render(<WakaTimeConnectionCard connection={null} timeZone="UTC" />);
 
+    expect(screen.getByText(/read_heartbeats/)).toBeTruthy();
     expect(
-      screen.getByText(/wakatime\.com\/oauth.*read_heartbeats/),
-    ).toBeTruthy();
+      screen
+        .getByRole("link", { name: "wakatime.com/oauth" })
+        .getAttribute("href"),
+    ).toBe("https://wakatime.com/oauth");
     // Ô key là password: không hiện ra màn hình.
     expect(keyInput().getAttribute("type")).toBe("password");
     expect(screen.getByRole("button", { name: "Kết nối" })).toHaveProperty(
@@ -103,11 +106,10 @@ describe("WakaTimeConnectionCard", () => {
       />,
     );
 
+    expect(screen.getByText(/Token không còn dùng được/)).toBeTruthy();
     expect(
-      screen.getByText(
-        /Token không còn dùng được — tạo token mới ở wakatime\.com\/oauth/,
-      ),
-    ).toBeTruthy();
+      screen.getAllByRole("link", { name: "wakatime.com/oauth" }),
+    ).not.toHaveLength(0);
     expect(keyInput()).toBeTruthy();
     expect(screen.getByRole("button", { name: "Lưu token mới" })).toBeTruthy();
     // Không có gì để "Hủy" về: kết nối cũ không dùng được.

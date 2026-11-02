@@ -36,7 +36,7 @@ Kết quả này **không** được suy rộng thành "WakaTime không giới h
 
 WakaTime đổi chính sách: **API key chỉ còn dùng cho endpoint của plugin** (gửi heartbeat). Mọi endpoint đọc trả `403` với API key: `{"error": "API Key authentication is only allowed for supported plugin endpoints."}`. Tài liệu WakaTime ghi API key là "write-only"; app đọc dữ liệu phải dùng OAuth 2.0.
 
-Kiểm chứng cùng ngày bằng **OAuth token cá nhân** lấy ở `wakatime.com/oauth` (quyền `read_heartbeats`), gửi `Authorization: Bearer <token>`: `users/current`, `users/current/projects`, `users/current/durations` đều trả `200`. Token tạo theo luồng `code` có hạn 100 năm.
+Kiểm chứng cùng ngày bằng **OAuth token cá nhân** lấy ở `wakatime.com/oauth` (quyền `read_heartbeats`), gửi `Authorization: Bearer <token>`: `users/current`, `users/current/projects`, `users/current/durations` đều trả `200`. Token tạo theo luồng `code` có hạn 100 năm; app không theo dõi hay hiển thị hạn này, nên kết nối vẫn chỉ có ACTIVE hoặc REVOKED như §5.1 và §7.1.
 
 Quyết định (DEC-PAC-019): người dùng **dán token cá nhân** thay cho API key, cùng cách với token GitHub (`03` §9). Không dựng luồng OAuth chuyển hướng (đăng ký app, callback, `state`, refresh token) khi Magnum Opus còn là app cá nhân. Lưu, mã hóa, kiểm tra và thu hồi giữ nguyên như với API key; trong code, trường vẫn tên `apiKey`/`encryptedKey`. `401` (token sai, đã thu hồi) và `403` (thiếu `read_heartbeats`, hoặc vẫn là API key cũ) đều là `WAKATIME_KEY_INVALID`. Các mục bên dưới viết "API key" nay hiểu là token này; câu chữ giao diện ở §7 đã đổi sang "token".
 
