@@ -14,7 +14,10 @@ import {
   HabitListSkeleton,
   HabitSummarySkeleton,
 } from "@/features/habit/components/habit-skeletons";
-import { filterHabitOverview } from "@/features/habit/lib/habit-overview";
+import {
+  filterHabitOverview,
+  habitOverviewGroupOf,
+} from "@/features/habit/lib/habit-overview";
 import {
   buildHabitHref,
   type HabitStatus,
@@ -38,8 +41,7 @@ async function ActiveSummary({
   if (habits.length === 0) return <>Chưa có thói quen nào đang rèn.</>;
 
   const waiting = habits.filter(
-    (habit) =>
-      habit.type === "BUILD" && habit.dueToday && !habit.checkedInToday,
+    (habit) => habitOverviewGroupOf(habit) === "pending",
   ).length;
 
   return (
@@ -97,6 +99,26 @@ async function ArchivedHabits({ location }: { location: Location }) {
   const result = await getHabits({ ...location, limit: 20 });
 
   if (result.data.length === 0) {
+    // Trang vượt quá cuối (vd vừa khôi phục hết trang cuối): cho đường về.
+    if (location.page > 1) {
+      return (
+        <EmptyState
+          title="Trang này không còn thói quen"
+          description="Các thói quen lưu trữ đã nằm ở những trang trước."
+          action={
+            <Link
+              href={buildHabitHref({
+                status: location.status,
+                search: location.search,
+              })}
+              className={buttonVariants({ variant: "outline" })}
+            >
+              Về trang đầu
+            </Link>
+          }
+        />
+      );
+    }
     return location.search ? (
       <SearchEmptyState location={location} />
     ) : (
@@ -167,7 +189,10 @@ export default async function HabitsPage({
           {TABS.map((tab) => (
             <Link
               key={tab.status}
-              href={buildHabitHref({ status: tab.status })}
+              href={buildHabitHref({
+                status: tab.status,
+                search: location.search,
+              })}
               aria-current={location.status === tab.status ? "page" : undefined}
               className={cn(
                 "inline-flex h-10 items-center rounded-xl px-3.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
@@ -180,7 +205,11 @@ export default async function HabitsPage({
             </Link>
           ))}
         </nav>
-        <HabitSearch location={location} />
+        {/* Ô nhập không kiểm soát: dựng lại khi URL đổi để khớp từ khóa. */}
+        <HabitSearch
+          key={`${location.status}:${location.search}`}
+          location={location}
+        />
       </div>
 
       <Suspense

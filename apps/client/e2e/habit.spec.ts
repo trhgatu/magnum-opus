@@ -74,7 +74,7 @@ test("completes the private Habit lifecycle through the BFF", async ({
   await expect(
     page
       .getByRole("region", { name: "Đã ghi dấu hôm nay" })
-      .getByRole("button", { name: `Hoàn tác ${updatedTitle}` }),
+      .getByRole("button", { name: `Ghi dấu ${updatedTitle}` }),
   ).toHaveAttribute("aria-pressed", "true");
 
   expect(

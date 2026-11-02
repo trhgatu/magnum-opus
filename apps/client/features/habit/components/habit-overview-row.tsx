@@ -4,7 +4,13 @@ import type { HabitDayMark, HabitOverviewItemResponse } from "@repo/contracts";
 import { ShieldOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useOptimistic, useState, useTransition } from "react";
+import {
+  useEffect,
+  useOptimistic,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 
 import { changeHabitCheckIn } from "@/features/habit/actions/habit";
 import { describeLastSevenDays } from "@/features/habit/lib/habit-overview";
@@ -67,6 +73,8 @@ function withToday(
   );
 }
 
+let focusAfterMove: string | null = null;
+
 export function HabitOverviewRow({
   habit,
   description,
@@ -78,20 +86,41 @@ export function HabitOverviewRow({
   const [checked, setChecked] = useOptimistic(habit.checkedInToday);
   const [message, setMessage] = useState<string>();
   const [isPending, startTransition] = useTransition();
+  const ringRef = useRef<HTMLButtonElement>(null);
   const isQuit = habit.type === "QUIT";
   const lit = checked || isQuit;
+  // Ghi dấu ngày không có lịch không cộng chuỗi (BR-HAB3-006).
+  const streak =
+    habit.currentStreak +
+    (habit.dueToday ? Number(checked) - Number(habit.checkedInToday) : 0);
+
+  // Ghi dấu xong dòng chuyển nhóm và được dựng lại: trả focus về vòng.
+  useEffect(() => {
+    if (focusAfterMove === habit.id) {
+      focusAfterMove = null;
+      ringRef.current?.focus();
+    }
+  }, [habit.id]);
 
   const toggle = () => {
     setMessage(undefined);
     startTransition(async () => {
       setChecked(!checked);
-      const result = await changeHabitCheckIn({
-        id: habit.id,
-        action: checked ? "undo" : "check-in",
-      });
-      if (result.status === "error") {
-        setMessage(result.message);
+      try {
+        const result = await changeHabitCheckIn({
+          id: habit.id,
+          action: checked ? "undo" : "check-in",
+        });
+        if (result.status === "error") {
+          setMessage(result.message);
+          return;
+        }
+      } catch {
+        setMessage("Không thể ghi dấu lúc này. Thử lại sau.");
         return;
+      }
+      if (ringRef.current === document.activeElement) {
+        focusAfterMove = habit.id;
       }
       router.refresh();
     });
@@ -115,7 +144,8 @@ export function HabitOverviewRow({
         <button
           type="button"
           aria-pressed={checked}
-          aria-label={`${checked ? "Hoàn tác" : "Ghi dấu"} ${habit.title}`}
+          ref={ringRef}
+          aria-label={`Ghi dấu ${habit.title}`}
           disabled={isPending}
           onClick={toggle}
           className={cn(
@@ -173,7 +203,7 @@ export function HabitOverviewRow({
             <span className="sr-only">
               {isQuit ? "Số ngày không tái phạm: " : "Chuỗi hiện tại: "}
             </span>
-            {habit.currentStreak}
+            {streak}
           </span>
           <span
             aria-hidden="true"

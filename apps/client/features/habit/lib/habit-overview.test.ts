@@ -1,4 +1,4 @@
-import type { HabitOverviewItemResponse } from "@repo/contracts";
+import type { HabitDayMark, HabitOverviewItemResponse } from "@repo/contracts";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -128,27 +128,49 @@ describe("describeHabitOverview", () => {
         }),
         context,
       ),
-    ).toMatch(/^Tính từ /);
+    ).toBe("Tính từ 10 thg 10, 2026");
   });
 });
 
 describe("describeLastSevenDays", () => {
-  it("counts each mark with words that fit the habit type", () => {
+  const week = (...marks: HabitDayMark[]) =>
+    marks.map((mark, index) => ({ date: `2026-10-2${7 + index}`, mark }));
+
+  it("counts every mark of a BUILD week", () => {
     expect(
       describeLastSevenDays({
         type: "BUILD",
-        lastSevenDays: [
-          { date: "2026-10-31", mark: "DONE" },
-          { date: "2026-11-01", mark: "MISSED" },
-          { date: TODAY, mark: "PENDING" },
-        ],
+        lastSevenDays: week(
+          "UNTRACKED",
+          "DONE",
+          "REST",
+          "DONE",
+          "MISSED",
+          "REST",
+          "PENDING",
+        ),
       }),
-    ).toBe("7 ngày qua: 1 đã làm, 1 bỏ lỡ, 1 chưa làm");
+    ).toBe(
+      "7 ngày qua: 1 chưa theo dõi, 2 đã làm, 2 nghỉ, 1 bỏ lỡ, 1 chưa làm",
+    );
+  });
+
+  it("uses relapse words for a QUIT week", () => {
     expect(
       describeLastSevenDays({
         type: "QUIT",
-        lastSevenDays: [{ date: TODAY, mark: "MISSED" }],
+        lastSevenDays: week(
+          "UNTRACKED",
+          "DONE",
+          "DONE",
+          "MISSED",
+          "DONE",
+          "DONE",
+          "PENDING",
+        ),
       }),
-    ).toBe("7 ngày qua: 1 tái phạm");
+    ).toBe(
+      "7 ngày qua: 1 chưa theo dõi, 4 không tái phạm, 1 tái phạm, 1 đang giữ",
+    );
   });
 });

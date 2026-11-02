@@ -46,12 +46,19 @@ const habit = (
   currentStreak: 4,
   longestStreak: 6,
   lastSevenDays: [
+    { date: "2026-10-27", mark: "MISSED" },
+    { date: "2026-10-28", mark: "DONE" },
+    { date: "2026-10-29", mark: "DONE" },
+    { date: "2026-10-30", mark: "DONE" },
+    { date: "2026-10-31", mark: "DONE" },
     { date: "2026-11-01", mark: "DONE" },
     { date: "2026-11-02", mark: "PENDING" },
   ],
   nextDueOn: "2026-11-03",
   ...overrides,
 });
+
+const ring = () => screen.getByRole("button", { name: "Ghi dấu Chạy bộ" });
 
 const renderRow = (overrides?: Partial<HabitOverviewItemResponse>) =>
   render(
@@ -74,13 +81,15 @@ describe("HabitOverviewRow", () => {
     mutation.mockReturnValue(new Promise((done) => (resolve = done)));
     renderRow();
 
-    fireEvent.click(screen.getByRole("button", { name: "Ghi dấu Chạy bộ" }));
+    expect(screen.getByRole("img").children).toHaveLength(7);
+    fireEvent.click(ring());
 
-    expect(
-      await screen.findByRole("button", { name: "Hoàn tác Chạy bộ" }),
-    ).toHaveAttribute("aria-pressed", "true");
+    await waitFor(() => expect(ring()).toHaveAttribute("aria-pressed", "true"));
     expect(screen.getByRole("img")).toHaveAccessibleName(
-      "7 ngày qua: 2 đã làm",
+      "7 ngày qua: 1 bỏ lỡ, 6 đã làm",
+    );
+    expect(screen.getByText("Chuỗi hiện tại:").parentElement).toHaveTextContent(
+      "5",
     );
     expect(mutation).toHaveBeenCalledWith({ id: HABIT_ID, action: "check-in" });
 
@@ -101,7 +110,8 @@ describe("HabitOverviewRow", () => {
       checkedInAt: "2026-11-01T23:30:00.000Z",
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Hoàn tác Chạy bộ" }));
+    expect(ring()).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(ring());
 
     await waitFor(() =>
       expect(mutation).toHaveBeenCalledWith({ id: HABIT_ID, action: "undo" }),
@@ -115,15 +125,59 @@ describe("HabitOverviewRow", () => {
     });
     renderRow();
 
-    fireEvent.click(screen.getByRole("button", { name: "Ghi dấu Chạy bộ" }));
+    fireEvent.click(ring());
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Không thể ghi dấu lúc này.",
     );
-    expect(
-      await screen.findByRole("button", { name: "Ghi dấu Chạy bộ" }),
-    ).toHaveAttribute("aria-pressed", "false");
+    await waitFor(() =>
+      expect(ring()).toHaveAttribute("aria-pressed", "false"),
+    );
     expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it("explains when the request itself fails", async () => {
+    mutation.mockRejectedValue(new TypeError("Failed to fetch"));
+    renderRow();
+
+    fireEvent.click(ring());
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Không thể ghi dấu lúc này. Thử lại sau.",
+    );
+    await waitFor(() =>
+      expect(ring()).toHaveAttribute("aria-pressed", "false"),
+    );
+  });
+
+  it("does not add a check-in on a rest day to the streak", async () => {
+    mutation.mockReturnValue(new Promise(() => {}));
+    renderRow({ dueToday: false });
+
+    fireEvent.click(ring());
+
+    await waitFor(() => expect(ring()).toHaveAttribute("aria-pressed", "true"));
+    expect(screen.getByText("Chuỗi hiện tại:").parentElement).toHaveTextContent(
+      "4",
+    );
+  });
+
+  it("keeps keyboard focus on the ring after the row moves group", async () => {
+    mutation.mockResolvedValue({
+      status: "success",
+      today: { date: "2026-11-02", checkedIn: true, checkIn: null },
+    });
+    const { unmount } = renderRow();
+    ring().focus();
+
+    fireEvent.click(ring());
+    await waitFor(() => expect(refresh).toHaveBeenCalledOnce());
+
+    // Refresh dựng lại dòng ở nhóm "Đã ghi dấu hôm nay".
+    unmount();
+    renderRow({ checkedInToday: true, currentStreak: 5 });
+
+    expect(ring()).toHaveFocus();
   });
 
   it("shows QUIT habits without a check-in ring", () => {
