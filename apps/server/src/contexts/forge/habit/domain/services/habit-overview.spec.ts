@@ -140,6 +140,25 @@ describe('summarizeHabitOverview — BUILD', () => {
     expect(overview.currentStreak).toBe(1);
   });
 
+  it('leaves the next scheduled day empty when none falls in the next 7 days', () => {
+    const overview = summarizeHabitOverview(
+      build({
+        schedules: [
+          {
+            frequencyType: 'DAILY',
+            frequencyDays: [],
+            effectiveFrom: '2026-10-01',
+            effectiveTo: '2026-11-03',
+          },
+        ],
+      }),
+      TODAY,
+    );
+
+    expect(overview.dueToday).toBe(true);
+    expect(overview.nextDueOn).toBeNull();
+  });
+
   it('follows the schedule that was in effect on each day', () => {
     // Hằng ngày tới hết 28/10, sau đó chỉ Thứ Hai.
     const overview = summarizeHabitOverview(

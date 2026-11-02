@@ -6,14 +6,27 @@ export type CalendarDay = string;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+const formatters = new Map<string, Intl.DateTimeFormat>();
+
+/** Một formatter cho mỗi múi giờ: tạo Intl.DateTimeFormat khá tốn, mà hàm
+ * này được gọi cho từng lần tái phạm của từng Habit. */
+function formatterFor(timeZone: string): Intl.DateTimeFormat {
+  let formatter = formatters.get(timeZone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+    formatters.set(timeZone, formatter);
+  }
+  return formatter;
+}
+
 /** Ngày lịch của `instant` tại `timeZone` (vd 2026-08-31T17:30Z ở UTC+7 → '2026-09-01'). */
 export function calendarDayAt(instant: Date, timeZone: string): CalendarDay {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(instant);
+  const parts = formatterFor(timeZone).formatToParts(instant);
 
   const part = (type: Intl.DateTimeFormatPartTypes): string =>
     parts.find((candidate) => candidate.type === type)?.value ?? '';
