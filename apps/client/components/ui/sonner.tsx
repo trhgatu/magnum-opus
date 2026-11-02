@@ -1,5 +1,6 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
 import { Toaster as Sonner, type ToasterProps } from "sonner";
 import {
   CircleCheckIcon,
@@ -9,10 +10,22 @@ import {
   TriangleAlertIcon,
 } from "lucide-react";
 
+// Theo class .dark trên <html> (lib/theme), không theo thẳng hệ thống, để
+// toast khớp lựa chọn trong Cài đặt.
+const subscribeToRootClass = (onChange: () => void) => {
+  const observer = new MutationObserver(onChange);
+  observer.observe(document.documentElement, { attributeFilter: ["class"] });
+  return () => observer.disconnect();
+};
+
+const isDark = () => document.documentElement.classList.contains("dark");
+
 const Toaster = ({ ...props }: ToasterProps) => {
+  const dark = useSyncExternalStore(subscribeToRootClass, isDark, () => false);
+
   return (
     <Sonner
-      theme="system"
+      theme={dark ? "dark" : "light"}
       className="toaster group"
       icons={{
         success: <CircleCheckIcon className="size-4" aria-hidden="true" />,

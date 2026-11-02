@@ -59,46 +59,46 @@
   --block-foreground: oklch(0.95 0.02 80);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: oklch(0.16 0.012 62);
-    --foreground: oklch(0.91 0.018 78);
-    --card: oklch(0.195 0.014 62);
-    --card-foreground: oklch(0.91 0.018 78);
-    --popover: oklch(0.195 0.014 62);
-    --popover-foreground: oklch(0.91 0.018 78);
-    --primary: oklch(0.72 0.11 75);
-    --primary-foreground: oklch(0.18 0.018 62);
-    --secondary: oklch(0.245 0.018 62);
-    --secondary-foreground: oklch(0.91 0.018 78);
-    --muted: oklch(0.225 0.014 62);
-    --muted-foreground: oklch(0.68 0.02 76);
-    --accent: oklch(0.285 0.035 70);
-    --accent-foreground: oklch(0.92 0.02 78);
-    --destructive: oklch(0.7 0.17 25);
-    --border: oklch(0.31 0.022 65);
-    --input: oklch(0.31 0.022 65);
-    --ring: oklch(0.69 0.1 74);
-    --sidebar: oklch(0.18 0.013 62);
-    --sidebar-foreground: oklch(0.91 0.018 78);
-    --sidebar-primary: oklch(0.72 0.11 75);
-    --sidebar-primary-foreground: oklch(0.18 0.018 62);
-    --sidebar-accent: oklch(0.265 0.028 68);
-    --sidebar-accent-foreground: oklch(0.92 0.02 78);
-    --sidebar-border: oklch(0.31 0.022 65);
-    --sidebar-ring: oklch(0.69 0.1 74);
-    --ember: oklch(0.76 0.15 62);
-    --ember-foreground: oklch(0.2 0.045 55);
-    --ember-soft: oklch(0.3 0.06 60);
-    /* Giấy vẫn sáng trong chế độ tối: một tờ giấy dưới đèn bàn. */
-    --paper: oklch(0.92 0.03 82);
-    --paper-edge: oklch(0.78 0.04 80);
-    --paper-ink: oklch(0.24 0.02 62);
-    --trace-missed: oklch(0.47 0.03 65);
-    --trace-rest: oklch(0.38 0.02 65);
-    --block: oklch(0.24 0.03 58);
-    --block-foreground: oklch(0.95 0.02 80);
-  }
+/* Theme chọn trong Cài đặt: lib/theme gắn class .dark lên <html>, kể cả
+   khi chọn "Theo hệ thống" và máy đang ở chế độ tối. */
+:root.dark {
+  --background: oklch(0.16 0.012 62);
+  --foreground: oklch(0.91 0.018 78);
+  --card: oklch(0.195 0.014 62);
+  --card-foreground: oklch(0.91 0.018 78);
+  --popover: oklch(0.195 0.014 62);
+  --popover-foreground: oklch(0.91 0.018 78);
+  --primary: oklch(0.72 0.11 75);
+  --primary-foreground: oklch(0.18 0.018 62);
+  --secondary: oklch(0.245 0.018 62);
+  --secondary-foreground: oklch(0.91 0.018 78);
+  --muted: oklch(0.225 0.014 62);
+  --muted-foreground: oklch(0.68 0.02 76);
+  --accent: oklch(0.285 0.035 70);
+  --accent-foreground: oklch(0.92 0.02 78);
+  --destructive: oklch(0.7 0.17 25);
+  --border: oklch(0.31 0.022 65);
+  --input: oklch(0.31 0.022 65);
+  --ring: oklch(0.69 0.1 74);
+  --sidebar: oklch(0.18 0.013 62);
+  --sidebar-foreground: oklch(0.91 0.018 78);
+  --sidebar-primary: oklch(0.72 0.11 75);
+  --sidebar-primary-foreground: oklch(0.18 0.018 62);
+  --sidebar-accent: oklch(0.265 0.028 68);
+  --sidebar-accent-foreground: oklch(0.92 0.02 78);
+  --sidebar-border: oklch(0.31 0.022 65);
+  --sidebar-ring: oklch(0.69 0.1 74);
+  --ember: oklch(0.76 0.15 62);
+  --ember-foreground: oklch(0.2 0.045 55);
+  --ember-soft: oklch(0.3 0.06 60);
+  /* Giấy vẫn sáng trong chế độ tối: một tờ giấy dưới đèn bàn. */
+  --paper: oklch(0.92 0.03 82);
+  --paper-edge: oklch(0.78 0.04 80);
+  --paper-ink: oklch(0.24 0.02 62);
+  --trace-missed: oklch(0.47 0.03 65);
+  --trace-rest: oklch(0.38 0.02 65);
+  --block: oklch(0.24 0.03 58);
+  --block-foreground: oklch(0.95 0.02 80);
 }
 
 @theme inline {
