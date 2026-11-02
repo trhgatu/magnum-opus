@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { PageHeading } from "@/components/system/page-heading";
 import { Card, CardContent } from "@/components/ui/card";
 import { getCurrentUser } from "@/features/account/api/current-user";
+import { ThemeField } from "@/features/account/components/theme-field";
 import { TimeZoneField } from "@/features/account/components/time-zone-field";
 import {
   GitHubConnectionSection,
@@ -34,6 +35,12 @@ export default async function SettingsPage() {
       <Card className="bg-card/70">
         <CardContent className="px-5 py-5 sm:px-7">
           <TimeZoneField timeZone={user.timeZone} />
+        </CardContent>
+      </Card>
+
+      <Card className="bg-card/70">
+        <CardContent className="px-5 py-5 sm:px-7">
+          <ThemeField />
         </CardContent>
       </Card>
 

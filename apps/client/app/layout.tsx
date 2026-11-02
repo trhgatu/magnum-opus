@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Be_Vietnam_Pro, IBM_Plex_Mono, Newsreader } from "next/font/google";
 
 import { ToastProvider } from "@/components/system/toast-provider";
+import { THEME_BOOT_SCRIPT } from "@/lib/theme";
 
 import "./globals.css";
 
@@ -44,7 +45,12 @@ export default function RootLayout({
     <html
       lang="vi"
       className={`${newsreader.variable} ${beVietnamPro.variable} ${plexMono.variable} h-full antialiased`}
+      // Script theme gắn class .dark lên <html> trước khi React hydrate.
+      suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+      </head>
       <body className="flex min-h-full flex-col">
         {children}
         <ToastProvider />
