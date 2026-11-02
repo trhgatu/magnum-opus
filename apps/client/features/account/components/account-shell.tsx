@@ -25,7 +25,7 @@ export function AccountShell({ children, user }: AccountShellProps) {
         <AppSidebar />
 
         <div className="min-w-0 flex-1">
-          <header className="surface-glass sticky top-0 z-40 border-b">
+          <header className="surface-bar sticky top-0 z-40 border-b">
             <div className="flex min-h-17 items-center gap-3 px-4 sm:px-6">
               <MobileNavigation />
               <div className="hidden min-w-0 sm:block">

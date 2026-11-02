@@ -9,7 +9,7 @@ export function BrandMark({ className }: { className?: string }) {
         className,
       )}
     >
-      <span className="size-2 rounded-full bg-current shadow-[0_0_16px_currentColor]" />
+      <span className="size-2 rounded-full bg-current" />
       <span className="absolute inset-1.5 rotate-45 border border-current/55" />
     </span>
   );

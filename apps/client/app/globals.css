@@ -26,7 +26,7 @@
   --muted-foreground: oklch(0.505 0.025 62);
   --accent: oklch(0.9 0.045 78);
   --accent-foreground: oklch(0.29 0.045 64);
-  --destructive: oklch(0.56 0.2 28);
+  --destructive: oklch(0.52 0.2 28);
   --border: oklch(0.86 0.025 78);
   --input: oklch(0.86 0.025 78);
   --ring: oklch(0.57 0.105 69);
@@ -44,6 +44,19 @@
   --sidebar-accent-foreground: oklch(0.265 0.025 62);
   --sidebar-border: oklch(0.86 0.025 78);
   --sidebar-ring: oklch(0.57 0.105 69);
+  /* Bộ thiết kế Magnum Opus: than hồng chỉ cho khoảnh khắc làm xong việc,
+     giấy cho Reflection, trace-* cho lưới dấu vết theo ngày. */
+  --ember: oklch(0.66 0.15 58);
+  --ember-foreground: oklch(0.22 0.045 55);
+  --ember-soft: oklch(0.93 0.05 70);
+  --paper: oklch(0.955 0.025 82);
+  --paper-edge: oklch(0.84 0.035 80);
+  --paper-ink: oklch(0.24 0.02 62);
+  --trace-missed: oklch(0.74 0.035 75);
+  --trace-rest: oklch(0.84 0.025 78);
+  /* Khối tối ở cả hai chế độ, cho hành động khoảnh khắc như ghi dấu. */
+  --block: oklch(0.24 0.03 58);
+  --block-foreground: oklch(0.95 0.02 80);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -74,6 +87,17 @@
     --sidebar-accent-foreground: oklch(0.92 0.02 78);
     --sidebar-border: oklch(0.31 0.022 65);
     --sidebar-ring: oklch(0.69 0.1 74);
+    --ember: oklch(0.76 0.15 62);
+    --ember-foreground: oklch(0.2 0.045 55);
+    --ember-soft: oklch(0.3 0.06 60);
+    /* Giấy vẫn sáng trong chế độ tối: một tờ giấy dưới đèn bàn. */
+    --paper: oklch(0.92 0.03 82);
+    --paper-edge: oklch(0.78 0.04 80);
+    --paper-ink: oklch(0.24 0.02 62);
+    --trace-missed: oklch(0.47 0.03 65);
+    --trace-rest: oklch(0.38 0.02 65);
+    --block: oklch(0.24 0.03 58);
+    --block-foreground: oklch(0.95 0.02 80);
   }
 }
 
@@ -109,10 +133,43 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  --font-sans: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-  --font-mono: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  --color-ember: var(--ember);
+  --color-ember-foreground: var(--ember-foreground);
+  --color-ember-soft: var(--ember-soft);
+  --color-paper: var(--paper);
+  --color-paper-edge: var(--paper-edge);
+  --color-paper-ink: var(--paper-ink);
+  --color-trace-done: var(--ember);
+  --color-trace-missed: var(--trace-missed);
+  --color-trace-rest: var(--trace-rest);
+  --color-block: var(--block);
+  --color-block-foreground: var(--block-foreground);
+  --font-sans:
+    var(--font-be-vietnam-pro), "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-mono:
+    var(--font-plex-mono), "Cascadia Code", "SFMono-Regular", Consolas,
+    monospace;
   --font-display:
-    "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    var(--font-newsreader), "Iowan Old Style", "Palatino Linotype", Palatino,
+    Georgia, serif;
+  /* Bộ thiết kế không dùng bóng đổ: các lớp tách nhau bằng nền và viền. Đặt
+     mọi mức bóng của Tailwind về không để class shadow-* cũ hết tác dụng. */
+  --shadow-2xs: 0 0 #0000;
+  --shadow-xs: 0 0 #0000;
+  --shadow-sm: 0 0 #0000;
+  --shadow-md: 0 0 #0000;
+  --shadow-lg: 0 0 #0000;
+  --shadow-xl: 0 0 #0000;
+  --shadow-2xl: 0 0 #0000;
+  --inset-shadow-2xs: 0 0 #0000;
+  --inset-shadow-xs: 0 0 #0000;
+  --inset-shadow-sm: 0 0 #0000;
+  --drop-shadow-xs: 0 0 #0000;
+  --drop-shadow-sm: 0 0 #0000;
+  --drop-shadow-md: 0 0 #0000;
+  --drop-shadow-lg: 0 0 #0000;
+  --drop-shadow-xl: 0 0 #0000;
+  --drop-shadow-2xl: 0 0 #0000;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -130,20 +187,7 @@
   }
 
   body {
-    @apply min-h-screen bg-background text-foreground;
-    font-family: var(--font-geist-sans), "Segoe UI", sans-serif;
-    background-image:
-      radial-gradient(
-        circle at 8% 4%,
-        color-mix(in oklch, var(--primary) 8%, transparent) 0,
-        transparent 24rem
-      ),
-      radial-gradient(
-        circle at 92% 92%,
-        color-mix(in oklch, var(--accent) 32%, transparent) 0,
-        transparent 28rem
-      );
-    background-attachment: fixed;
+    @apply min-h-screen bg-background font-sans text-foreground;
   }
 
   ::selection {
@@ -153,13 +197,12 @@
 
 @layer utilities {
   .font-display {
-    font-family:
-      "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-family: var(--font-display);
   }
 
-  .surface-glass {
-    background: color-mix(in oklch, var(--card) 88%, transparent);
-    backdrop-filter: blur(18px);
+  /* Thanh dính (sidebar, header, thanh công cụ): nền đặc, không làm mờ. */
+  .surface-bar {
+    background: var(--background);
   }
 
   .text-balance {

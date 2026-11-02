@@ -10,7 +10,7 @@ export default function AuthLayout({
       <section className="relative hidden overflow-hidden border-r bg-foreground p-12 text-background lg:flex lg:flex-col lg:justify-between">
         <div
           aria-hidden="true"
-          className="absolute -right-48 -top-48 size-[34rem] rounded-full border border-background/15 shadow-[0_0_0_5rem_color-mix(in_oklch,var(--background)_4%,transparent),0_0_0_10rem_color-mix(in_oklch,var(--background)_3%,transparent)]"
+          className="absolute -right-48 -top-48 size-[34rem] rounded-full border border-background/15"
         />
         <Link
           href="/"
