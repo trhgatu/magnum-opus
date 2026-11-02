@@ -10,7 +10,7 @@ import {
   HabitDetailSkeleton,
   HabitFormSkeleton,
   HabitListSkeleton,
-  HabitMetaSkeleton,
+  HabitSummarySkeleton,
 } from "./habit-skeletons";
 
 afterEach(cleanup);
@@ -24,7 +24,7 @@ describe("Habit skeletons", () => {
     [<HabitDetailSkeleton key="detail" />, "Đang tải Thói quen…"],
     [<HabitFormSkeleton key="form" />, "Đang chuẩn bị biểu mẫu Thói quen…"],
     [<HabitListSkeleton key="list" />, "Đang tải danh sách Thói quen…"],
-    [<HabitMetaSkeleton key="meta" />, "Đang tải thông tin Thói quen…"],
+    [<HabitSummarySkeleton key="summary" />, "Đang tải tóm tắt hôm nay…"],
   ])("announces its loading state", (skeleton, announcement) => {
     render(skeleton);
     expect(screen.getByRole("status")).toHaveTextContent(announcement);

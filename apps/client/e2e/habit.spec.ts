@@ -68,6 +68,15 @@ test("completes the private Habit lifecycle through the BFF", async ({
   await page.getByRole("button", { name: "Khôi phục" }).click();
   await expect(page.getByRole("button", { name: "Lưu trữ" })).toBeVisible();
 
+  // Ghi dấu ngay trên danh sách: dòng chuyển sang nhóm đã ghi dấu.
+  await page.goto("/habits");
+  await page.getByRole("button", { name: `Ghi dấu ${updatedTitle}` }).click();
+  await expect(
+    page
+      .getByRole("region", { name: "Đã ghi dấu hôm nay" })
+      .getByRole("button", { name: `Ghi dấu ${updatedTitle}` }),
+  ).toHaveAttribute("aria-pressed", "true");
+
   expect(
     browserRequests.some((url) => url.startsWith("http://127.0.0.1:3101")),
   ).toBe(false);
@@ -104,9 +113,11 @@ test("completes the private QUIT-type Habit lifecycle through the BFF", async ({
     page.getByText("ngày không tái phạm", { exact: true }),
   ).toBeVisible();
 
-  // Danh sách lọc theo loại phải tìm thấy đúng thói quen QUIT vừa tạo.
-  await page.goto("/habits?type=QUIT");
+  // Danh sách xếp thói quen QUIT vừa tạo vào nhóm Từ bỏ.
+  await page.goto("/habits");
   await expect(
-    page.getByRole("link", { name: `Mở thói quen: ${title}` }),
+    page
+      .getByRole("region", { name: "Từ bỏ" })
+      .getByRole("link", { name: title }),
   ).toBeVisible();
 });

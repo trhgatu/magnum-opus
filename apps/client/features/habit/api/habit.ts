@@ -3,17 +3,13 @@ import "server-only";
 import type {
   HabitCheckInHistoryResponse,
   HabitCheckInTodayResponse,
+  HabitOverviewResponse,
   HabitProgressResponse,
   HabitResponse,
 } from "@repo/contracts";
 import type { PaginatedResult } from "@repo/types";
 
-import type {
-  HabitSortField,
-  HabitSortOrder,
-  HabitStatus,
-  HabitTypeFilter,
-} from "@/features/habit/lib/habit-url";
+import type { HabitStatus } from "@/features/habit/lib/habit-url";
 import { apiFetch } from "@/lib/api";
 
 export interface HabitListInput {
@@ -21,9 +17,6 @@ export interface HabitListInput {
   limit?: number;
   search?: string;
   status?: HabitStatus;
-  type?: HabitTypeFilter;
-  sortBy?: HabitSortField;
-  sortOrder?: HabitSortOrder;
 }
 
 export async function getHabits(
@@ -37,13 +30,15 @@ export async function getHabits(
 
   if (search) params.set("search", search);
   if (input.status) params.set("status", input.status);
-  if (input.type && input.type !== "ALL") params.set("type", input.type);
-  if (input.sortBy) params.set("sortBy", input.sortBy);
-  if (input.sortOrder) params.set("sortOrder", input.sortOrder);
 
   return apiFetch<PaginatedResult<HabitResponse>>(
     `/habits?${params.toString()}`,
   );
+}
+
+/** Mọi Habit đang rèn kèm việc hôm nay, dải 7 ngày và chuỗi (BA habit v3). */
+export function getHabitOverview(): Promise<HabitOverviewResponse> {
+  return apiFetch<HabitOverviewResponse>("/habits/overview");
 }
 
 export function getHabit(id: string): Promise<HabitResponse> {
