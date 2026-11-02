@@ -92,7 +92,7 @@ export class WakaTimeIntegrationController {
   }
 
   @Put()
-  @ApiOperation({ summary: 'Connect WakaTime or replace the API key' })
+  @ApiOperation({ summary: 'Connect WakaTime or replace the token' })
   async connect(
     @GetUser('id') ownerId: string,
     @Body() dto: ConnectWakaTimeDto,

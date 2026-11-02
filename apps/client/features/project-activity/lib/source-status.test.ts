@@ -123,7 +123,7 @@ describe("sourceErrorCopy", () => {
     ],
     [
       "WAKATIME_KEY_INVALID",
-      "API key WakaTime không còn dùng được — cập nhật ở Cài đặt.",
+      "Token WakaTime không còn dùng được — cập nhật ở Cài đặt.",
     ],
     [
       "WAKATIME_NOT_CONNECTED",
@@ -185,7 +185,7 @@ describe("linkErrorMessage", () => {
     ],
     [
       "WAKATIME_NOT_CONNECTED",
-      "Kết nối WakaTime không còn dùng được — cập nhật API key ở Cài đặt.",
+      "Kết nối WakaTime không còn dùng được — cập nhật token ở Cài đặt.",
     ],
     ["WAKATIME_PROJECT_NOT_FOUND", "Không còn thấy project này trên WakaTime."],
     [

@@ -3,7 +3,7 @@ import type { WakaTimeConnectionResponse } from '@repo/contracts';
 import type { WakaTimeConnection } from '../../domain/wakatime-connection.entity';
 
 export class WakaTimeConnectionPresenter {
-  /** Không bao giờ có API key, kể cả dạng đã mã hóa. */
+  /** Không bao giờ có token, kể cả dạng đã mã hóa. */
   static toResponse(
     connection: WakaTimeConnection,
   ): WakaTimeConnectionResponse {

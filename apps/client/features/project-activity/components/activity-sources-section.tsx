@@ -199,10 +199,10 @@ export function ActivitySourcesSection({
       {wakaTimeState === "unusable" ? (
         <Alert>
           <AlertDescription>
-            API key WakaTime không còn dùng được — không gắn thêm được project
+            Token WakaTime không còn dùng được — không gắn thêm được project
             WakaTime.{" "}
             <Link href="/settings" className="underline underline-offset-4">
-              Cập nhật key ở Cài đặt
+              Cập nhật token ở Cài đặt
             </Link>
           </AlertDescription>
         </Alert>

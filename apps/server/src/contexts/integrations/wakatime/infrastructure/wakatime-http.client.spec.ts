@@ -43,7 +43,7 @@ describe('WakaTimeHttpClient.verifyKey', () => {
     return { client, fetchFn };
   };
 
-  it('returns the account that owns the key, sending it as Basic auth', async () => {
+  it('returns the account that owns the token, sending it as a Bearer token', async () => {
     const { client, fetchFn } = setup(
       json(200, { data: { id: 'user-uuid', username: 'trhgatu' } }),
     );
@@ -56,9 +56,7 @@ describe('WakaTimeHttpClient.verifyKey', () => {
     const [url, init] = fetchFn.mock.calls[0];
     expect(url).toBe('https://wakatime.test/api/v1/users/current');
     const headers = new Headers(init?.headers);
-    expect(headers.get('authorization')).toBe(
-      `Basic ${Buffer.from(KEY).toString('base64')}`,
-    );
+    expect(headers.get('authorization')).toBe(`Bearer ${KEY}`);
     expect(headers.get('user-agent')).toBeTruthy();
   });
 

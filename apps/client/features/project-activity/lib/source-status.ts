@@ -19,7 +19,7 @@ const SOURCE_ERROR_COPY: Record<ActivitySourceErrorCode, string> = {
   GITHUB_UNAVAILABLE: "chưa cập nhật được — sẽ thử lại khi bạn mở lại trang.",
   WAKATIME_NOT_CONNECTED: "WakaTime chưa được kết nối — kết nối ở Cài đặt.",
   WAKATIME_KEY_INVALID:
-    "API key WakaTime không còn dùng được — cập nhật ở Cài đặt.",
+    "Token WakaTime không còn dùng được — cập nhật ở Cài đặt.",
   WAKATIME_ACCOUNT_CHANGED:
     "ngừng cập nhật — đã gắn bằng tài khoản WakaTime khác.",
   WAKATIME_PROJECT_NOT_FOUND: "không còn thấy project này trên WakaTime.",
@@ -116,7 +116,7 @@ const LINK_ERROR_COPY: Record<string, string> = {
     "GitHub đang tạm giới hạn truy cập. Thử lại sau ít phút.",
   GITHUB_UNAVAILABLE: "Chưa kết nối được tới GitHub. Thử lại sau ít phút.",
   WAKATIME_NOT_CONNECTED:
-    "Kết nối WakaTime không còn dùng được — cập nhật API key ở Cài đặt.",
+    "Kết nối WakaTime không còn dùng được — cập nhật token ở Cài đặt.",
   WAKATIME_PROJECT_NOT_FOUND: "Không còn thấy project này trên WakaTime.",
   WAKATIME_RATE_LIMITED:
     "WakaTime đang tạm giới hạn truy cập. Thử lại sau ít phút.",

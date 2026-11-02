@@ -2,7 +2,7 @@ import type { MutationError } from "@/lib/api";
 
 const CONNECT_ERROR_COPY: Record<string, string> = {
   WAKATIME_KEY_INVALID:
-    "WakaTime không chấp nhận API key này. Kiểm tra lại key rồi thử lại.",
+    "WakaTime không chấp nhận token này. Kiểm tra token có quyền read_heartbeats rồi thử lại.",
   WAKATIME_UNAVAILABLE: "Chưa kết nối được tới WakaTime. Thử lại sau ít phút.",
   WAKATIME_RATE_LIMITED: "Chưa kết nối được tới WakaTime. Thử lại sau ít phút.",
 };

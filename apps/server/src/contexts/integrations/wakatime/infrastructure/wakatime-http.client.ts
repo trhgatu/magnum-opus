@@ -25,8 +25,11 @@ export interface WakaTimeHttpClientOptions {
 }
 
 /**
- * WakaTime API v1, chỉ đọc. Xác thực bằng `Basic base64(apiKey)` (BA 08 §2).
- * Không bao giờ để API key lọt vào lỗi.
+ * WakaTime API v1, chỉ đọc. Xác thực bằng OAuth token cá nhân gửi kiểu
+ * `Bearer` (BA 08 §2.1): từ 2026-11 WakaTime chỉ cho API key gọi các endpoint
+ * của plugin, mọi endpoint đọc trả 403 với API key. Tên `apiKey` trong code
+ * giữ nguyên, giá trị giờ là token.
+ * Không bao giờ để token lọt vào lỗi.
  */
 export class WakaTimeHttpClient implements WakaTimeApi {
   private readonly fetchFn: typeof fetch;
@@ -124,6 +127,8 @@ export class WakaTimeHttpClient implements WakaTimeApi {
     apiKey: string,
   ): Promise<Record<string, unknown>> {
     const response = await this.request(path, apiKey);
+    // 401: token sai hoặc đã thu hồi. 403: token thiếu quyền read_heartbeats,
+    // hoặc vẫn là API key cũ. Cả hai đều phải tạo token mới.
     if (response.status === 401 || response.status === 403) {
       throw new WakaTimeKeyInvalidException();
     }
@@ -139,7 +144,7 @@ export class WakaTimeHttpClient implements WakaTimeApi {
     try {
       return await this.fetchFn(`${this.baseUrl}${path}`, {
         headers: {
-          Authorization: `Basic ${Buffer.from(apiKey).toString('base64')}`,
+          Authorization: `Bearer ${apiKey}`,
           Accept: 'application/json',
           'User-Agent': 'magnum-opus',
         },

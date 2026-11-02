@@ -19,8 +19,9 @@ export interface WakaTimeConnectionSnapshot {
 }
 
 /**
- * Kết nối WakaTime của một tài khoản (BA 08 §5.1). API key không hết hạn,
- * nên khác GitHub: không có EXPIRED, chỉ ACTIVE hoặc REVOKED.
+ * Kết nối WakaTime của một tài khoản (BA 08 §5.1). Token cá nhân của WakaTime
+ * gần như không hết hạn (100 năm), nên khác GitHub: không có EXPIRED, chỉ
+ * ACTIVE hoặc REVOKED.
  */
 export class WakaTimeConnection {
   private constructor(private props: WakaTimeConnectionSnapshot) {}

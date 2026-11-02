@@ -33,7 +33,7 @@ export interface WakaTimeDay {
  * hoặc WakaTimeUnavailableException.
  */
 export interface WakaTimeApi {
-  /** Tài khoản sở hữu API key. */
+  /** Tài khoản sở hữu token. */
   verifyKey(apiKey: string): Promise<WakaTimeAccount>;
 
   /** Tài khoản và múi giờ của nó. */
