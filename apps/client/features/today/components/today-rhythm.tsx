@@ -32,7 +32,7 @@ function RoutineCard({
           {progress.title}
         </Link>
         <span className="font-mono text-xs text-primary tabular-nums">
-          {finished ? "Xong" : `Bước ${progress.done + 1} / ${progress.total}`}
+          {finished ? "Xong" : `Bước ${progress.nextStep} / ${progress.total}`}
         </span>
       </div>
       <div

@@ -87,6 +87,15 @@ describe("routineProgress", () => {
     });
   });
 
+  it("names the first unchecked step even when later ones are done", () => {
+    const progress = routineProgress(
+      { id: "r1", title: "Sáng", habits: [due("a"), due("b"), due("c")] },
+      [item("a"), item("b", { checkedInToday: true }), item("c")],
+    );
+
+    expect(progress).toMatchObject({ done: 1, next: "a", nextStep: 1 });
+  });
+
   it("is finished when every step is checked in", () => {
     const progress = routineProgress(
       { id: "r1", title: "Sáng", habits: [due("a", true)] },

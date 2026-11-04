@@ -44,6 +44,8 @@ export interface RoutineProgress {
   done: number;
   /** Bước chưa ghi dấu đầu tiên, theo thứ tự của Nếp. */
   next: string | null;
+  /** Số thứ tự (từ 1) của bước đó; null khi đã xong hết. */
+  nextStep: number | null;
   steps: Array<"done" | "next" | "todo">;
 }
 
@@ -68,6 +70,7 @@ export function routineProgress(
     total: routine.habits.length,
     done: doneFlags.filter(Boolean).length,
     next: nextIndex === -1 ? null : routine.habits[nextIndex]!.title,
+    nextStep: nextIndex === -1 ? null : nextIndex + 1,
     steps: doneFlags.map((done, index) =>
       done ? "done" : index === nextIndex ? "next" : "todo",
     ),

@@ -54,11 +54,18 @@ async function TimeZoneNotice() {
   );
 }
 
+/** Hai bản chụp phải cùng một ngày; qua nửa đêm giữa hai lần đọc thì đọc lại. */
+async function loadDay(): Load {
+  const first = await Promise.all([getToday(), getHabitOverview()]);
+  if (first[0].date === first[1].date) return first;
+  return Promise.all([getToday(), getHabitOverview()]);
+}
+
 export default async function TodayPage() {
   const user = await getCurrentUser();
   // Lịch hôm nay (thứ tự theo Nếp) và tổng quan (vòng, 7 ngày, chuỗi) tải
   // song song; dùng chung một promise cho câu tóm tắt lẫn danh sách.
-  const load: Load = Promise.all([getToday(), getHabitOverview()]);
+  const load: Load = loadDay();
   const now = new Date();
   const todayDate = new Intl.DateTimeFormat("en-CA", {
     timeZone: user.timeZone,

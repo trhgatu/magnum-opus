@@ -265,7 +265,7 @@ Nếu một route vượt budget:
 - Timeline chronology: [`timeline-entry-card.tsx`](../apps/client/features/timeline/components/timeline-entry-card.tsx)
 - Habit practice detail: [`habit-detail.tsx`](../apps/client/features/habit/components/habit-detail.tsx)
 - Routine workbench: [`routine-habit-manager.tsx`](../apps/client/features/routine/components/routine-habit-manager.tsx)
-- Today execution surface: [`today-board.tsx`](../apps/client/features/today/components/today-board.tsx)
+- Today execution surface: [`today-rhythm.tsx`](../apps/client/features/today/components/today-rhythm.tsx)
 
 Các file này là ví dụ hiện tại, không phải lý do để sao chép markup nguyên khối. Giữ pattern và điều chỉnh composition theo nội dung thực tế.
 
