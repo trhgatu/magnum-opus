@@ -5,24 +5,21 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { TodayBoardSkeleton, TodayMetaSkeleton } from "./today-skeletons";
+import {
+  TodayPageSkeleton,
+  TodayRhythmSkeleton,
+  TodaySummarySkeleton,
+} from "./today-skeletons";
 
 afterEach(cleanup);
 
-describe("TodayBoardSkeleton", () => {
-  it("announces its loading state", () => {
-    render(<TodayBoardSkeleton />);
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "Đang tải những thực hành hôm nay…",
-    );
-  });
-});
-
-describe("TodayMetaSkeleton", () => {
-  it("announces its loading state", () => {
-    render(<TodayMetaSkeleton />);
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "Đang tải thông tin hôm nay…",
-    );
+describe("Today skeletons", () => {
+  it.each([
+    [<TodayRhythmSkeleton key="rhythm" />, "Đang tải nhịp hôm nay…"],
+    [<TodaySummarySkeleton key="summary" />, "Đang tải tóm tắt hôm nay…"],
+    [<TodayPageSkeleton key="page" />, "Đang tải nhịp hôm nay…"],
+  ])("announces its loading state", (skeleton, announcement) => {
+    render(skeleton);
+    expect(screen.getByRole("status")).toHaveTextContent(announcement);
   });
 });

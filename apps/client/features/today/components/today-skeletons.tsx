@@ -1,47 +1,54 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
-export function TodayMetaSkeleton() {
+/** Nằm trong thẻ <p> của đầu trang, nên chỉ dùng <span>. */
+export function TodaySummarySkeleton() {
   return (
-    <span className="flex gap-2" role="status" aria-live="polite">
-      <span className="sr-only">Đang tải thông tin hôm nay…</span>
-      <Skeleton className="h-6 w-28 rounded-full" aria-hidden="true" />
-      <Skeleton className="h-6 w-24 rounded-full" aria-hidden="true" />
+    <span role="status" aria-live="polite" className="inline-flex">
+      <span className="sr-only">Đang tải tóm tắt hôm nay…</span>
+      <span
+        aria-hidden="true"
+        className="inline-block h-5 w-72 max-w-full animate-pulse rounded-md bg-muted"
+      />
     </span>
   );
 }
 
-export function TodayBoardSkeleton() {
+export function TodayRhythmSkeleton() {
   return (
-    <div role="status" aria-live="polite" className="flex flex-col gap-7">
-      <span className="sr-only">Đang tải những thực hành hôm nay…</span>
-      {Array.from({ length: 2 }).map((_, sectionIndex) => (
-        <section
-          key={sectionIndex}
-          aria-hidden="true"
-          className="overflow-hidden rounded-2xl border bg-card/70 shadow-sm"
-        >
-          <div className="flex items-center gap-3 border-b bg-muted/35 px-5 py-4">
-            <Skeleton className="size-9 rounded-xl" />
-            <div className="space-y-2">
-              <Skeleton className="h-3 w-20" />
-              <Skeleton className="h-6 w-40" />
-            </div>
-          </div>
-          {Array.from({ length: 2 }).map((_, habitIndex) => (
+    <div role="status" aria-live="polite" className="flex flex-col gap-4">
+      <span className="sr-only">Đang tải nhịp hôm nay…</span>
+      <div aria-hidden="true" className="flex flex-col gap-4">
+        <Skeleton className="h-7 w-44" />
+        <div className="flex flex-col gap-2">
+          {Array.from({ length: 4 }).map((_, index) => (
             <div
-              key={habitIndex}
-              className="flex items-center gap-4 border-t px-5 py-4 first:border-t-0"
+              key={index}
+              className="flex items-center gap-4 rounded-2xl border bg-card px-4 py-3.5 sm:px-5"
             >
-              <Skeleton className="size-9 shrink-0 rounded-full" />
-              <div className="min-w-0 flex-1 space-y-2">
+              <Skeleton className="size-11 shrink-0 rounded-full" />
+              <div className="flex flex-1 flex-col gap-1.5">
                 <Skeleton className="h-4 w-40" />
-                <Skeleton className="h-3 w-64 max-w-full" />
+                <Skeleton className="h-3.5 w-56 max-w-full" />
               </div>
-              <Skeleton className="hidden h-8 w-24 sm:block" />
+              <Skeleton className="h-7 w-10" />
             </div>
           ))}
-        </section>
-      ))}
+        </div>
+        <Skeleton className="h-24 w-full rounded-2xl" />
+      </div>
+    </div>
+  );
+}
+
+export function TodayPageSkeleton() {
+  return (
+    <div className="flex max-w-3xl flex-col gap-10">
+      <div aria-hidden="true" className="flex flex-col gap-3.5">
+        <Skeleton className="h-3 w-40" />
+        <Skeleton className="h-28 w-full max-w-xl" />
+        <Skeleton className="h-5 w-72 max-w-full" />
+      </div>
+      <TodayRhythmSkeleton />
     </div>
   );
 }
