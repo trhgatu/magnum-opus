@@ -58,7 +58,7 @@ export function RoutineEditor(props: RoutineEditorProps) {
   const [isPending, startTransition] = useTransition();
 
   const isDirty = title !== (persistedRoutine?.title ?? "");
-  useUnsavedChangesWarning(isDirty);
+  const leaveDialog = useUnsavedChangesWarning(isDirty);
   const onDirtyChange = inSheet ? props.onDirtyChange : undefined;
   useEffect(() => onDirtyChange?.(isDirty), [isDirty, onDirtyChange]);
   const onLatestLoaded = inSheet ? props.onLatestLoaded : undefined;
@@ -167,6 +167,7 @@ export function RoutineEditor(props: RoutineEditorProps) {
 
   return (
     <form onSubmit={submit} className="space-y-4" aria-busy={isPending}>
+      {leaveDialog}
       {hasConflict ? (
         <ConflictAlert
           title="Nếp sinh hoạt đã được thay đổi ở nơi khác"

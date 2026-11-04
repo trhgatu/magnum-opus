@@ -10,8 +10,7 @@ import { validId, validRevision } from "@/lib/validation";
 export type JournalLifecycleAction = "seal" | "reopen" | "trash" | "restore";
 
 export type JournalMutationResult =
-  | { status: "success"; entry: JournalEntryResponse }
-  | MutationError;
+  { status: "success"; entry: JournalEntryResponse } | MutationError;
 
 export type JournalDeleteResult = { status: "success" } | MutationError;
 

@@ -559,19 +559,19 @@ describe("MemoryEditor", () => {
     expect(onDirtyChange).toHaveBeenLastCalledWith(true);
   });
 
-  it("warns about leaving the create form once something is typed", () => {
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+  it("warns about leaving the create form once something is typed", async () => {
     render(<MemoryEditor />);
 
     fireEvent.click(screen.getByRole("link", { name: "Hủy" }));
-    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(screen.queryByRole("alertdialog")).toBeNull();
 
     fireEvent.change(screen.getByLabelText("Nội dung"), {
       target: { value: "Một câu vừa được thêm vào." },
     });
     fireEvent.click(screen.getByRole("link", { name: "Hủy" }));
 
-    expect(confirmSpy).toHaveBeenCalledOnce();
-    confirmSpy.mockRestore();
+    expect(
+      await screen.findByRole("alertdialog", { name: "Bỏ phần đang viết?" }),
+    ).toBeTruthy();
   });
 });

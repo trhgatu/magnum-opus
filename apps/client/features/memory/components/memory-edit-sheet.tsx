@@ -12,6 +12,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { useConfirmDiscard } from "@/hooks/use-confirm-discard";
 
 // Form kéo theo Calendar và date-fns: chỉ cần khi mở sheet, nên không nằm
 // trong JS tải lần đầu của trang chi tiết. import() phải viết thẳng trong
@@ -32,9 +33,6 @@ const MemoryEditor = dynamic(
 
 const loadMemoryEditor = () =>
   import("@/features/memory/components/memory-editor");
-
-const DISCARD_WARNING =
-  "Nội dung chưa được lưu. Đóng lúc này sẽ làm mất phần đang viết.";
 
 /**
  * Nội dung ký ức, nút Chỉnh sửa và nút Thùng rác đọc chung một bản `memory`:
@@ -82,8 +80,10 @@ export function MemoryEditProvider({
     setIsDirty(false);
   };
 
-  const requestClose = () => {
-    if (isDirty && !window.confirm(DISCARD_WARNING)) return;
+  const { confirmDiscard, discardDialog } = useConfirmDiscard();
+
+  const requestClose = async () => {
+    if (isDirty && !(await confirmDiscard())) return;
     close();
   };
 
@@ -124,6 +124,7 @@ export function MemoryEditProvider({
           </div>
         </SheetContent>
       </Sheet>
+      {discardDialog}
     </MemoryEditContext.Provider>
   );
 }

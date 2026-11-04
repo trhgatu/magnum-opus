@@ -87,17 +87,14 @@ describe("ProjectEditor", () => {
   });
 
   it("does not warn about leaving before anything is typed", () => {
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
     render(<ProjectEditor />);
 
     fireEvent.click(screen.getByRole("link", { name: "Hủy" }));
 
-    expect(confirmSpy).not.toHaveBeenCalled();
-    confirmSpy.mockRestore();
+    expect(screen.queryByRole("alertdialog")).toBeNull();
   });
 
-  it("warns about leaving once something is typed", () => {
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+  it("warns about leaving once something is typed", async () => {
     render(<ProjectEditor />);
 
     fireEvent.change(screen.getByLabelText("Mô tả (tùy chọn)"), {
@@ -105,7 +102,8 @@ describe("ProjectEditor", () => {
     });
     fireEvent.click(screen.getByRole("link", { name: "Hủy" }));
 
-    expect(confirmSpy).toHaveBeenCalledOnce();
-    confirmSpy.mockRestore();
+    expect(
+      await screen.findByRole("alertdialog", { name: "Bỏ phần đang viết?" }),
+    ).toBeTruthy();
   });
 });

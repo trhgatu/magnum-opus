@@ -8,6 +8,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -199,21 +200,28 @@ describe("ProjectEditAction", () => {
     expect(screen.getByText("Tên Project không được để trống.")).toBeTruthy();
   });
 
-  it("asks before Escape throws away unsaved changes", () => {
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+  it("asks before Escape throws away unsaved changes", async () => {
     render(<Details project={baseProject} />);
 
     openSheet();
     fillSheet({ title: "Bản nháp" });
     fireEvent.keyDown(screen.getByLabelText("Tên Project"), { key: "Escape" });
-    expect(confirmSpy).toHaveBeenCalledOnce();
+    fireEvent.click(
+      within(
+        await screen.findByRole("alertdialog", { name: "Bỏ phần đang viết?" }),
+      ).getByRole("button", { name: "Tiếp tục sửa" }),
+    );
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
     screen.getByRole("dialog");
 
-    confirmSpy.mockReturnValue(true);
     fireEvent.keyDown(screen.getByLabelText("Tên Project"), { key: "Escape" });
-    expect(screen.queryByRole("dialog")).toBeNull();
+    fireEvent.click(
+      within(
+        await screen.findByRole("alertdialog", { name: "Bỏ phần đang viết?" }),
+      ).getByRole("button", { name: "Bỏ thay đổi" }),
+    );
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(mutation).not.toHaveBeenCalled();
-    confirmSpy.mockRestore();
   });
 
   it("closes without saving when nothing changed", () => {
@@ -225,20 +233,27 @@ describe("ProjectEditAction", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
-  it("asks before throwing away unsaved changes", () => {
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+  it("asks before throwing away unsaved changes", async () => {
     render(<Details project={baseProject} />);
 
     openSheet();
     fillSheet({ title: "Bản nháp" });
     fireEvent.click(screen.getByRole("button", { name: "Hủy" }));
-    expect(confirmSpy).toHaveBeenCalledOnce();
+    fireEvent.click(
+      within(
+        await screen.findByRole("alertdialog", { name: "Bỏ phần đang viết?" }),
+      ).getByRole("button", { name: "Tiếp tục sửa" }),
+    );
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
     screen.getByRole("dialog");
 
-    confirmSpy.mockReturnValue(true);
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
-    expect(screen.queryByRole("dialog")).toBeNull();
-    confirmSpy.mockRestore();
+    fireEvent.click(
+      within(
+        await screen.findByRole("alertdialog", { name: "Bỏ phần đang viết?" }),
+      ).getByRole("button", { name: "Bỏ thay đổi" }),
+    );
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 
   it("offers to reload on a revision conflict without saving the stale draft again", async () => {

@@ -102,7 +102,7 @@ export function MemoryEditor(props: MemoryEditorProps) {
             persistedMemory.occurredOnPrecision,
           )
         : "");
-  useUnsavedChangesWarning(isDirty);
+  const leaveDialog = useUnsavedChangesWarning(isDirty);
   const onDirtyChange = inSheet ? props.onDirtyChange : undefined;
   useEffect(() => onDirtyChange?.(isDirty), [isDirty, onDirtyChange]);
   const onLatestLoaded = inSheet ? props.onLatestLoaded : undefined;
@@ -264,6 +264,7 @@ export function MemoryEditor(props: MemoryEditorProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-7" aria-busy={isPending}>
+      {leaveDialog}
       {creationSeed ? (
         <Alert>
           <BookOpenText aria-hidden="true" />

@@ -96,7 +96,7 @@ export function HabitEditor(props: HabitEditorProps) {
         JSON.stringify([...days].sort()) !==
           JSON.stringify([...(persistedHabit?.frequencyDays ?? [])].sort())
       : quitStartedAt !== (persistedHabit?.quitStartedAt ?? quitStartedAt));
-  useUnsavedChangesWarning(isDirty);
+  const leaveDialog = useUnsavedChangesWarning(isDirty);
   const onDirtyChange = inSheet ? props.onDirtyChange : undefined;
   useEffect(() => onDirtyChange?.(isDirty), [isDirty, onDirtyChange]);
   const onLatestLoaded = inSheet ? props.onLatestLoaded : undefined;
@@ -228,6 +228,7 @@ export function HabitEditor(props: HabitEditorProps) {
 
   return (
     <form onSubmit={submit} className="space-y-4" aria-busy={isPending}>
+      {leaveDialog}
       {hasConflict ? (
         <ConflictAlert
           title="Thói quen đã được thay đổi ở nơi khác"

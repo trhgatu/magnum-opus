@@ -1,8 +1,21 @@
 "use client";
 
-import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { type ReactNode, useEffect } from "react";
 
-export function useUnsavedChangesWarning(enabled: boolean) {
+import { useConfirmDiscard } from "@/hooks/use-confirm-discard";
+
+/**
+ * Cảnh báo trước khi rời trang khi còn phần chưa lưu. Bấm link nội bộ thì hỏi
+ * bằng hộp thoại của app (nơi gọi render giá trị trả về). Đóng tab hay tải
+ * lại thì trình duyệt chỉ cho hộp thoại của chính nó (`beforeunload`).
+ */
+export function useUnsavedChangesWarning(enabled: boolean): ReactNode {
+  const router = useRouter();
+  const { confirmDiscard, discardDialog } = useConfirmDiscard(
+    "Nội dung chưa được lưu. Rời trang lúc này sẽ làm mất phần đang viết.",
+  );
+
   useEffect(() => {
     if (!enabled) return;
 
@@ -39,16 +52,19 @@ export function useUnsavedChangesWarning(enabled: boolean) {
         destination.origin === current.origin &&
         (destination.pathname !== current.pathname ||
           destination.search !== current.search);
+      if (!changesRoute) return;
 
-      if (
-        changesRoute &&
-        !window.confirm(
-          "Nội dung chưa được lưu. Rời trang lúc này sẽ làm mất phần đang viết.",
-        )
-      ) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-      }
+      // Hộp thoại không chặn luồng như window.confirm: dừng điều hướng ngay,
+      // chọn "Bỏ thay đổi" thì mới đi tiếp.
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      void confirmDiscard().then((discard) => {
+        if (discard) {
+          router.push(
+            `${destination.pathname}${destination.search}${destination.hash}`,
+          );
+        }
+      });
     };
 
     window.addEventListener("beforeunload", warnBeforeUnload);
@@ -57,5 +73,7 @@ export function useUnsavedChangesWarning(enabled: boolean) {
       window.removeEventListener("beforeunload", warnBeforeUnload);
       document.removeEventListener("click", guardInternalLink, true);
     };
-  }, [enabled]);
+  }, [enabled, confirmDiscard, router]);
+
+  return discardDialog;
 }

@@ -232,14 +232,15 @@ test("guards unsaved navigation and supports editor shortcuts", async ({
     .fill("Một thay đổi chưa kịp autosave.");
   await expect(page.getByRole("button", { name: "Lưu ngay" })).toBeEnabled();
 
-  page.once("dialog", async (dialog) => {
-    expect(dialog.message()).toContain("Nội dung chưa được lưu");
-    await dialog.dismiss();
-  });
   // Link "Hồ sơ cá nhân" nằm trong account menu, phải mở dropdown trước
   // (cùng pattern đã dùng ở auth.spec.ts).
   await page.getByLabel(/^Mở menu tài khoản của /).click();
   await page.getByRole("link", { name: "Hồ sơ" }).click();
+  // Hộp thoại của app hỏi trước khi rời trang; chọn ở lại.
+  const leave = page.getByRole("alertdialog", { name: "Bỏ phần đang viết?" });
+  await expect(leave).toContainText("Nội dung chưa được lưu");
+  await leave.getByRole("button", { name: "Tiếp tục sửa" }).click();
+  await expect(leave).toBeHidden();
   await expect(page).toHaveURL(/\/journal\/[0-9a-f-]+$/);
 
   await page.keyboard.press("Control+s");
