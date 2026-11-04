@@ -78,10 +78,10 @@ export function TodayHolding({
           <li>
             <Link
               href="/habits?type=QUIT"
-              aria-label={`Xem ${more} thói quen từ bỏ khác`}
               className="inline-flex min-h-9 items-center gap-1.5 rounded-full px-2 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               +{more} khác
+              <span className="sr-only"> thói quen từ bỏ</span>
               <ArrowRight className="size-3.5" aria-hidden="true" />
             </Link>
           </li>

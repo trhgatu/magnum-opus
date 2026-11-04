@@ -90,8 +90,8 @@ describe("TodayHolding", () => {
       "/habits?type=QUIT",
     ]);
     expect(
-      screen.getByRole("link", { name: "Xem 2 thói quen từ bỏ khác" }),
-    ).toHaveTextContent("+2 khác");
+      screen.getByRole("link", { name: "+2 khác thói quen từ bỏ" }),
+    ).toHaveAttribute("href", "/habits?type=QUIT");
   });
 
   it("renders nothing without quit habits", () => {
