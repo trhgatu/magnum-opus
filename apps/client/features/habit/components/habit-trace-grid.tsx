@@ -14,9 +14,8 @@ import { cn } from "@/lib/utils";
 
 const ROW_LABELS = ["T2", "", "T4", "", "T6", "", "CN"];
 
-// Chiều cao ô (và nhãn hàng) to dần theo màn hình; chiều rộng thì cột tuần
-// chia đều cả thẻ, nên lưới luôn kín hàng ngang.
-const CELL = "[--cell:22px] md:[--cell:26px] xl:[--cell:30px]";
+// Ô vuông cố định; các cột tuần giãn đều khoảng cách cho kín hàng ngang.
+const CELL = "[--cell:22px]";
 
 function Legend({
   type,
@@ -115,7 +114,7 @@ export function HabitTraceGrid({
         <div
           role="img"
           aria-label={describeHabitTrace(type, trace)}
-          className={cn("flex gap-1.5", CELL)}
+          className={cn("flex justify-between gap-1.5", CELL)}
         >
           <div
             aria-hidden="true"
@@ -131,7 +130,7 @@ export function HabitTraceGrid({
             <div
               key={weekIndex}
               aria-hidden="true"
-              className="flex min-w-(--cell) flex-1 flex-col gap-1.5"
+              className="flex w-(--cell) shrink-0 flex-col gap-1.5"
             >
               <span className="h-4 font-mono text-[11px] whitespace-nowrap text-muted-foreground">
                 {week.monthLabel}
@@ -142,7 +141,7 @@ export function HabitTraceGrid({
                     key={cell.date}
                     title={describeTraceDay(type, cell)}
                     className={cn(
-                      "grid h-(--cell) w-full place-items-center rounded-sm",
+                      "grid size-(--cell) place-items-center rounded-sm",
                       HABIT_DAY_MARK_CLASSES[cell.mark],
                       cell.date === today &&
                         cell.mark === "DONE" &&
@@ -157,7 +156,7 @@ export function HabitTraceGrid({
                   <span
                     key={`${cell.kind}-${dayIndex}`}
                     className={cn(
-                      "h-(--cell) w-full rounded-sm",
+                      "size-(--cell) rounded-sm",
                       cell.kind === "after" && "border border-dashed",
                     )}
                   />
