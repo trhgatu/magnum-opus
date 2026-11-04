@@ -111,7 +111,7 @@ export function formatTodayLabel(date: string): string {
 export interface TodayGroup {
   /** id của Nếp, "standalone" (thói quen lẻ có lịch) hoặc "extra" (làm thêm ngoài lịch). */
   key: string;
-  /** Nếp sinh hoạt của nhóm; null là nhóm thói quen lẻ. */
+  /** Nếp sinh hoạt của nhóm; null với nhóm thói quen lẻ và nhóm làm thêm. */
   routine: RoutineProgress | null;
   items: HabitOverviewItemResponse[];
 }
