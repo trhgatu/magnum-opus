@@ -79,7 +79,9 @@ export function ProjectEditor() {
   const [message, setMessage] = useState<string>();
   const [isPending, startTransition] = useTransition();
 
-  useUnsavedChangesWarning(title !== "" || description !== "");
+  const leaveDialog = useUnsavedChangesWarning(
+    title !== "" || description !== "",
+  );
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -102,6 +104,7 @@ export function ProjectEditor() {
 
   return (
     <form onSubmit={submit} className="space-y-4" aria-busy={isPending}>
+      {leaveDialog}
       {message ? (
         <Alert variant="destructive">
           <AlertDescription>{message}</AlertDescription>

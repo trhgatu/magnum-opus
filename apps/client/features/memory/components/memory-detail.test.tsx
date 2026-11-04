@@ -6,6 +6,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import type { MemoryResponse } from "@repo/contracts";
 import {
@@ -120,7 +121,6 @@ describe("MemoryDetail", () => {
   });
 
   it("asks before closing the sheet with unsaved changes", async () => {
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
     render(<MemoryDetail memory={memory} timeZone="Asia/Ho_Chi_Minh" />);
 
     fireEvent.click(screen.getByRole("button", { name: "Chỉnh sửa" }));
@@ -129,9 +129,17 @@ describe("MemoryDetail", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Hủy" }));
 
-    expect(confirmSpy).toHaveBeenCalledOnce();
+    fireEvent.click(
+      within(
+        await screen.findByRole("alertdialog", { name: "Bỏ phần đang viết?" }),
+      ).getByRole("button", { name: "Tiếp tục sửa" }),
+    );
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
     screen.getByRole("dialog");
-    confirmSpy.mockRestore();
+    // Phần đang viết vẫn còn.
+    expect(
+      (screen.getByLabelText("Nội dung") as HTMLTextAreaElement).value,
+    ).toBe("Bản nháp");
   });
 
   it("shows the update time in the account time zone", () => {

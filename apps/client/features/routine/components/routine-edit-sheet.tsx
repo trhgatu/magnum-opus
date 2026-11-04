@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/sheet";
 import { RoutineHabitManager } from "@/features/routine/components/routine-habit-manager";
 import { RoutineLifecycleControls } from "@/features/routine/components/routine-lifecycle-controls";
+import { useConfirmDiscard } from "@/hooks/use-confirm-discard";
 
 // Form chỉ cần khi mở sheet, nên không nằm trong JS tải lần đầu của trang
 // chi tiết. import() phải viết thẳng trong dynamic() thì Next mới nhận ra
@@ -37,9 +38,6 @@ const RoutineEditor = dynamic(
 
 const loadRoutineEditor = () =>
   import("@/features/routine/components/routine-editor");
-
-const DISCARD_WARNING =
-  "Nội dung chưa được lưu. Đóng lúc này sẽ làm mất phần đang viết.";
 
 /**
  * Tên, nút Lưu trữ và danh sách Thói quen đọc chung một bản `routine`: đổi
@@ -87,8 +85,10 @@ export function RoutineEditProvider({
     setIsDirty(false);
   };
 
-  const requestClose = () => {
-    if (isDirty && !window.confirm(DISCARD_WARNING)) return;
+  const { confirmDiscard, discardDialog } = useConfirmDiscard();
+
+  const requestClose = async () => {
+    if (isDirty && !(await confirmDiscard())) return;
     close();
   };
 
@@ -131,6 +131,7 @@ export function RoutineEditProvider({
           </div>
         </SheetContent>
       </Sheet>
+      {discardDialog}
     </RoutineEditContext.Provider>
   );
 }

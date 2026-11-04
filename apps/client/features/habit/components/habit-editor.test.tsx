@@ -2,6 +2,7 @@
 
 import type { HabitResponse } from "@repo/contracts";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -413,19 +414,23 @@ describe("HabitEditor", () => {
     expect(onDirtyChange).toHaveBeenLastCalledWith(false);
   });
 
-  it("warns about leaving the create form once something is typed", () => {
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+  it("warns about leaving the create form once something is typed", async () => {
     render(<HabitEditor />);
 
     fireEvent.click(screen.getByRole("link", { name: "Hủy" }));
-    expect(confirmSpy).not.toHaveBeenCalled();
+    // Hộp thoại tải lười: đợi chunk xong rồi mới khẳng định là nó không hiện.
+    await act(async () => {
+      await import("@/components/system/discard-dialog");
+    });
+    expect(screen.queryByRole("alertdialog")).toBeNull();
 
     fireEvent.change(screen.getByLabelText("Tên thói quen"), {
       target: { value: "Thiền 20 phút" },
     });
     fireEvent.click(screen.getByRole("link", { name: "Hủy" }));
 
-    expect(confirmSpy).toHaveBeenCalledOnce();
-    confirmSpy.mockRestore();
+    expect(
+      await screen.findByRole("alertdialog", { name: "Bỏ phần đang viết?" }),
+    ).toBeTruthy();
   });
 });

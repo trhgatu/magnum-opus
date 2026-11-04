@@ -3,6 +3,7 @@
 import "@testing-library/jest-dom/vitest";
 
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -86,18 +87,19 @@ describe("ProjectEditor", () => {
     expect(push).not.toHaveBeenCalled();
   });
 
-  it("does not warn about leaving before anything is typed", () => {
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+  it("does not warn about leaving before anything is typed", async () => {
     render(<ProjectEditor />);
 
     fireEvent.click(screen.getByRole("link", { name: "Hủy" }));
 
-    expect(confirmSpy).not.toHaveBeenCalled();
-    confirmSpy.mockRestore();
+    // Hộp thoại tải lười: đợi chunk xong rồi mới khẳng định là nó không hiện.
+    await act(async () => {
+      await import("@/components/system/discard-dialog");
+    });
+    expect(screen.queryByRole("alertdialog")).toBeNull();
   });
 
-  it("warns about leaving once something is typed", () => {
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+  it("warns about leaving once something is typed", async () => {
     render(<ProjectEditor />);
 
     fireEvent.change(screen.getByLabelText("Mô tả (tùy chọn)"), {
@@ -105,7 +107,8 @@ describe("ProjectEditor", () => {
     });
     fireEvent.click(screen.getByRole("link", { name: "Hủy" }));
 
-    expect(confirmSpy).toHaveBeenCalledOnce();
-    confirmSpy.mockRestore();
+    expect(
+      await screen.findByRole("alertdialog", { name: "Bỏ phần đang viết?" }),
+    ).toBeTruthy();
   });
 });

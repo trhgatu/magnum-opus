@@ -44,6 +44,7 @@ import { ProjectTargetEndEditor } from "@/features/project/components/project-ta
 import { useUnsavedChangesWarning } from "@/hooks/use-unsaved-changes-warning";
 import { notifySuccess } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import { useConfirmDiscard } from "@/hooks/use-confirm-discard";
 
 const isRevisionConflict = (code?: string) =>
   code === "PROJECT_REVISION_CONFLICT";
@@ -235,9 +236,6 @@ export function ProjectDetailDescription({
   );
 }
 
-const DISCARD_WARNING =
-  "Nội dung chưa được lưu. Đóng lúc này sẽ làm mất phần đang viết.";
-
 /** Nút Chỉnh sửa và sheet sửa tên/mô tả. Lưu đi qua cùng hàng đợi với các
  * ô sửa của Cycle, nên không bao giờ gửi một revision cũ. */
 export function ProjectEditAction() {
@@ -254,7 +252,7 @@ export function ProjectEditAction() {
   const isDirty =
     open &&
     (title !== project.title || description !== (project.description ?? ""));
-  useUnsavedChangesWarning(isDirty);
+  const leaveDialog = useUnsavedChangesWarning(isDirty);
 
   const resetTo = (latest: ProjectResponse) => {
     setTitle(latest.title);
@@ -277,8 +275,10 @@ export function ProjectEditAction() {
     setOpen(true);
   };
 
-  const requestClose = () => {
-    if (isDirty && !window.confirm(DISCARD_WARNING)) return;
+  const { confirmDiscard, discardDialog } = useConfirmDiscard();
+
+  const requestClose = async () => {
+    if (isDirty && !(await confirmDiscard())) return;
     setOpen(false);
   };
 
@@ -389,6 +389,8 @@ export function ProjectEditAction() {
           </form>
         </SheetContent>
       </Sheet>
+      {discardDialog}
+      {leaveDialog}
     </>
   );
 }

@@ -19,6 +19,7 @@ import { HabitLifecycleControls } from "@/features/habit/components/habit-lifecy
 import { formatHabitFrequency } from "@/features/habit/lib/habit-frequency";
 import { formatQuitStartedAt } from "@/features/habit/lib/habit-quit";
 import { cn } from "@/lib/utils";
+import { useConfirmDiscard } from "@/hooks/use-confirm-discard";
 
 // Form kéo theo Select, Calendar và date-fns: chỉ cần khi mở sheet, nên
 // không nằm trong JS tải lần đầu của trang chi tiết.
@@ -39,9 +40,6 @@ const HabitEditor = dynamic(
 
 const loadHabitEditor = () =>
   import("@/features/habit/components/habit-editor");
-
-const DISCARD_WARNING =
-  "Nội dung chưa được lưu. Đóng lúc này sẽ làm mất phần đang viết.";
 
 /**
  * Tên, mô tả, nút Chỉnh sửa và nút Lưu trữ đọc chung một bản `habit`: lưu
@@ -86,8 +84,10 @@ export function HabitEditProvider({
     setIsDirty(false);
   };
 
-  const requestClose = () => {
-    if (isDirty && !window.confirm(DISCARD_WARNING)) return;
+  const { confirmDiscard, discardDialog } = useConfirmDiscard();
+
+  const requestClose = async () => {
+    if (isDirty && !(await confirmDiscard())) return;
     close();
   };
 
@@ -122,6 +122,7 @@ export function HabitEditProvider({
           </div>
         </SheetContent>
       </Sheet>
+      {discardDialog}
     </HabitEditContext.Provider>
   );
 }

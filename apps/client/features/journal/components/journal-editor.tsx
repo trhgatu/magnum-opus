@@ -113,7 +113,7 @@ export function JournalEditor({
     saveState === "remote_state"
       ? saveState
       : undefined;
-  useUnsavedChangesWarning(isDirty);
+  const leaveDialog = useUnsavedChangesWarning(isDirty);
 
   const saveNow = useCallback(() => {
     setLifecycleMessage(undefined);
@@ -246,6 +246,7 @@ export function JournalEditor({
           : ""
       }
     >
+      {leaveDialog}
       <div className="flex flex-col gap-5">
         <JournalEditorToolbar
           state={entry.state}

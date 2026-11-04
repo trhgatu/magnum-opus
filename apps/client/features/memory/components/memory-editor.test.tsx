@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -559,19 +560,23 @@ describe("MemoryEditor", () => {
     expect(onDirtyChange).toHaveBeenLastCalledWith(true);
   });
 
-  it("warns about leaving the create form once something is typed", () => {
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+  it("warns about leaving the create form once something is typed", async () => {
     render(<MemoryEditor />);
 
     fireEvent.click(screen.getByRole("link", { name: "Hủy" }));
-    expect(confirmSpy).not.toHaveBeenCalled();
+    // Hộp thoại tải lười: đợi chunk xong rồi mới khẳng định là nó không hiện.
+    await act(async () => {
+      await import("@/components/system/discard-dialog");
+    });
+    expect(screen.queryByRole("alertdialog")).toBeNull();
 
     fireEvent.change(screen.getByLabelText("Nội dung"), {
       target: { value: "Một câu vừa được thêm vào." },
     });
     fireEvent.click(screen.getByRole("link", { name: "Hủy" }));
 
-    expect(confirmSpy).toHaveBeenCalledOnce();
-    confirmSpy.mockRestore();
+    expect(
+      await screen.findByRole("alertdialog", { name: "Bỏ phần đang viết?" }),
+    ).toBeTruthy();
   });
 });

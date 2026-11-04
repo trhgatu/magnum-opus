@@ -3,6 +3,7 @@
 import "@testing-library/jest-dom/vitest";
 
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -290,19 +291,23 @@ describe("RoutineEditor", () => {
     expect(onDirtyChange).toHaveBeenLastCalledWith(true);
   });
 
-  it("warns about leaving the create form once something is typed", () => {
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+  it("warns about leaving the create form once something is typed", async () => {
     render(<RoutineEditor />);
 
     fireEvent.click(screen.getByRole("link", { name: "Hủy" }));
-    expect(confirmSpy).not.toHaveBeenCalled();
+    // Hộp thoại tải lười: đợi chunk xong rồi mới khẳng định là nó không hiện.
+    await act(async () => {
+      await import("@/components/system/discard-dialog");
+    });
+    expect(screen.queryByRole("alertdialog")).toBeNull();
 
     fireEvent.change(screen.getByLabelText("Tên Nếp sinh hoạt"), {
       target: { value: "Evening ritual" },
     });
     fireEvent.click(screen.getByRole("link", { name: "Hủy" }));
 
-    expect(confirmSpy).toHaveBeenCalledOnce();
-    confirmSpy.mockRestore();
+    expect(
+      await screen.findByRole("alertdialog", { name: "Bỏ phần đang viết?" }),
+    ).toBeTruthy();
   });
 });

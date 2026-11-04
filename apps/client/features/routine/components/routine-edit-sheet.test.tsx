@@ -2,11 +2,13 @@
 
 import type { RoutineDetailResponse } from "@repo/contracts";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import {
   afterEach,
@@ -143,7 +145,6 @@ describe("RoutineEditProvider", () => {
   });
 
   it("asks before throwing away an unsaved name", async () => {
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
     renderDetail();
 
     fireEvent.click(screen.getByRole("button", { name: "Chỉnh sửa" }));
@@ -152,26 +153,38 @@ describe("RoutineEditProvider", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Hủy" }));
 
-    expect(confirmSpy).toHaveBeenCalledOnce();
-    screen.getByRole("dialog");
+    fireEvent.click(
+      within(
+        await screen.findByRole("alertdialog", { name: "Bỏ phần đang viết?" }),
+      ).getByRole("button", { name: "Tiếp tục sửa" }),
+    );
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
+    // Sheet vẫn mở với chữ đang gõ.
+    expect(
+      (screen.getByLabelText("Tên Nếp sinh hoạt") as HTMLInputElement).value,
+    ).toBe("Tên đang viết dở");
 
-    confirmSpy.mockReturnValue(true);
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
-
-    expect(screen.queryByRole("dialog")).toBeNull();
-    confirmSpy.mockRestore();
+    fireEvent.click(
+      within(
+        await screen.findByRole("alertdialog", { name: "Bỏ phần đang viết?" }),
+      ).getByRole("button", { name: "Bỏ thay đổi" }),
+    );
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 
   it("closes without asking when nothing changed", async () => {
-    const confirmSpy = vi.spyOn(window, "confirm");
     renderDetail();
 
     fireEvent.click(screen.getByRole("button", { name: "Chỉnh sửa" }));
     fireEvent.click(await screen.findByRole("button", { name: "Hủy" }));
 
-    expect(confirmSpy).not.toHaveBeenCalled();
-    expect(screen.queryByRole("dialog")).toBeNull();
-    confirmSpy.mockRestore();
+    // Hộp thoại tải lười: đợi chunk xong rồi mới khẳng định là nó không hiện.
+    await act(async () => {
+      await import("@/components/system/discard-dialog");
+    });
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 
   it("keeps the typed name when the page refreshes underneath the sheet", async () => {
