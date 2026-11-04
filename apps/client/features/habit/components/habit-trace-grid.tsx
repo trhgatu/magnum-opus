@@ -93,7 +93,8 @@ export function HabitTraceGrid({
             <div
               key={weekIndex}
               aria-hidden="true"
-              className="flex flex-col gap-1.5"
+              // Cột rộng đúng bằng ô: nhãn "Th 10" tràn sang phải, không đẩy lưới.
+              className="flex w-[22px] flex-col gap-1.5"
             >
               <span className="h-4 font-mono text-[11px] whitespace-nowrap text-muted-foreground">
                 {week.monthLabel}

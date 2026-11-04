@@ -73,6 +73,17 @@ describe("tallyHabitTrace and describeHabitTrace", () => {
     "PENDING",
   ]);
 
+  it("leaves out the today clause once today is marked", () => {
+    const marked = [
+      ...days.slice(0, -1),
+      { ...days.at(-1)!, mark: "DONE" as const },
+    ];
+
+    expect(describeHabitTrace("BUILD", marked)).toBe(
+      "13 tuần gần nhất: 4 buổi đã ghi dấu, 1 buổi bỏ lỡ",
+    );
+  });
+
   it("counts done and missed days", () => {
     expect(tallyHabitTrace(days)).toEqual({ done: 3, missed: 1 });
   });

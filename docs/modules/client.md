@@ -165,11 +165,12 @@ Conflict không tự retry PUT vì retry cùng revision chắc chắn tiếp t�
 Habit là vertical slice đầu tiên của không gian Forge trên client, hỗ trợ cả hai loại Habit: BUILD (xây dựng, check-in theo tần suất) và QUIT (từ bỏ, ghi nhận relapse). Bốn route được giữ mỏng, mỗi route tự branching theo `type`:
 
 ```text
-/habits              collection, search, status, sort, pagination, filter theo type
+/habits              Đang rèn: nhóm theo việc hôm nay, dải 7 ngày, chuỗi
+                     (GET /habits/overview); Đã lưu trữ: phân trang; search
 /habits/new          tạo Habit — chọn type (BUILD/QUIT) qua HabitEditor
-/habits/:id          detail: BUILD hiện check-in hôm nay + heatmap;
-                     QUIT hiện HabitRelapseControl + progress ("bao lâu
-                     không tái phạm"); cả hai đều có archive/restore
+/habits/:id          detail: thẻ chuỗi, khối Hôm nay (BUILD ghi dấu, QUIT
+                     "Tôi đã tái phạm"), lưới 13 tuần
+                     (GET /habits/:id/overview); cả hai có archive/restore
 /habits/:id/edit     chỉnh sửa Habit đang active (field theo type hiện tại)
 ```
 
@@ -289,4 +290,4 @@ Client hiện không cần Zustand global store hoặc TanStack Query. Chỉ th�
 
 ## Tests
 
-Unit tests kiểm tra URL helpers, environment/session crypto, API error normalization, Server Actions và hooks. Component tests dùng jsdom cho interaction/recovery. Habit có test riêng cho canonical URL, weekly frequency, khoảng heatmap, accessible summary, check-in dùng ngày backend trả và relapse confirmation flow (`HabitRelapseControl`). Playwright E2E chứng minh auth, Journal, Mood, Memory và toàn bộ Habit lifecycle (cả BUILD và QUIT-type) qua BFF thật; browser không gọi trực tiếp NestJS origin. Backend E2E kiểm tra ownership, stale revision, idempotency và timezone boundary.
+Unit tests kiểm tra URL helpers, environment/session crypto, API error normalization, Server Actions và hooks. Component tests dùng jsdom cho interaction/recovery. Habit có test riêng cho canonical URL, weekly frequency, nhóm danh sách, dải 7 ngày và lưới 13 tuần (bố cục tuần, nhãn tháng, accessible summary), ghi dấu lạc quan (`useHabitCheckIn`) và relapse confirmation flow (`HabitRelapseControl`). Playwright E2E chứng minh auth, Journal, Mood, Memory và toàn bộ Habit lifecycle (cả BUILD và QUIT-type) qua BFF thật; browser không gọi trực tiếp NestJS origin. Backend E2E kiểm tra ownership, stale revision, idempotency và timezone boundary.

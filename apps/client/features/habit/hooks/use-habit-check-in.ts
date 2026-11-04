@@ -17,7 +17,7 @@ type CheckInHabit = Pick<
  */
 export function useHabitCheckIn(
   habit: CheckInHabit,
-  { onSaved }: { onSaved?: () => void } = {},
+  { onBeforeRefresh }: { onBeforeRefresh?: () => void } = {},
 ) {
   const router = useRouter();
   const [checked, setChecked] = useOptimistic(habit.checkedInToday);
@@ -44,6 +44,12 @@ export function useHabitCheckIn(
           index === days.length - 1 ? { ...day, mark: todayMark } : day,
         );
 
+  // Mọi nhánh đều đọc lại từ server; dòng có thể chuyển nhóm sau đó.
+  const reload = () => {
+    onBeforeRefresh?.();
+    router.refresh();
+  };
+
   const toggle = () => {
     setMessage(undefined);
     startTransition(async () => {
@@ -56,16 +62,15 @@ export function useHabitCheckIn(
         if (result.status === "error") {
           setMessage(result.message);
           // Có thể đã ghi được mà chỉ bước đọc lại lỗi: lấy lại từ server.
-          router.refresh();
+          reload();
           return;
         }
       } catch {
         setMessage("Không thể ghi dấu lúc này. Thử lại sau.");
-        router.refresh();
+        reload();
         return;
       }
-      onSaved?.();
-      router.refresh();
+      reload();
     });
   };
 

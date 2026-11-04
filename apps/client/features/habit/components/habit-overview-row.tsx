@@ -55,7 +55,7 @@ export function HabitOverviewRow({
   const ringRef = useRef<HTMLButtonElement>(null);
   const { checked, streak, withToday, message, isPending, toggle } =
     useHabitCheckIn(habit, {
-      onSaved: () => {
+      onBeforeRefresh: () => {
         if (ringRef.current === document.activeElement) {
           focusAfterMove = habit.id;
         }
