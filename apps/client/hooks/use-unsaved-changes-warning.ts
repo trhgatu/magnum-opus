@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { type ReactNode, useEffect } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 
 import { useConfirmDiscard } from "@/hooks/use-confirm-discard";
 
@@ -12,6 +12,13 @@ import { useConfirmDiscard } from "@/hooks/use-confirm-discard";
  */
 export function useUnsavedChangesWarning(enabled: boolean): ReactNode {
   const router = useRouter();
+  // Ref, không phải biến trong effect: effect có thể chạy lại giữa lúc hỏi
+  // và lúc bấm lại link, listener mới vẫn phải thấy cờ này.
+  const replayingRef = useRef(false);
+  const routerRef = useRef(router);
+  useEffect(() => {
+    routerRef.current = router;
+  }, [router]);
   const { confirmDiscard, discardDialog } = useConfirmDiscard(
     "Nội dung chưa được lưu. Rời trang lúc này sẽ làm mất phần đang viết.",
   );
@@ -25,6 +32,12 @@ export function useUnsavedChangesWarning(enabled: boolean): ReactNode {
     };
 
     const guardInternalLink = (event: MouseEvent) => {
+      // Bấm lại link sau khi người dùng chọn bỏ: lần đó cho qua, để Link và
+      // các onClick của nó (vd đóng menu) chạy như bình thường.
+      if (replayingRef.current) {
+        replayingRef.current = false;
+        return;
+      }
       if (
         event.defaultPrevented ||
         event.button !== 0 ||
@@ -59,8 +72,13 @@ export function useUnsavedChangesWarning(enabled: boolean): ReactNode {
       event.preventDefault();
       event.stopImmediatePropagation();
       void confirmDiscard().then((discard) => {
-        if (discard) {
-          router.push(
+        if (!discard) return;
+        if (anchor.isConnected) {
+          replayingRef.current = true;
+          anchor.click();
+        } else {
+          // Link đã biến mất (vd menu đóng lại khi hộp thoại mở): đi thẳng.
+          routerRef.current.push(
             `${destination.pathname}${destination.search}${destination.hash}`,
           );
         }
@@ -73,7 +91,7 @@ export function useUnsavedChangesWarning(enabled: boolean): ReactNode {
       window.removeEventListener("beforeunload", warnBeforeUnload);
       document.removeEventListener("click", guardInternalLink, true);
     };
-  }, [enabled, confirmDiscard, router]);
+  }, [enabled, confirmDiscard]);
 
   return discardDialog;
 }

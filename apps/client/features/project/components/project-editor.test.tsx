@@ -3,6 +3,7 @@
 import "@testing-library/jest-dom/vitest";
 
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -86,11 +87,15 @@ describe("ProjectEditor", () => {
     expect(push).not.toHaveBeenCalled();
   });
 
-  it("does not warn about leaving before anything is typed", () => {
+  it("does not warn about leaving before anything is typed", async () => {
     render(<ProjectEditor />);
 
     fireEvent.click(screen.getByRole("link", { name: "Hủy" }));
 
+    // Hộp thoại tải lười: đợi chunk xong rồi mới khẳng định là nó không hiện.
+    await act(async () => {
+      await import("@/components/system/discard-dialog");
+    });
     expect(screen.queryByRole("alertdialog")).toBeNull();
   });
 

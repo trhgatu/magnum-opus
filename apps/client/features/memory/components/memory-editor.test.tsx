@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -563,6 +564,10 @@ describe("MemoryEditor", () => {
     render(<MemoryEditor />);
 
     fireEvent.click(screen.getByRole("link", { name: "Hủy" }));
+    // Hộp thoại tải lười: đợi chunk xong rồi mới khẳng định là nó không hiện.
+    await act(async () => {
+      await import("@/components/system/discard-dialog");
+    });
     expect(screen.queryByRole("alertdialog")).toBeNull();
 
     fireEvent.change(screen.getByLabelText("Nội dung"), {

@@ -13,15 +13,17 @@ import {
 
 /** Hỏi trước khi bỏ phần đang viết. Tải lười qua `useConfirmDiscard`. */
 export default function DiscardDialog({
+  open,
   description,
   onSettle,
 }: {
+  open: boolean;
   description: string;
   onSettle: (discard: boolean) => void;
 }) {
   return (
     <AlertDialog
-      open
+      open={open}
       onOpenChange={(next) => {
         if (!next) onSettle(false);
       }}

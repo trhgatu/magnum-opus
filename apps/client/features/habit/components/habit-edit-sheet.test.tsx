@@ -2,6 +2,7 @@
 
 import type { HabitResponse } from "@repo/contracts";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -196,6 +197,10 @@ describe("HabitEditProvider", () => {
     fireEvent.click(screen.getByRole("button", { name: "Chỉnh sửa" }));
     fireEvent.click(await screen.findByRole("button", { name: "Hủy" }));
 
+    // Hộp thoại tải lười: đợi chunk xong rồi mới khẳng định là nó không hiện.
+    await act(async () => {
+      await import("@/components/system/discard-dialog");
+    });
     expect(screen.queryByRole("alertdialog")).toBeNull();
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });

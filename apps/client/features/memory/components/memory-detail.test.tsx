@@ -136,6 +136,10 @@ describe("MemoryDetail", () => {
     );
     await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
     screen.getByRole("dialog");
+    // Phần đang viết vẫn còn.
+    expect(
+      (screen.getByLabelText("Nội dung") as HTMLTextAreaElement).value,
+    ).toBe("Bản nháp");
   });
 
   it("shows the update time in the account time zone", () => {

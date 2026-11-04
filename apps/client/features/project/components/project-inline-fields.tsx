@@ -327,7 +327,6 @@ export function ProjectEditAction() {
   return (
     <>
       <Button type="button" variant="outline" onClick={openSheet}>
-        {leaveDialog}
         <Pencil aria-hidden="true" /> Chỉnh sửa
       </Button>
       <Sheet
@@ -391,6 +390,7 @@ export function ProjectEditAction() {
         </SheetContent>
       </Sheet>
       {discardDialog}
+      {leaveDialog}
     </>
   );
 }
