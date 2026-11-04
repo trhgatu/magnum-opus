@@ -1,118 +1,106 @@
-import { CalendarCheck2, Clock3 } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Suspense } from "react";
 
-import { ContextHero } from "@/components/system/context-hero";
-import { EmptyState } from "@/components/system/empty-state";
-import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
 import { getCurrentUser } from "@/features/account/api/current-user";
 import { TimeZoneMismatchNotice } from "@/features/account/components/time-zone-mismatch-notice";
+import { getHabitOverview } from "@/features/habit/api/habit";
 import { getToday } from "@/features/today/api/today";
-import { TodayBoard } from "@/features/today/components/today-board";
+import { TodayRhythm } from "@/features/today/components/today-rhythm";
 import {
-  TodayBoardSkeleton,
-  TodayMetaSkeleton,
+  TodayRhythmSkeleton,
+  TodaySummarySkeleton,
 } from "@/features/today/components/today-skeletons";
+import {
+  formatTodayLabel,
+  greetingAt,
+  todayHabits,
+} from "@/features/today/lib/today-plan";
 
 export const metadata: Metadata = {
   title: "Hôm nay",
   robots: { index: false, follow: false },
 };
 
-async function TodayMeta({
-  todayPromise,
-}: {
-  todayPromise: ReturnType<typeof getToday>;
-}) {
-  const today = await todayPromise;
+type Load = Promise<
+  [
+    Awaited<ReturnType<typeof getToday>>,
+    Awaited<ReturnType<typeof getHabitOverview>>,
+  ]
+>;
+
+async function Summary({ load }: { load: Load }) {
+  const [today, overview] = await load;
+  const habits = todayHabits(today, overview.habits);
+  if (habits.length === 0) return <>Hôm nay không có việc nào trong nhịp.</>;
+  const left = habits.filter((habit) => !habit.checkedInToday).length;
   return (
     <>
-      <Badge variant="outline">
-        <CalendarCheck2 aria-hidden="true" />
-        <span className="font-mono">{today.date}</span>
-      </Badge>
-      <Badge variant="secondary">
-        <Clock3 aria-hidden="true" />
-        {today.timeZone}
-      </Badge>
+      {habits.length} việc trong nhịp hôm nay ·{" "}
+      {left > 0 ? `còn ${left} việc chờ ghi dấu.` : "đã ghi dấu hết."}
     </>
   );
 }
 
-async function TodayTimeZoneNotice({
-  todayPromise,
-}: {
-  todayPromise: ReturnType<typeof getToday>;
-}) {
-  // getCurrentUser() đã được layout gọi trong cùng request (React cache),
-  // nên không thêm round-trip nào.
-  const [today, user] = await Promise.all([todayPromise, getCurrentUser()]);
+async function Rhythm({ load }: { load: Load }) {
+  const [today, overview] = await load;
+  return <TodayRhythm today={today} overview={overview} />;
+}
+
+async function TimeZoneNotice() {
+  // getCurrentUser() đã được layout gọi trong cùng request (React cache).
+  const user = await getCurrentUser();
   return (
-    <TimeZoneMismatchNotice userId={user.id} accountTimeZone={today.timeZone} />
+    <TimeZoneMismatchNotice userId={user.id} accountTimeZone={user.timeZone} />
   );
 }
 
-async function TodayBody({
-  todayPromise,
-}: {
-  todayPromise: ReturnType<typeof getToday>;
-}) {
-  const today = await todayPromise;
-
-  if (today.emptyReason === "NO_ACTIVE_HABITS") {
-    return (
-      <EmptyState
-        title="Chưa có Thói quen đang hoạt động"
-        description="Tạo một Thói quen để bắt đầu đặt nhịp thực hành vào từng ngày."
-        action={
-          <Link href="/habits/new" className={buttonVariants()}>
-            Tạo Thói quen
-          </Link>
-        }
-      />
-    );
-  }
-
-  if (today.emptyReason === "NOTHING_DUE") {
-    return (
-      <EmptyState
-        title="Hôm nay không có thực hành đến lịch"
-        description="Không cần thêm gì vào ngày này. Các Thói quen sẽ trở lại theo lịch đã đặt."
-      />
-    );
-  }
-
-  return <TodayBoard key={today.date} today={today} />;
+/** Hai bản chụp phải cùng một ngày; qua nửa đêm giữa hai lần đọc thì đọc lại. */
+async function loadDay(): Load {
+  const first = await Promise.all([getToday(), getHabitOverview()]);
+  if (first[0].date === first[1].date) return first;
+  return Promise.all([getToday(), getHabitOverview()]);
 }
 
 export default async function TodayPage() {
-  // Một promise dùng chung cho cả badge ngày/giờ lẫn board — apiFetch
-  // không dedupe theo URL (x-correlation-id random mỗi lần), nên gọi lại
-  // getToday() ở hai nơi sẽ tốn 2 round-trip thật thay vì được cache lại.
-  const todayPromise = getToday();
+  const user = await getCurrentUser();
+  // Lịch hôm nay (thứ tự theo Nếp) và tổng quan (vòng, 7 ngày, chuỗi) tải
+  // song song; dùng chung một promise cho câu tóm tắt lẫn danh sách.
+  const load: Load = loadDay();
+  const now = new Date();
+  const todayDate = new Intl.DateTimeFormat("en-CA", {
+    timeZone: user.timeZone,
+  }).format(now);
 
   return (
-    <section className="flex flex-col gap-7" aria-labelledby="today-heading">
-      <ContextHero
-        id="today-heading"
-        icon={CalendarCheck2}
-        eyebrow="Forge · Hôm nay"
-        title="Hôm nay"
-        description="Những Thói quen đến lịch được đặt theo Nếp sinh hoạt, cùng trạng thái ghi dấu của ngày hiện tại."
-        meta={
-          <Suspense fallback={<TodayMetaSkeleton />}>
-            <TodayMeta todayPromise={todayPromise} />
+    <section
+      className="flex max-w-3xl flex-col gap-10"
+      aria-labelledby="today-heading"
+    >
+      <header className="flex flex-col gap-3.5">
+        <p className="font-mono text-[11px] font-medium tracking-[0.16em] text-primary uppercase">
+          {formatTodayLabel(todayDate)}
+        </p>
+        <h1
+          id="today-heading"
+          className="font-display text-5xl leading-[1.02] font-normal tracking-[-0.025em] text-balance sm:text-[64px]"
+        >
+          {greetingAt(now, user.timeZone)}
+          <br />
+          <span className="text-primary italic">Hôm nay rèn điều gì?</span>
+        </h1>
+        <p className="text-base text-muted-foreground sm:text-[17px]">
+          <Suspense fallback={<TodaySummarySkeleton />}>
+            <Summary load={load} />
           </Suspense>
-        }
-      />
+        </p>
+      </header>
+
       <Suspense fallback={null}>
-        <TodayTimeZoneNotice todayPromise={todayPromise} />
+        <TimeZoneNotice />
       </Suspense>
 
-      <Suspense fallback={<TodayBoardSkeleton />}>
-        <TodayBody todayPromise={todayPromise} />
+      <Suspense fallback={<TodayRhythmSkeleton />}>
+        <Rhythm load={load} />
       </Suspense>
     </section>
   );
