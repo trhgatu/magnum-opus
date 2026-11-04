@@ -3,7 +3,6 @@
 import type {
   HabitCheckInTodayResponse,
   HabitFrequencyType,
-  HabitProgressResponse,
   HabitResponse,
 } from "@repo/contracts";
 import { revalidatePath } from "next/cache";
@@ -18,8 +17,7 @@ export type HabitMutationResult =
 export type HabitCheckInMutationResult =
   { status: "success"; today: HabitCheckInTodayResponse } | MutationError;
 
-export type HabitProgressMutationResult =
-  { status: "success"; progress: HabitProgressResponse | null } | MutationError;
+export type HabitRelapseMutationResult = { status: "success" } | MutationError;
 
 export type HabitFormInput =
   | {
@@ -210,7 +208,7 @@ export async function changeHabitCheckIn(input: {
 
 export async function logHabitRelapse(
   id: string,
-): Promise<HabitProgressMutationResult> {
+): Promise<HabitRelapseMutationResult> {
   if (!validId(id)) {
     return { status: "error", message: "Dữ liệu thói quen không hợp lệ." };
   }
@@ -221,19 +219,8 @@ export async function logHabitRelapse(
     return toMutationError(error);
   }
 
-  // Relapse đã ghi thành công và không thể hoàn tác (BR-HAB2-003) — từ
-  // đây trở đi không được coi là lỗi có thể "thử lại", vì thử lại sẽ tạo
-  // thêm một relapse mới. Nếu chỉ bước lấy progress mới nhất thất bại,
-  // vẫn báo thành công (progress: null) và để router.refresh() ở phía
-  // client tự đồng bộ lại số liệu.
+  // Không đọc lại progress: trang chi tiết lấy số ngày mới qua
+  // router.refresh() (tổng quan của Habit).
   revalidateHabit(id);
-
-  try {
-    const progress = await apiFetch<HabitProgressResponse>(
-      `/habits/${id}/progress`,
-    );
-    return { status: "success", progress };
-  } catch {
-    return { status: "success", progress: null };
-  }
+  return { status: "success" };
 }

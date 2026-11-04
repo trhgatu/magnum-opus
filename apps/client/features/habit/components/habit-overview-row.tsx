@@ -1,28 +1,14 @@
 "use client";
 
-import type { HabitDayMark, HabitOverviewItemResponse } from "@repo/contracts";
+import type { HabitOverviewItemResponse } from "@repo/contracts";
 import { ShieldOff } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import {
-  useEffect,
-  useOptimistic,
-  useRef,
-  useState,
-  useTransition,
-} from "react";
+import { useEffect, useRef } from "react";
 
-import { changeHabitCheckIn } from "@/features/habit/actions/habit";
+import { useHabitCheckIn } from "@/features/habit/hooks/use-habit-check-in";
+import { HABIT_DAY_MARK_CLASSES } from "@/features/habit/lib/habit-day-mark";
 import { describeLastSevenDays } from "@/features/habit/lib/habit-overview";
 import { cn } from "@/lib/utils";
-
-const MARK_CLASSES: Record<HabitDayMark, string> = {
-  DONE: "bg-trace-done",
-  MISSED: "border-[1.5px] border-trace-missed",
-  REST: "",
-  PENDING: "border-[1.5px] border-primary bg-ember-soft",
-  UNTRACKED: "",
-};
 
 function DayStrip({
   habit,
@@ -42,7 +28,7 @@ function DayStrip({
           key={day.date}
           className={cn(
             "grid size-3 place-items-center rounded-[3px] transition-colors duration-300",
-            MARK_CLASSES[day.mark],
+            HABIT_DAY_MARK_CLASSES[day.mark],
             index === lastIndex &&
               day.mark === "DONE" &&
               "ring-[1.5px] ring-primary",
@@ -57,22 +43,6 @@ function DayStrip({
   );
 }
 
-/** Hôm nay trong dải 7 ngày theo trạng thái ghi dấu đang hiển thị. */
-function withToday(
-  habit: HabitOverviewItemResponse,
-  checked: boolean,
-): HabitOverviewItemResponse["lastSevenDays"] {
-  if (checked === habit.checkedInToday) return habit.lastSevenDays;
-  const mark: HabitDayMark = checked
-    ? "DONE"
-    : habit.dueToday
-      ? "PENDING"
-      : "REST";
-  return habit.lastSevenDays.map((day, index, days) =>
-    index === days.length - 1 ? { ...day, mark } : day,
-  );
-}
-
 let focusAfterMove: string | null = null;
 
 export function HabitOverviewRow({
@@ -82,17 +52,17 @@ export function HabitOverviewRow({
   habit: HabitOverviewItemResponse;
   description: string;
 }) {
-  const router = useRouter();
-  const [checked, setChecked] = useOptimistic(habit.checkedInToday);
-  const [message, setMessage] = useState<string>();
-  const [isPending, startTransition] = useTransition();
   const ringRef = useRef<HTMLButtonElement>(null);
+  const { checked, streak, withToday, message, isPending, toggle } =
+    useHabitCheckIn(habit, {
+      onBeforeRefresh: () => {
+        if (ringRef.current === document.activeElement) {
+          focusAfterMove = habit.id;
+        }
+      },
+    });
   const isQuit = habit.type === "QUIT";
   const lit = checked || isQuit;
-  // Ghi dấu ngày không có lịch không cộng chuỗi (BR-HAB3-006).
-  const streak =
-    habit.currentStreak +
-    (habit.dueToday ? Number(checked) - Number(habit.checkedInToday) : 0);
 
   // Ghi dấu xong dòng chuyển nhóm và được dựng lại: trả focus về vòng.
   useEffect(() => {
@@ -101,30 +71,6 @@ export function HabitOverviewRow({
       ringRef.current?.focus();
     }
   }, [habit.id]);
-
-  const toggle = () => {
-    setMessage(undefined);
-    startTransition(async () => {
-      setChecked(!checked);
-      try {
-        const result = await changeHabitCheckIn({
-          id: habit.id,
-          action: checked ? "undo" : "check-in",
-        });
-        if (result.status === "error") {
-          setMessage(result.message);
-          return;
-        }
-      } catch {
-        setMessage("Không thể ghi dấu lúc này. Thử lại sau.");
-        return;
-      }
-      if (ringRef.current === document.activeElement) {
-        focusAfterMove = habit.id;
-      }
-      router.refresh();
-    });
-  };
 
   return (
     <li
@@ -191,7 +137,10 @@ export function HabitOverviewRow({
 
       <div className="flex items-center gap-4">
         <DayStrip
-          habit={{ type: habit.type, lastSevenDays: withToday(habit, checked) }}
+          habit={{
+            type: habit.type,
+            lastSevenDays: withToday(habit.lastSevenDays),
+          }}
         />
         <div className="flex w-16 flex-col items-end gap-0.5">
           <span

@@ -23,6 +23,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 const mutation = vi.mocked(logHabitRelapse);
+const HABIT_ID = "550e8400-e29b-41d4-a716-446655440000";
 
 describe("HabitRelapseControl", () => {
   beforeEach(() => {
@@ -32,77 +33,36 @@ describe("HabitRelapseControl", () => {
 
   afterEach(cleanup);
 
-  it("shows the current streak and requires confirmation before logging a relapse", async () => {
-    mutation.mockResolvedValue({
-      status: "success",
-      progress: {
-        habitId: "550e8400-e29b-41d4-a716-446655440000",
-        since: "2026-08-28",
-        sinceReason: "RELAPSE",
-        daysSince: 0,
-      },
-    });
-
-    render(
-      <HabitRelapseControl
-        habitId="550e8400-e29b-41d4-a716-446655440000"
-        initialProgress={{
-          habitId: "550e8400-e29b-41d4-a716-446655440000",
-          since: "2026-08-01",
-          sinceReason: "QUIT_STARTED_AT",
-          daysSince: 12,
-        }}
-      />,
-    );
-
-    expect(screen.getByText("12")).toBeTruthy();
-    expect(mutation).not.toHaveBeenCalled();
+  it("asks for confirmation, then logs and reloads the streak", async () => {
+    mutation.mockResolvedValue({ status: "success" });
+    render(<HabitRelapseControl habitId={HABIT_ID} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Tôi đã tái phạm" }));
+    expect(mutation).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Xác nhận tái phạm" }));
 
-    await waitFor(() => expect(screen.getByText("0")).toBeTruthy());
-    expect(mutation).toHaveBeenCalledWith(
-      "550e8400-e29b-41d4-a716-446655440000",
-    );
-    expect(refresh).toHaveBeenCalledOnce();
+    await waitFor(() => expect(refresh).toHaveBeenCalledOnce());
+    expect(mutation).toHaveBeenCalledWith(HABIT_ID);
+    expect(screen.queryByRole("alertdialog")).toBeNull();
   });
 
-  it("optimistically resets the streak to 0 when the relapse succeeds but refreshing progress fails", async () => {
-    mutation.mockResolvedValue({ status: "success", progress: null });
-
-    render(
-      <HabitRelapseControl
-        habitId="550e8400-e29b-41d4-a716-446655440000"
-        initialProgress={{
-          habitId: "550e8400-e29b-41d4-a716-446655440000",
-          since: "2026-08-01",
-          sinceReason: "QUIT_STARTED_AT",
-          daysSince: 12,
-        }}
-      />,
-    );
+  it("keeps the dialog open with the error when logging fails", async () => {
+    mutation.mockResolvedValue({
+      status: "error",
+      message: "Không thể ghi nhận lúc này.",
+    });
+    render(<HabitRelapseControl habitId={HABIT_ID} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Tôi đã tái phạm" }));
     fireEvent.click(screen.getByRole("button", { name: "Xác nhận tái phạm" }));
 
-    await waitFor(() => expect(screen.getByText("0")).toBeTruthy());
-    expect(screen.queryByText("12")).toBeNull();
+    expect(await screen.findByText("Không thể ghi nhận lúc này.")).toBeTruthy();
+    expect(screen.getByRole("alertdialog")).toBeTruthy();
+    expect(refresh).not.toHaveBeenCalled();
   });
 
   it("does not open the confirm dialog for an archived Habit", () => {
-    render(
-      <HabitRelapseControl
-        habitId="550e8400-e29b-41d4-a716-446655440000"
-        initialProgress={{
-          habitId: "550e8400-e29b-41d4-a716-446655440000",
-          since: "2026-08-01",
-          sinceReason: "QUIT_STARTED_AT",
-          daysSince: 12,
-        }}
-        disabled
-      />,
-    );
+    render(<HabitRelapseControl habitId={HABIT_ID} disabled />);
 
     fireEvent.click(screen.getByRole("button", { name: "Tôi đã tái phạm" }));
     expect(

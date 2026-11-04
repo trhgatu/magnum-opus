@@ -43,13 +43,15 @@ test("completes the private Habit lifecycle through the BFF", async ({
   await expect(page.getByText("T2 · T4 · T6")).toBeVisible();
   await expect(page.getByText(`Đã tạo "${title}"`)).toBeVisible();
 
-  await page.getByRole("button", { name: "Hoàn thành hôm nay" }).click();
+  // Ghi dấu rồi hoàn tác ngay trên trang chi tiết.
+  const checkIn = page.getByRole("button", { name: "Ghi dấu hôm nay" });
+  await checkIn.click();
+  await expect(checkIn).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByText(/^Đã ghi dấu lúc \d{2}:\d{2}\.$/)).toBeVisible();
+  await checkIn.click();
+  await expect(checkIn).toHaveAttribute("aria-pressed", "false");
   await expect(
-    page.getByRole("button", { name: "Hoàn tác hôm nay" }),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "Hoàn tác hôm nay" }).click();
-  await expect(
-    page.getByRole("button", { name: "Hoàn thành hôm nay" }),
+    page.getByRole("heading", { name: "Dấu vết 13 tuần" }),
   ).toBeVisible();
 
   await page.getByRole("button", { name: "Chỉnh sửa" }).click();
@@ -97,13 +99,15 @@ test("completes the private QUIT-type Habit lifecycle through the BFF", async ({
 
   await expect(page).toHaveURL(/\/habits\/[0-9a-f-]+$/);
   await expect(page.getByRole("heading", { name: title })).toBeVisible();
-  await expect(page.getByText("Tiến độ từ bỏ")).toBeVisible();
   await expect(page.getByText(`Đã tạo "${title}"`)).toBeVisible();
 
   // Không có nhịp check-in hằng ngày cho QUIT-type.
   await expect(
-    page.getByRole("button", { name: "Hoàn thành hôm nay" }),
+    page.getByRole("button", { name: "Ghi dấu hôm nay" }),
   ).toHaveCount(0);
+  await expect(
+    page.getByText("ngày không tái phạm", { exact: true }),
+  ).toBeVisible();
 
   await page.getByRole("button", { name: "Tôi đã tái phạm" }).click();
   await page.getByRole("button", { name: "Xác nhận tái phạm" }).click();

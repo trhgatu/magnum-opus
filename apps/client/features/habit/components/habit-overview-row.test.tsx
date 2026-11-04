@@ -133,7 +133,8 @@ describe("HabitOverviewRow", () => {
     await waitFor(() =>
       expect(ring()).toHaveAttribute("aria-pressed", "false"),
     );
-    expect(refresh).not.toHaveBeenCalled();
+    // Lỗi vẫn đọc lại từ server: có thể đã ghi được.
+    expect(refresh).toHaveBeenCalledOnce();
   });
 
   it("explains when the request itself fails", async () => {
