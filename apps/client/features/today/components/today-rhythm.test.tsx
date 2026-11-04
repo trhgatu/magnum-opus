@@ -95,7 +95,15 @@ describe("TodayRhythm", () => {
     ).toEqual(["Ghi dấu Thiền", "Ghi dấu Đọc sách"]);
     expect(screen.getByText("1 / 2 đã ghi dấu")).toBeInTheDocument();
     expect(screen.getByText("Bước 2 / 2")).toBeInTheDocument();
-    expect(screen.getByText("Tiếp theo: Đọc sách")).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", {
+        name: "1 trên 2 bước đã ghi dấu, tiếp theo: Đọc sách",
+      }),
+    ).toBeInTheDocument();
+    // Nhóm theo Nếp: tên Nếp là tiêu đề của nhóm.
+    expect(
+      screen.getByRole("heading", { name: "Khởi động ngày mới" }),
+    ).toBeInTheDocument();
   });
 
   it("offers to create a habit when there is none", () => {

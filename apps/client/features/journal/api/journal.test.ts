@@ -23,6 +23,16 @@ describe("Journal API adapter", () => {
     );
   });
 
+  it("asks for the newest pages first when sorting by creation", async () => {
+    apiFetch.mockResolvedValue({ data: [], meta: {} });
+
+    await getJournalEntries({ limit: 1, sortBy: "createdAt" });
+
+    expect(apiFetch).toHaveBeenCalledWith(
+      "/journal/entries?page=1&limit=1&sortBy=createdAt",
+    );
+  });
+
   it("loads one entry through its owner-scoped backend endpoint", async () => {
     apiFetch.mockResolvedValue({});
     await getJournalEntry("entry-id");

@@ -7,7 +7,11 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { HabitOverviewRow } from "@/features/habit/components/habit-overview-row";
 import { describeHabitOverview } from "@/features/habit/lib/habit-overview";
-import { routineProgress, todayHabits } from "@/features/today/lib/today-plan";
+import {
+  type RoutineProgress,
+  todayGroups,
+  todayHabits,
+} from "@/features/today/lib/today-plan";
 import { cn } from "@/lib/utils";
 
 const STEP_CLASSES = {
@@ -16,28 +20,26 @@ const STEP_CLASSES = {
   todo: "bg-muted",
 } as const;
 
-function RoutineCard({
-  progress,
-}: {
-  progress: ReturnType<typeof routineProgress>;
-}) {
+function GroupHeader({ progress }: { progress: RoutineProgress }) {
   const finished = progress.next === null;
   return (
-    <li className="flex flex-col gap-3 rounded-2xl border bg-card px-5 py-4">
+    <div className="flex flex-col gap-2">
       <div className="flex items-baseline justify-between gap-3">
-        <Link
-          href={`/routines/${progress.id}`}
-          className="rounded-sm font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          {progress.title}
-        </Link>
+        <h3 className="font-medium">
+          <Link
+            href={`/routines/${progress.id}`}
+            className="rounded-sm hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {progress.title}
+          </Link>
+        </h3>
         <span className="font-mono text-xs text-primary tabular-nums">
           {finished ? "Xong" : `Bước ${progress.nextStep} / ${progress.total}`}
         </span>
       </div>
       <div
         role="img"
-        aria-label={`${progress.done} trên ${progress.total} bước đã ghi dấu`}
+        aria-label={`${progress.done} trên ${progress.total} bước đã ghi dấu${finished ? "" : `, tiếp theo: ${progress.next}`}`}
         className="grid gap-1.5"
         style={{
           gridTemplateColumns: `repeat(${progress.total}, minmax(0, 1fr))`,
@@ -50,14 +52,11 @@ function RoutineCard({
           />
         ))}
       </div>
-      <p className="text-[13px] text-muted-foreground">
-        {finished ? "Đã đi hết nếp hôm nay." : `Tiếp theo: ${progress.next}`}
-      </p>
-    </li>
+    </div>
   );
 }
 
-/** Nhịp hôm nay: việc cần ghi dấu, rồi tiến độ của từng Nếp sinh hoạt. */
+/** Nhịp hôm nay: việc cần ghi dấu, nhóm theo Nếp sinh hoạt kèm tiến độ. */
 export function TodayRhythm({
   today,
   overview,
@@ -67,9 +66,8 @@ export function TodayRhythm({
 }) {
   const habits = todayHabits(today, overview.habits);
   const done = habits.filter((habit) => habit.checkedInToday).length;
-  const routines = today.routines
-    .map((routine) => routineProgress(routine, overview.habits))
-    .filter((routine) => routine.total > 0);
+  const groups = todayGroups(today, overview.habits);
+  const grouped = groups.some((group) => group.routine !== null);
   const context = { today: overview.date, timeZone: overview.timeZone };
 
   return (
@@ -89,15 +87,30 @@ export function TodayRhythm({
       </div>
 
       {habits.length > 0 ? (
-        <ul className="flex flex-col gap-2">
-          {habits.map((habit) => (
-            <HabitOverviewRow
-              key={habit.id}
-              habit={habit}
-              description={describeHabitOverview(habit, context)}
-            />
+        <div className="flex flex-col gap-7">
+          {groups.map((group) => (
+            <div key={group.key} className="flex flex-col gap-3">
+              {group.routine ? (
+                <GroupHeader progress={group.routine} />
+              ) : grouped || group.key === "extra" ? (
+                <h3 className="font-medium text-muted-foreground">
+                  {group.key === "extra" ? "Làm thêm hôm nay" : "Thói quen lẻ"}
+                </h3>
+              ) : null}
+              {group.items.length > 0 ? (
+                <ul className="flex flex-col gap-2">
+                  {group.items.map((habit) => (
+                    <HabitOverviewRow
+                      key={habit.id}
+                      habit={habit}
+                      description={describeHabitOverview(habit, context)}
+                    />
+                  ))}
+                </ul>
+              ) : null}
+            </div>
           ))}
-        </ul>
+        </div>
       ) : (
         <div className="flex flex-col items-start gap-3 rounded-2xl border border-dashed px-5 py-6">
           <p className="font-display text-xl">
@@ -112,14 +125,6 @@ export function TodayRhythm({
           ) : null}
         </div>
       )}
-
-      {routines.length > 0 ? (
-        <ul aria-label="Nếp sinh hoạt hôm nay" className="flex flex-col gap-3">
-          {routines.map((routine) => (
-            <RoutineCard key={routine.id} progress={routine} />
-          ))}
-        </ul>
-      ) : null}
     </section>
   );
 }

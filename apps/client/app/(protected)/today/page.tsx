@@ -4,12 +4,24 @@ import { Suspense } from "react";
 import { getCurrentUser } from "@/features/account/api/current-user";
 import { TimeZoneMismatchNotice } from "@/features/account/components/time-zone-mismatch-notice";
 import { getHabitOverview } from "@/features/habit/api/habit";
+import { getJournalEntries } from "@/features/journal/api/journal";
+import { getMemories } from "@/features/memory/api/memory";
+import { getProjects } from "@/features/project/api/project";
+import { getProjectActivity } from "@/features/project-activity/api/project-activity";
 import { getToday } from "@/features/today/api/today";
+import { TodayCrucible } from "@/features/today/components/today-crucible";
+import { TodayHolding } from "@/features/today/components/today-holding";
+import { TodayReflection } from "@/features/today/components/today-reflection";
 import { TodayRhythm } from "@/features/today/components/today-rhythm";
 import {
+  TodayCardSkeleton,
   TodayRhythmSkeleton,
   TodaySummarySkeleton,
 } from "@/features/today/components/today-skeletons";
+import {
+  journalEntryToday,
+  pickFocusProject,
+} from "@/features/today/lib/today-focus";
 import {
   formatTodayLabel,
   greetingAt,
@@ -41,9 +53,74 @@ async function Summary({ load }: { load: Load }) {
   );
 }
 
+async function Holding({ load }: { load: Load }) {
+  const [, overview] = await load;
+  return <TodayHolding habits={overview.habits} />;
+}
+
 async function Rhythm({ load }: { load: Load }) {
   const [today, overview] = await load;
   return <TodayRhythm today={today} overview={overview} />;
+}
+
+/** Một thẻ không tải được thì chỉ thẻ đó báo, trang Hôm nay vẫn dùng được. */
+function CardUnavailable({ title }: { title: string }) {
+  return (
+    <section className="flex h-full flex-col gap-2 rounded-3xl border border-dashed px-6 py-6">
+      <p className="font-mono text-[11px] font-medium tracking-[0.16em] text-muted-foreground uppercase">
+        {title}
+      </p>
+      <p className="text-sm text-muted-foreground">
+        Chưa tải được phần này. Tải lại trang để thử lại.
+      </p>
+    </section>
+  );
+}
+
+async function Crucible({
+  today,
+  timeZone,
+}: {
+  today: string;
+  timeZone: string;
+}) {
+  // API sắp theo ngày tạo: lấy tối đa (100) rồi tự chọn cái mới đụng tới.
+  const projects = await getProjects({ state: "ACTIVE", limit: 100 }).catch(
+    () => null,
+  );
+  if (!projects) return <CardUnavailable title="Crucible" />;
+  const project = pickFocusProject(projects.data);
+  return (
+    <TodayCrucible
+      project={project}
+      activityPromise={project ? getProjectActivity(project.id) : null}
+      today={today}
+      timeZone={timeZone}
+    />
+  );
+}
+
+async function Reflection({
+  today,
+  timeZone,
+}: {
+  today: string;
+  timeZone: string;
+}) {
+  const loaded = await Promise.all([
+    getJournalEntries({ limit: 1, sortBy: "createdAt" }),
+    getMemories({ limit: 1, sortBy: "createdAt", sortOrder: "desc" }),
+  ]).catch(() => null);
+  if (!loaded) return <CardUnavailable title="Reflection" />;
+  const [entries, memories] = loaded;
+  return (
+    <TodayReflection
+      entryToday={journalEntryToday(entries.data[0], today, timeZone)}
+      latestMemory={memories.data[0] ?? null}
+      today={today}
+      timeZone={timeZone}
+    />
+  );
 }
 
 async function TimeZoneNotice() {
@@ -72,11 +149,8 @@ export default async function TodayPage() {
   }).format(now);
 
   return (
-    <section
-      className="flex max-w-3xl flex-col gap-10"
-      aria-labelledby="today-heading"
-    >
-      <header className="flex flex-col gap-3.5">
+    <section className="flex flex-col gap-10" aria-labelledby="today-heading">
+      <header className="flex max-w-3xl flex-col gap-3.5">
         <p className="font-mono text-[11px] font-medium tracking-[0.16em] text-primary uppercase">
           {formatTodayLabel(todayDate)}
         </p>
@@ -93,11 +167,29 @@ export default async function TodayPage() {
             <Summary load={load} />
           </Suspense>
         </p>
+        <Suspense fallback={null}>
+          <Holding load={load} />
+        </Suspense>
       </header>
 
       <Suspense fallback={null}>
         <TimeZoneNotice />
       </Suspense>
+
+      {/* Hai thẻ ngắn đứng ngang, cao bằng nhau; mỗi thẻ tải riêng, Project
+          hay Reflection chậm không giữ cả trang. */}
+      <div className="grid gap-6 md:grid-cols-2">
+        <Suspense
+          fallback={<TodayCardSkeleton label="Đang tải Project đang luyện…" />}
+        >
+          <Crucible today={todayDate} timeZone={user.timeZone} />
+        </Suspense>
+        <Suspense
+          fallback={<TodayCardSkeleton label="Đang tải trang hôm nay…" />}
+        >
+          <Reflection today={todayDate} timeZone={user.timeZone} />
+        </Suspense>
+      </div>
 
       <Suspense fallback={<TodayRhythmSkeleton />}>
         <Rhythm load={load} />

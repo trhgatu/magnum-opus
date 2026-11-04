@@ -107,3 +107,78 @@ export function formatTodayLabel(date: string): string {
   }).format(day);
   return `${weekday.charAt(0).toLocaleUpperCase("vi")}${weekday.slice(1)} · ${dayMonth}`;
 }
+
+export interface TodayGroup {
+  /** id của Nếp, "standalone" (thói quen lẻ có lịch) hoặc "extra" (làm thêm ngoài lịch). */
+  key: string;
+  /** Nếp sinh hoạt của nhóm; null với nhóm thói quen lẻ và nhóm làm thêm. */
+  routine: RoutineProgress | null;
+  items: HabitOverviewItemResponse[];
+}
+
+/**
+ * Việc hôm nay nhóm theo Nếp sinh hoạt (theo thứ tự của Nếp), rồi nhóm
+ * thói quen lẻ. Habit thuộc nhiều Nếp chỉ hiện ở Nếp đầu tiên; tiến độ của
+ * các Nếp sau vẫn tính nó.
+ */
+export function todayGroups(
+  today: Pick<ForgeTodayResponse, "routines" | "standaloneHabits">,
+  overview: readonly HabitOverviewItemResponse[],
+): TodayGroup[] {
+  const ordered = todayHabits(today, overview);
+  const byId = new Map(ordered.map((habit) => [habit.id, habit]));
+  const placed = new Set<string>();
+  const groups: TodayGroup[] = [];
+
+  for (const routine of today.routines) {
+    const progress = routineProgress(routine, overview);
+    if (progress.total === 0) continue;
+    const items = routine.habits
+      .map((habit) => byId.get(habit.id))
+      .filter(
+        (habit): habit is HabitOverviewItemResponse =>
+          habit !== undefined && !placed.has(habit.id),
+      );
+    items.forEach((habit) => placed.add(habit.id));
+    groups.push({ key: routine.id, routine: progress, items });
+  }
+
+  const rest = ordered.filter((habit) => !placed.has(habit.id));
+  // Ghi dấu vào ngày nghỉ: không thuộc lịch hôm nay, kể cả khi Habit nằm
+  // trong một Nếp, nên tách khỏi thói quen lẻ có lịch.
+  const standalone = rest.filter((habit) => habit.dueToday);
+  const extra = rest.filter((habit) => !habit.dueToday);
+  if (standalone.length > 0)
+    groups.push({ key: "standalone", routine: null, items: standalone });
+  if (extra.length > 0)
+    groups.push({ key: "extra", routine: null, items: extra });
+  return groups;
+}
+
+export const HOLDING_LIMIT = 3;
+
+export const relapsedToday = (habit: HabitOverviewItemResponse) =>
+  habit.lastSevenDays.at(-1)?.mark === "MISSED";
+
+/**
+ * Thói quen Từ bỏ đáng nhắc nhất ở đầu trang: vừa tái phạm hôm nay trước,
+ * rồi chuỗi ngắn trước (dễ gãy nhất), cùng chuỗi thì theo tên. Phần vượt quá
+ * `limit` gom thành số "còn lại".
+ */
+export function holdingHighlights(
+  habits: readonly HabitOverviewItemResponse[],
+  limit = HOLDING_LIMIT,
+): { shown: HabitOverviewItemResponse[]; more: number } {
+  const quitting = habits
+    .filter((habit) => habit.type === "QUIT")
+    .sort(
+      (a, b) =>
+        Number(relapsedToday(b)) - Number(relapsedToday(a)) ||
+        a.currentStreak - b.currentStreak ||
+        a.title.localeCompare(b.title, "vi"),
+    );
+  return {
+    shown: quitting.slice(0, limit),
+    more: Math.max(0, quitting.length - limit),
+  };
+}

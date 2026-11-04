@@ -40,13 +40,27 @@ export function TodayRhythmSkeleton() {
   );
 }
 
+/** Chỗ của một thẻ cột phải (Crucible, Reflection) khi đang tải. */
+export function TodayCardSkeleton({ label }: { label: string }) {
+  return (
+    <div role="status" aria-live="polite">
+      <span className="sr-only">{label}</span>
+      <Skeleton aria-hidden="true" className="h-56 w-full rounded-3xl" />
+    </div>
+  );
+}
+
 export function TodayPageSkeleton() {
   return (
-    <div className="flex max-w-3xl flex-col gap-10">
-      <div aria-hidden="true" className="flex flex-col gap-3.5">
+    <div className="flex flex-col gap-10">
+      <div aria-hidden="true" className="flex max-w-3xl flex-col gap-3.5">
         <Skeleton className="h-3 w-40" />
         <Skeleton className="h-28 w-full max-w-xl" />
         <Skeleton className="h-5 w-72 max-w-full" />
+      </div>
+      <div aria-hidden="true" className="grid gap-6 md:grid-cols-2">
+        <Skeleton className="h-56 w-full rounded-3xl" />
+        <Skeleton className="h-56 w-full rounded-3xl" />
       </div>
       <TodayRhythmSkeleton />
     </div>
