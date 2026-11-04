@@ -181,6 +181,34 @@ describe("HabitOverviewRow", () => {
     expect(ring()).toHaveFocus();
   });
 
+  it("moves focus to the group title when the row lands in a folded group", async () => {
+    mutation.mockResolvedValue({
+      status: "success",
+      today: { date: "2026-11-02", checkedIn: true, checkIn: null },
+    });
+    const { unmount } = renderRow();
+    ring().focus();
+
+    fireEvent.click(ring());
+    await waitFor(() => expect(refresh).toHaveBeenCalledOnce());
+
+    // Refresh dựng lại dòng trong nhóm "Đã ghi dấu hôm nay" đang gập.
+    unmount();
+    render(
+      <details>
+        <summary>Đã ghi dấu hôm nay</summary>
+        <ul>
+          <HabitOverviewRow
+            habit={habit({ checkedInToday: true, currentStreak: 5 })}
+            description="Mỗi ngày"
+          />
+        </ul>
+      </details>,
+    );
+
+    expect(screen.getByText("Đã ghi dấu hôm nay")).toHaveFocus();
+  });
+
   it("shows QUIT habits without a check-in ring", () => {
     renderRow({ type: "QUIT", frequencyType: null, currentStreak: 23 });
 

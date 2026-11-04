@@ -1,15 +1,19 @@
+import type { HabitType } from "@repo/contracts";
+
 export const HABIT_STATUSES = ["ACTIVE", "ARCHIVED"] as const;
 
 export type HabitStatus = (typeof HABIT_STATUSES)[number];
 
 /**
- * Tab Đang rèn không phân trang, không sắp xếp (BA habit v3 DEC-HAB3-001);
- * `page` chỉ dùng ở tab Đã lưu trữ.
+ * Đang rèn chia hai tab Xây dựng / Từ bỏ, không phân trang, không sắp xếp
+ * (BA habit v3 DEC-HAB3-001); `page` chỉ dùng ở Đã lưu trữ, nơi không chia
+ * theo loại.
  */
 export interface HabitLocation {
   page?: number;
   search?: string;
   status?: HabitStatus;
+  type?: HabitType;
 }
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -21,6 +25,10 @@ export function parseHabitLocation(params: SearchParams) {
   const pageCandidate = Number(firstValue(params.page));
   const status: HabitStatus =
     firstValue(params.status) === "ARCHIVED" ? "ARCHIVED" : "ACTIVE";
+  const type: HabitType =
+    status === "ACTIVE" && firstValue(params.type) === "QUIT"
+      ? "QUIT"
+      : "BUILD";
 
   return {
     page:
@@ -31,6 +39,7 @@ export function parseHabitLocation(params: SearchParams) {
         : 1,
     search: (firstValue(params.search) ?? "").trim(),
     status,
+    type,
   };
 }
 
@@ -41,6 +50,8 @@ export function buildHabitHref(input: HabitLocation = {}) {
   if (input.status === "ARCHIVED") {
     params.set("status", "ARCHIVED");
     if (input.page && input.page > 1) params.set("page", String(input.page));
+  } else if (input.type === "QUIT") {
+    params.set("type", "QUIT");
   }
 
   const query = params.toString();

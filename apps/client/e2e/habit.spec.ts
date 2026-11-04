@@ -71,12 +71,20 @@ test("completes the private Habit lifecycle through the BFF", async ({
   await expect(page.getByRole("button", { name: "Lưu trữ" })).toBeVisible();
 
   // Ghi dấu ngay trên danh sách: dòng chuyển sang nhóm đã ghi dấu.
+  // Lịch T2 · T4 · T6: hôm nay có thể là ngày nghỉ, nhóm đó gập sẵn.
   await page.goto("/habits");
-  await page.getByRole("button", { name: `Ghi dấu ${updatedTitle}` }).click();
+  const ring = page.getByRole("button", { name: `Ghi dấu ${updatedTitle}` });
+  // Đợi danh sách stream xong (dòng có trong DOM, kể cả khi nằm trong nhóm gập).
+  await expect(ring).toHaveCount(1);
+  if (!(await ring.isVisible())) {
+    await page.getByText("Không có lịch hôm nay", { exact: true }).click();
+  }
+  await ring.click();
+  // Dòng chuyển vào nhóm đã ghi dấu (gập sẵn): mở ra và tìm đúng trong đó.
+  const doneFold = page.locator("details", { hasText: "Đã ghi dấu hôm nay" });
+  await doneFold.getByText("Đã ghi dấu hôm nay", { exact: true }).click();
   await expect(
-    page
-      .getByRole("region", { name: "Đã ghi dấu hôm nay" })
-      .getByRole("button", { name: `Ghi dấu ${updatedTitle}` }),
+    doneFold.getByRole("button", { name: `Ghi dấu ${updatedTitle}` }),
   ).toHaveAttribute("aria-pressed", "true");
 
   expect(
@@ -118,10 +126,9 @@ test("completes the private QUIT-type Habit lifecycle through the BFF", async ({
   ).toBeVisible();
 
   // Danh sách xếp thói quen QUIT vừa tạo vào nhóm Từ bỏ.
+  // Thói quen Từ bỏ nằm ở tab riêng.
   await page.goto("/habits");
-  await expect(
-    page
-      .getByRole("region", { name: "Từ bỏ" })
-      .getByRole("link", { name: title }),
-  ).toBeVisible();
+  await page.getByRole("link", { name: /^Từ bỏ/ }).click();
+  await expect(page).toHaveURL(/\/habits\?type=QUIT$/);
+  await expect(page.getByRole("link", { name: title })).toBeVisible();
 });

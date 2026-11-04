@@ -64,12 +64,14 @@ export function HabitOverviewRow({
   const isQuit = habit.type === "QUIT";
   const lit = checked || isQuit;
 
-  // Ghi dấu xong dòng chuyển nhóm và được dựng lại: trả focus về vòng.
+  // Ghi dấu xong dòng chuyển nhóm và được dựng lại: trả focus về vòng, hoặc
+  // về tiêu đề nhóm nếu dòng vừa vào một nhóm đang gập.
   useEffect(() => {
-    if (focusAfterMove === habit.id) {
-      focusAfterMove = null;
-      ringRef.current?.focus();
-    }
+    if (focusAfterMove !== habit.id) return;
+    focusAfterMove = null;
+    const fold = ringRef.current?.closest("details");
+    if (fold && !fold.open) fold.querySelector("summary")?.focus();
+    else ringRef.current?.focus();
   }, [habit.id]);
 
   return (

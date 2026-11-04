@@ -22,6 +22,8 @@ export function HabitSearch({
     >
       {location.status === "ARCHIVED" ? (
         <input type="hidden" name="status" value="ARCHIVED" />
+      ) : location.type === "QUIT" ? (
+        <input type="hidden" name="type" value="QUIT" />
       ) : null}
       <label htmlFor="habit-search" className="sr-only">
         Tìm thói quen
@@ -40,7 +42,10 @@ export function HabitSearch({
       />
       {location.search ? (
         <Link
-          href={buildHabitHref({ status: location.status })}
+          href={buildHabitHref({
+            status: location.status,
+            type: location.type,
+          })}
           aria-label="Xóa từ khóa"
           className={buttonVariants({
             variant: "ghost",
