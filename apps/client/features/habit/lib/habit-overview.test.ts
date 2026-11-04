@@ -52,18 +52,15 @@ describe("groupHabitOverview", () => {
     ]);
   });
 
-  it("puts QUIT habits in their own group", () => {
+  it("leaves QUIT habits to their own tab", () => {
     const groups = groupHabitOverview([
+      habit({ id: "build" }),
       habit({ id: "quit", type: "QUIT", dueToday: true }),
     ]);
 
-    expect(groups).toEqual([
-      {
-        key: "quit",
-        title: "Từ bỏ",
-        items: [expect.objectContaining({ id: "quit" })],
-      },
-    ]);
+    expect(
+      groups.flatMap((group) => group.items.map((item) => item.id)),
+    ).toEqual(["build"]);
   });
 });
 

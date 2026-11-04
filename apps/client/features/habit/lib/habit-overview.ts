@@ -21,12 +21,8 @@ const GROUP_TITLES: Record<HabitOverviewGroupKey, string> = {
   quit: "Từ bỏ",
 };
 
-const GROUP_ORDER: HabitOverviewGroupKey[] = [
-  "pending",
-  "done",
-  "rest",
-  "quit",
-];
+// Habit QUIT nằm ở tab riêng, không chia theo việc hôm nay.
+const GROUP_ORDER: HabitOverviewGroupKey[] = ["pending", "done", "rest"];
 
 /** Ghi dấu vào ngày nghỉ vẫn tính là đã ghi dấu hôm nay (BR-HAB3-006). */
 export function habitOverviewGroupOf(
@@ -37,7 +33,7 @@ export function habitOverviewGroupOf(
   return habit.dueToday ? "pending" : "rest";
 }
 
-/** Giữ thứ tự theo tên của server trong từng nhóm; bỏ nhóm rỗng. */
+/** Habit BUILD theo việc hôm nay, giữ thứ tự tên của server; bỏ nhóm rỗng. */
 export function groupHabitOverview(
   habits: readonly HabitOverviewItemResponse[],
 ): HabitOverviewGroup[] {

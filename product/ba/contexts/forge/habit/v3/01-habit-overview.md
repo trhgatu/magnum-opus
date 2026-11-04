@@ -10,7 +10,7 @@ Trang danh sách Thói quen theo bộ thiết kế Magnum Opus là nơi làm vi�
 ## 2. Phạm vi
 
 - Một endpoint tổng hợp trả **mọi Habit đang rèn** của người dùng, không phân trang, kèm trạng thái hôm nay, dải 7 ngày và chuỗi.
-- Trang danh sách: tab **Đang rèn** dùng endpoint này và nhóm theo việc hôm nay; tab **Đã lưu trữ** giữ danh sách cũ có phân trang.
+- Trang danh sách: hai tab **Xây dựng** và **Từ bỏ** dùng endpoint này. Xây dựng nhóm theo việc hôm nay; nhóm "Còn chờ hôm nay" luôn mở, "Đã ghi dấu hôm nay" và "Không có lịch hôm nay" gập sẵn. Từ bỏ là danh sách phẳng theo tên. **Đã lưu trữ** là một link riêng, giữ danh sách cũ có phân trang.
 - Trang chi tiết: một endpoint cho từng Habit (kể cả đã lưu trữ), cùng dữ liệu với một dòng ở danh sách, kèm lưới dấu vết 13 tuần.
 - Ngoài phạm vi: chuỗi ở trang Hôm nay (dùng lại cùng quy tắc ở bước sau), thông báo, mục tiêu chuỗi.
 
@@ -90,8 +90,9 @@ Chỉ Habit đang rèn, sắp theo tên. Habit đã lưu trữ không có trong 
 
 ## 7. Quyết định
 
-| Mã           | Quyết định                                                                                                                                                                    |
-| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| DEC-HAB3-001 | Tab Đang rèn không phân trang: một người hiếm khi có quá vài chục Habit đang rèn, và nhóm theo việc hôm nay không đi cùng phân trang theo tên.                                |
-| DEC-HAB3-002 | Tính chuỗi ở server, một chỗ, dùng chung quy tắc lịch với Chronicle (`@shared/domain/habit-schedule`), để trang danh sách, chi tiết và Hôm nay không bao giờ ra số khác nhau. |
-| DEC-HAB3-003 | Tải toàn bộ lịch sử check-in của các Habit đang rèn để tính chuỗi dài nhất; với quy mô một người dùng, số dòng nhỏ. Xem lại nếu lịch sử lớn tới mức chậm.                     |
+| Mã           | Quyết định                                                                                                                                                                                                                                                                                       |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| DEC-HAB3-001 | Tab Đang rèn không phân trang: một người hiếm khi có quá vài chục Habit đang rèn, và nhóm theo việc hôm nay không đi cùng phân trang theo tên.                                                                                                                                                   |
+| DEC-HAB3-002 | Tính chuỗi ở server, một chỗ, dùng chung quy tắc lịch với Chronicle (`@shared/domain/habit-schedule`), để trang danh sách, chi tiết và Hôm nay không bao giờ ra số khác nhau.                                                                                                                    |
+| DEC-HAB3-003 | Tải toàn bộ lịch sử check-in của các Habit đang rèn để tính chuỗi dài nhất; với quy mô một người dùng, số dòng nhỏ. Xem lại nếu lịch sử lớn tới mức chậm.                                                                                                                                        |
+| DEC-HAB3-004 | Chia tab theo loại (Xây dựng / Từ bỏ) và gập các nhóm đã xong: hai loại dùng khác nhau (ghi dấu hằng ngày so với theo dõi số ngày giữ được), và mở trang ra chủ yếu để làm việc còn chờ, nên trang chỉ dài bằng số việc đó. Tìm kiếm áp cho cả hai loại và chỉ sang tab kia khi có kết quả ở đó. |
