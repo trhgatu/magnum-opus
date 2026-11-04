@@ -64,6 +64,36 @@ describe("TodayHolding", () => {
     expect(screen.getByText("Bắt đầu lại hôm nay")).toBeInTheDocument();
   });
 
+  it("keeps the three most fragile habits and links to the rest", () => {
+    render(
+      <TodayHolding
+        habits={[
+          habit({ id: "a", title: "A", currentStreak: 40 }),
+          habit({ id: "b", title: "B", currentStreak: 2 }),
+          habit({ id: "c", title: "C", currentStreak: 9 }),
+          habit({ id: "d", title: "D", currentStreak: 15 }),
+          habit({
+            id: "e",
+            title: "E",
+            currentStreak: 0,
+            lastSevenDays: [{ date: "2026-11-04", mark: "MISSED" }],
+          }),
+        ]}
+      />,
+    );
+
+    const links = screen.getAllByRole("link");
+    expect(links.map((link) => link.getAttribute("href"))).toEqual([
+      "/habits/e",
+      "/habits/b",
+      "/habits/c",
+      "/habits?type=QUIT",
+    ]);
+    expect(
+      screen.getByRole("link", { name: "Xem 2 thói quen từ bỏ khác" }),
+    ).toHaveTextContent("+2 khác");
+  });
+
   it("renders nothing without quit habits", () => {
     const { container } = render(
       <TodayHolding habits={[habit({ type: "BUILD" })]} />,

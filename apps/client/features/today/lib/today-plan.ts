@@ -154,3 +154,31 @@ export function todayGroups(
     groups.push({ key: "extra", routine: null, items: extra });
   return groups;
 }
+
+export const HOLDING_LIMIT = 3;
+
+export const relapsedToday = (habit: HabitOverviewItemResponse) =>
+  habit.lastSevenDays.at(-1)?.mark === "MISSED";
+
+/**
+ * Thói quen Từ bỏ đáng nhắc nhất ở đầu trang: vừa tái phạm hôm nay trước,
+ * rồi chuỗi ngắn trước (dễ gãy nhất), cùng chuỗi thì theo tên. Phần vượt quá
+ * `limit` gom thành số "còn lại".
+ */
+export function holdingHighlights(
+  habits: readonly HabitOverviewItemResponse[],
+  limit = HOLDING_LIMIT,
+): { shown: HabitOverviewItemResponse[]; more: number } {
+  const quitting = habits
+    .filter((habit) => habit.type === "QUIT")
+    .sort(
+      (a, b) =>
+        Number(relapsedToday(b)) - Number(relapsedToday(a)) ||
+        a.currentStreak - b.currentStreak ||
+        a.title.localeCompare(b.title, "vi"),
+    );
+  return {
+    shown: quitting.slice(0, limit),
+    more: Math.max(0, quitting.length - limit),
+  };
+}
