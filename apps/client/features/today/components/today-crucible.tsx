@@ -34,16 +34,11 @@ const DAY_LABELS: Record<ActivityDayState | "OUTSIDE", string> = {
 };
 
 function Week({ cells, today }: { cells: WeekCell[]; today: string }) {
-  const active = cells.filter((cell) => cell.state === "ACTIVE").length;
   return (
     <div className="flex flex-col gap-1.5">
-      <div
-        role="img"
-        aria-label={`7 ngày qua: ${active} ngày có hoạt động`}
-        className="grid grid-cols-7 gap-1.5"
-      >
+      <ol aria-label="7 ngày qua" className="grid grid-cols-7 gap-1.5">
         {cells.map((cell) => (
-          <span
+          <li
             key={cell.date}
             title={`${cell.weekday}: ${DAY_LABELS[cell.state]}`}
             className={cn(
@@ -51,9 +46,13 @@ function Week({ cells, today }: { cells: WeekCell[]; today: string }) {
               DAY_CLASSES[cell.state],
               cell.date === today && "ring-2 ring-primary",
             )}
-          />
+          >
+            <span className="sr-only">
+              {cell.weekday}: {DAY_LABELS[cell.state]}
+            </span>
+          </li>
         ))}
-      </div>
+      </ol>
       <div
         aria-hidden="true"
         className="grid grid-cols-7 gap-1.5 text-center font-mono text-[10px] text-muted-foreground"
@@ -82,7 +81,7 @@ function Metric({ value, label }: { value: string; label: string }) {
   );
 }
 
-async function Activity({
+export async function Activity({
   activityPromise,
   today,
 }: {
@@ -145,7 +144,7 @@ export function TodayCrucible({
     return (
       <section
         aria-labelledby="today-crucible"
-        className="flex flex-col gap-3 rounded-3xl border border-dashed px-6 py-6"
+        className="flex h-full flex-col gap-3 rounded-3xl border border-dashed px-6 py-6"
       >
         <p className="font-mono text-[11px] font-medium tracking-[0.16em] text-primary uppercase">
           Crucible
@@ -167,7 +166,7 @@ export function TodayCrucible({
   return (
     <section
       aria-labelledby="today-crucible"
-      className="flex flex-col gap-4 rounded-3xl bg-ember-soft px-6 py-6"
+      className="flex h-full flex-col gap-4 rounded-3xl bg-ember-soft px-6 py-6"
     >
       <div className="flex items-center justify-between gap-3">
         <p className="font-mono text-[11px] font-medium tracking-[0.16em] text-primary uppercase">

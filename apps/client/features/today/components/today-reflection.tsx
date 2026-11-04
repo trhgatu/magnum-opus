@@ -1,12 +1,12 @@
 import type { JournalEntryResponse, MemoryResponse } from "@repo/contracts";
-import { PenLine } from "lucide-react";
 import Link from "next/link";
 
 import { createJournalEntry } from "@/features/journal/actions/journal";
+import { WriteTodayButton } from "@/features/today/components/write-today-button";
 import { describeDaysAgo } from "@/features/today/lib/today-focus";
 
 const PILL =
-  "inline-flex min-h-11 items-center gap-2 rounded-full bg-paper-ink px-5 text-sm font-medium text-paper transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-paper-ink focus-visible:ring-offset-2 focus-visible:ring-offset-paper";
+  "inline-flex min-h-11 disabled:cursor-progress disabled:opacity-70 items-center gap-2 rounded-full bg-paper-ink px-5 text-sm font-medium text-paper transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-paper-ink focus-visible:ring-offset-2 focus-visible:ring-offset-paper";
 
 /**
  * Thẻ Reflection, một tờ giấy: hôm nay đã viết chưa, và ký ức gần nhất.
@@ -26,7 +26,7 @@ export function TodayReflection({
   return (
     <section
       aria-labelledby="today-reflection"
-      className="flex flex-col gap-3 rounded-[20px] border border-paper-edge bg-paper px-6 py-6 text-paper-ink"
+      className="flex h-full flex-col gap-3 rounded-3xl border border-paper-edge bg-paper px-6 py-6 text-paper-ink"
     >
       <p className="font-mono text-[11px] font-medium tracking-[0.16em] uppercase">
         Reflection · trang hôm nay
@@ -47,7 +47,8 @@ export function TodayReflection({
         <p className="text-sm">Vài dòng là đủ.</p>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+      {/* Đẩy xuống đáy thẻ khi thẻ cao hơn nội dung (hàng hai thẻ bằng nhau). */}
+      <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-1">
         {latestMemory ? (
           <Link
             href={`/memories/${latestMemory.id}`}
@@ -65,10 +66,7 @@ export function TodayReflection({
           </Link>
         ) : (
           <form action={createJournalEntry}>
-            <button type="submit" className={PILL}>
-              <PenLine className="size-4" aria-hidden="true" /> Viết trang hôm
-              nay
-            </button>
+            <WriteTodayButton className={PILL} />
           </form>
         )}
       </div>

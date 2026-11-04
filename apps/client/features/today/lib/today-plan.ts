@@ -107,3 +107,43 @@ export function formatTodayLabel(date: string): string {
   }).format(day);
   return `${weekday.charAt(0).toLocaleUpperCase("vi")}${weekday.slice(1)} · ${dayMonth}`;
 }
+
+export interface TodayGroup {
+  key: string;
+  /** Nếp sinh hoạt của nhóm; null là nhóm thói quen lẻ. */
+  routine: RoutineProgress | null;
+  items: HabitOverviewItemResponse[];
+}
+
+/**
+ * Việc hôm nay nhóm theo Nếp sinh hoạt (theo thứ tự của Nếp), rồi nhóm
+ * thói quen lẻ. Habit thuộc nhiều Nếp chỉ hiện ở Nếp đầu tiên; tiến độ của
+ * các Nếp sau vẫn tính nó.
+ */
+export function todayGroups(
+  today: Pick<ForgeTodayResponse, "routines" | "standaloneHabits">,
+  overview: readonly HabitOverviewItemResponse[],
+): TodayGroup[] {
+  const ordered = todayHabits(today, overview);
+  const byId = new Map(ordered.map((habit) => [habit.id, habit]));
+  const placed = new Set<string>();
+  const groups: TodayGroup[] = [];
+
+  for (const routine of today.routines) {
+    const progress = routineProgress(routine, overview);
+    if (progress.total === 0) continue;
+    const items = routine.habits
+      .map((habit) => byId.get(habit.id))
+      .filter(
+        (habit): habit is HabitOverviewItemResponse =>
+          habit !== undefined && !placed.has(habit.id),
+      );
+    items.forEach((habit) => placed.add(habit.id));
+    groups.push({ key: routine.id, routine: progress, items });
+  }
+
+  const rest = ordered.filter((habit) => !placed.has(habit.id));
+  if (rest.length > 0)
+    groups.push({ key: "standalone", routine: null, items: rest });
+  return groups;
+}

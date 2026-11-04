@@ -58,13 +58,11 @@ export function TodayPageSkeleton() {
         <Skeleton className="h-28 w-full max-w-xl" />
         <Skeleton className="h-5 w-72 max-w-full" />
       </div>
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
-        <TodayRhythmSkeleton />
-        <div aria-hidden="true" className="flex flex-col gap-6">
-          <Skeleton className="h-64 w-full rounded-3xl" />
-          <Skeleton className="h-48 w-full rounded-3xl" />
-        </div>
+      <div aria-hidden="true" className="grid gap-6 md:grid-cols-2">
+        <Skeleton className="h-56 w-full rounded-3xl" />
+        <Skeleton className="h-56 w-full rounded-3xl" />
       </div>
+      <TodayRhythmSkeleton />
     </div>
   );
 }

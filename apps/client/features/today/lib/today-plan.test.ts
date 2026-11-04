@@ -8,6 +8,7 @@ import {
   formatTodayLabel,
   greetingAt,
   routineProgress,
+  todayGroups,
   todayHabits,
 } from "./today-plan";
 
@@ -69,6 +70,33 @@ describe("todayHabits", () => {
     ]);
 
     expect(habits.map((habit) => habit.id)).toEqual(["a", "rest"]);
+  });
+});
+
+describe("todayGroups", () => {
+  it("groups by routine, shows a shared habit once, then standalone habits", () => {
+    const groups = todayGroups(
+      today(
+        [
+          { id: "r1", title: "Sáng", habits: [due("a"), due("b")] },
+          { id: "r2", title: "Tối", habits: [due("b"), due("c")] },
+        ],
+        [due("d")],
+      ),
+      ["a", "b", "c", "d"].map((id) => item(id)),
+    );
+
+    expect(
+      groups.map((group) => [
+        group.key,
+        group.routine?.total ?? null,
+        group.items.map((habit) => habit.id),
+      ]),
+    ).toEqual([
+      ["r1", 2, ["a", "b"]],
+      ["r2", 2, ["c"]],
+      ["standalone", null, ["d"]],
+    ]);
   });
 });
 
