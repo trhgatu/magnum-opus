@@ -4,12 +4,23 @@ import { Suspense } from "react";
 import { getCurrentUser } from "@/features/account/api/current-user";
 import { TimeZoneMismatchNotice } from "@/features/account/components/time-zone-mismatch-notice";
 import { getHabitOverview } from "@/features/habit/api/habit";
+import { getJournalEntries } from "@/features/journal/api/journal";
+import { getMemories } from "@/features/memory/api/memory";
+import { getProjects } from "@/features/project/api/project";
+import { getProjectActivity } from "@/features/project-activity/api/project-activity";
 import { getToday } from "@/features/today/api/today";
+import { TodayCrucible } from "@/features/today/components/today-crucible";
+import { TodayReflection } from "@/features/today/components/today-reflection";
 import { TodayRhythm } from "@/features/today/components/today-rhythm";
 import {
+  TodayCardSkeleton,
   TodayRhythmSkeleton,
   TodaySummarySkeleton,
 } from "@/features/today/components/today-skeletons";
+import {
+  journalEntryToday,
+  pickFocusProject,
+} from "@/features/today/lib/today-focus";
 import {
   formatTodayLabel,
   greetingAt,
@@ -46,6 +57,46 @@ async function Rhythm({ load }: { load: Load }) {
   return <TodayRhythm today={today} overview={overview} />;
 }
 
+async function Crucible({
+  today,
+  timeZone,
+}: {
+  today: string;
+  timeZone: string;
+}) {
+  const projects = await getProjects({ state: "ACTIVE", limit: 10 });
+  const project = pickFocusProject(projects.data);
+  return (
+    <TodayCrucible
+      project={project}
+      activityPromise={project ? getProjectActivity(project.id) : null}
+      today={today}
+      timeZone={timeZone}
+    />
+  );
+}
+
+async function Reflection({
+  today,
+  timeZone,
+}: {
+  today: string;
+  timeZone: string;
+}) {
+  const [entries, memories] = await Promise.all([
+    getJournalEntries({ limit: 1, sortBy: "createdAt" }),
+    getMemories({ limit: 1, sortBy: "createdAt", sortOrder: "desc" }),
+  ]);
+  return (
+    <TodayReflection
+      entryToday={journalEntryToday(entries.data[0], today, timeZone)}
+      latestMemory={memories.data[0] ?? null}
+      today={today}
+      timeZone={timeZone}
+    />
+  );
+}
+
 async function TimeZoneNotice() {
   // getCurrentUser() đã được layout gọi trong cùng request (React cache).
   const user = await getCurrentUser();
@@ -72,11 +123,8 @@ export default async function TodayPage() {
   }).format(now);
 
   return (
-    <section
-      className="flex max-w-3xl flex-col gap-10"
-      aria-labelledby="today-heading"
-    >
-      <header className="flex flex-col gap-3.5">
+    <section className="flex flex-col gap-10" aria-labelledby="today-heading">
+      <header className="flex max-w-3xl flex-col gap-3.5">
         <p className="font-mono text-[11px] font-medium tracking-[0.16em] text-primary uppercase">
           {formatTodayLabel(todayDate)}
         </p>
@@ -99,9 +147,26 @@ export default async function TodayPage() {
         <TimeZoneNotice />
       </Suspense>
 
-      <Suspense fallback={<TodayRhythmSkeleton />}>
-        <Rhythm load={load} />
-      </Suspense>
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+        <Suspense fallback={<TodayRhythmSkeleton />}>
+          <Rhythm load={load} />
+        </Suspense>
+        {/* Mỗi thẻ tải riêng: Project hay Reflection chậm không giữ cả trang. */}
+        <div className="flex flex-col gap-6">
+          <Suspense
+            fallback={
+              <TodayCardSkeleton label="Đang tải Project đang luyện…" />
+            }
+          >
+            <Crucible today={todayDate} timeZone={user.timeZone} />
+          </Suspense>
+          <Suspense
+            fallback={<TodayCardSkeleton label="Đang tải trang hôm nay…" />}
+          >
+            <Reflection today={todayDate} timeZone={user.timeZone} />
+          </Suspense>
+        </div>
+      </div>
     </section>
   );
 }

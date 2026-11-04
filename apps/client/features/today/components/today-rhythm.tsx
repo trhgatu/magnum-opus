@@ -71,6 +71,7 @@ export function TodayRhythm({
     .map((routine) => routineProgress(routine, overview.habits))
     .filter((routine) => routine.total > 0);
   const context = { today: overview.date, timeZone: overview.timeZone };
+  const quitting = overview.habits.filter((habit) => habit.type === "QUIT");
 
   return (
     <section aria-labelledby="today-rhythm" className="flex flex-col gap-4">
@@ -117,6 +118,30 @@ export function TodayRhythm({
         <ul aria-label="Nếp sinh hoạt hôm nay" className="flex flex-col gap-3">
           {routines.map((routine) => (
             <RoutineCard key={routine.id} progress={routine} />
+          ))}
+        </ul>
+      ) : null}
+      {quitting.length > 0 ? (
+        <ul
+          aria-label="Đang giữ"
+          className="flex flex-col gap-1.5 border-t pt-4 text-sm text-muted-foreground"
+        >
+          {quitting.map((habit) => (
+            <li key={habit.id} className="flex items-baseline gap-2">
+              <Link
+                href={`/habits/${habit.id}`}
+                className="rounded-sm text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {habit.title}
+              </Link>
+              <span aria-hidden="true">·</span>
+              <span>
+                <span className="font-display text-base text-primary tabular-nums">
+                  {habit.currentStreak}
+                </span>{" "}
+                ngày không tái phạm
+              </span>
+            </li>
           ))}
         </ul>
       ) : null}
