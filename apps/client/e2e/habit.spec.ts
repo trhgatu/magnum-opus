@@ -73,13 +73,18 @@ test("completes the private Habit lifecycle through the BFF", async ({
   // Ghi dấu ngay trên danh sách: dòng chuyển sang nhóm đã ghi dấu.
   // Lịch T2 · T4 · T6: hôm nay có thể là ngày nghỉ, nhóm đó gập sẵn.
   await page.goto("/habits");
-  const restFold = page.getByText("Không có lịch hôm nay", { exact: true });
-  if (await restFold.count()) await restFold.click();
-  await page.getByRole("button", { name: `Ghi dấu ${updatedTitle}` }).click();
-  // Dòng chuyển vào nhóm đã ghi dấu (gập sẵn): mở ra để xem.
-  await page.getByText("Đã ghi dấu hôm nay", { exact: true }).click();
+  const ring = page.getByRole("button", { name: `Ghi dấu ${updatedTitle}` });
+  // Đợi danh sách stream xong (dòng có trong DOM, kể cả khi nằm trong nhóm gập).
+  await expect(ring).toHaveCount(1);
+  if (!(await ring.isVisible())) {
+    await page.getByText("Không có lịch hôm nay", { exact: true }).click();
+  }
+  await ring.click();
+  // Dòng chuyển vào nhóm đã ghi dấu (gập sẵn): mở ra và tìm đúng trong đó.
+  const doneFold = page.locator("details", { hasText: "Đã ghi dấu hôm nay" });
+  await doneFold.getByText("Đã ghi dấu hôm nay", { exact: true }).click();
   await expect(
-    page.getByRole("button", { name: `Ghi dấu ${updatedTitle}` }),
+    doneFold.getByRole("button", { name: `Ghi dấu ${updatedTitle}` }),
   ).toHaveAttribute("aria-pressed", "true");
 
   expect(

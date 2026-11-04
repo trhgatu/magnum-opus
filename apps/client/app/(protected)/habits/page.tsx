@@ -59,7 +59,11 @@ function SearchEmptyState({ location }: { location: Location }) {
   return (
     <EmptyState
       title="Không tìm thấy thói quen"
-      description={`Không có thói quen nào tên chứa “${location.search}”.`}
+      description={
+        location.status === "ARCHIVED"
+          ? `Không có thói quen lưu trữ nào tên chứa “${location.search}”.`
+          : `Không có thói quen ${TAB_LABELS[location.type].toLowerCase()} nào tên chứa “${location.search}”.`
+      }
       action={
         <Link
           href={buildHabitHref({
@@ -148,6 +152,7 @@ async function ActiveHabits({
         overview={overview}
         habits={habits}
         type={location.type}
+        searching={location.search !== ""}
       />
     </div>
   );

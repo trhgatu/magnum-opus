@@ -17,10 +17,13 @@ export function HabitOverviewList({
   overview,
   habits,
   type,
+  searching = false,
 }: {
   overview: Pick<HabitOverviewResponse, "date" | "timeZone">;
   habits: HabitOverviewResponse["habits"];
   type: HabitType;
+  /** Đang lọc theo từ khóa: câu "không còn việc" chỉ nói về kết quả tìm. */
+  searching?: boolean;
 }) {
   const context = { today: overview.date, timeZone: overview.timeZone };
   const rows = (items: HabitOverviewResponse["habits"]) => (
@@ -42,7 +45,9 @@ export function HabitOverviewList({
     <div className="flex flex-col gap-6">
       {groups.some((group) => group.key === "pending") ? null : (
         <p className="font-display text-[22px] leading-tight">
-          Hôm nay không còn việc nào chờ.
+          {searching
+            ? "Không có việc nào còn chờ trong kết quả tìm."
+            : "Hôm nay không còn việc nào chờ."}
         </p>
       )}
       {groups.map((group) =>
@@ -72,12 +77,14 @@ export function HabitOverviewList({
                 className="size-4 transition-transform group-open/fold:rotate-90 motion-reduce:transition-none"
                 aria-hidden="true"
               />
-              <span className="font-display text-lg font-medium">
-                {group.title}
-              </span>
-              <span className="font-mono text-xs tabular-nums">
-                {group.items.length}
-              </span>
+              <h2 className="flex items-baseline gap-2">
+                <span className="font-display text-lg font-medium">
+                  {group.title}
+                </span>
+                <span className="font-mono text-xs tabular-nums">
+                  {group.items.length}
+                </span>
+              </h2>
             </summary>
             <div className="pt-2.5">{rows(group.items)}</div>
           </details>
