@@ -100,6 +100,22 @@ describe("todayGroups", () => {
   });
 });
 
+describe("todayGroups extras", () => {
+  it("keeps a rest-day check-in apart from scheduled standalone habits", () => {
+    const groups = todayGroups(today([], [due("d")]), [
+      item("d"),
+      item("rest", { dueToday: false, checkedInToday: true }),
+    ]);
+
+    expect(
+      groups.map((group) => [group.key, group.items.map((h) => h.id)]),
+    ).toEqual([
+      ["standalone", ["d"]],
+      ["extra", ["rest"]],
+    ]);
+  });
+});
+
 describe("routineProgress", () => {
   it("finds the next unchecked step from the overview", () => {
     const progress = routineProgress(

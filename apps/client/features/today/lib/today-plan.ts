@@ -109,6 +109,7 @@ export function formatTodayLabel(date: string): string {
 }
 
 export interface TodayGroup {
+  /** id của Nếp, "standalone" (thói quen lẻ có lịch) hoặc "extra" (làm thêm ngoài lịch). */
   key: string;
   /** Nếp sinh hoạt của nhóm; null là nhóm thói quen lẻ. */
   routine: RoutineProgress | null;
@@ -143,7 +144,13 @@ export function todayGroups(
   }
 
   const rest = ordered.filter((habit) => !placed.has(habit.id));
-  if (rest.length > 0)
-    groups.push({ key: "standalone", routine: null, items: rest });
+  // Ghi dấu vào ngày nghỉ: không thuộc lịch hôm nay, kể cả khi Habit nằm
+  // trong một Nếp, nên tách khỏi thói quen lẻ có lịch.
+  const standalone = rest.filter((habit) => habit.dueToday);
+  const extra = rest.filter((habit) => !habit.dueToday);
+  if (standalone.length > 0)
+    groups.push({ key: "standalone", routine: null, items: standalone });
+  if (extra.length > 0)
+    groups.push({ key: "extra", routine: null, items: extra });
   return groups;
 }

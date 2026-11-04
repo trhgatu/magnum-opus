@@ -92,9 +92,9 @@ export function TodayRhythm({
             <div key={group.key} className="flex flex-col gap-3">
               {group.routine ? (
                 <GroupHeader progress={group.routine} />
-              ) : grouped ? (
+              ) : grouped || group.key === "extra" ? (
                 <h3 className="font-medium text-muted-foreground">
-                  Thói quen lẻ
+                  {group.key === "extra" ? "Làm thêm hôm nay" : "Thói quen lẻ"}
                 </h3>
               ) : null}
               {group.items.length > 0 ? (

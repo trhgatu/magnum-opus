@@ -40,6 +40,8 @@ describe("TodayHolding", () => {
         name: "Không hút thuốc: 12 ngày không tái phạm",
       }),
     ).toHaveAttribute("href", "/habits/q1");
+    // Con số người dùng nhìn thấy trên chip.
+    expect(screen.getByText("12")).toBeInTheDocument();
   });
 
   it("says the count starts again after a relapse today", () => {
@@ -59,6 +61,7 @@ describe("TodayHolding", () => {
         name: "Không hút thuốc: bắt đầu lại hôm nay",
       }),
     ).toBeInTheDocument();
+    expect(screen.getByText("Bắt đầu lại hôm nay")).toBeInTheDocument();
   });
 
   it("renders nothing without quit habits", () => {
