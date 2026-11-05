@@ -48,7 +48,7 @@ describe("ProjectClosedCycles", () => {
     render(<ProjectClosedCycles cycles={null} timeZone="UTC" />);
 
     expect(screen.getByRole("status").textContent).toBe(
-      "Chưa tải được các chu kỳ đã đóng. Tải lại trang để thử lại.",
+      "Chưa tải được những vòng đã khép. Tải lại trang để thử lại.",
     );
     expect(screen.queryByRole("region")).toBeNull();
   });
@@ -58,7 +58,7 @@ describe("ProjectClosedCycles", () => {
       <ProjectClosedCycles cycles={[completed, stopped]} timeZone="UTC" />,
     );
 
-    const section = screen.getByRole("region", { name: "Các chu kỳ đã đóng" });
+    const section = screen.getByRole("region", { name: "Những vòng đã khép" });
     const headings = within(section)
       .getAllByRole("heading", { level: 3 })
       .map((heading) => heading.textContent);
