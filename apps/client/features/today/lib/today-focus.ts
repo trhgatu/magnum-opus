@@ -2,19 +2,7 @@ import type {
   ActivityDay,
   ActivityDayState,
   JournalEntryResponse,
-  ProjectResponse,
 } from "@repo/contracts";
-
-/** Project đang luyện được nhắc ở trang Hôm nay: cái vừa đụng tới gần nhất. */
-export function pickFocusProject(
-  projects: readonly ProjectResponse[],
-): ProjectResponse | null {
-  return (
-    [...projects]
-      .filter((project) => project.currentCycle !== null)
-      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0] ?? null
-  );
-}
 
 const DAY_MS = 86_400_000;
 

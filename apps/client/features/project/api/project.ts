@@ -2,6 +2,7 @@ import "server-only";
 
 import type {
   ProjectCycleResponse,
+  ProjectFocusResponse,
   ProjectLifecycleState,
   ProjectResponse,
 } from "@repo/contracts";
@@ -42,4 +43,9 @@ export function getClosedProjectCycles(
   id: string,
 ): Promise<ProjectCycleResponse[]> {
   return apiFetch<ProjectCycleResponse[]>(`/projects/${id}/cycles/closed`);
+}
+
+/** Project đang luyện cho trang Hôm nay; server chọn, có thể không có. */
+export function getFocusProject(): Promise<ProjectFocusResponse> {
+  return apiFetch<ProjectFocusResponse>("/projects/focus");
 }
