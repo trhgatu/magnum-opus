@@ -29,17 +29,14 @@ export function ProjectCollectionControls({
   location: ReturnType<typeof parseProjectLocation>;
 }) {
   return (
-    <nav
-      aria-label="Lọc trạng thái Project"
-      className="flex flex-wrap gap-1 rounded-xl border bg-background/70 p-1"
-    >
+    <nav aria-label="Lọc trạng thái Project" className="flex flex-wrap gap-1">
       {STATE_FILTERS.map(({ value, label, icon: Icon }) => (
         <Link
           key={label}
           href={buildProjectHref({ ...location, page: 1, state: value })}
           aria-current={location.state === value ? "page" : undefined}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm",
+            "inline-flex min-h-9 items-center gap-1.5 rounded-full px-3.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             location.state === value
               ? "bg-primary text-primary-foreground"
               : "text-muted-foreground hover:bg-muted",

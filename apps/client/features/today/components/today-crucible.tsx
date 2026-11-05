@@ -33,7 +33,7 @@ const DAY_LABELS: Record<ActivityDayState | "OUTSIDE", string> = {
   OUTSIDE: "trước Cycle",
 };
 
-function Week({ cells, today }: { cells: WeekCell[]; today: string }) {
+export function Week({ cells, today }: { cells: WeekCell[]; today: string }) {
   return (
     <div className="flex flex-col gap-1.5">
       <ol aria-label="7 ngày qua" className="grid grid-cols-7 gap-1.5">
@@ -118,12 +118,16 @@ export async function Activity({
   );
 }
 
-function ActivitySkeleton() {
+/** Khung chờ tuần hoạt động; bản gọn có dòng số liệu nhỏ. */
+export function ActivitySkeleton({ compact = false }: { compact?: boolean }) {
   return (
     <div role="status" className="flex flex-col gap-3">
       <span className="sr-only">Đang tải hoạt động của Cycle…</span>
       <Skeleton aria-hidden="true" className="h-7 w-full bg-background/60" />
-      <Skeleton aria-hidden="true" className="h-9 w-48 bg-background/60" />
+      <Skeleton
+        aria-hidden="true"
+        className={cn("bg-background/60", compact ? "h-5 w-40" : "h-9 w-48")}
+      />
     </div>
   );
 }

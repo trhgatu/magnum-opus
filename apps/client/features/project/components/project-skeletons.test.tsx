@@ -10,6 +10,7 @@ import {
   ProjectFormSkeleton,
   ProjectListSkeleton,
   ProjectMetaSkeleton,
+  ProjectRunningSkeleton,
 } from "./project-skeletons";
 
 afterEach(cleanup);
@@ -34,6 +35,14 @@ describe("Project skeletons", () => {
 
     expect(screen.getByRole("status")).toHaveTextContent(
       "Đang tải danh sách Project…",
+    );
+  });
+
+  it("announces the running Projects loading state", () => {
+    render(<ProjectRunningSkeleton />);
+
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Đang tải Project đang luyện…",
     );
   });
 

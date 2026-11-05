@@ -1,60 +1,35 @@
-import { CollectionDividerSkeleton } from "@/components/system/collection-skeleton";
 import { Skeleton } from "@/components/ui/skeleton";
-
-function ProjectCardSkeleton() {
-  return (
-    <div
-      aria-hidden="true"
-      className="flex min-h-64 flex-col overflow-hidden rounded-2xl bg-card/75 ring-1 ring-foreground/10"
-    >
-      <div className="flex items-center justify-between gap-3 px-5 pt-5">
-        <div className="flex items-center gap-3">
-          <Skeleton className="size-9 rounded-full" />
-          <Skeleton className="h-3 w-16" />
-        </div>
-        <Skeleton className="h-6 w-24 rounded-full" />
-      </div>
-      <div className="flex flex-1 flex-col px-5 pb-5 pt-8">
-        <Skeleton className="h-7 w-3/4" />
-        <Skeleton className="mt-3 h-4 w-full" />
-        <Skeleton className="mt-2 h-4 w-2/3" />
-        <Skeleton className="mt-auto h-4 w-1/2" />
-      </div>
-      <div className="flex items-center justify-between border-t bg-muted/35 px-5 py-3">
-        <Skeleton className="h-3 w-20" />
-      </div>
-    </div>
-  );
-}
 
 export function ProjectMetaSkeleton() {
   return (
-    <span className="flex gap-2" role="status" aria-live="polite">
+    <span className="inline-flex" role="status" aria-live="polite">
       <span className="sr-only">Đang tải thông tin Project…</span>
-      <Skeleton className="h-6 w-28 rounded-full" aria-hidden="true" />
+      <Skeleton className="h-5 w-48" aria-hidden="true" />
     </span>
   );
 }
 
-function ProjectCardGridSkeleton() {
+export function ProjectRunningSkeleton() {
   return (
-    <div
-      aria-hidden="true"
-      className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
-    >
-      {Array.from({ length: 6 }).map((_, index) => (
-        <ProjectCardSkeleton key={index} />
-      ))}
+    <div role="status" aria-live="polite" className="flex flex-col gap-4">
+      <span className="sr-only">Đang tải Project đang luyện…</span>
+      <Skeleton aria-hidden="true" className="h-3 w-28" />
+      <Skeleton aria-hidden="true" className="h-56 w-full rounded-3xl" />
     </div>
   );
 }
 
 export function ProjectListSkeleton() {
   return (
-    <div className="space-y-4" role="status" aria-live="polite">
+    <div role="status" aria-live="polite" className="flex flex-col gap-2.5">
       <span className="sr-only">Đang tải danh sách Project…</span>
-      <CollectionDividerSkeleton />
-      <ProjectCardGridSkeleton />
+      {Array.from({ length: 4 }).map((_, index) => (
+        <Skeleton
+          key={index}
+          aria-hidden="true"
+          className="h-17 w-full rounded-2xl"
+        />
+      ))}
     </div>
   );
 }
