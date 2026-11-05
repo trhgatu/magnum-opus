@@ -6,7 +6,7 @@ import { TimeZoneMismatchNotice } from "@/features/account/components/time-zone-
 import { getHabitOverview } from "@/features/habit/api/habit";
 import { getJournalEntries } from "@/features/journal/api/journal";
 import { getMemories } from "@/features/memory/api/memory";
-import { getProjects } from "@/features/project/api/project";
+import { getFocusProject } from "@/features/project/api/project";
 import { getProjectActivity } from "@/features/project-activity/api/project-activity";
 import { getToday } from "@/features/today/api/today";
 import { TodayCrucible } from "@/features/today/components/today-crucible";
@@ -18,10 +18,7 @@ import {
   TodayRhythmSkeleton,
   TodaySummarySkeleton,
 } from "@/features/today/components/today-skeletons";
-import {
-  journalEntryToday,
-  pickFocusProject,
-} from "@/features/today/lib/today-focus";
+import { journalEntryToday } from "@/features/today/lib/today-focus";
 import {
   formatTodayLabel,
   greetingAt,
@@ -84,12 +81,10 @@ async function Crucible({
   today: string;
   timeZone: string;
 }) {
-  // API sắp theo ngày tạo: lấy tối đa (100) rồi tự chọn cái mới đụng tới.
-  const projects = await getProjects({ state: "ACTIVE", limit: 100 }).catch(
-    () => null,
-  );
-  if (!projects) return <CardUnavailable title="Crucible" />;
-  const project = pickFocusProject(projects.data);
+  // Server chọn Project đang luyện: hoạt động gần nhất, rồi Cycle mới nhất.
+  const focus = await getFocusProject().catch(() => null);
+  if (!focus) return <CardUnavailable title="Crucible" />;
+  const { project } = focus;
   return (
     <TodayCrucible
       project={project}

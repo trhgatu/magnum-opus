@@ -1,4 +1,4 @@
-import type { JournalEntryResponse, ProjectResponse } from "@repo/contracts";
+import type { JournalEntryResponse } from "@repo/contracts";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -7,52 +7,11 @@ import {
   formatCodingHours,
   journalEntryToday,
   lastSevenActivityDays,
-  pickFocusProject,
 } from "./today-focus";
 
 const TZ = "Asia/Ho_Chi_Minh";
 // 2026-11-04 là Thứ Tư.
 const TODAY = "2026-11-04";
-
-const project = (
-  id: string,
-  updatedAt: string,
-  hasCycle = true,
-): ProjectResponse => ({
-  id,
-  title: id,
-  description: null,
-  lifecycleState: "ACTIVE",
-  currentCycle: hasCycle
-    ? {
-        id: `${id}-c`,
-        cycleNumber: 1,
-        intendedOutcome: null,
-        outcomeHistory: [],
-        targetEndAt: null,
-        closingNote: null,
-        startedAt: "2026-10-31T02:00:00.000Z",
-        endedAt: null,
-        endReason: null,
-      }
-    : null,
-  revision: 1,
-  createdAt: updatedAt,
-  updatedAt,
-});
-
-describe("pickFocusProject", () => {
-  it("takes the most recently touched project with an open cycle", () => {
-    expect(
-      pickFocusProject([
-        project("old", "2026-11-01T00:00:00.000Z"),
-        project("new", "2026-11-03T00:00:00.000Z"),
-        project("no-cycle", "2026-11-04T00:00:00.000Z", false),
-      ])?.id,
-    ).toBe("new");
-    expect(pickFocusProject([])).toBeNull();
-  });
-});
 
 describe("cycleDayNumber", () => {
   it("counts the start day as day 1 in the account time zone", () => {
