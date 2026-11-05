@@ -74,8 +74,14 @@ test("completes the private Habit lifecycle through the BFF", async ({
   // Lịch T2 · T4 · T6: hôm nay có thể là ngày nghỉ, nhóm đó gập sẵn.
   await page.goto("/habits");
   const ring = page.getByRole("button", { name: `Ghi dấu ${updatedTitle}` });
-  // Đợi danh sách stream xong (dòng có trong DOM, kể cả khi nằm trong nhóm gập).
-  await expect(ring).toHaveCount(1);
+  // Đợi danh sách stream xong (dòng có trong DOM, kể cả khi nằm trong nhóm gập:
+  // getByRole mặc định bỏ qua phần tử ẩn trong <details> đang đóng).
+  await expect(
+    page.getByRole("button", {
+      name: `Ghi dấu ${updatedTitle}`,
+      includeHidden: true,
+    }),
+  ).toHaveCount(1);
   if (!(await ring.isVisible())) {
     await page.getByText("Không có lịch hôm nay", { exact: true }).click();
   }
