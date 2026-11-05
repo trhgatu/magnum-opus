@@ -20,4 +20,11 @@ export interface ProjectReader {
     ownerId: string,
     options: FindProjectsOptions,
   ): Promise<FindProjectsResult>;
+
+  findFocusCandidates(ownerId: string): Promise<FocusCandidate[]>;
+}
+
+export interface FocusCandidate {
+  project: Project;
+  lastActivityAt: Date | null;
 }

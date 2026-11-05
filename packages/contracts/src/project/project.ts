@@ -38,3 +38,8 @@ export interface ProjectResponse {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface ProjectFocusResponse {
+  project: ProjectResponse | null;
+  lastActivityAt: string | null;
+}
