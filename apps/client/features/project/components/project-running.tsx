@@ -2,9 +2,12 @@ import type { ProjectActivityResponse, ProjectResponse } from "@repo/contracts";
 import Link from "next/link";
 import { Suspense } from "react";
 
-import { Skeleton } from "@/components/ui/skeleton";
 import { getProjectActivity } from "@/features/project-activity/api/project-activity";
-import { Activity, Week } from "@/features/today/components/today-crucible";
+import {
+  Activity,
+  ActivitySkeleton,
+  Week,
+} from "@/features/today/components/today-crucible";
 import {
   cycleDayNumber,
   lastSevenActivityDays,
@@ -14,18 +17,6 @@ import { cn } from "@/lib/utils";
 type Running = ProjectResponse & {
   currentCycle: NonNullable<ProjectResponse["currentCycle"]>;
 };
-
-function ActivitySkeleton({ compact = false }: { compact?: boolean }) {
-  return (
-    <div role="status" className="flex flex-col gap-3">
-      <span className="sr-only">Đang tải hoạt động của Cycle…</span>
-      <Skeleton aria-hidden="true" className="h-7 w-full bg-background/60" />
-      {compact ? null : (
-        <Skeleton aria-hidden="true" className="h-9 w-48 bg-background/60" />
-      )}
-    </div>
-  );
-}
 
 /** Thẻ gọn chỉ cần tuần hoạt động và một dòng số liệu. */
 async function CompactActivity({
@@ -117,10 +108,13 @@ function RunningCard({
  */
 export function ProjectRunning({
   projects,
+  total = projects.length,
   today,
   timeZone,
 }: {
   projects: readonly ProjectResponse[];
+  /** Tổng số Project đang chạy; nhiều hơn số thẻ thì có link xem hết. */
+  total?: number;
   today: string;
   timeZone: string;
 }) {
@@ -136,7 +130,7 @@ export function ProjectRunning({
         id="project-running"
         className="font-mono text-[11px] font-medium tracking-[0.16em] text-primary uppercase"
       >
-        Đang luyện · {running.length}
+        Đang luyện · {Math.max(total, running.length)}
       </h2>
       <div className={cn("grid gap-4", compact && "md:grid-cols-2")}>
         {running.map((project) => (
@@ -149,6 +143,14 @@ export function ProjectRunning({
           />
         ))}
       </div>
+      {total > running.length ? (
+        <Link
+          href="/projects?state=ACTIVE"
+          className="self-start rounded-sm text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          Xem cả {total} Project đang chạy
+        </Link>
+      ) : null}
     </section>
   );
 }

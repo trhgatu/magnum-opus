@@ -81,6 +81,24 @@ describe("ProjectRunning", () => {
     expect(screen.getAllByRole("status")).toHaveLength(3);
   });
 
+  it("links to every running Project when only some are shown", () => {
+    render(
+      <ProjectRunning
+        projects={[project("a"), project("b")]}
+        total={23}
+        today={TODAY}
+        timeZone={TZ}
+      />,
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Đang luyện · 23" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Xem cả 23 Project đang chạy" }),
+    ).toHaveAttribute("href", "/projects?state=ACTIVE");
+  });
+
   it("renders nothing without a running Cycle", () => {
     const { container } = render(
       <ProjectRunning

@@ -17,7 +17,10 @@ import {
   ProjectMetaSkeleton,
   ProjectRunningSkeleton,
 } from "@/features/project/components/project-skeletons";
-import { parseProjectLocation } from "@/features/project/lib/project-url";
+import {
+  buildProjectHref,
+  parseProjectLocation,
+} from "@/features/project/lib/project-url";
 
 export const metadata: Metadata = {
   title: "Projects",
@@ -57,7 +60,12 @@ async function Running({
   const running = await runningPromise.catch(() => null);
   if (!running) return null;
   return (
-    <ProjectRunning projects={running.data} today={today} timeZone={timeZone} />
+    <ProjectRunning
+      projects={running.data}
+      total={running.meta.totalItems}
+      today={today}
+      timeZone={timeZone}
+    />
   );
 }
 
@@ -69,6 +77,24 @@ async function ProjectsList({
   location: Location;
 }) {
   const result = await projectsPromise;
+
+  if (result.data.length === 0 && location.page > 1) {
+    // Trang vượt quá cuối: cho đường về trang đầu.
+    return (
+      <EmptyState
+        title="Trang này không còn Project"
+        description="Các Project đã nằm ở những trang trước."
+        action={
+          <Link
+            href={buildProjectHref({ ...location, page: 1 })}
+            className={buttonVariants({ variant: "outline" })}
+          >
+            Về trang đầu
+          </Link>
+        }
+      />
+    );
+  }
 
   if (result.data.length === 0) {
     const filtered = location.search !== "" || location.state !== undefined;
