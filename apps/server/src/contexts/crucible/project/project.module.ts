@@ -20,6 +20,7 @@ import { PROJECT_REPOSITORY } from './domain/ports/project.repository';
 import { PrismaProjectReader } from './infrastructure/readers/prisma-project.reader';
 import { PrismaProjectRepository } from './infrastructure/repositories/prisma-project.repository';
 import { ProjectController } from './presentation/controllers/project.controller';
+import { GetFocusProjectHandler } from './application/queries/handlers/get-focus-project.handler';
 
 const commandHandlers = [
   CreateProjectHandler,
@@ -34,7 +35,11 @@ const commandHandlers = [
   SetTargetEndDateHandler,
   DeleteProjectHandler,
 ];
-const queryHandlers = [GetProjectHandler, GetProjectsHandler];
+const queryHandlers = [
+  GetProjectHandler,
+  GetProjectsHandler,
+  GetFocusProjectHandler,
+];
 
 @Module({
   imports: [CqrsModule],

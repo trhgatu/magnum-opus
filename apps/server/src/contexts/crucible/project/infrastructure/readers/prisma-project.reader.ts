@@ -10,6 +10,7 @@ import {
   FindProjectsOptions,
   FindProjectsResult,
   ProjectReader,
+  FocusCandidate,
 } from '../../application/ports/project-reader.port';
 import { ProjectLifecycleState } from '../../domain/enums';
 import { PrismaProjectMapper } from '../mappers/prisma-project.mapper';
@@ -64,5 +65,46 @@ export class PrismaProjectReader implements ProjectReader {
       projects: rows.map((row) => PrismaProjectMapper.toDomain(row)),
       total,
     };
+  }
+
+  public async findFocusCandidates(ownerId: string): Promise<FocusCandidate[]> {
+    const rows = await this.prisma.project.findMany({
+      where: {
+        ownerId,
+        lifecycleState: PrismaProjectLifecycleState.ACTIVE,
+        cycles: { some: { endedAt: null } },
+      },
+      include: PrismaProjectMapper.include,
+    });
+
+    if (rows.length === 0) return [];
+
+    const sources = await this.prisma.projectActivitySource.findMany({
+      where: { ownerId, projectId: { in: rows.map((row) => row.id) } },
+      select: {
+        projectId: true,
+        feed: {
+          select: {
+            events: {
+              orderBy: { occurredAt: 'desc' },
+              take: 1,
+              select: { occurredAt: true },
+            },
+          },
+        },
+      },
+    });
+
+    const latest = new Map<string, Date>();
+    for (const source of sources) {
+      const at = source.feed.events[0]?.occurredAt;
+      const known = latest.get(source.projectId);
+      if (at && (!known || at > known)) latest.set(source.projectId, at);
+    }
+
+    return rows.map((row) => ({
+      project: PrismaProjectMapper.toDomain(row),
+      lastActivityAt: latest.get(row.id) ?? null,
+    }));
   }
 }

@@ -15,7 +15,11 @@ import {
 } from '@nestjs/common';
 import { CommandBus, type ICommand, QueryBus } from '@nestjs/cqrs';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import type { ProjectResponse, ProjectCycleResponse } from '@repo/contracts';
+import type {
+  ProjectResponse,
+  ProjectCycleResponse,
+  ProjectFocusResponse,
+} from '@repo/contracts';
 
 import { PaginatedResponsePresenter } from '@presentation/common/presenters/pagination.presenter';
 import { GetUser } from '@presentation/decorators';
@@ -34,7 +38,11 @@ import {
   UpdateProjectCommand,
   SetTargetEndDateCommand,
 } from '../../application/commands';
-import { GetProjectQuery, GetProjectsQuery } from '../../application/queries';
+import {
+  GetProjectQuery,
+  GetProjectsQuery,
+  GetFocusProjectQuery,
+} from '../../application/queries';
 import { ProjectLifecycleState as DomainProjectLifecycleState } from '../../domain/enums';
 import {
   CreateProjectDto,
@@ -46,7 +54,7 @@ import {
   SetTargetEndDateDto,
 } from '../dtos';
 import { ProjectPresenter } from '../presenters/project.presenter';
-
+import type { FocusCandidate } from '../../application/ports/project-reader.port';
 @ApiTags('Projects')
 @ApiBearerAuth()
 @Controller('projects')
@@ -98,6 +106,22 @@ export class ProjectController {
       query.page,
       query.limit,
     );
+  }
+
+  @Get('focus')
+  @ApiOperation({ summary: 'get the running Project to focus on today' })
+  public async focus(
+    @GetUser('id') ownerId: string,
+  ): Promise<ProjectFocusResponse> {
+    const result = await this.queryBus.execute(
+      new GetFocusProjectQuery(ownerId),
+    );
+    const focus = result.unwrap() as FocusCandidate | null;
+
+    return {
+      project: focus ? ProjectPresenter.toResponse(focus.project) : null,
+      lastActivityAt: focus?.lastActivityAt?.toISOString() ?? null,
+    };
   }
 
   @Get(':id')

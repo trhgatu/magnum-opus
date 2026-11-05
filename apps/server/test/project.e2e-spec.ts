@@ -231,6 +231,59 @@ describe('Project (E2E)', () => {
       .expect(HttpStatus.NOT_FOUND);
   });
 
+  it('picks the running Project to focus on today', async () => {
+    const focuser = as(await registerAndLogin('focus'));
+
+    const empty = await focuser.get('/projects/focus').expect(HttpStatus.OK);
+    expect(empty.body).toEqual({ project: null, lastActivityAt: null });
+
+    const create = async (title: string) =>
+      (
+        await focuser
+          .post('/projects')
+          .send({ title })
+          .expect(HttpStatus.CREATED)
+      ).body.id as string;
+    const first = await create('Started first');
+    const second = await create('Started second');
+    const paused = await create('Paused later');
+    await create('Never started');
+
+    await focuser
+      .patch(`/projects/${first}/start`)
+      .send({ expectedRevision: 1 })
+      .expect(HttpStatus.OK);
+    await focuser
+      .patch(`/projects/${second}/start`)
+      .send({ expectedRevision: 1 })
+      .expect(HttpStatus.OK);
+    await focuser
+      .patch(`/projects/${paused}/start`)
+      .send({ expectedRevision: 1 })
+      .expect(HttpStatus.OK);
+    await focuser
+      .patch(`/projects/${paused}/pause`)
+      .send({ expectedRevision: 2 })
+      .expect(HttpStatus.OK);
+
+    // No activity yet: the most recently started running Cycle wins; a
+    // paused or never-started Project is never the focus.
+    const focus = await focuser.get('/projects/focus').expect(HttpStatus.OK);
+    expect(focus.body.project).toMatchObject({
+      id: second,
+      lifecycleState: 'ACTIVE',
+      currentCycle: { cycleNumber: 1 },
+    });
+    expect(focus.body.project).not.toHaveProperty('ownerId');
+    expect(focus.body.lastActivityAt).toBeNull();
+
+    // Another owner never sees these Projects.
+    const other = await as(otherToken)
+      .get('/projects/focus')
+      .expect(HttpStatus.OK);
+    expect(other.body.project?.id).not.toBe(second);
+  });
+
   async function registerAndLogin(label: string): Promise<string> {
     const suffix = `${Date.now()}${Math.random().toString(16).slice(2)}`;
     const email = `project.${label}.${suffix}@example.com`;

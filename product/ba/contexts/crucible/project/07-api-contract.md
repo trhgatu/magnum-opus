@@ -238,6 +238,45 @@ interface PaginatedResponse<T> {
 
 ---
 
+### 4.2.1. Get Focus Project
+
+```
+GET /projects/focus
+```
+
+Project "đang luyện" cho trang Hôm nay: một Project, hoặc không có.
+
+#### Response
+
+```
+200 OK
+ProjectFocusResponse
+```
+
+```typescript
+interface ProjectFocusResponse {
+  project: ProjectResponse | null;
+  lastActivityAt: string | null; // ISO-8601 UTC
+}
+```
+
+#### Behavior
+
+- Chỉ xét Project `ACTIVE` của owner có Cycle đang mở (`endedAt` null).
+- Project có hoạt động gần nhất được chọn. Hoạt động là event mới nhất trong sổ hoạt động của các feed đã gắn với Project (commit, PR, giờ code).
+- Project chưa có hoạt động nào xếp sau mọi Project có hoạt động; giữa chúng (và khi hòa) Cycle bắt đầu gần nhất được chọn.
+- Không có Project nào đang chạy thì trả `{ project: null, lastActivityAt: null }`, không phải 404.
+- Endpoint chỉ đọc, không đồng bộ feed. `lastActivityAt` là mốc đã có trong sổ.
+- Route tĩnh này phải khai báo trước `GET /projects/:id`.
+
+#### Error Cases
+
+| Status | Reason       |
+| ------ | ------------ |
+| 401    | Unauthorized |
+
+---
+
 ### 4.3. Get Project Detail
 
 ```
