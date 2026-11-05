@@ -108,7 +108,7 @@ function RunningCard({
  */
 export function ProjectRunning({
   projects,
-  total = projects.length,
+  total,
   today,
   timeZone,
 }: {
@@ -123,6 +123,7 @@ export function ProjectRunning({
   );
   if (running.length === 0) return null;
   const compact = running.length > 1;
+  const count = Math.max(total ?? running.length, running.length);
 
   return (
     <section aria-labelledby="project-running" className="flex flex-col gap-4">
@@ -130,7 +131,7 @@ export function ProjectRunning({
         id="project-running"
         className="font-mono text-[11px] font-medium tracking-[0.16em] text-primary uppercase"
       >
-        Đang luyện · {Math.max(total, running.length)}
+        Đang luyện · {count}
       </h2>
       <div className={cn("grid gap-4", compact && "md:grid-cols-2")}>
         {running.map((project) => (
@@ -143,12 +144,12 @@ export function ProjectRunning({
           />
         ))}
       </div>
-      {total > running.length ? (
+      {count > running.length ? (
         <Link
           href="/projects?state=ACTIVE"
           className="self-start rounded-sm text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          Xem cả {total} Project đang chạy
+          Xem cả {count} Project đang chạy
         </Link>
       ) : null}
     </section>

@@ -118,15 +118,16 @@ export async function Activity({
   );
 }
 
-/** Khung chờ tuần hoạt động; bản gọn bỏ dòng số liệu lớn. */
+/** Khung chờ tuần hoạt động; bản gọn có dòng số liệu nhỏ. */
 export function ActivitySkeleton({ compact = false }: { compact?: boolean }) {
   return (
     <div role="status" className="flex flex-col gap-3">
       <span className="sr-only">Đang tải hoạt động của Cycle…</span>
       <Skeleton aria-hidden="true" className="h-7 w-full bg-background/60" />
-      {compact ? null : (
-        <Skeleton aria-hidden="true" className="h-9 w-48 bg-background/60" />
-      )}
+      <Skeleton
+        aria-hidden="true"
+        className={cn("bg-background/60", compact ? "h-5 w-40" : "h-9 w-48")}
+      />
     </div>
   );
 }

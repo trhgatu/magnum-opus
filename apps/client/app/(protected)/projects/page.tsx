@@ -78,7 +78,11 @@ async function ProjectsList({
 }) {
   const result = await projectsPromise;
 
-  if (result.data.length === 0 && location.page > 1) {
+  if (
+    result.data.length === 0 &&
+    location.page > 1 &&
+    result.meta.totalItems > 0
+  ) {
     // Trang vượt quá cuối: cho đường về trang đầu.
     return (
       <EmptyState
