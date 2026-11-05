@@ -41,7 +41,7 @@ describe("day text", () => {
   it("shows coding time, rounded down, or the day state", () => {
     expect(shortCodingTime(4_300)).toBe("1,1 giờ");
     expect(shortCodingTime(2_400)).toBe("40 phút");
-    expect(shortCodingTime(20)).toBe("1 phút");
+    expect(shortCodingTime(20)).toBe("dưới 1 phút");
     expect(dayValue(day("2026-10-29", "ACTIVE", 9_000))).toBe("2,5 giờ");
     expect(dayValue(day("2026-10-29", "ACTIVE"))).toBe("có hoạt động");
     expect(dayValue(day("2026-10-29", "IDLE", 0))).toBe("không hoạt động");

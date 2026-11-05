@@ -20,7 +20,8 @@ const hours = (seconds: number) =>
 
 /** Giây thành chữ ngắn trên ô: "1,2 giờ", "40 phút". Làm tròn xuống. */
 export function shortCodingTime(seconds: number): string {
-  if (seconds < 3600) return `${Math.max(1, Math.floor(seconds / 60))} phút`;
+  if (seconds < 60) return "dưới 1 phút";
+  if (seconds < 3600) return `${Math.floor(seconds / 60)} phút`;
   return `${hours(seconds)} giờ`;
 }
 
