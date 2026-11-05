@@ -55,7 +55,7 @@ export default async function ProjectDetailPage({
     [project, closedCycles, snapshots, user] = await Promise.all([
       getProject(id),
       // Lịch sử chỉ đọc, không phải đường chính của trang: lỗi tạm thời ở
-      // đây (5xx/timeout) chỉ làm mục "Các chu kỳ đã đóng" báo lỗi, không
+      // đây (5xx/timeout) chỉ làm mục "Những vòng đã khép" báo lỗi, không
       // kéo sập cả trang. Project không tồn tại thì getProject đã 404 song
       // song nên vẫn ra notFound() như cũ.
       getClosedProjectCycles(id).catch(() => null),

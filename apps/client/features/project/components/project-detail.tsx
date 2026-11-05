@@ -1,12 +1,8 @@
 import type { ProjectCycleResponse, ProjectResponse } from "@repo/contracts";
-import { ArrowLeft, FolderKanban } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { ContextHero } from "@/components/system/context-hero";
-import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   ProjectDetailDescription,
   ProjectDetailTitle,
@@ -17,6 +13,7 @@ import {
   ProjectTargetEndEditorInline,
 } from "@/features/project/components/project-inline-fields";
 import { ProjectClosedCycles } from "@/features/project/components/project-closed-cycles";
+import { ProjectCycleStrip } from "@/features/project/components/project-cycle-strip";
 import { todayInTimeZone } from "@/features/project/lib/cycle-dates";
 
 const STATE_LABEL: Record<ProjectResponse["lifecycleState"], string> = {
@@ -51,76 +48,71 @@ export function ProjectDetail({
 }) {
   const hasOpenCycle =
     project.lifecycleState === "ACTIVE" || project.lifecycleState === "PAUSED";
+  const today = todayInTimeZone(timeZone);
 
   return (
     <article
-      className="flex w-full flex-col gap-6"
+      className="flex w-full flex-col gap-8"
       aria-labelledby="project-title"
     >
       <Link
         href="/projects"
-        className={buttonVariants({
-          variant: "ghost",
-          className: "self-start",
-        })}
+        className="inline-flex items-center gap-1.5 self-start rounded-sm text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        <ArrowLeft aria-hidden="true" /> Tất cả Project
+        <ArrowLeft className="size-4" aria-hidden="true" /> Tất cả Project
       </Link>
 
       <ProjectFieldsProvider key={project.id} initialProject={project}>
-        <ContextHero
-          id="project-title"
-          icon={FolderKanban}
-          eyebrow="Crucible · Project"
-          title={<ProjectDetailTitle />}
-          description={
-            <ProjectDetailDescription placeholder="Chưa có mô tả cho effort này." />
-          }
-          meta={
-            <>
-              {project.currentCycle ? (
-                <Badge variant="outline">
-                  Cycle {project.currentCycle.cycleNumber}
-                </Badge>
-              ) : null}
-              <Badge
-                variant={
-                  project.lifecycleState === "STOPPED"
-                    ? "destructive"
-                    : "secondary"
-                }
-              >
-                {STATE_LABEL[project.lifecycleState]}
-              </Badge>
-            </>
-          }
-          actions={
-            <>
-              <ProjectEditAction />
-              {sourcesAction}
-              <ProjectLifecycleControlsInline />
-            </>
-          }
-        />
+        <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-5">
+          <div className="flex max-w-3xl min-w-0 flex-col gap-2.5">
+            <p className="font-mono text-[11px] font-medium tracking-[0.16em] text-primary uppercase">
+              Crucible · Project · {STATE_LABEL[project.lifecycleState]}
+            </p>
+            <h1
+              id="project-title"
+              className="font-display text-4xl leading-[1.05] font-medium tracking-[-0.02em] text-balance sm:text-[46px]"
+            >
+              <ProjectDetailTitle />
+            </h1>
+            <p className="max-w-2xl text-base leading-relaxed text-muted-foreground">
+              <ProjectDetailDescription placeholder="Chưa có mô tả cho effort này." />
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2.5">
+            <ProjectEditAction />
+            {sourcesAction}
+            <ProjectLifecycleControlsInline />
+          </div>
+        </header>
         {activityNotes}
 
+        {closedCycles ? (
+          <ProjectCycleStrip
+            closedCycles={closedCycles}
+            currentCycle={hasOpenCycle ? project.currentCycle : null}
+            paused={project.lifecycleState === "PAUSED"}
+            today={today}
+            timeZone={timeZone}
+          />
+        ) : null}
+
         {hasOpenCycle && project.currentCycle ? (
-          <Card className="gap-0 rounded-3xl bg-card/65 py-0 shadow-sm">
-            <CardHeader className="border-b px-5 py-5 sm:px-7">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-                Intended Outcome — Cycle {project.currentCycle.cycleNumber}
-              </p>
-            </CardHeader>
-            <CardContent className="px-5 py-6 sm:px-7 sm:py-7">
-              <ProjectOutcomeEditorInline timeZone={timeZone} />
-              <div className="mt-6 border-t pt-5">
-                <ProjectTargetEndEditorInline
-                  today={todayInTimeZone(timeZone)}
-                />
-              </div>
-              {activity}
-            </CardContent>
-          </Card>
+          <section
+            aria-labelledby="project-current-cycle"
+            className="flex flex-col gap-6 rounded-3xl bg-ember-soft px-5 py-6 sm:px-9 sm:py-8"
+          >
+            <h2
+              id="project-current-cycle"
+              className="font-mono text-[11px] font-medium tracking-[0.16em] text-primary uppercase"
+            >
+              Kết quả mong muốn · Cycle {project.currentCycle.cycleNumber}
+            </h2>
+            <ProjectOutcomeEditorInline timeZone={timeZone} />
+            <div className="border-t border-primary/15 pt-5">
+              <ProjectTargetEndEditorInline today={today} />
+            </div>
+            {activity}
+          </section>
         ) : null}
       </ProjectFieldsProvider>
       <ProjectClosedCycles

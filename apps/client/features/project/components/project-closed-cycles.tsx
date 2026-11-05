@@ -34,7 +34,7 @@ export function ProjectClosedCycles({
   if (cycles === null) {
     return (
       <p role="status" className="text-sm text-muted-foreground">
-        Chưa tải được các chu kỳ đã đóng. Tải lại trang để thử lại.
+        Chưa tải được những vòng đã khép. Tải lại trang để thử lại.
       </p>
     );
   }
@@ -48,9 +48,9 @@ export function ProjectClosedCycles({
     >
       <h2
         id="project-closed-cycles"
-        className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground"
+        className="font-display text-2xl font-medium"
       >
-        Các chu kỳ đã đóng
+        Những vòng đã khép
       </h2>
 
       {cycles.map((cycle) => {
@@ -60,10 +60,10 @@ export function ProjectClosedCycles({
           <article
             key={cycle.id}
             aria-labelledby={headingId}
-            className="flex flex-col gap-3 rounded-3xl border bg-card/40 px-5 py-5 sm:px-7"
+            className="flex flex-col gap-3 rounded-2xl border bg-card/40 px-5 py-5 sm:px-7"
           >
             <header className="flex flex-wrap items-center justify-between gap-2">
-              <h3 id={headingId} className="font-semibold">
+              <h3 id={headingId} className="font-medium">
                 Cycle {cycle.cycleNumber}
               </h3>
               <span className="flex items-center gap-2 font-mono text-xs text-muted-foreground">
@@ -90,7 +90,7 @@ export function ProjectClosedCycles({
               </span>
             </header>
 
-            <p className="text-sm leading-6">
+            <p className="font-display text-lg leading-snug">
               {cycle.intendedOutcome ?? (
                 <span className="text-muted-foreground">
                   Chưa xác định outcome
