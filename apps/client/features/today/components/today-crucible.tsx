@@ -33,7 +33,7 @@ const DAY_LABELS: Record<ActivityDayState | "OUTSIDE", string> = {
   OUTSIDE: "trước Cycle",
 };
 
-function Week({ cells, today }: { cells: WeekCell[]; today: string }) {
+export function Week({ cells, today }: { cells: WeekCell[]; today: string }) {
   return (
     <div className="flex flex-col gap-1.5">
       <ol aria-label="7 ngày qua" className="grid grid-cols-7 gap-1.5">
