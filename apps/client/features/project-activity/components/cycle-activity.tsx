@@ -9,6 +9,10 @@ import { TriangleAlert } from "lucide-react";
 import type { ReactNode } from "react";
 
 import {
+  CycleMetrics,
+  RecentDays,
+} from "@/features/project-activity/components/cycle-days";
+import {
   dayDescription,
   divergenceText,
   freshnessLine,
@@ -16,6 +20,7 @@ import {
   summaryLine,
   WEEK_ROWS_AFTER_DAYS,
 } from "@/features/project-activity/lib/activity-presentation";
+import { calendarDayIn } from "@/features/today/lib/today-focus";
 import { cn } from "@/lib/utils";
 
 const CELL_CLASS: Record<ActivityDayState, string> = {
@@ -98,15 +103,18 @@ export function CycleActivity({
   const paused = findDivergence(divergences, "PAUSED_WITH_ACTIVITY");
   const idle = findDivergence(divergences, "ACTIVE_WITHOUT_ACTIVITY");
   const freshness = freshnessLine(cycle, sources, timeZone, now);
+  const hasGitHub = sources.some((source) => source.provider === "GITHUB");
+  const allMissing =
+    cycle.days.length > 0 && cycle.days.every((day) => day.state === "NO_DATA");
 
   return (
     <section
       aria-labelledby="cycle-activity-title"
-      className="mt-6 flex flex-col gap-4 border-t pt-5"
+      className="flex flex-col gap-5 border-t border-primary/15 pt-6"
     >
       <h2
         id="cycle-activity-title"
-        className="text-xs font-semibold uppercase tracking-[0.2em] text-primary"
+        className="font-mono text-[11px] font-medium tracking-[0.16em] text-primary uppercase"
       >
         Hoạt động của vòng này
       </h2>
@@ -127,6 +135,18 @@ export function CycleActivity({
         </div>
       ) : null}
 
+      {allMissing ? null : (
+        <CycleMetrics metrics={cycle.metrics} hasGitHub={hasGitHub} />
+      )}
+
+      <div className="flex flex-col gap-2.5">
+        <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 text-[13px] text-muted-foreground">
+          <span>Từng ngày của vòng này</span>
+          {freshness ? <span className="tabular-nums">{freshness}</span> : null}
+        </div>
+        <RecentDays days={cycle.days} today={calendarDayIn(now, timeZone)} />
+      </div>
+
       <DayStrip days={cycle.days} label="Dải ngày của vòng này" />
 
       <div className="flex flex-col gap-1">
@@ -136,11 +156,6 @@ export function CycleActivity({
             providers: sources.map((source) => source.provider),
           })}
         </p>
-        {freshness ? (
-          <p className="text-xs text-muted-foreground tabular-nums">
-            {freshness}
-          </p>
-        ) : null}
       </div>
 
       {sourceErrorLines(sources).map((line) => (
