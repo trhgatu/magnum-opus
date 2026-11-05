@@ -105,7 +105,12 @@ export function ProjectCycleStrip({
             : null}
         </p>
       </div>
-      <div className="overflow-x-auto">
+      <div
+        role="region"
+        aria-label="Dải các vòng luyện"
+        tabIndex={0}
+        className="overflow-x-auto rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
         <ol className="flex min-w-full gap-1.5">
           {segments.map((segment) => (
             <li
@@ -131,7 +136,7 @@ export function ProjectCycleStrip({
               >
                 {segment.title}
               </span>
-              <span className="truncate font-mono text-[11px] text-muted-foreground">
+              <span className="font-mono text-[11px] break-words text-muted-foreground">
                 {segment.dates} · {segment.status}
               </span>
             </li>

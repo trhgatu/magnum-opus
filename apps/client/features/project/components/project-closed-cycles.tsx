@@ -60,7 +60,7 @@ export function ProjectClosedCycles({
           <article
             key={cycle.id}
             aria-labelledby={headingId}
-            className="flex flex-col gap-3 rounded-2xl border bg-card px-5 py-5 sm:px-7"
+            className="flex flex-col gap-3 rounded-2xl border bg-card/40 px-5 py-5 sm:px-7"
           >
             <header className="flex flex-wrap items-center justify-between gap-2">
               <h3 id={headingId} className="font-medium">
