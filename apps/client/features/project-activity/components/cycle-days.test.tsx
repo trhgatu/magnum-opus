@@ -101,6 +101,29 @@ describe("RecentDays", () => {
     expect(tiles[1]).toMatch(/bg-ember(\s|$)/);
   });
 
+  it("shades commit-only days by commits next to days with coding time", () => {
+    // Project gắn cả WakaTime lẫn GitHub: 31/10 chỉ có commit, không code.
+    render(
+      <RecentDays
+        days={[
+          day("2026-10-29", "ACTIVE", 9_000, 1),
+          day("2026-10-30", "ACTIVE", 0, 1),
+          day("2026-10-31", "ACTIVE", 0, 6),
+        ]}
+        today="2026-11-01"
+      />,
+    );
+
+    const tiles = within(
+      screen.getByRole("list", { name: "Từng ngày gần đây của vòng này" }),
+    )
+      .getAllByRole("listitem")
+      .map((item) => item.querySelector("[aria-hidden]")!.className);
+    expect(tiles[0]).toMatch(/bg-ember(\s|$)/);
+    expect(tiles[1]).toContain("bg-ember/40");
+    expect(tiles[2]).toMatch(/bg-ember(\s|$)/);
+  });
+
   it("renders nothing for a cycle without days", () => {
     const { container } = render(<RecentDays days={[]} today="2026-11-01" />);
 

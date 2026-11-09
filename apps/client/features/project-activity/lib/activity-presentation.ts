@@ -188,7 +188,11 @@ export function dayDescription(day: ActivityDay): string {
     day.codingSeconds !== null && day.codingSeconds > 0
       ? ` · ${formatCodingTime(day.codingSeconds)}`
       : "";
-  return `${date}/${month}: ${DAY_STATE_LABEL[day.state]}${coding}`;
+  const commits =
+    day.commits !== null && day.commits > 0
+      ? ` · ${count(day.commits)} commit`
+      : "";
+  return `${date}/${month}: ${DAY_STATE_LABEL[day.state]}${coding}${commits}`;
 }
 
 /** Câu chữ của từng chỗ lệch (06 §9). D2 có nút riêng, không nằm ở đây. */

@@ -347,6 +347,22 @@ describe("day strip helpers", () => {
         commits: null,
       }),
     ).toBe("20/10: có hoạt động · 2,9 giờ code");
+    expect(
+      dayDescription({
+        date: "2026-10-21",
+        state: "ACTIVE",
+        codingSeconds: 10_440,
+        commits: 4,
+      }),
+    ).toBe("21/10: có hoạt động · 2,9 giờ code · 4 commit");
+    expect(
+      dayDescription({
+        date: "2026-10-22",
+        state: "ACTIVE",
+        codingSeconds: null,
+        commits: 1,
+      }),
+    ).toBe("22/10: có hoạt động · 1 commit");
     // Dưới ngưỡng 15 phút: chưa là ngày có hoạt động, nhưng vẫn nói giờ code.
     expect(
       dayDescription({

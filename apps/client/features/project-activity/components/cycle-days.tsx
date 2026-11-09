@@ -56,16 +56,20 @@ export function dayValue(day: ActivityDay): string {
 }
 
 /**
- * Thước đo độ đậm của các ô đang hiện: giờ code nếu có ngày nào code, không
- * thì số commit (Project chỉ có GitHub).
+ * Phần của mỗi ngày so với ngày nhiều nhất trong các ô đang hiện: ngày có
+ * giờ code so theo giờ code, ngày chỉ có commit so theo commit — kể cả khi
+ * Project gắn cả WakaTime lẫn GitHub. Không đo được gì thì là null.
  */
 function intensityOf(days: readonly ActivityDay[]) {
-  const seconds = Math.max(0, ...days.map((day) => day.codingSeconds ?? 0));
-  if (seconds > 0) {
-    return { max: seconds, of: (day: ActivityDay) => day.codingSeconds ?? 0 };
-  }
-  const commits = Math.max(0, ...days.map((day) => day.commits ?? 0));
-  return { max: commits, of: (day: ActivityDay) => day.commits ?? 0 };
+  const maxSeconds = Math.max(0, ...days.map((day) => day.codingSeconds ?? 0));
+  const maxCommits = Math.max(0, ...days.map((day) => day.commits ?? 0));
+  return (day: ActivityDay): number | null => {
+    if (day.codingSeconds && maxSeconds > 0) {
+      return day.codingSeconds / maxSeconds;
+    }
+    if (day.commits && maxCommits > 0) return day.commits / maxCommits;
+    return null;
+  };
 }
 
 /**
@@ -80,11 +84,8 @@ function tileClass(
     case "ACTIVE":
     case "PAUSED_ACTIVE": {
       const paused = day.state === "PAUSED_ACTIVE";
-      const amount = intensity.of(day);
-      if (amount === 0 || intensity.max === 0) {
-        return paused ? "bg-ember/40" : "bg-ember/70";
-      }
-      const share = amount / intensity.max;
+      const share = intensity(day);
+      if (share === null) return paused ? "bg-ember/40" : "bg-ember/70";
       const level =
         share > 0.66
           ? "bg-ember"

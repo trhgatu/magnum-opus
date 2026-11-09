@@ -111,6 +111,8 @@ interface ActivityMetrics {
   commits: number;
   prsOpened: number;
   prsMerged: number;
+  // Tổng giây code của vòng; null khi không có nguồn WakaTime (08 §7).
+  codingSeconds: number | null;
 }
 
 interface ActivityDay {
