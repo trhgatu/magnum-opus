@@ -31,11 +31,11 @@
     "db:push": "prisma db push"
   },
   "dependencies": {
-    "@prisma/client": "^7.10.0",
+    "@prisma/client": "^7.10.1",
     "@repo/contracts": "workspace:*"
   },
   "devDependencies": {
-    "@prisma/adapter-pg": "^7.10.0",
+    "@prisma/adapter-pg": "^7.10.1",
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@types/bcrypt": "^6.0.0",
@@ -44,7 +44,7 @@
     "bcrypt": "^6.0.0",
     "eslint": "^9.39.1",
     "pg": "^8.23.1",
-    "prisma": "^7.10.0",
+    "prisma": "^7.10.1",
     "tsup": "^8",
     "tsx": "^4.23.15",
     "typescript": "6.0.3"
