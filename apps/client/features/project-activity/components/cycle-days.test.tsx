@@ -20,7 +20,8 @@ const day = (
   date: string,
   state: ActivityDay["state"] = "ACTIVE",
   codingSeconds: number | null = null,
-): ActivityDay => ({ date, state, codingSeconds });
+  commits: number | null = null,
+): ActivityDay => ({ date, state, codingSeconds, commits });
 
 const metrics: ActivityMetrics = {
   activeDays: 4,
@@ -47,6 +48,18 @@ describe("day text", () => {
     expect(dayValue(day("2026-10-29", "IDLE", 0))).toBe("không hoạt động");
     expect(dayValue(day("2026-10-29", "NO_DATA"))).toBe("chưa có dữ liệu");
   });
+
+  it("adds the commits of the day", () => {
+    expect(dayValue(day("2026-10-29", "ACTIVE", null, 3))).toBe("3 commit");
+    expect(dayValue(day("2026-10-29", "ACTIVE", 9_000, 4))).toBe(
+      "2,5 giờ · 4 commit",
+    );
+    // 0 commit không đáng ghi: ngày đó chỉ có giờ code.
+    expect(dayValue(day("2026-10-29", "ACTIVE", 9_000, 0))).toBe("2,5 giờ");
+    expect(dayValue(day("2026-10-29", "IDLE", null, 0))).toBe(
+      "không hoạt động",
+    );
+  });
 });
 
 describe("RecentDays", () => {
@@ -66,6 +79,49 @@ describe("RecentDays", () => {
     expect(items).toHaveLength(7);
     expect(items[0]).toHaveTextContent("T2 26/10");
     expect(items[6]).toHaveTextContent("hôm nay");
+  });
+
+  it("shades GitHub-only days by their commits", () => {
+    render(
+      <RecentDays
+        days={[
+          day("2026-10-30", "ACTIVE", null, 1),
+          day("2026-10-31", "ACTIVE", null, 6),
+        ]}
+        today="2026-11-01"
+      />,
+    );
+
+    const tiles = within(
+      screen.getByRole("list", { name: "Từng ngày gần đây của vòng này" }),
+    )
+      .getAllByRole("listitem")
+      .map((item) => item.querySelector("[aria-hidden]")!.className);
+    expect(tiles[0]).toContain("bg-ember/40");
+    expect(tiles[1]).toMatch(/bg-ember(\s|$)/);
+  });
+
+  it("shades commit-only days by commits next to days with coding time", () => {
+    // Project gắn cả WakaTime lẫn GitHub: 31/10 chỉ có commit, không code.
+    render(
+      <RecentDays
+        days={[
+          day("2026-10-29", "ACTIVE", 9_000, 1),
+          day("2026-10-30", "ACTIVE", 0, 1),
+          day("2026-10-31", "ACTIVE", 0, 6),
+        ]}
+        today="2026-11-01"
+      />,
+    );
+
+    const tiles = within(
+      screen.getByRole("list", { name: "Từng ngày gần đây của vòng này" }),
+    )
+      .getAllByRole("listitem")
+      .map((item) => item.querySelector("[aria-hidden]")!.className);
+    expect(tiles[0]).toMatch(/bg-ember(\s|$)/);
+    expect(tiles[1]).toContain("bg-ember/40");
+    expect(tiles[2]).toMatch(/bg-ember(\s|$)/);
   });
 
   it("renders nothing for a cycle without days", () => {

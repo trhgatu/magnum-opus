@@ -62,6 +62,7 @@ export interface ActivityDay {
   date: string;
   state: ActivityDayState;
   codingSeconds: number | null;
+  commits: number | null;
 }
 
 export interface CycleActivityResponse {

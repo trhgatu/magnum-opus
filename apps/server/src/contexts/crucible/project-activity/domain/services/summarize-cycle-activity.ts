@@ -39,6 +39,7 @@ export interface CycleActivityDay {
   state: ActivityDayState;
   /** Giây code trong ngày; null theo cùng quy tắc với metrics. */
   codingSeconds: number | null;
+  commits: number | null;
 }
 
 export interface CycleActivitySummary {
@@ -66,6 +67,7 @@ export function summarizeCycleActivity(input: {
   until: Date;
   /** Project có nguồn đo thời gian code. Mặc định không. */
   codingMeasured?: boolean;
+  commitsMeasured?: boolean;
 }): CycleActivitySummary {
   const { cycleId, timeline, sources, timeZone, until } = input;
   const segments = timeline.segmentsOfCycle(cycleId);
@@ -90,6 +92,13 @@ export function summarizeCycleActivity(input: {
   for (const { event, label } of labelled) {
     const day = calendarDayAt(event.occurredAt, timeZone);
     labelsByDay.set(day, (labelsByDay.get(day) ?? new Set()).add(label));
+  }
+
+  const commitsByDay = new Map<CalendarDay, number>();
+  for (const { event } of labelled) {
+    if (event.kind !== 'COMMIT_AUTHORED') continue;
+    const day = calendarDayAt(event.occurredAt, timeZone);
+    commitsByDay.set(day, (commitsByDay.get(day) ?? 0) + 1);
   }
 
   // Thời gian code trong phạm vi Cycle, đã hợp và cắt theo ngày và lời
@@ -139,6 +148,7 @@ export function summarizeCycleActivity(input: {
         codingSeconds: input.codingMeasured
           ? toSeconds(codingByDay.get(date)?.total ?? 0)
           : null,
+        commits: input.commitsMeasured ? (commitsByDay.get(date) ?? 0) : null,
       };
     });
 

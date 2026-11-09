@@ -69,7 +69,14 @@ describe('ProjectActivityPresenter', () => {
           codingSeconds: 3600,
         },
         lastActivityAt: at('2026-10-02T15:00:00Z'),
-        days: [{ date: '2026-10-02', state: 'ACTIVE', codingSeconds: 3600 }],
+        days: [
+          {
+            date: '2026-10-02',
+            state: 'ACTIVE',
+            codingSeconds: 3600,
+            commits: 3,
+          },
+        ],
         hasMissingData: true,
         dataUntil: at('2026-10-03T11:55:00Z'),
       },
@@ -99,7 +106,14 @@ describe('ProjectActivityPresenter', () => {
         codingSeconds: 3600,
       },
       lastActivityAt: '2026-10-02T15:00:00.000Z',
-      days: [{ date: '2026-10-02', state: 'ACTIVE', codingSeconds: 3600 }],
+      days: [
+        {
+          date: '2026-10-02',
+          state: 'ACTIVE',
+          codingSeconds: 3600,
+          commits: 3,
+        },
+      ],
       hasMissingData: true,
       dataUntil: '2026-10-03T11:55:00.000Z',
     });
@@ -131,7 +145,14 @@ describe('ProjectActivityPresenter', () => {
           codingSeconds: 5400,
         },
         lastActivityAt: at('2026-10-02T12:00:00Z'),
-        days: [{ date: '2026-10-02', state: 'ACTIVE', codingSeconds: 5400 }],
+        days: [
+          {
+            date: '2026-10-02',
+            state: 'ACTIVE',
+            codingSeconds: 5400,
+            commits: 5,
+          },
+        ],
         sources: [
           {
             provider: 'GITHUB',
@@ -155,7 +176,14 @@ describe('ProjectActivityPresenter', () => {
         codingSeconds: 5400,
       },
       lastActivityAt: '2026-10-02T12:00:00.000Z',
-      days: [{ date: '2026-10-02', state: 'ACTIVE', codingSeconds: 5400 }],
+      days: [
+        {
+          date: '2026-10-02',
+          state: 'ACTIVE',
+          codingSeconds: 5400,
+          commits: 5,
+        },
+      ],
       sources: [
         {
           provider: 'GITHUB',

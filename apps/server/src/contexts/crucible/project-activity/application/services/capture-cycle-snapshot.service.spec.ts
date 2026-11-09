@@ -130,9 +130,14 @@ describe('CaptureCycleSnapshotService', () => {
       },
       lastActivityAt: at('2026-10-02T12:00:00Z'),
       days: [
-        { date: '2026-10-01', state: 'IDLE', codingSeconds: null },
-        { date: '2026-10-02', state: 'ACTIVE', codingSeconds: null },
-        { date: '2026-10-03', state: 'IDLE', codingSeconds: null },
+        { date: '2026-10-01', state: 'IDLE', codingSeconds: null, commits: 0 },
+        {
+          date: '2026-10-02',
+          state: 'ACTIVE',
+          codingSeconds: null,
+          commits: 1,
+        },
+        { date: '2026-10-03', state: 'IDLE', codingSeconds: null, commits: 0 },
       ],
       sources: [
         {

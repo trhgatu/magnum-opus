@@ -28,8 +28,13 @@ const snapshot = (
   },
   lastActivityAt: "2026-10-12T09:00:00.000Z",
   days: [
-    { date: "2026-10-11", state: "PAUSED_ACTIVE", codingSeconds: null },
-    { date: "2026-10-12", state: "ACTIVE", codingSeconds: null },
+    {
+      date: "2026-10-11",
+      state: "PAUSED_ACTIVE",
+      codingSeconds: null,
+      commits: null,
+    },
+    { date: "2026-10-12", state: "ACTIVE", codingSeconds: null, commits: null },
   ],
   sources: [
     {

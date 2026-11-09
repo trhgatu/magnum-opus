@@ -36,8 +36,8 @@ const cycle = (
   },
   lastActivityAt: "2026-10-18T07:20:00.000Z",
   days: [
-    { date: "2026-10-17", state: "ACTIVE", codingSeconds: null },
-    { date: "2026-10-18", state: "IDLE", codingSeconds: null },
+    { date: "2026-10-17", state: "ACTIVE", codingSeconds: null, commits: null },
+    { date: "2026-10-18", state: "IDLE", codingSeconds: null, commits: null },
   ],
   hasMissingData: false,
   dataUntil: "2026-10-18T07:32:00.000Z",
@@ -202,8 +202,18 @@ describe("summaryLine", () => {
         cycle({
           metrics: none,
           days: [
-            { date: "2026-10-17", state: "NO_DATA", codingSeconds: null },
-            { date: "2026-10-18", state: "NO_DATA", codingSeconds: null },
+            {
+              date: "2026-10-17",
+              state: "NO_DATA",
+              codingSeconds: null,
+              commits: null,
+            },
+            {
+              date: "2026-10-18",
+              state: "NO_DATA",
+              codingSeconds: null,
+              commits: null,
+            },
           ],
         }),
       ),
@@ -221,8 +231,18 @@ describe("summaryLine", () => {
       summary(
         cycle({
           days: [
-            { date: "2026-10-17", state: "NO_DATA", codingSeconds: null },
-            { date: "2026-10-18", state: "ACTIVE", codingSeconds: null },
+            {
+              date: "2026-10-17",
+              state: "NO_DATA",
+              codingSeconds: null,
+              commits: null,
+            },
+            {
+              date: "2026-10-18",
+              state: "ACTIVE",
+              codingSeconds: null,
+              commits: null,
+            },
           ],
         }),
       ),
@@ -313,6 +333,7 @@ describe("day strip helpers", () => {
         date: "2026-10-08",
         state: "PAUSED_ACTIVE",
         codingSeconds: null,
+        commits: null,
       }),
     ).toBe("08/10: có hoạt động lúc tạm dừng");
   });
@@ -323,14 +344,41 @@ describe("day strip helpers", () => {
         date: "2026-10-20",
         state: "ACTIVE",
         codingSeconds: 10_440,
+        commits: null,
       }),
     ).toBe("20/10: có hoạt động · 2,9 giờ code");
+    expect(
+      dayDescription({
+        date: "2026-10-21",
+        state: "ACTIVE",
+        codingSeconds: 10_440,
+        commits: 4,
+      }),
+    ).toBe("21/10: có hoạt động · 2,9 giờ code · 4 commit");
+    expect(
+      dayDescription({
+        date: "2026-10-22",
+        state: "ACTIVE",
+        codingSeconds: null,
+        commits: 1,
+      }),
+    ).toBe("22/10: có hoạt động · 1 commit");
     // Dưới ngưỡng 15 phút: chưa là ngày có hoạt động, nhưng vẫn nói giờ code.
     expect(
-      dayDescription({ date: "2026-10-18", state: "IDLE", codingSeconds: 600 }),
+      dayDescription({
+        date: "2026-10-18",
+        state: "IDLE",
+        codingSeconds: 600,
+        commits: null,
+      }),
     ).toBe("18/10: không có hoạt động · 10 phút code");
     expect(
-      dayDescription({ date: "2026-10-19", state: "IDLE", codingSeconds: 0 }),
+      dayDescription({
+        date: "2026-10-19",
+        state: "IDLE",
+        codingSeconds: 0,
+        commits: null,
+      }),
     ).toBe("19/10: không có hoạt động");
   });
 });

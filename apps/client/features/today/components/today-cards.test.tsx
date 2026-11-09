@@ -173,13 +173,24 @@ describe("Crucible activity", () => {
         },
         lastActivityAt: null,
         days: [
-          { date: "2026-11-02", state: "ACTIVE" as const, codingSeconds: 3600 },
+          {
+            date: "2026-11-02",
+            state: "ACTIVE" as const,
+            codingSeconds: 3600,
+            commits: null,
+          },
           {
             date: "2026-11-03",
             state: "PAUSED_ACTIVE" as const,
             codingSeconds: 0,
+            commits: null,
           },
-          { date: TODAY, state: "IDLE" as const, codingSeconds: 0 },
+          {
+            date: TODAY,
+            state: "IDLE" as const,
+            codingSeconds: 0,
+            commits: null,
+          },
         ],
         hasMissingData: false,
         dataUntil: null,

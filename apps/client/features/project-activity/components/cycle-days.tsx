@@ -40,27 +40,52 @@ export function dayLabel(date: string): string {
   return `${weekday} ${day}/${month}`;
 }
 
-/** Chữ dưới ô: giờ code nếu có, không thì trạng thái của ngày. */
+/**
+ * Chữ dưới ô: giờ code và số commit nếu có ("2,5 giờ · 3 commit"), không
+ * thì trạng thái của ngày.
+ */
 export function dayValue(day: ActivityDay): string {
+  const parts: string[] = [];
   if (day.codingSeconds !== null && day.codingSeconds > 0) {
-    return shortCodingTime(day.codingSeconds);
+    parts.push(shortCodingTime(day.codingSeconds));
   }
-  return STATE_TEXT[day.state];
+  if (day.commits !== null && day.commits > 0) {
+    parts.push(`${count(day.commits)} commit`);
+  }
+  return parts.length > 0 ? parts.join(" · ") : STATE_TEXT[day.state];
 }
 
 /**
- * Độ đậm theo giờ code so với ngày nhiều nhất trong các ô đang hiện; ngày có
- * hoạt động mà không có giờ code (chỉ GitHub) tô mức giữa.
+ * Phần của mỗi ngày so với ngày nhiều nhất trong các ô đang hiện: ngày có
+ * giờ code so theo giờ code, ngày chỉ có commit so theo commit — kể cả khi
+ * Project gắn cả WakaTime lẫn GitHub. Không đo được gì thì là null.
  */
-function tileClass(day: ActivityDay, maxSeconds: number): string {
+function intensityOf(days: readonly ActivityDay[]) {
+  const maxSeconds = Math.max(0, ...days.map((day) => day.codingSeconds ?? 0));
+  const maxCommits = Math.max(0, ...days.map((day) => day.commits ?? 0));
+  return (day: ActivityDay): number | null => {
+    if (day.codingSeconds && maxSeconds > 0) {
+      return day.codingSeconds / maxSeconds;
+    }
+    if (day.commits && maxCommits > 0) return day.commits / maxCommits;
+    return null;
+  };
+}
+
+/**
+ * Độ đậm so với ngày nhiều nhất trong các ô đang hiện; ngày có hoạt động mà
+ * không đo được gì (vd chỉ có PR) tô mức giữa.
+ */
+function tileClass(
+  day: ActivityDay,
+  intensity: ReturnType<typeof intensityOf>,
+): string {
   switch (day.state) {
     case "ACTIVE":
     case "PAUSED_ACTIVE": {
       const paused = day.state === "PAUSED_ACTIVE";
-      if (!day.codingSeconds || maxSeconds === 0) {
-        return paused ? "bg-ember/40" : "bg-ember/70";
-      }
-      const share = day.codingSeconds / maxSeconds;
+      const share = intensity(day);
+      if (share === null) return paused ? "bg-ember/40" : "bg-ember/70";
       const level =
         share > 0.66
           ? "bg-ember"
@@ -87,10 +112,7 @@ export function RecentDays({
 }) {
   const recent = days.slice(-RECENT_DAYS);
   if (recent.length === 0) return null;
-  const maxSeconds = Math.max(
-    0,
-    ...recent.map((day) => day.codingSeconds ?? 0),
-  );
+  const intensity = intensityOf(recent);
 
   return (
     <ol
@@ -103,7 +125,7 @@ export function RecentDays({
             aria-hidden="true"
             className={cn(
               "h-14 rounded-xl sm:h-16",
-              tileClass(day, maxSeconds),
+              tileClass(day, intensity),
               day.date === today &&
                 "ring-2 ring-primary ring-offset-2 ring-offset-ember-soft",
             )}
