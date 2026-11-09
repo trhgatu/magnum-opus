@@ -140,6 +140,10 @@ export class GetProjectActivityHandler implements IQueryHandler<
       (source) => source.provider === 'WAKATIME',
     );
 
+    const commitsMeasured = sources.some(
+      (source) => source.provider === 'GITHUB',
+    );
+
     let currentCycle: CycleActivityView | null = null;
     const cycleId = timeline.currentCycleId;
     const cycle = declaration.cycles.find(
@@ -158,6 +162,7 @@ export class GetProjectActivityHandler implements IQueryHandler<
           timeZone,
           until: now,
           codingMeasured,
+          commitsMeasured,
         }),
       };
     }

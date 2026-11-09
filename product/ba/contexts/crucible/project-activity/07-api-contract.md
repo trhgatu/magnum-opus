@@ -116,6 +116,12 @@ interface ActivityMetrics {
 interface ActivityDay {
   date: string; // "YYYY-MM-DD" theo timeZone
   state: ActivityDayState;
+  // Giây code trong ngày; null khi không có nguồn WakaTime (08 §7).
+  codingSeconds: number | null;
+  // Commit trong ngày, cùng tập event với metrics.commits nên tổng các ngày
+  // bằng tổng của vòng; null khi không có nguồn GitHub. Snapshot chụp trước
+  // khi có trường này trả null: JSON đã lưu không bị sửa.
+  commits: number | null;
 }
 
 interface CycleActivityResponse {

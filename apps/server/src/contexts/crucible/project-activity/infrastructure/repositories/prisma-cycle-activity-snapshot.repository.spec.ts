@@ -14,7 +14,9 @@ const snapshot: CycleActivitySnapshot = {
     codingSeconds: 5400,
   },
   lastActivityAt: at('2026-10-02T12:00:00Z'),
-  days: [{ date: '2026-10-02', state: 'ACTIVE', codingSeconds: 5400 }],
+  days: [
+    { date: '2026-10-02', state: 'ACTIVE', codingSeconds: 5400, commits: 5 },
+  ],
   sources: [
     {
       provider: 'GITHUB',
@@ -38,7 +40,9 @@ const row = {
   prsMerged: 1,
   codingSeconds: 5400,
   lastActivityAt: snapshot.lastActivityAt,
-  days: [{ date: '2026-10-02', state: 'ACTIVE', codingSeconds: 5400 }],
+  days: [
+    { date: '2026-10-02', state: 'ACTIVE', codingSeconds: 5400, commits: 5 },
+  ],
   sources: [
     {
       provider: 'GITHUB',
@@ -121,7 +125,12 @@ describe('PrismaCycleActivitySnapshotRepository', () => {
     const [read] = await repository.listByProject('owner-id', 'project-id');
 
     expect(read.days).toEqual([
-      { date: '2026-10-03', state: 'ACTIVE', codingSeconds: null },
+      {
+        date: '2026-10-03',
+        state: 'ACTIVE',
+        codingSeconds: null,
+        commits: null,
+      },
     ]);
     expect(read.sources).toEqual(snapshot.sources);
   });
@@ -147,12 +156,47 @@ describe('PrismaCycleActivitySnapshotRepository', () => {
 
     expect(read.metrics.codingSeconds).toBeNull();
     expect(read.days).toEqual([
-      { date: '2026-10-02', state: 'ACTIVE', codingSeconds: null },
-      { date: '2026-10-03', state: 'IDLE', codingSeconds: null },
-      { date: '2026-10-04', state: 'IDLE', codingSeconds: null },
-      { date: '2026-10-05', state: 'IDLE', codingSeconds: null },
+      {
+        date: '2026-10-02',
+        state: 'ACTIVE',
+        codingSeconds: null,
+        commits: null,
+      },
+      { date: '2026-10-03', state: 'IDLE', codingSeconds: null, commits: null },
+      { date: '2026-10-04', state: 'IDLE', codingSeconds: null, commits: null },
+      { date: '2026-10-05', state: 'IDLE', codingSeconds: null, commits: null },
       // 0 là đo được và không code — giữ nguyên, không thành null.
-      { date: '2026-10-06', state: 'ACTIVE', codingSeconds: 0 },
+      { date: '2026-10-06', state: 'ACTIVE', codingSeconds: 0, commits: null },
+    ]);
+  });
+
+  it('reads commits per day, and a snapshot taken before them as not measured', async () => {
+    cycleActivitySnapshot.findMany.mockResolvedValue([
+      {
+        ...row,
+        days: [
+          // Chụp trước khi có commit theo ngày: không có trường.
+          { date: '2026-10-02', state: 'ACTIVE', codingSeconds: 600 },
+          { date: '2026-10-03', state: 'ACTIVE', codingSeconds: 0, commits: 3 },
+          { date: '2026-10-04', state: 'IDLE', codingSeconds: 0, commits: 0 },
+          // Số âm, số lẻ hay chuỗi là dữ liệu hỏng: không đưa ra API.
+          { date: '2026-10-05', state: 'IDLE', codingSeconds: 0, commits: -1 },
+          { date: '2026-10-06', state: 'IDLE', codingSeconds: 0, commits: 1.5 },
+          { date: '2026-10-07', state: 'IDLE', codingSeconds: 0, commits: '2' },
+        ],
+      },
+    ]);
+
+    const [read] = await repository.listByProject('owner-id', 'project-id');
+
+    expect(read.days.map(({ date, commits }) => ({ date, commits }))).toEqual([
+      { date: '2026-10-02', commits: null },
+      { date: '2026-10-03', commits: 3 },
+      // 0 là có GitHub và không commit — giữ nguyên, không thành null.
+      { date: '2026-10-04', commits: 0 },
+      { date: '2026-10-05', commits: null },
+      { date: '2026-10-06', commits: null },
+      { date: '2026-10-07', commits: null },
     ]);
   });
 

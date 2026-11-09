@@ -38,6 +38,7 @@ export class PrismaCycleActivitySnapshotRepository implements CycleActivitySnaps
             date: day.date,
             state: day.state,
             codingSeconds: day.codingSeconds,
+            commits: day.commits,
           })),
 
           sources: snapshot.sources.map((source) => ({
@@ -104,6 +105,9 @@ function readDate(value: unknown): Date | null | undefined {
 const isSeconds = (value: unknown): value is number =>
   Number.isInteger(value) && (value as number) >= 0;
 
+const isCount = (value: unknown): value is number =>
+  Number.isInteger(value) && (value as number) >= 0;
+
 /** JSON do chính mình ghi; dòng nào sai hình dạng thì bỏ, không làm hỏng cả trang. */
 function readDays(json: unknown): CycleActivitySnapshot['days'] {
   if (!Array.isArray(json)) return [];
@@ -120,6 +124,7 @@ function readDays(json: unknown): CycleActivitySnapshot['days'] {
             codingSeconds: isSeconds(day.codingSeconds)
               ? day.codingSeconds
               : null,
+            commits: isCount(day.commits) ? day.commits : null,
           },
         ]
       : [],

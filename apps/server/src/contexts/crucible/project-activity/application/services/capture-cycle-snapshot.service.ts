@@ -136,6 +136,7 @@ export class CaptureCycleSnapshotService {
       timeZone,
       until: closedAt,
       codingMeasured: feeds.some((feed) => feed.provider === 'WAKATIME'),
+      commitsMeasured: feeds.some((feed) => feed.provider === 'GITHUB'),
     });
 
     await this.snapshots.createIfAbsent({

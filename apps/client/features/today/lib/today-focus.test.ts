@@ -26,9 +26,14 @@ describe("lastSevenActivityDays", () => {
   it("returns the week up to today and marks days before the cycle", () => {
     const week = lastSevenActivityDays(
       [
-        { date: "2026-11-02", state: "ACTIVE", codingSeconds: 3600 },
-        { date: "2026-11-03", state: "IDLE", codingSeconds: 0 },
-        { date: TODAY, state: "NO_DATA", codingSeconds: null },
+        {
+          date: "2026-11-02",
+          state: "ACTIVE",
+          codingSeconds: 3600,
+          commits: null,
+        },
+        { date: "2026-11-03", state: "IDLE", codingSeconds: 0, commits: null },
+        { date: TODAY, state: "NO_DATA", codingSeconds: null, commits: null },
       ],
       TODAY,
     );

@@ -33,10 +33,25 @@ const cycle: CycleActivityResponse = {
   },
   lastActivityAt: "2026-10-18T07:20:00.000Z",
   days: [
-    { date: "2026-10-15", state: "ACTIVE", codingSeconds: null },
-    { date: "2026-10-16", state: "PAUSED_ACTIVE", codingSeconds: null },
-    { date: "2026-10-17", state: "PAUSED_IDLE", codingSeconds: null },
-    { date: "2026-10-18", state: "PAUSED_IDLE", codingSeconds: null },
+    { date: "2026-10-15", state: "ACTIVE", codingSeconds: null, commits: null },
+    {
+      date: "2026-10-16",
+      state: "PAUSED_ACTIVE",
+      codingSeconds: null,
+      commits: null,
+    },
+    {
+      date: "2026-10-17",
+      state: "PAUSED_IDLE",
+      codingSeconds: null,
+      commits: null,
+    },
+    {
+      date: "2026-10-18",
+      state: "PAUSED_IDLE",
+      codingSeconds: null,
+      commits: null,
+    },
   ],
   hasMissingData: false,
   dataUntil: "2026-10-18T07:32:00.000Z",
@@ -114,8 +129,13 @@ describe("CycleActivity", () => {
         codingSeconds: 10_440,
       },
       days: [
-        { date: "2026-10-15", state: "ACTIVE", codingSeconds: 10_440 },
-        { date: "2026-10-16", state: "IDLE", codingSeconds: 0 },
+        {
+          date: "2026-10-15",
+          state: "ACTIVE",
+          codingSeconds: 10_440,
+          commits: null,
+        },
+        { date: "2026-10-16", state: "IDLE", codingSeconds: 0, commits: null },
       ],
     };
     const [github] = activity().sources;
@@ -155,6 +175,7 @@ describe("CycleActivity", () => {
       date: new Date(Date.UTC(2026, 7, 1 + index)).toISOString().slice(0, 10),
       state: "IDLE",
       codingSeconds: null,
+      commits: null,
     }));
     render(
       <CycleActivity

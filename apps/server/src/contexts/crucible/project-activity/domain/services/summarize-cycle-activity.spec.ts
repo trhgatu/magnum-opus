@@ -120,6 +120,8 @@ describe('summarizeCycleActivity', () => {
       codingSeconds: null,
     });
     expect(summary.days.every((day) => day.codingSeconds === null)).toBe(true);
+    // Không có nguồn GitHub: commit theo ngày cũng là không đo.
+    expect(summary.days.every((day) => day.commits === null)).toBe(true);
     expect(summary.lastActivityAt).toEqual(at('2026-10-11T09:00:00Z'));
     expect(summary.hasMissingData).toBe(false);
     expect(summary.dataUntil).toEqual(at('2026-10-25T00:00:00Z'));
@@ -203,8 +205,13 @@ describe('summarizeCycleActivity', () => {
     });
 
     expect(summary.days.slice(0, 2)).toEqual([
-      { date: '2026-10-01', state: 'IDLE', codingSeconds: null },
-      { date: '2026-10-02', state: 'ACTIVE', codingSeconds: null },
+      { date: '2026-10-01', state: 'IDLE', codingSeconds: null, commits: null },
+      {
+        date: '2026-10-02',
+        state: 'ACTIVE',
+        codingSeconds: null,
+        commits: null,
+      },
     ]);
   });
 
@@ -269,6 +276,83 @@ describe('summarizeCycleActivity', () => {
         until: at('2026-10-25T00:00:00Z'),
       }),
     ).toThrow('Cycle unknown is not on the timeline');
+  });
+
+  describe('commits per day', () => {
+    const summarizeCommits = (
+      events: ActivityEvent[],
+      overrides: { timeZone?: string; commitsMeasured?: boolean } = {},
+    ) =>
+      summarizeCycleActivity({
+        cycleId: 'cycle-1',
+        timeline,
+        events,
+        sources: [source('2026-09-24T00:00:00Z', '2026-10-25T00:00:00Z')],
+        timeZone: overrides.timeZone ?? 'UTC',
+        until: at('2026-10-25T00:00:00Z'),
+        commitsMeasured: overrides.commitsMeasured ?? true,
+      });
+
+    const commitsOn = (
+      summary: ReturnType<typeof summarizeCommits>,
+      date: string,
+    ) => summary.days.find((day) => day.date === date)?.commits;
+
+    it('counts the commits of each day, PRs left out', () => {
+      const summary = summarizeCommits([
+        event('2026-10-01T10:00:00Z'),
+        event('2026-10-01T14:00:00Z'),
+        event('2026-10-01T15:00:00Z', 'PR_OPENED'),
+        event('2026-10-03T09:00:00Z'),
+      ]);
+
+      expect(commitsOn(summary, '2026-10-01')).toBe(2);
+      expect(commitsOn(summary, '2026-10-02')).toBe(0);
+      expect(commitsOn(summary, '2026-10-03')).toBe(1);
+    });
+
+    it('counts commits made while paused on their own day', () => {
+      // 08/10 nằm trong khoảng tạm dừng của Cycle 1.
+      const summary = summarizeCommits([event('2026-10-08T12:00:00Z')]);
+
+      expect(commitsOn(summary, '2026-10-08')).toBe(1);
+    });
+
+    it('splits commits in the account time zone', () => {
+      // 01/10 18:00Z là 02/10 01:00 ở Việt Nam.
+      const summary = summarizeCommits([event('2026-10-01T18:00:00Z')], {
+        timeZone: 'Asia/Ho_Chi_Minh',
+      });
+
+      expect(commitsOn(summary, '2026-10-01')).toBe(0);
+      expect(commitsOn(summary, '2026-10-02')).toBe(1);
+    });
+
+    it('leaves out commits outside the cycle and keeps the sum equal to the total', () => {
+      const summary = summarizeCommits([
+        // Trước khi bắt đầu và sau khi khép: ngoài Cycle.
+        event('2026-09-30T09:00:00Z'),
+        event('2026-10-01T10:00:00Z'),
+        event('2026-10-06T21:00:00Z'),
+        event('2026-10-11T09:00:00Z'),
+        event('2026-10-13T09:00:00Z'),
+      ]);
+
+      expect(summary.metrics.commits).toBe(3);
+      expect(
+        summary.days.reduce((sum, day) => sum + (day.commits ?? 0), 0),
+      ).toBe(summary.metrics.commits);
+    });
+
+    it('reports no commits per day when the project has no GitHub source', () => {
+      const summary = summarizeCommits([event('2026-10-01T10:00:00Z')], {
+        commitsMeasured: false,
+      });
+
+      // Tổng vẫn đếm như cũ; chỉ phần theo ngày là không đo.
+      expect(summary.metrics.commits).toBe(1);
+      expect(summary.days.every((day) => day.commits === null)).toBe(true);
+    });
   });
 
   describe('coding time (08 §4.4–4.7)', () => {
