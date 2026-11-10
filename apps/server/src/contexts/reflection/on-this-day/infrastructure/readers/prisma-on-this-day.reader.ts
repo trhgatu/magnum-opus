@@ -37,7 +37,7 @@ export class PrismaOnThisDayReader implements OnThisDayReader {
         AND occurred_on_precision = 'DAY'
         AND to_char(occurred_on, 'MM-DD') = ANY(${monthDays})
         AND EXTRACT(YEAR FROM occurred_on) < ${beforeYear}
-      ORDER BY occurred_on DESC
+      ORDER BY occurred_on DESC, id
       LIMIT ${LIMIT}
     `;
   }
@@ -61,7 +61,7 @@ export class PrismaOnThisDayReader implements OnThisDayReader {
       ) AS entry
       WHERE to_char(local_at, 'MM-DD') = ANY(${monthDays})
         AND EXTRACT(YEAR FROM local_at) < ${beforeYear}
-      ORDER BY local_at DESC
+      ORDER BY local_at DESC, id
       LIMIT ${LIMIT}
     `;
   }
