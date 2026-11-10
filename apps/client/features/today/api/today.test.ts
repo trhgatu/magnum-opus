@@ -8,7 +8,7 @@ vi.mock("@/lib/api", () => ({
   apiFetch,
 }));
 
-import { getToday } from "./today";
+import { getOnThisDay, getToday } from "./today";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -32,5 +32,13 @@ describe("Today API adapter", () => {
 
     expect(apiFetch).toHaveBeenCalledTimes(1);
     expect(result).toBe(today);
+  });
+
+  it("loads this day in past years for the authenticated owner", async () => {
+    const onThisDay = { date: "2026-11-10", items: [] };
+    apiFetch.mockResolvedValue(onThisDay);
+
+    await expect(getOnThisDay()).resolves.toBe(onThisDay);
+    expect(apiFetch).toHaveBeenCalledWith("/reflection/on-this-day");
   });
 });

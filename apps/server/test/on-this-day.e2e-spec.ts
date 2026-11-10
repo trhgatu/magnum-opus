@@ -59,8 +59,9 @@ describe('On this day (E2E)', () => {
     const today = todayInVietnam();
     const year = Number(today.slice(0, 4));
     const monthDay = today.slice(5);
-    // Trường hợp 28/2 và 29/2 do spec của onThisDayMonthDays lo; ở đây chỉ
-    // cần một ngày thường.
+    // Hôm nay là 29/2 thì 1–2 năm trước không có ngày này: trường hợp 28/2
+    // và 29/2 do spec của onThisDayMonthDays lo, ở đây chỉ cần một ngày thường.
+    if (monthDay === '02-29') return;
     const past = (yearsAgo: number) => `${year - yearsAgo}-${monthDay}`;
     const dateOf = (day: string) => new Date(`${day}T00:00:00.000Z`);
 
@@ -168,11 +169,10 @@ describe('On this day (E2E)', () => {
       .get('/reflection/on-this-day')
       .set('Authorization', `Bearer ${other.token}`)
       .expect(HttpStatus.OK);
-    expect(
-      others.body.items.map((item: { id: string }) => item.id),
-    ).not.toEqual(
-      expect.arrayContaining([fansipan.id, written.id, distilled.id]),
-    );
+    const othersIds = others.body.items.map((item: { id: string }) => item.id);
+    for (const id of [fansipan.id, written.id, distilled.id]) {
+      expect(othersIds).not.toContain(id);
+    }
   });
 
   async function registerAndLogin(

@@ -46,7 +46,7 @@ Ký ức có `sourceJournalEntryId` là bản chắt lọc của trang nhật k�
 
 ### BR-OTD-006 — Thứ tự và giới hạn
 
-Gần nhất trước (1 năm trước, rồi 2 năm…); cùng năm thì ký ức trước trang nhật ký. Mỗi nguồn tối đa 10 mục. Trang Hôm nay hiện 3 mục đầu, còn lại gói thành "+N khác".
+Gần nhất trước (1 năm trước, rồi 2 năm…); cùng năm thì ký ức trước trang nhật ký; cùng năm và cùng nguồn thì theo `id`, để thứ tự luôn như nhau giữa các lần gọi. Mỗi nguồn giữ 10 mục đầu theo thứ tự đó (gần nhất trước, rồi `id`), trước khi bỏ trang trùng ký ức ở BR-OTD-005. Trang Hôm nay hiện 3 mục đầu, còn lại gói thành "+N khác".
 
 ### BR-OTD-007 — Không chặn trang Hôm nay
 
@@ -66,7 +66,7 @@ interface OnThisDayItemResponse {
   kind: OnThisDayKind;
   id: string;
   title: string | null; // trang nhật ký có thể không có tiêu đề
-  excerpt: string | null; // trang nhật ký: ≤ 80 ký tự đầu, khoảng trắng gộp lại; ký ức: null
+  excerpt: string | null; // trang nhật ký: ≤ 80 ký tự đầu, khoảng trắng gộp lại; trang trống và ký ức: null (không bao giờ "")
   day: string; // YYYY-MM-DD của mục
   yearsAgo: number;
 }

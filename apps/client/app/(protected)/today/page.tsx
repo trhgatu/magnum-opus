@@ -102,23 +102,37 @@ async function Reflection({
   today: string;
   timeZone: string;
 }) {
+  // Phần phụ, bắt đầu song song: lỗi thì thẻ chỉ thiếu "ngày này năm xưa".
+  const onThisDayPromise = getOnThisDay().catch(() => null);
   const loaded = await Promise.all([
     getJournalEntries({ limit: 1, sortBy: "createdAt" }),
     getMemories({ limit: 1, sortBy: "createdAt", sortOrder: "desc" }),
-    // Phần phụ: lỗi thì thẻ chỉ thiếu "ngày này năm xưa", không báo lỗi cả thẻ.
-    getOnThisDay().catch(() => null),
   ]).catch(() => null);
   if (!loaded) return <CardUnavailable title="Reflection" />;
-  const [entries, memories, onThisDay] = loaded;
+  const [entries, memories] = loaded;
+  const card = {
+    entryToday: journalEntryToday(entries.data[0], today, timeZone),
+    latestMemory: memories.data[0] ?? null,
+    today,
+    timeZone,
+  };
+  // Thẻ hiện ngay với ký ức gần nhất; "ngày này năm xưa" chậm thì đến sau.
   return (
-    <TodayReflection
-      entryToday={journalEntryToday(entries.data[0], today, timeZone)}
-      latestMemory={memories.data[0] ?? null}
-      onThisDay={onThisDay?.items ?? []}
-      today={today}
-      timeZone={timeZone}
-    />
+    <Suspense fallback={<TodayReflection {...card} />}>
+      <ReflectionOnThisDay card={card} onThisDayPromise={onThisDayPromise} />
+    </Suspense>
   );
+}
+
+async function ReflectionOnThisDay({
+  card,
+  onThisDayPromise,
+}: {
+  card: Omit<Parameters<typeof TodayReflection>[0], "onThisDay">;
+  onThisDayPromise: Promise<Awaited<ReturnType<typeof getOnThisDay>> | null>;
+}) {
+  const onThisDay = await onThisDayPromise;
+  return <TodayReflection {...card} onThisDay={onThisDay?.items ?? []} />;
 }
 
 async function TimeZoneNotice() {
