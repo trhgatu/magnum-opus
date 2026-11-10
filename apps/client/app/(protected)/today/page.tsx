@@ -8,7 +8,7 @@ import { getJournalEntries } from "@/features/journal/api/journal";
 import { getMemories } from "@/features/memory/api/memory";
 import { getFocusProject } from "@/features/project/api/project";
 import { getProjectActivity } from "@/features/project-activity/api/project-activity";
-import { getToday } from "@/features/today/api/today";
+import { getOnThisDay, getToday } from "@/features/today/api/today";
 import { TodayCrucible } from "@/features/today/components/today-crucible";
 import { TodayHolding } from "@/features/today/components/today-holding";
 import { TodayReflection } from "@/features/today/components/today-reflection";
@@ -105,13 +105,16 @@ async function Reflection({
   const loaded = await Promise.all([
     getJournalEntries({ limit: 1, sortBy: "createdAt" }),
     getMemories({ limit: 1, sortBy: "createdAt", sortOrder: "desc" }),
+    // Phần phụ: lỗi thì thẻ chỉ thiếu "ngày này năm xưa", không báo lỗi cả thẻ.
+    getOnThisDay().catch(() => null),
   ]).catch(() => null);
   if (!loaded) return <CardUnavailable title="Reflection" />;
-  const [entries, memories] = loaded;
+  const [entries, memories, onThisDay] = loaded;
   return (
     <TodayReflection
       entryToday={journalEntryToday(entries.data[0], today, timeZone)}
       latestMemory={memories.data[0] ?? null}
+      onThisDay={onThisDay?.items ?? []}
       today={today}
       timeZone={timeZone}
     />
