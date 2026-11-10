@@ -8,7 +8,7 @@ import { getJournalEntries } from "@/features/journal/api/journal";
 import { getMemories } from "@/features/memory/api/memory";
 import { getFocusProject } from "@/features/project/api/project";
 import { getProjectActivity } from "@/features/project-activity/api/project-activity";
-import { getToday } from "@/features/today/api/today";
+import { getOnThisDay, getToday } from "@/features/today/api/today";
 import { TodayCrucible } from "@/features/today/components/today-crucible";
 import { TodayHolding } from "@/features/today/components/today-holding";
 import { TodayReflection } from "@/features/today/components/today-reflection";
@@ -102,20 +102,37 @@ async function Reflection({
   today: string;
   timeZone: string;
 }) {
+  // Phần phụ, bắt đầu song song: lỗi thì thẻ chỉ thiếu "ngày này năm xưa".
+  const onThisDayPromise = getOnThisDay().catch(() => null);
   const loaded = await Promise.all([
     getJournalEntries({ limit: 1, sortBy: "createdAt" }),
     getMemories({ limit: 1, sortBy: "createdAt", sortOrder: "desc" }),
   ]).catch(() => null);
   if (!loaded) return <CardUnavailable title="Reflection" />;
   const [entries, memories] = loaded;
+  const card = {
+    entryToday: journalEntryToday(entries.data[0], today, timeZone),
+    latestMemory: memories.data[0] ?? null,
+    today,
+    timeZone,
+  };
+  // Thẻ hiện ngay với ký ức gần nhất; "ngày này năm xưa" chậm thì đến sau.
   return (
-    <TodayReflection
-      entryToday={journalEntryToday(entries.data[0], today, timeZone)}
-      latestMemory={memories.data[0] ?? null}
-      today={today}
-      timeZone={timeZone}
-    />
+    <Suspense fallback={<TodayReflection {...card} />}>
+      <ReflectionOnThisDay card={card} onThisDayPromise={onThisDayPromise} />
+    </Suspense>
   );
+}
+
+async function ReflectionOnThisDay({
+  card,
+  onThisDayPromise,
+}: {
+  card: Omit<Parameters<typeof TodayReflection>[0], "onThisDay">;
+  onThisDayPromise: Promise<Awaited<ReturnType<typeof getOnThisDay>> | null>;
+}) {
+  const onThisDay = await onThisDayPromise;
+  return <TodayReflection {...card} onThisDay={onThisDay?.items ?? []} />;
 }
 
 async function TimeZoneNotice() {

@@ -5,9 +5,10 @@ import "@testing-library/jest-dom/vitest";
 import type {
   JournalEntryResponse,
   MemoryResponse,
+  OnThisDayItemResponse,
   ProjectResponse,
 } from "@repo/contracts";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Activity, TodayCrucible } from "./today-crucible";
@@ -271,6 +272,58 @@ describe("TodayReflection fallbacks", () => {
       screen.getByRole("link", {
         name: "Ký ức gần nhất: Mưa đầu mùa · hôm nay",
       }),
+    ).toBeInTheDocument();
+  });
+
+  it("shows this day in past years in place of the latest memory", () => {
+    const item = (
+      overrides: Partial<OnThisDayItemResponse>,
+    ): OnThisDayItemResponse => ({
+      kind: "MEMORY",
+      id: "x",
+      title: null,
+      excerpt: null,
+      day: "2023-11-04",
+      yearsAgo: 3,
+      ...overrides,
+    });
+    render(
+      <TodayReflection
+        entryToday={null}
+        latestMemory={memory("2026-11-03T02:00:00.000Z")}
+        onThisDay={[
+          item({
+            kind: "JOURNAL",
+            id: "j1",
+            excerpt: "Hôm nay mệt nhưng vui.",
+            yearsAgo: 1,
+          }),
+          item({ id: "m2", title: "Leo Fansipan" }),
+          item({ kind: "JOURNAL", id: "j2", yearsAgo: 4 }),
+          item({ id: "m3", title: "Tết ở quê", yearsAgo: 5 }),
+        ]}
+        today={TODAY}
+        timeZone={TZ}
+      />,
+    );
+
+    const section = screen.getByRole("region", { name: "Ngày này năm xưa" });
+    expect(
+      within(section).getByRole("link", {
+        name: "Trang nhật ký: “Hôm nay mệt nhưng vui.”",
+      }),
+    ).toHaveAttribute("href", "/journal/j1");
+    expect(
+      within(section).getByRole("link", { name: "Leo Fansipan" }),
+    ).toHaveAttribute("href", "/memories/m2");
+    expect(
+      within(section).getByRole("link", { name: "Một trang nhật ký" }),
+    ).toHaveAttribute("href", "/journal/j2");
+    expect(within(section).getByText("và 1 mục khác")).toBeInTheDocument();
+    expect(screen.queryByText(/Ký ức gần nhất/)).toBeNull();
+    // Nút viết vẫn còn.
+    expect(
+      screen.getByRole("button", { name: "Viết trang hôm nay" }),
     ).toBeInTheDocument();
   });
 

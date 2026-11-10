@@ -22,3 +22,4 @@ export * from './chronicle/chronicle.js';
 export * from './integration/github.js';
 export * from './integration/wakatime.js';
 export * from './project-activity/activity.js';
+export * from './on-this-day/on-this-day.js';
