@@ -323,7 +323,8 @@ enum ForgeLifecycleAction {
 }
 
 // CHECK "habits_lifecycle_check" (state đi cùng state_before_trash/trashed_at,
-// giống journal_entries) chỉ có trong migration 20261113120000_habit_state —
+// giống journal_entries) chỉ có trong migration
+// 20261113130000_habit_lifecycle_check_not_null —
 // Prisma không biểu diễn được, đừng bỏ khi sửa model.
 model Habit {
   id            String              @id @default(uuid())

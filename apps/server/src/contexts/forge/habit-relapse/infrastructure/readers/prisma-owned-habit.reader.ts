@@ -11,7 +11,10 @@ import {
 export class PrismaOwnedHabitReader implements OwnedHabitReader {
   constructor(private readonly prisma: PrismaService) {}
 
-  public async findByIdForOwner(habitId: string, ownerId: string) {
+  public async findByIdForOwner(
+    habitId: string,
+    ownerId: string,
+  ): Promise<OwnedHabitReadModel | null> {
     const habit = await this.prisma.habit.findFirst({
       where: { id: habitId, ownerId },
       select: { id: true, state: true, type: true },
