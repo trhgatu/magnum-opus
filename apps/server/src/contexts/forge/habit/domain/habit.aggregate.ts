@@ -270,6 +270,43 @@ export class Habit extends AggregateRoot {
     this.recordLifecycleTransition(HabitLifecycleAction.RESTORED, today);
   }
 
+  public moveToTrash(today: HabitCalendarDate): void {
+    this.ensureLifecycleFloorLoaded();
+
+    if (this.props.state === HabitState.TRASHED) {
+      throw new InvalidHabitTransitionException(this.props.state);
+    }
+
+    const wasActive = this.props.state === HabitState.ACTIVE;
+    this.props.stateBeforeTrash = this.props.state;
+    this.props.state = HabitState.TRASHED;
+    this.props.trashedAt = new Date();
+    this.trackChange();
+
+    if (wasActive) {
+      this.recordLifecycleTransition(HabitLifecycleAction.ARCHIVED, today);
+    }
+  }
+
+  public restoreFromTrash(today: HabitCalendarDate): void {
+    this.ensureLifecycleFloorLoaded();
+
+    const restoredState = this.props.stateBeforeTrash;
+
+    if (this.props.state !== HabitState.TRASHED || restoredState === null) {
+      throw new InvalidHabitTransitionException(this.props.state);
+    }
+
+    this.props.state = restoredState;
+    this.props.stateBeforeTrash = null;
+    this.props.trashedAt = null;
+    this.trackChange();
+
+    if (restoredState === HabitState.ACTIVE) {
+      this.recordLifecycleTransition(HabitLifecycleAction.RESTORED, today);
+    }
+  }
+
   public isDueOn(isoWeekday: number): boolean {
     return (
       this.props.state === HabitState.ACTIVE &&

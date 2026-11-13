@@ -1,12 +1,13 @@
 "use client";
 
-import { Archive, RotateCcw } from "lucide-react";
+import { Archive, RotateCcw, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { LifecycleErrorAlert } from "@/components/system/lifecycle-error-alert";
 import { Button } from "@/components/ui/button";
-import { changeHabitState } from "@/features/habit/actions/habit";
+import { changeHabitState, trashHabit } from "@/features/habit/actions/habit";
+import { isRedirectError } from "@/lib/next-redirect";
 import { notifySuccess } from "@/lib/toast";
 
 const isRevisionConflict = (code?: string) =>
@@ -71,6 +72,34 @@ export function HabitLifecycleControls({
     });
   };
 
+  const moveToTrash = () => {
+    clearError();
+    startTransition(async () => {
+      try {
+        // Chỉ return khi thất bại; thành công thì action redirect sang
+        // Thùng rác và nhảy xuống catch dạng lỗi NEXT_REDIRECT.
+        const result = await trashHabit({ id, expectedRevision: revision });
+        showError({
+          ...result,
+          message: isRevisionConflict(result.code)
+            ? "Thói quen đã thay đổi ở một phiên làm việc khác."
+            : result.message,
+        });
+      } catch (error) {
+        if (isRedirectError(error)) {
+          await notifySuccess(`Đã chuyển "${title}" vào Thùng rác`).catch(
+            () => {},
+          );
+          throw error;
+        }
+        showError({
+          message:
+            "Không thể chuyển thói quen vào Thùng rác. Vui lòng thử lại.",
+        });
+      }
+    });
+  };
+
   return (
     <div
       role="group"
@@ -85,19 +114,32 @@ export function HabitLifecycleControls({
           onReload={reloadLatestRevision}
         />
       ) : null}
-      <Button
-        type="button"
-        variant="outline"
-        disabled={isPending}
-        onClick={runLifecycleAction}
-      >
-        {isActive ? (
-          <Archive aria-hidden="true" />
-        ) : (
-          <RotateCcw aria-hidden="true" />
-        )}
-        {isPending ? "Đang cập nhật…" : isActive ? "Lưu trữ" : "Khôi phục"}
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          disabled={isPending}
+          onClick={runLifecycleAction}
+        >
+          {isActive ? (
+            <Archive aria-hidden="true" />
+          ) : (
+            <RotateCcw aria-hidden="true" />
+          )}
+          {isPending ? "Đang cập nhật…" : isActive ? "Lưu trữ" : "Khôi phục"}
+        </Button>
+        {/* Thùng rác khôi phục được nên không cần hỏi lại; chỉ xóa vĩnh
+            viễn mới cần xác nhận. */}
+        <Button
+          type="button"
+          variant="ghost"
+          disabled={isPending}
+          onClick={moveToTrash}
+        >
+          <Trash2 aria-hidden="true" />
+          Chuyển vào Thùng rác
+        </Button>
+      </div>
     </div>
   );
 }

@@ -44,6 +44,7 @@ describe('PrismaHabitRepository', () => {
 
   const habitModel = {
     findFirst: jest.fn(),
+    deleteMany: jest.fn(),
   };
 
   type TransactionCallback = (
@@ -355,6 +356,32 @@ describe('PrismaHabitRepository', () => {
       expect(
         await repository.findByIdForOwner('habit-id', 'different-owner'),
       ).toBeNull();
+    });
+  });
+
+  describe('deletePermanently', () => {
+    it('deletes only the owned Habit in Trash at the expected revision', async () => {
+      habitModel.deleteMany.mockResolvedValue({ count: 1 });
+
+      expect(
+        await repository.deletePermanently('habit-id', 'owner-id', 3),
+      ).toBe(true);
+      expect(habitModel.deleteMany).toHaveBeenCalledWith({
+        where: {
+          id: 'habit-id',
+          ownerId: 'owner-id',
+          revision: 3,
+          state: 'TRASHED',
+        },
+      });
+    });
+
+    it('reports nothing deleted when the Habit changed or left Trash', async () => {
+      habitModel.deleteMany.mockResolvedValue({ count: 0 });
+
+      expect(
+        await repository.deletePermanently('habit-id', 'owner-id', 3),
+      ).toBe(false);
     });
   });
 });

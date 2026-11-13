@@ -5,6 +5,9 @@ import { ArchiveHabitHandler } from './application/commands/handlers/archive-hab
 import { CreateHabitHandler } from './application/commands/handlers/create-habit.handler';
 import { RestoreHabitHandler } from './application/commands/handlers/restore-habit.handler';
 import { UpdateHabitHandler } from './application/commands/handlers/update-habit.handler';
+import { DeleteHabitHandler } from './application/commands/handlers/delete-habit.handler';
+import { TrashHabitHandler } from './application/commands/handlers/trash-habit.handler';
+import { UntrashHabitHandler } from './application/commands/handlers/untrash-habit.handler';
 import { CLOCK } from './application/ports/clock.port';
 import { HABIT_OVERVIEW_READER } from './application/ports/habit-overview-reader.port';
 import { HABIT_READER } from './application/ports/habit-reader.port';
@@ -28,7 +31,10 @@ import { HabitController } from './presentation/controllers/habit.controller';
 const commandHandlers = [
   ArchiveHabitHandler,
   CreateHabitHandler,
+  DeleteHabitHandler,
   RestoreHabitHandler,
+  TrashHabitHandler,
+  UntrashHabitHandler,
   UpdateHabitHandler,
 ];
 const queryHandlers = [

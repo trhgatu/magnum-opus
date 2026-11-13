@@ -6,6 +6,7 @@ import type {
   HabitResponse,
 } from "@repo/contracts";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { normalizeFrequencyDays } from "@/features/habit/lib/habit-frequency";
 import { apiFetch, type MutationError, toMutationError } from "@/lib/api";
@@ -18,6 +19,8 @@ export type HabitCheckInMutationResult =
   { status: "success"; today: HabitCheckInTodayResponse } | MutationError;
 
 export type HabitRelapseMutationResult = { status: "success" } | MutationError;
+
+export type HabitDeleteResult = { status: "success" } | MutationError;
 
 export type HabitFormInput =
   | {
@@ -163,7 +166,7 @@ export async function updateHabit(
 }
 
 export async function changeHabitState(
-  input: HabitRevisionInput & { action: "archive" | "restore" },
+  input: HabitRevisionInput & { action: "archive" | "restore" | "untrash" },
 ): Promise<HabitMutationResult> {
   if (!validId(input.id) || !validRevision(input.expectedRevision)) {
     return { status: "error", message: "Dữ liệu thói quen không hợp lệ." };
@@ -182,6 +185,50 @@ export async function changeHabitState(
   } catch (error) {
     return toMutationError(error);
   }
+}
+
+/**
+ * Thành công thì redirect sang Thùng rác: trang chi tiết không mở Habit
+ * trong Thùng rác (BR-HAB4-002), nên ở lại sẽ ra 404.
+ */
+export async function trashHabit(
+  input: HabitRevisionInput,
+): Promise<MutationError> {
+  if (!validId(input.id) || !validRevision(input.expectedRevision)) {
+    return { status: "error", message: "Dữ liệu thói quen không hợp lệ." };
+  }
+
+  try {
+    await apiFetch<HabitResponse>(`/habits/${input.id}/trash`, {
+      method: "PATCH",
+      body: JSON.stringify({ expectedRevision: input.expectedRevision }),
+    });
+  } catch (error) {
+    return toMutationError(error);
+  }
+
+  revalidateHabit(input.id);
+  redirect("/habits?status=TRASHED");
+}
+
+export async function deleteHabitPermanently(
+  input: HabitRevisionInput,
+): Promise<HabitDeleteResult> {
+  if (!validId(input.id) || !validRevision(input.expectedRevision)) {
+    return { status: "error", message: "Dữ liệu thói quen không hợp lệ." };
+  }
+
+  try {
+    await apiFetch<void>(
+      `/habits/${input.id}?expectedRevision=${input.expectedRevision}`,
+      { method: "DELETE" },
+    );
+  } catch (error) {
+    return toMutationError(error);
+  }
+
+  revalidatePath("/habits");
+  return { status: "success" };
 }
 
 export async function changeHabitCheckIn(input: {

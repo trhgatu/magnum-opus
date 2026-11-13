@@ -3,6 +3,9 @@ import { Result } from '@shared/domain/result';
 import {
   ArchiveHabitCommand,
   CreateHabitCommand,
+  DeleteHabitCommand,
+  TrashHabitCommand,
+  UntrashHabitCommand,
 } from '../../application/commands';
 import { GetHabitsQuery } from '../../application/queries';
 import { HabitFrequencyType, HabitState, HabitType } from '../../domain/enums';
@@ -95,6 +98,38 @@ describe('HabitController', () => {
 
     expect(commandBus.execute).toHaveBeenCalledWith(
       new ArchiveHabitCommand('habit-id', 'owner-id', 1),
+    );
+  });
+
+  it('sends the expected revision when trashing and untrashing', async () => {
+    const habit = createHabit();
+    commandBus.execute.mockResolvedValue(Result.ok(habit));
+
+    await controller.trash('owner-id', 'habit-id', { expectedRevision: 1 });
+    await controller.untrash('owner-id', 'habit-id', {
+      expectedRevision: 2,
+    });
+
+    expect(commandBus.execute).toHaveBeenNthCalledWith(
+      1,
+      new TrashHabitCommand('habit-id', 'owner-id', 1),
+    );
+    expect(commandBus.execute).toHaveBeenNthCalledWith(
+      2,
+      new UntrashHabitCommand('habit-id', 'owner-id', 2),
+    );
+  });
+
+  it('permanently deletes with the revision from the query string', async () => {
+    commandBus.execute.mockResolvedValue(Result.ok(undefined));
+
+    await expect(
+      controller.deletePermanently('owner-id', 'habit-id', {
+        expectedRevision: 3,
+      }),
+    ).resolves.toBeUndefined();
+    expect(commandBus.execute).toHaveBeenCalledWith(
+      new DeleteHabitCommand('habit-id', 'owner-id', 3),
     );
   });
 });

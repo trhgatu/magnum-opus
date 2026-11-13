@@ -5,7 +5,7 @@ import Link from "next/link";
 import { formatHabitFrequency } from "@/features/habit/lib/habit-frequency";
 import { formatQuitStartedAt } from "@/features/habit/lib/habit-quit";
 
-function describeArchivedHabit(habit: HabitResponse) {
+export function describeArchivedHabit(habit: HabitResponse) {
   if (habit.type === "QUIT") {
     return habit.quitStartedAt
       ? `Từ bỏ · tính từ ${formatQuitStartedAt(habit.quitStartedAt)}`

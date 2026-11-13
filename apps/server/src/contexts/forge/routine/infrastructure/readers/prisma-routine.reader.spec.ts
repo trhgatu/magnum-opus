@@ -80,6 +80,7 @@ describe('PrismaRoutineReader', () => {
         createdAt: true,
         updatedAt: true,
         habits: {
+          where: { habit: { state: { not: 'TRASHED' } } },
           orderBy: {
             order: 'asc',
           },
@@ -152,6 +153,7 @@ describe('PrismaRoutineReader', () => {
       where,
       include: {
         habits: {
+          where: { habit: { state: { not: 'TRASHED' } } },
           orderBy: {
             order: 'asc',
           },
@@ -199,6 +201,7 @@ describe('PrismaRoutineReader', () => {
       },
       include: {
         habits: {
+          where: { habit: { state: { not: 'TRASHED' } } },
           orderBy: {
             order: 'asc',
           },

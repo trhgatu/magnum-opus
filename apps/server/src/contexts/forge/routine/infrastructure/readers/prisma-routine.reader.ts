@@ -34,6 +34,7 @@ export class PrismaRoutineReader implements RoutineReader {
         createdAt: true,
         updatedAt: true,
         habits: {
+          where: { habit: { state: { not: 'TRASHED' } } },
           orderBy: {
             order: 'asc',
           },
@@ -101,6 +102,7 @@ export class PrismaRoutineReader implements RoutineReader {
         where,
         include: {
           habits: {
+            where: { habit: { state: { not: 'TRASHED' } } },
             orderBy: {
               order: 'asc',
             },

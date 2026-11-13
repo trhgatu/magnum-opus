@@ -25,6 +25,15 @@ describe("Habit URL state", () => {
     ).toEqual({ page: 3, search: "thiền", status: "ARCHIVED", type: "BUILD" });
   });
 
+  it("parses and builds the Trash view like the archived one", () => {
+    expect(
+      parseHabitLocation({ page: "2", status: "TRASHED", type: "QUIT" }),
+    ).toEqual({ page: 2, search: "", status: "TRASHED", type: "BUILD" });
+    expect(buildHabitHref({ page: 2, status: "TRASHED" })).toBe(
+      "/habits?status=TRASHED&page=2",
+    );
+  });
+
   it("ignores the page on the active tabs, which are not paginated", () => {
     expect(parseHabitLocation({ page: "3" }).page).toBe(1);
     expect(buildHabitHref({ page: 3, status: "ACTIVE" })).toBe("/habits");

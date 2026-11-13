@@ -6,7 +6,7 @@ import { PaginationQueryDto } from '@presentation/common/dto/pagination-query.dt
 import { HabitSortField } from '../../application/ports/habit-reader.port';
 import { HabitType } from '../../domain/enums';
 
-export const HABIT_STATUSES = ['ACTIVE', 'ARCHIVED'] as const;
+export const HABIT_STATUSES = ['ACTIVE', 'ARCHIVED', 'TRASHED'] as const;
 export type HabitStatus = (typeof HABIT_STATUSES)[number];
 
 const HABIT_SORT_FIELDS: HabitSortField[] = ['title', 'createdAt', 'updatedAt'];

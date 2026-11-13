@@ -17,8 +17,12 @@ import {
 import { HabitMutationService, HabitTodayService } from '../../services';
 import { ArchiveHabitCommand } from '../archive-habit.command';
 import { RestoreHabitCommand } from '../restore-habit.command';
+import { TrashHabitCommand } from '../trash-habit.command';
+import { UntrashHabitCommand } from '../untrash-habit.command';
 import { ArchiveHabitHandler } from './archive-habit.handler';
 import { RestoreHabitHandler } from './restore-habit.handler';
+import { TrashHabitHandler } from './trash-habit.handler';
+import { UntrashHabitHandler } from './untrash-habit.handler';
 
 const NOT_LOADED = Symbol('not-loaded');
 const archiveCommand = new ArchiveHabitCommand('habit-id', 'owner-id', 1);
@@ -36,6 +40,8 @@ describe('Habit lifecycle command handlers', () => {
   const todayService = new HabitTodayService(timeZoneReader, clock);
   const archiveHandler = new ArchiveHabitHandler(mutationService, todayService);
   const restoreHandler = new RestoreHabitHandler(mutationService, todayService);
+  const trashHandler = new TrashHabitHandler(mutationService, todayService);
+  const untrashHandler = new UntrashHabitHandler(mutationService, todayService);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -43,6 +49,46 @@ describe('Habit lifecycle command handlers', () => {
     // 18:00 UTC ngày 08 = 01:00 ngày 09 ở Asia/Ho_Chi_Minh.
     clock.now.mockReturnValue(new Date('2026-10-08T18:00:00.000Z'));
     timeZoneReader.getForUser.mockResolvedValue('Asia/Ho_Chi_Minh');
+  });
+
+  it("moves an active Habit to Trash, ending it on the owner's calendar date", async () => {
+    repository.findByIdForOwner.mockResolvedValue(
+      createHabit(HabitState.ACTIVE, 1),
+    );
+
+    const result = await trashHandler.execute(
+      new TrashHabitCommand('habit-id', 'owner-id', 1),
+    );
+
+    const habit = result.getValue();
+    expect(habit.state).toBe(HabitState.TRASHED);
+    expect(habit.stateBeforeTrash).toBe(HabitState.ACTIVE);
+    expect(transitionsOf(habit)).toEqual([
+      { action: HabitLifecycleAction.ARCHIVED, effectiveOn: '2026-10-09' },
+    ]);
+    expect(repository.update).toHaveBeenCalledWith(habit, 1);
+  });
+
+  it('restores a Habit from Trash to its previous state', async () => {
+    const trashed = createHabit(HabitState.ACTIVE, 1);
+    trashed.moveToTrash(
+      HabitCalendarDate.fromPersistenceDate(
+        new Date('2026-10-01T00:00:00.000Z'),
+      ),
+    );
+    trashed.clearDomainEvents();
+    repository.findByIdForOwner.mockResolvedValue(trashed);
+
+    const result = await untrashHandler.execute(
+      new UntrashHabitCommand('habit-id', 'owner-id', 2),
+    );
+
+    const habit = result.getValue();
+    expect(habit.state).toBe(HabitState.ACTIVE);
+    expect(transitionsOf(habit)).toEqual([
+      { action: HabitLifecycleAction.RESTORED, effectiveOn: '2026-10-09' },
+    ]);
+    expect(repository.update).toHaveBeenCalledWith(habit, 2);
   });
 
   it("archives an active Habit effective on the owner's calendar date", async () => {

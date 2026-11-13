@@ -8,4 +8,10 @@ export interface HabitRepository {
   update(habit: Habit, expectedRevision: number): Promise<boolean>;
 
   findByIdForOwner(id: string, ownerId: string): Promise<Habit | null>;
+
+  deletePermanently(
+    id: string,
+    ownerId: string,
+    expectedRevision: number,
+  ): Promise<boolean>;
 }

@@ -110,7 +110,7 @@ export class PrismaHabitOverviewReader implements HabitOverviewReader {
     timeZone: string,
   ) {
     const [habit] = await this.load(
-      { id: habitId, ownerId },
+      { id: habitId, ownerId, state: { not: 'TRASHED' } },
       ownerId,
       timeZone,
     );
