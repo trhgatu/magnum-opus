@@ -27,7 +27,7 @@ export class GetHabitsHandler implements IQueryHandler<
     const result = await this.habitReader.findAllForOwner(query.ownerId, {
       skip: (query.page - 1) * query.limit,
       take: query.limit,
-      isActive: query.isActive,
+      state: query.state,
       type: query.type,
       search: query.search,
       sortBy: query.sortBy,

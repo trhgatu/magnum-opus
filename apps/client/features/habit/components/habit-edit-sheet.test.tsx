@@ -58,7 +58,7 @@ const habit: HabitResponse = {
   frequencyType: "DAILY",
   frequencyDays: [],
   quitStartedAt: null,
-  isActive: true,
+  state: "ACTIVE",
   revision: 3,
   createdAt: "2026-08-14T10:00:00.000Z",
   updatedAt: "2026-08-14T11:00:00.000Z",
@@ -112,7 +112,7 @@ describe("HabitEditProvider", () => {
     updateHabit.mockResolvedValue({ status: "success", habit: saved });
     changeHabitState.mockResolvedValue({
       status: "success",
-      habit: { ...saved, isActive: false, revision: 5 },
+      habit: { ...saved, state: "ARCHIVED", revision: 5 },
     });
     renderDetail();
 
@@ -237,7 +237,7 @@ describe("HabitEditProvider", () => {
     });
     changeHabitState.mockResolvedValue({
       status: "success",
-      habit: { ...habit, isActive: false, revision: 6 },
+      habit: { ...habit, state: "ARCHIVED", revision: 6 },
     });
     renderDetail();
 
@@ -276,7 +276,7 @@ describe("HabitEditProvider", () => {
   }, 15_000);
 
   it("offers no editing for an archived habit", () => {
-    renderDetail({ ...habit, isActive: false });
+    renderDetail({ ...habit, state: "ARCHIVED" });
 
     expect(screen.queryByRole("button", { name: "Chỉnh sửa" })).toBeNull();
     // Tên và mô tả chỉ là chữ, không còn là nút mở sheet.

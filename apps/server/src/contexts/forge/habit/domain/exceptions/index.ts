@@ -6,3 +6,4 @@ export * from './invalid-habit-title.exception';
 export * from './invalid-habit-frequency.exception';
 export * from './invalid-habit-type.exception';
 export * from './invalid-quit-started-at.exception';
+export * from './habit-permanent-delete-forbidden.exception';

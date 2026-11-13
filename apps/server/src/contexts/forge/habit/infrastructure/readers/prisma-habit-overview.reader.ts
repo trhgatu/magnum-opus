@@ -101,7 +101,7 @@ export class PrismaHabitOverviewReader implements HabitOverviewReader {
     });
   }
   public findActiveForOwner(ownerId: string, timeZone: string) {
-    return this.load({ ownerId, isActive: true }, ownerId, timeZone);
+    return this.load({ ownerId, state: 'ACTIVE' }, ownerId, timeZone);
   }
 
   public async findOneForOwner(
@@ -110,7 +110,7 @@ export class PrismaHabitOverviewReader implements HabitOverviewReader {
     timeZone: string,
   ) {
     const [habit] = await this.load(
-      { id: habitId, ownerId },
+      { id: habitId, ownerId, state: { not: 'TRASHED' } },
       ownerId,
       timeZone,
     );

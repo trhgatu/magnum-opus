@@ -61,7 +61,7 @@ describe('Habit (E2E)', () => {
       type: 'BUILD',
       frequencyType: 'WEEKLY',
       frequencyDays: [1, 5],
-      isActive: true,
+      state: 'ACTIVE',
       revision: 1,
     });
     expect(created.body).not.toHaveProperty('ownerId');
@@ -116,7 +116,7 @@ describe('Habit (E2E)', () => {
       .set('Authorization', `Bearer ${ownerToken}`)
       .send({ expectedRevision: 2 })
       .expect(HttpStatus.OK);
-    expect(archived.body).toMatchObject({ isActive: false, revision: 3 });
+    expect(archived.body).toMatchObject({ state: 'ARCHIVED', revision: 3 });
 
     await request(app.getHttpServer())
       .get('/habits')
@@ -136,7 +136,87 @@ describe('Habit (E2E)', () => {
       .set('Authorization', `Bearer ${ownerToken}`)
       .send({ expectedRevision: 3 })
       .expect(HttpStatus.OK);
-    expect(restored.body).toMatchObject({ isActive: true, revision: 4 });
+    expect(restored.body).toMatchObject({ state: 'ACTIVE', revision: 4 });
+  });
+
+  it('moves a Habit to Trash, restores it and deletes it permanently', async () => {
+    const created = await request(app.getHttpServer())
+      .post('/habits')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({
+        title: 'Created by mistake',
+        type: 'BUILD',
+        frequencyType: 'DAILY',
+        frequencyDays: [],
+      })
+      .expect(HttpStatus.CREATED);
+    const habitId = created.body.id as string;
+
+    // Chỉ Habit trong Thùng rác mới xóa vĩnh viễn được.
+    await request(app.getHttpServer())
+      .delete(`/habits/${habitId}`)
+      .query({ expectedRevision: 1 })
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(HttpStatus.CONFLICT);
+
+    const trashed = await request(app.getHttpServer())
+      .patch(`/habits/${habitId}/trash`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ expectedRevision: 1 })
+      .expect(HttpStatus.OK);
+    expect(trashed.body).toMatchObject({ state: 'TRASHED', revision: 2 });
+
+    const listIds = async (status?: string) => {
+      const response = await request(app.getHttpServer())
+        .get('/habits')
+        .query(status ? { status } : {})
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .expect(HttpStatus.OK);
+      return (response.body.data as { id: string }[]).map(({ id }) => id);
+    };
+    expect(await listIds()).not.toContain(habitId);
+    expect(await listIds('ARCHIVED')).not.toContain(habitId);
+    expect(await listIds('TRASHED')).toEqual([habitId]);
+
+    await request(app.getHttpServer())
+      .get(`/habits/${habitId}/overview`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(HttpStatus.NOT_FOUND);
+    await request(app.getHttpServer())
+      .put(`/habits/${habitId}/check-ins/today`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(HttpStatus.CONFLICT);
+
+    const untrashed = await request(app.getHttpServer())
+      .patch(`/habits/${habitId}/untrash`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ expectedRevision: 2 })
+      .expect(HttpStatus.OK);
+    expect(untrashed.body).toMatchObject({ state: 'ACTIVE', revision: 3 });
+
+    await request(app.getHttpServer())
+      .patch(`/habits/${habitId}/trash`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ expectedRevision: 3 })
+      .expect(HttpStatus.OK);
+
+    // Người khác không xóa được Habit của owner.
+    await request(app.getHttpServer())
+      .delete(`/habits/${habitId}`)
+      .query({ expectedRevision: 4 })
+      .set('Authorization', `Bearer ${otherToken}`)
+      .expect(HttpStatus.NOT_FOUND);
+
+    await request(app.getHttpServer())
+      .delete(`/habits/${habitId}`)
+      .query({ expectedRevision: 4 })
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(HttpStatus.NO_CONTENT);
+
+    await request(app.getHttpServer())
+      .get(`/habits/${habitId}`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(HttpStatus.NOT_FOUND);
   });
 
   it('checks in idempotently, reads history and only undoes today', async () => {

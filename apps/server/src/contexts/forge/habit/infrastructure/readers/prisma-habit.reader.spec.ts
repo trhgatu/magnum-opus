@@ -1,3 +1,4 @@
+import { HabitState } from '../../domain/enums';
 import {
   Habit as PrismaHabit,
   HabitFrequencyType as PrismaHabitFrequencyType,
@@ -28,7 +29,7 @@ describe('PrismaHabitReader', () => {
     const result = await reader.findAllForOwner('owner-id', {
       skip: 20,
       take: 10,
-      isActive: false,
+      state: HabitState.ARCHIVED,
       search: '  walk  ',
       sortBy: 'title',
       sortOrder: 'asc',
@@ -36,7 +37,7 @@ describe('PrismaHabitReader', () => {
 
     const where = {
       ownerId: 'owner-id',
-      isActive: false,
+      state: HabitState.ARCHIVED,
       OR: [
         { title: { contains: 'walk', mode: 'insensitive' } },
         { description: { contains: 'walk', mode: 'insensitive' } },
@@ -84,7 +85,9 @@ function rawHabit(): PrismaHabit {
     frequencyType: PrismaHabitFrequencyType.DAILY,
     frequencyDays: [],
     quitStartedAt: null,
-    isActive: true,
+    state: HabitState.ACTIVE,
+    stateBeforeTrash: null,
+    trashedAt: null,
     revision: 1,
     createdAt: new Date('2026-08-20T10:00:00.000Z'),
     createdOn: new Date('2026-08-20T00:00:00.000Z'),

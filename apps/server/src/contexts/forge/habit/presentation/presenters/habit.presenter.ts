@@ -14,7 +14,7 @@ export class HabitPresenter {
       frequencyType: data.frequencyType,
       frequencyDays: data.frequencyDays,
       quitStartedAt: data.quitStartedAt?.toISOString().slice(0, 10) ?? null,
-      isActive: data.isActive,
+      state: data.state,
       revision: data.revision,
       createdAt: data.createdAt.toISOString(),
       updatedAt: data.updatedAt.toISOString(),

@@ -1,4 +1,8 @@
-import { HabitLifecycleAction, HabitType } from '../../../domain/enums';
+import {
+  HabitLifecycleAction,
+  HabitState,
+  HabitType,
+} from '../../../domain/enums';
 import { HabitLifecycleTransitionedEvent } from '../../../domain/events';
 import {
   HabitNotFoundException,
@@ -13,8 +17,12 @@ import {
 import { HabitMutationService, HabitTodayService } from '../../services';
 import { ArchiveHabitCommand } from '../archive-habit.command';
 import { RestoreHabitCommand } from '../restore-habit.command';
+import { TrashHabitCommand } from '../trash-habit.command';
+import { UntrashHabitCommand } from '../untrash-habit.command';
 import { ArchiveHabitHandler } from './archive-habit.handler';
 import { RestoreHabitHandler } from './restore-habit.handler';
+import { TrashHabitHandler } from './trash-habit.handler';
+import { UntrashHabitHandler } from './untrash-habit.handler';
 
 const NOT_LOADED = Symbol('not-loaded');
 const archiveCommand = new ArchiveHabitCommand('habit-id', 'owner-id', 1);
@@ -32,6 +40,8 @@ describe('Habit lifecycle command handlers', () => {
   const todayService = new HabitTodayService(timeZoneReader, clock);
   const archiveHandler = new ArchiveHabitHandler(mutationService, todayService);
   const restoreHandler = new RestoreHabitHandler(mutationService, todayService);
+  const trashHandler = new TrashHabitHandler(mutationService, todayService);
+  const untrashHandler = new UntrashHabitHandler(mutationService, todayService);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -41,15 +51,57 @@ describe('Habit lifecycle command handlers', () => {
     timeZoneReader.getForUser.mockResolvedValue('Asia/Ho_Chi_Minh');
   });
 
+  it("moves an active Habit to Trash, ending it on the owner's calendar date", async () => {
+    repository.findByIdForOwner.mockResolvedValue(
+      createHabit(HabitState.ACTIVE, 1),
+    );
+
+    const result = await trashHandler.execute(
+      new TrashHabitCommand('habit-id', 'owner-id', 1),
+    );
+
+    const habit = result.getValue();
+    expect(habit.state).toBe(HabitState.TRASHED);
+    expect(habit.stateBeforeTrash).toBe(HabitState.ACTIVE);
+    expect(transitionsOf(habit)).toEqual([
+      { action: HabitLifecycleAction.ARCHIVED, effectiveOn: '2026-10-09' },
+    ]);
+    expect(repository.update).toHaveBeenCalledWith(habit, 1);
+  });
+
+  it('restores a Habit from Trash to its previous state', async () => {
+    const trashed = createHabit(HabitState.ACTIVE, 1);
+    trashed.moveToTrash(
+      HabitCalendarDate.fromPersistenceDate(
+        new Date('2026-10-01T00:00:00.000Z'),
+      ),
+    );
+    trashed.clearDomainEvents();
+    repository.findByIdForOwner.mockResolvedValue(trashed);
+
+    const result = await untrashHandler.execute(
+      new UntrashHabitCommand('habit-id', 'owner-id', 2),
+    );
+
+    const habit = result.getValue();
+    expect(habit.state).toBe(HabitState.ACTIVE);
+    expect(transitionsOf(habit)).toEqual([
+      { action: HabitLifecycleAction.RESTORED, effectiveOn: '2026-10-09' },
+    ]);
+    expect(repository.update).toHaveBeenCalledWith(habit, 2);
+  });
+
   it("archives an active Habit effective on the owner's calendar date", async () => {
-    repository.findByIdForOwner.mockResolvedValue(createHabit(true, 1));
+    repository.findByIdForOwner.mockResolvedValue(
+      createHabit(HabitState.ACTIVE, 1),
+    );
 
     const result = await archiveHandler.execute(
       new ArchiveHabitCommand('habit-id', 'owner-id', 1),
     );
 
     const habit = result.getValue();
-    expect(habit.isActive).toBe(false);
+    expect(habit.state).toBe(HabitState.ARCHIVED);
     expect(habit.revision).toBe(2);
     expect(timeZoneReader.getForUser).toHaveBeenCalledWith('owner-id');
     expect(transitionsOf(habit)).toEqual([
@@ -59,14 +111,16 @@ describe('Habit lifecycle command handlers', () => {
   });
 
   it("restores an archived Habit effective on the owner's calendar date", async () => {
-    repository.findByIdForOwner.mockResolvedValue(createHabit(false, 4));
+    repository.findByIdForOwner.mockResolvedValue(
+      createHabit(HabitState.ARCHIVED, 4),
+    );
 
     const result = await restoreHandler.execute(
       new RestoreHabitCommand('habit-id', 'owner-id', 4),
     );
 
     const habit = result.getValue();
-    expect(habit.isActive).toBe(true);
+    expect(habit.state).toBe(HabitState.ACTIVE);
     expect(habit.revision).toBe(5);
     expect(transitionsOf(habit)).toEqual([
       { action: HabitLifecycleAction.RESTORED, effectiveOn: '2026-10-09' },
@@ -75,7 +129,7 @@ describe('Habit lifecycle command handlers', () => {
 
   it('keeps effectiveOn monotonic after the owner moved to a western time zone', async () => {
     repository.findByIdForOwner.mockResolvedValue(
-      createHabit(false, 4, '2026-10-09'),
+      createHabit(HabitState.ARCHIVED, 4, '2026-10-09'),
     );
     // 02:00 UTC ngày 09 vẫn là ngày 08 ở America/New_York.
     clock.now.mockReturnValue(new Date('2026-10-09T02:00:00.000Z'));
@@ -133,7 +187,9 @@ describe('Habit lifecycle command handlers', () => {
   );
 
   it('returns a revision conflict without resolving the owner time zone', async () => {
-    repository.findByIdForOwner.mockResolvedValue(createHabit(true, 2));
+    repository.findByIdForOwner.mockResolvedValue(
+      createHabit(HabitState.ACTIVE, 2),
+    );
 
     const result = await archiveHandler.execute(archiveCommand);
 
@@ -142,13 +198,21 @@ describe('Habit lifecycle command handlers', () => {
   });
 
   it.each([
-    ['archive', true, () => archiveHandler.execute(archiveCommand)],
-    ['restore', false, () => restoreHandler.execute(restoreCommand)],
+    [
+      'archive',
+      HabitState.ACTIVE,
+      () => archiveHandler.execute(archiveCommand),
+    ],
+    [
+      'restore',
+      HabitState.ARCHIVED,
+      () => restoreHandler.execute(restoreCommand),
+    ],
   ])(
     'fails loudly on %s when the repository did not load the lifecycle floor',
-    async (_, isActive, execute) => {
+    async (_, state, execute) => {
       repository.findByIdForOwner.mockResolvedValue(
-        createHabit(isActive, 1, NOT_LOADED),
+        createHabit(state, 1, NOT_LOADED),
       );
 
       await expect(execute()).rejects.toThrow(
@@ -160,7 +224,7 @@ describe('Habit lifecycle command handlers', () => {
 });
 
 function createHabit(
-  isActive: boolean,
+  state: HabitState,
   revision: number,
   latestLifecycleEffectiveOn: string | null | typeof NOT_LOADED = null,
 ): Habit {
@@ -172,7 +236,9 @@ function createHabit(
     type: HabitType.BUILD,
     frequency: HabitFrequency.daily(),
     quitStartedAt: null,
-    isActive,
+    state,
+    stateBeforeTrash: null,
+    trashedAt: null,
     revision,
     createdAt: new Date('2026-08-20T10:00:00.000Z'),
     createdOn: HabitCalendarDate.fromPersistenceDate(

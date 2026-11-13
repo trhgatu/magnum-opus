@@ -395,7 +395,7 @@ describe('Chronicle (E2E)', () => {
         quitStartedAt: options.quitStartedAt
           ? day(options.quitStartedAt)
           : null,
-        isActive: options.archivedOn === undefined,
+        state: options.archivedOn === undefined ? 'ACTIVE' : 'ARCHIVED',
         createdOn: day(options.createdOn),
       },
       select: { id: true },

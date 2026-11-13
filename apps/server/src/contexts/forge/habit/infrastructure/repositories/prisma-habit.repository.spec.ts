@@ -4,7 +4,7 @@ import {
   HabitType as PrismaHabitType,
 } from '@repo/database';
 
-import { HabitType } from '../../domain/enums';
+import { HabitState, HabitType } from '../../domain/enums';
 import { Habit } from '../../domain/habit.aggregate';
 import {
   HabitCalendarDate,
@@ -44,6 +44,7 @@ describe('PrismaHabitRepository', () => {
 
   const habitModel = {
     findFirst: jest.fn(),
+    deleteMany: jest.fn(),
   };
 
   type TransactionCallback = (
@@ -166,7 +167,9 @@ describe('PrismaHabitRepository', () => {
           frequencyType: PrismaHabitFrequencyType.WEEKLY,
           frequencyDays: [1, 3, 5],
           quitStartedAt: null,
-          isActive: true,
+          state: HabitState.ACTIVE,
+          stateBeforeTrash: null,
+          trashedAt: null,
           revision: 5,
           updatedAt: habit.updatedAt,
         },
@@ -283,7 +286,10 @@ describe('PrismaHabitRepository', () => {
       expect(prisma.$transaction).toHaveBeenCalledTimes(1);
       expect(transactionClient.habit.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ isActive: false, revision: 5 }),
+          data: expect.objectContaining({
+            state: HabitState.ARCHIVED,
+            revision: 5,
+          }),
         }),
       );
       expect(
@@ -352,6 +358,32 @@ describe('PrismaHabitRepository', () => {
       ).toBeNull();
     });
   });
+
+  describe('deletePermanently', () => {
+    it('deletes only the owned Habit in Trash at the expected revision', async () => {
+      habitModel.deleteMany.mockResolvedValue({ count: 1 });
+
+      expect(
+        await repository.deletePermanently('habit-id', 'owner-id', 3),
+      ).toBe(true);
+      expect(habitModel.deleteMany).toHaveBeenCalledWith({
+        where: {
+          id: 'habit-id',
+          ownerId: 'owner-id',
+          revision: 3,
+          state: 'TRASHED',
+        },
+      });
+    });
+
+    it('reports nothing deleted when the Habit changed or left Trash', async () => {
+      habitModel.deleteMany.mockResolvedValue({ count: 0 });
+
+      expect(
+        await repository.deletePermanently('habit-id', 'owner-id', 3),
+      ).toBe(false);
+    });
+  });
 });
 
 function createDomainHabit(): Habit {
@@ -363,7 +395,9 @@ function createDomainHabit(): Habit {
     type: HabitType.BUILD,
     frequency: HabitFrequency.weekly([1, 3, 5]),
     quitStartedAt: null,
-    isActive: true,
+    state: HabitState.ACTIVE,
+    stateBeforeTrash: null,
+    trashedAt: null,
     revision: 4,
     createdAt: new Date('2026-08-20T10:00:00.000Z'),
     createdOn: HabitCalendarDate.fromPersistenceDate(
@@ -387,7 +421,9 @@ function rawHabit(): PrismaHabit {
     frequencyType: PrismaHabitFrequencyType.WEEKLY,
     frequencyDays: [1, 3, 5],
     quitStartedAt: null,
-    isActive: true,
+    state: HabitState.ACTIVE,
+    stateBeforeTrash: null,
+    trashedAt: null,
     revision: 4,
     createdAt: new Date('2026-08-20T10:00:00.000Z'),
     createdOn: new Date('2026-08-20T00:00:00.000Z'),

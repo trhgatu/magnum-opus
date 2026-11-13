@@ -47,7 +47,7 @@ const existingHabit: HabitResponse = {
   frequencyType: "DAILY",
   frequencyDays: [],
   quitStartedAt: null,
-  isActive: true,
+  state: "ACTIVE",
   revision: 3,
   createdAt: "2026-08-14T10:00:00.000Z",
   updatedAt: "2026-08-14T11:00:00.000Z",
@@ -319,7 +319,7 @@ describe("HabitEditor", () => {
     });
     reloadHabit.mockResolvedValue({
       status: "success",
-      habit: { ...existingHabit, isActive: false, revision: 4 },
+      habit: { ...existingHabit, state: "ARCHIVED", revision: 4 },
     });
 
     render(

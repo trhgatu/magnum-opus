@@ -31,7 +31,7 @@ vi.mock("next/navigation", () => ({
 
 let isActive = true;
 vi.mock("@/features/habit/components/habit-edit-sheet", () => ({
-  useEditedHabit: () => ({ isActive }),
+  useEditedHabit: () => ({ state: isActive ? "ACTIVE" : "ARCHIVED" }),
 }));
 
 const mutation = vi.mocked(changeHabitCheckIn);

@@ -1,13 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { apiFetch, revalidatePath } = vi.hoisted(() => ({
+const { apiFetch, redirect, revalidatePath } = vi.hoisted(() => ({
   apiFetch: vi.fn(),
+  redirect: vi.fn(),
   revalidatePath: vi.fn(),
 }));
 
 vi.mock("next/cache", () => ({
   revalidatePath,
 }));
+
+vi.mock("next/navigation", () => ({ redirect }));
 
 vi.mock("@/lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api")>();
@@ -23,8 +26,10 @@ import {
   changeHabitCheckIn,
   changeHabitState,
   createHabit,
+  deleteHabitPermanently,
   logHabitRelapse,
   reloadHabit,
+  trashHabit,
   updateHabit,
 } from "./habit";
 
@@ -36,7 +41,7 @@ const habit = {
   frequencyType: "DAILY" as const,
   frequencyDays: [] as number[],
   quitStartedAt: null,
-  isActive: true,
+  state: "ACTIVE",
   revision: 1,
   createdAt: "2026-08-28T06:00:00.000Z",
   updatedAt: "2026-08-28T06:00:00.000Z",
@@ -235,7 +240,7 @@ describe("Habit Server Actions", () => {
   });
 
   it("archives an active Habit", async () => {
-    const archived = { ...habit, isActive: false, revision: 2 };
+    const archived = { ...habit, state: "ARCHIVED", revision: 2 };
     apiFetch.mockResolvedValue(archived);
 
     await expect(
@@ -256,7 +261,7 @@ describe("Habit Server Actions", () => {
   });
 
   it("restores an archived Habit", async () => {
-    apiFetch.mockResolvedValue({ ...habit, isActive: true, revision: 3 });
+    apiFetch.mockResolvedValue({ ...habit, state: "ACTIVE", revision: 3 });
 
     await changeHabitState({
       id: habit.id,
@@ -268,6 +273,67 @@ describe("Habit Server Actions", () => {
       method: "PATCH",
       body: JSON.stringify({ expectedRevision: 2 }),
     });
+  });
+
+  it("moves a Habit to Trash and redirects to the Trash list", async () => {
+    apiFetch.mockResolvedValue({ ...habit, state: "TRASHED", revision: 2 });
+
+    await trashHabit({ id: habit.id, expectedRevision: 1 });
+
+    expect(apiFetch).toHaveBeenCalledWith(`/habits/${habit.id}/trash`, {
+      method: "PATCH",
+      body: JSON.stringify({ expectedRevision: 1 }),
+    });
+    expect(revalidatePath).toHaveBeenCalledWith("/habits");
+    expect(redirect).toHaveBeenCalledWith("/habits?status=TRASHED");
+  });
+
+  it("stays put when moving to Trash fails", async () => {
+    apiFetch.mockRejectedValue(
+      new ApiError({
+        kind: "conflict",
+        status: 409,
+        code: "HABIT_REVISION_CONFLICT",
+        message: "conflict",
+      }),
+    );
+
+    const result = await trashHabit({ id: habit.id, expectedRevision: 1 });
+
+    expect(result).toMatchObject({
+      status: "error",
+      code: "HABIT_REVISION_CONFLICT",
+    });
+    expect(redirect).not.toHaveBeenCalled();
+  });
+
+  it("restores a Habit from Trash", async () => {
+    apiFetch.mockResolvedValue({ ...habit, state: "ACTIVE", revision: 3 });
+
+    await changeHabitState({
+      id: habit.id,
+      expectedRevision: 2,
+      action: "untrash",
+    });
+
+    expect(apiFetch).toHaveBeenCalledWith(`/habits/${habit.id}/untrash`, {
+      method: "PATCH",
+      body: JSON.stringify({ expectedRevision: 2 }),
+    });
+  });
+
+  it("deletes a Habit permanently with the revision in the query string", async () => {
+    apiFetch.mockResolvedValue(undefined);
+
+    await expect(
+      deleteHabitPermanently({ id: habit.id, expectedRevision: 4 }),
+    ).resolves.toEqual({ status: "success" });
+
+    expect(apiFetch).toHaveBeenCalledWith(
+      `/habits/${habit.id}?expectedRevision=4`,
+      { method: "DELETE" },
+    );
+    expect(revalidatePath).toHaveBeenCalledWith("/habits");
   });
 
   it("rejects an invalid revision for lifecycle changes", async () => {

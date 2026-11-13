@@ -1,6 +1,11 @@
 import { AggregateRoot } from '@shared/domain/aggregate-root';
 
-import { HabitFrequencyType, HabitLifecycleAction, HabitType } from './enums';
+import {
+  HabitFrequencyType,
+  HabitLifecycleAction,
+  HabitType,
+  HabitState,
+} from './enums';
 import {
   HabitLifecycleTransitionedEvent,
   HabitScheduleVersionStartedEvent,
@@ -23,7 +28,9 @@ export interface HabitProps {
   type: HabitType;
   frequency: HabitFrequency | null;
   quitStartedAt: Date | null;
-  isActive: boolean;
+  state: HabitState;
+  stateBeforeTrash: HabitState | null;
+  trashedAt: Date | null;
   revision: number;
   createdAt: Date;
   createdOn: HabitCalendarDate;
@@ -49,7 +56,9 @@ export interface HabitPrimitives {
   frequencyType: HabitFrequencyType | null;
   frequencyDays: number[];
   quitStartedAt: Date | null;
-  isActive: boolean;
+  state: HabitState;
+  stateBeforeTrash: HabitState | null;
+  trashedAt: Date | null;
   revision: number;
   createdAt: Date;
   createdOn: string;
@@ -91,7 +100,9 @@ export class Habit extends AggregateRoot {
       type: input.type,
       frequency,
       quitStartedAt,
-      isActive: true,
+      state: HabitState.ACTIVE,
+      stateBeforeTrash: null,
+      trashedAt: null,
       revision: 1,
       createdAt: now,
       createdOn: input.today,
@@ -141,8 +152,16 @@ export class Habit extends AggregateRoot {
     return this.props.quitStartedAt;
   }
 
-  public get isActive(): boolean {
-    return this.props.isActive;
+  public get state(): HabitState {
+    return this.props.state;
+  }
+
+  public get stateBeforeTrash(): HabitState | null {
+    return this.props.stateBeforeTrash;
+  }
+
+  public get trashedAt(): Date | null {
+    return this.props.trashedAt;
   }
 
   public get revision(): number {
@@ -230,11 +249,11 @@ export class Habit extends AggregateRoot {
   public archive(today: HabitCalendarDate): void {
     this.ensureLifecycleFloorLoaded();
 
-    if (!this.props.isActive) {
-      throw new InvalidHabitTransitionException(false);
+    if (this.props.state !== HabitState.ACTIVE) {
+      throw new InvalidHabitTransitionException(this.props.state);
     }
 
-    this.props.isActive = false;
+    this.props.state = HabitState.ARCHIVED;
     this.trackChange();
     this.recordLifecycleTransition(HabitLifecycleAction.ARCHIVED, today);
   }
@@ -242,18 +261,55 @@ export class Habit extends AggregateRoot {
   public restore(today: HabitCalendarDate): void {
     this.ensureLifecycleFloorLoaded();
 
-    if (this.props.isActive) {
-      throw new InvalidHabitTransitionException(true);
+    if (this.props.state !== HabitState.ARCHIVED) {
+      throw new InvalidHabitTransitionException(this.props.state);
     }
 
-    this.props.isActive = true;
+    this.props.state = HabitState.ACTIVE;
     this.trackChange();
     this.recordLifecycleTransition(HabitLifecycleAction.RESTORED, today);
   }
 
+  public moveToTrash(today: HabitCalendarDate): void {
+    this.ensureLifecycleFloorLoaded();
+
+    if (this.props.state === HabitState.TRASHED) {
+      throw new InvalidHabitTransitionException(this.props.state);
+    }
+
+    const wasActive = this.props.state === HabitState.ACTIVE;
+    this.props.stateBeforeTrash = this.props.state;
+    this.props.state = HabitState.TRASHED;
+    this.props.trashedAt = new Date();
+    this.trackChange();
+
+    if (wasActive) {
+      this.recordLifecycleTransition(HabitLifecycleAction.ARCHIVED, today);
+    }
+  }
+
+  public restoreFromTrash(today: HabitCalendarDate): void {
+    this.ensureLifecycleFloorLoaded();
+
+    const restoredState = this.props.stateBeforeTrash;
+
+    if (this.props.state !== HabitState.TRASHED || restoredState === null) {
+      throw new InvalidHabitTransitionException(this.props.state);
+    }
+
+    this.props.state = restoredState;
+    this.props.stateBeforeTrash = null;
+    this.props.trashedAt = null;
+    this.trackChange();
+
+    if (restoredState === HabitState.ACTIVE) {
+      this.recordLifecycleTransition(HabitLifecycleAction.RESTORED, today);
+    }
+  }
+
   public isDueOn(isoWeekday: number): boolean {
     return (
-      this.props.isActive &&
+      this.props.state === HabitState.ACTIVE &&
       this.props.frequency !== null &&
       this.props.frequency.isDueOn(isoWeekday)
     );
@@ -269,7 +325,9 @@ export class Habit extends AggregateRoot {
       frequencyType: this.props.frequency?.type ?? null,
       frequencyDays: this.props.frequency?.days ?? [],
       quitStartedAt: this.props.quitStartedAt,
-      isActive: this.props.isActive,
+      state: this.props.state,
+      stateBeforeTrash: this.props.stateBeforeTrash,
+      trashedAt: this.props.trashedAt,
       revision: this.props.revision,
       createdAt: this.props.createdAt,
       createdOn: this.props.createdOn.value,
@@ -278,8 +336,8 @@ export class Habit extends AggregateRoot {
   }
 
   private ensureActive(): void {
-    if (!this.props.isActive) {
-      throw new InvalidHabitTransitionException(false);
+    if (this.props.state !== HabitState.ACTIVE) {
+      throw new InvalidHabitTransitionException(this.props.state);
     }
   }
 

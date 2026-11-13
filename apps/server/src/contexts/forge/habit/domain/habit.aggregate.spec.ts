@@ -1,4 +1,4 @@
-import { HabitLifecycleAction, HabitType } from './enums';
+import { HabitLifecycleAction, HabitState, HabitType } from './enums';
 import {
   HabitLifecycleTransitionedEvent,
   HabitScheduleVersionStartedEvent,
@@ -36,7 +36,7 @@ describe('Habit', () => {
       expect(habit.type).toBe(HabitType.BUILD);
       expect(habit.frequency?.equals(HabitFrequency.daily())).toBe(true);
       expect(habit.quitStartedAt).toBeNull();
-      expect(habit.isActive).toBe(true);
+      expect(habit.state).toBe(HabitState.ACTIVE);
       expect(habit.revision).toBe(1);
       expect(habit.createdAt).toEqual(habit.updatedAt);
       expect(habit.createdOn.value).toBe('2026-10-09');
@@ -362,7 +362,7 @@ describe('Habit', () => {
 
       habit.archive(TODAY);
 
-      expect(habit.isActive).toBe(false);
+      expect(habit.state).toBe(HabitState.ARCHIVED);
       expect(habit.revision).toBe(2);
     });
 
@@ -372,7 +372,7 @@ describe('Habit', () => {
 
       habit.restore(TODAY);
 
-      expect(habit.isActive).toBe(true);
+      expect(habit.state).toBe(HabitState.ACTIVE);
       expect(habit.revision).toBe(3);
     });
 
@@ -383,6 +383,24 @@ describe('Habit', () => {
       expect(() => habit.archive(TODAY)).toThrow(
         InvalidHabitTransitionException,
       );
+    });
+
+    it('rejects archiving or restoring a trashed Habit', () => {
+      const habit = Habit.rehydrate(
+        createProps({
+          state: HabitState.TRASHED,
+          stateBeforeTrash: HabitState.ACTIVE,
+          trashedAt: new Date('2026-10-09T00:00:00Z'),
+        }),
+      );
+
+      expect(() => habit.archive(TODAY)).toThrow(
+        InvalidHabitTransitionException,
+      );
+      expect(() => habit.restore(TODAY)).toThrow(
+        InvalidHabitTransitionException,
+      );
+      expect(habit.state).toBe(HabitState.TRASHED);
     });
 
     it('rejects restoring an active Habit', () => {
@@ -439,7 +457,7 @@ describe('Habit', () => {
       // đã ghi, transition bị kẹp về mốc đó để lịch sử không đảo thứ tự.
       const habit = Habit.rehydrate(
         createProps({
-          isActive: false,
+          state: HabitState.ARCHIVED,
           createdOn: calendarDate('2026-10-01'),
           latestLifecycleEffectiveOn: calendarDate('2026-10-09'),
         }),
@@ -487,7 +505,7 @@ describe('Habit', () => {
     it('uses today when it is later than the latest recorded transition', () => {
       const habit = Habit.rehydrate(
         createProps({
-          isActive: false,
+          state: HabitState.ARCHIVED,
           latestLifecycleEffectiveOn: calendarDate('2026-09-01'),
         }),
       );
@@ -514,7 +532,10 @@ describe('Habit', () => {
         createProps({ latestLifecycleEffectiveOn: undefined }),
       );
       const archived = Habit.rehydrate(
-        createProps({ isActive: false, latestLifecycleEffectiveOn: undefined }),
+        createProps({
+          state: HabitState.ARCHIVED,
+          latestLifecycleEffectiveOn: undefined,
+        }),
       );
 
       expect(() => active.archive(TODAY)).toThrow(
@@ -523,7 +544,7 @@ describe('Habit', () => {
       expect(() => archived.restore(TODAY)).toThrow(
         'Habit lifecycle floor was not loaded',
       );
-      expect(active.isActive).toBe(true);
+      expect(active.state).toBe(HabitState.ACTIVE);
       expect(active.revision).toBe(1);
       expect(active.getDomainEvents()).toEqual([]);
     });
@@ -538,6 +559,80 @@ describe('Habit', () => {
       });
 
       expect(lifecycleTransitions(habit)).toEqual([]);
+    });
+  });
+
+  describe('trash', () => {
+    it('moves an active Habit to Trash and stops it being alive', () => {
+      const habit = createHabit();
+
+      habit.moveToTrash(TODAY);
+
+      expect(habit.state).toBe(HabitState.TRASHED);
+      expect(habit.stateBeforeTrash).toBe(HabitState.ACTIVE);
+      expect(habit.trashedAt).toBeInstanceOf(Date);
+      expect(habit.revision).toBe(2);
+      expect(lifecycleTransitions(habit)).toEqual([
+        { action: HabitLifecycleAction.ARCHIVED, effectiveOn: '2026-10-09' },
+      ]);
+    });
+
+    it('moves an archived Habit to Trash without a lifecycle row', () => {
+      const habit = Habit.rehydrate(
+        createProps({ state: HabitState.ARCHIVED }),
+      );
+
+      habit.moveToTrash(TODAY);
+
+      expect(habit.state).toBe(HabitState.TRASHED);
+      expect(habit.stateBeforeTrash).toBe(HabitState.ARCHIVED);
+      expect(lifecycleTransitions(habit)).toEqual([]);
+    });
+
+    it('restores a Habit to the state it had before Trash', () => {
+      const active = createHabit();
+      active.moveToTrash(TODAY);
+      active.clearDomainEvents();
+      const archived = Habit.rehydrate(
+        createProps({
+          state: HabitState.TRASHED,
+          stateBeforeTrash: HabitState.ARCHIVED,
+          trashedAt: new Date('2026-10-09T00:00:00Z'),
+        }),
+      );
+
+      active.restoreFromTrash(TODAY);
+      archived.restoreFromTrash(TODAY);
+
+      expect(active.state).toBe(HabitState.ACTIVE);
+      expect(active.stateBeforeTrash).toBeNull();
+      expect(active.trashedAt).toBeNull();
+      expect(lifecycleTransitions(active)).toEqual([
+        { action: HabitLifecycleAction.RESTORED, effectiveOn: '2026-10-09' },
+      ]);
+      expect(archived.state).toBe(HabitState.ARCHIVED);
+      expect(lifecycleTransitions(archived)).toEqual([]);
+    });
+
+    it('rejects trashing a trashed Habit and restoring one not in Trash', () => {
+      const trashed = createHabit();
+      trashed.moveToTrash(TODAY);
+
+      expect(() => trashed.moveToTrash(TODAY)).toThrow(
+        InvalidHabitTransitionException,
+      );
+      expect(() => createHabit().restoreFromTrash(TODAY)).toThrow(
+        InvalidHabitTransitionException,
+      );
+    });
+
+    it('rejects editing a trashed Habit', () => {
+      const habit = createHabit();
+      habit.moveToTrash(TODAY);
+
+      expect(() => habit.update({ title: 'Evening walk' })).toThrow(
+        InvalidHabitTransitionException,
+      );
     });
   });
 
@@ -771,12 +866,12 @@ describe('Habit', () => {
 
   describe('rehydrate and primitives', () => {
     it('rehydrates without changing persisted state', () => {
-      const props = createProps({ isActive: false, revision: 7 });
+      const props = createProps({ state: HabitState.ARCHIVED, revision: 7 });
 
       const habit = Habit.rehydrate(props);
 
       expect(habit.id).toBe('habit-id');
-      expect(habit.isActive).toBe(false);
+      expect(habit.state).toBe(HabitState.ARCHIVED);
       expect(habit.revision).toBe(7);
       expect(habit.getDomainEvents()).toEqual([]);
     });
@@ -793,7 +888,9 @@ describe('Habit', () => {
         frequencyType: 'WEEKLY',
         frequencyDays: [1, 5],
         quitStartedAt: null,
-        isActive: true,
+        state: 'ACTIVE',
+        stateBeforeTrash: null,
+        trashedAt: null,
         revision: 1,
         createdAt: new Date('2026-08-20T10:00:00Z'),
         createdOn: '2026-08-20',
@@ -846,7 +943,9 @@ function createProps(overrides: Partial<HabitProps> = {}): HabitProps {
     type: HabitType.BUILD,
     frequency: HabitFrequency.weekly([1, 5]),
     quitStartedAt: null,
-    isActive: true,
+    state: HabitState.ACTIVE,
+    stateBeforeTrash: null,
+    trashedAt: null,
     revision: 1,
     createdAt: new Date('2026-08-20T10:00:00Z'),
     createdOn: calendarDate('2026-08-20'),

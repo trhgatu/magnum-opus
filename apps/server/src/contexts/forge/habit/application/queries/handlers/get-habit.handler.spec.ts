@@ -1,4 +1,4 @@
-import { HabitType } from '../../../domain/enums';
+import { HabitState, HabitType } from '../../../domain/enums';
 import { HabitNotFoundException } from '../../../domain/exceptions';
 import { Habit } from '../../../domain/habit.aggregate';
 import {
@@ -52,7 +52,9 @@ function createHabit(): Habit {
     type: HabitType.BUILD,
     frequency: HabitFrequency.daily(),
     quitStartedAt: null,
-    isActive: true,
+    state: HabitState.ACTIVE,
+    stateBeforeTrash: null,
+    trashedAt: null,
     revision: 1,
     createdAt: new Date('2026-08-20T10:00:00.000Z'),
     createdOn: HabitCalendarDate.fromPersistenceDate(

@@ -135,7 +135,7 @@ describe('PrismaTodayReader', () => {
       expect.objectContaining({
         where: {
           ownerId: 'owner-id',
-          isActive: true,
+          state: 'ACTIVE',
           OR: [
             {
               frequencyType: 'DAILY',

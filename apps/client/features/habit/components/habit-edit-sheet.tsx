@@ -160,8 +160,8 @@ export function HabitDetailMeta() {
           ? `Bắt đầu ${formatQuitStartedAt(habit.quitStartedAt)}`
           : formatHabitFrequency(habit.frequencyType, habit.frequencyDays)}
       </Badge>
-      <Badge variant={habit.isActive ? "outline" : "secondary"}>
-        {habit.isActive ? "Đang rèn luyện" : "Đã lưu trữ"}
+      <Badge variant={habit.state === "ACTIVE" ? "outline" : "secondary"}>
+        {habit.state === "ACTIVE" ? "Đang rèn luyện" : "Đã lưu trữ"}
       </Badge>
     </>
   );
@@ -173,7 +173,7 @@ export function HabitDetailActions() {
   const preloadEditor = () => void loadHabitEditor();
   return (
     <>
-      {habit.isActive ? (
+      {habit.state === "ACTIVE" ? (
         <Button
           type="button"
           variant="outline"
@@ -189,7 +189,7 @@ export function HabitDetailActions() {
       <HabitLifecycleControls
         id={habit.id}
         title={habit.title}
-        isActive={habit.isActive}
+        isActive={habit.state === "ACTIVE"}
         revision={habit.revision}
       />
     </>

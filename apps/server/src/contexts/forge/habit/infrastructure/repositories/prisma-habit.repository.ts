@@ -66,7 +66,9 @@ export class PrismaHabitRepository implements HabitRepository {
           frequencyType: raw.frequencyType,
           frequencyDays: raw.frequencyDays,
           quitStartedAt: raw.quitStartedAt,
-          isActive: raw.isActive,
+          state: raw.state,
+          stateBeforeTrash: raw.stateBeforeTrash,
+          trashedAt: raw.trashedAt,
           revision: raw.revision,
           updatedAt: raw.updatedAt,
         },
@@ -116,6 +118,23 @@ export class PrismaHabitRepository implements HabitRepository {
     });
 
     return raw ? PrismaHabitMapper.toDomain(raw) : null;
+  }
+
+  public async deletePermanently(
+    id: string,
+    ownerId: string,
+    expectedRevision: number,
+  ): Promise<boolean> {
+    const result = await this.prisma.habit.deleteMany({
+      where: {
+        id,
+        ownerId,
+        revision: expectedRevision,
+        state: 'TRASHED',
+      },
+    });
+
+    return result.count === 1;
   }
 
   private static pullHistory(habit: Habit): HabitHistoryWrites {

@@ -35,7 +35,7 @@ describe('PrismaRoutineReader', () => {
           habit: {
             id: 'habit-first',
             title: 'Drink water',
-            isActive: true,
+            state: 'ACTIVE',
           },
         },
         {
@@ -43,7 +43,7 @@ describe('PrismaRoutineReader', () => {
           habit: {
             id: 'habit-second',
             title: 'Read',
-            isActive: false,
+            state: 'ARCHIVED',
           },
         },
       ],
@@ -80,6 +80,7 @@ describe('PrismaRoutineReader', () => {
         createdAt: true,
         updatedAt: true,
         habits: {
+          where: { habit: { state: { not: 'TRASHED' } } },
           orderBy: {
             order: 'asc',
           },
@@ -89,7 +90,7 @@ describe('PrismaRoutineReader', () => {
               select: {
                 id: true,
                 title: true,
-                isActive: true,
+                state: true,
               },
             },
           },
@@ -152,6 +153,7 @@ describe('PrismaRoutineReader', () => {
       where,
       include: {
         habits: {
+          where: { habit: { state: { not: 'TRASHED' } } },
           orderBy: {
             order: 'asc',
           },
@@ -199,6 +201,7 @@ describe('PrismaRoutineReader', () => {
       },
       include: {
         habits: {
+          where: { habit: { state: { not: 'TRASHED' } } },
           orderBy: {
             order: 'asc',
           },
@@ -251,7 +254,7 @@ describe('PrismaRoutineReader', () => {
 
       const where = {
         ownerId: 'owner-id',
-        isActive: true,
+        state: 'ACTIVE',
         routineLinks: {
           none: {
             routineId: 'routine-id',
@@ -339,7 +342,7 @@ describe('PrismaRoutineReader', () => {
       expect(habitModel.findMany).toHaveBeenCalledWith({
         where: {
           ownerId: 'owner-id',
-          isActive: true,
+          state: 'ACTIVE',
           routineLinks: {
             none: {
               routineId: 'routine-id',

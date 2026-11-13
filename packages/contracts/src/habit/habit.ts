@@ -6,6 +6,9 @@ export const HABIT_TYPES = ['BUILD', 'QUIT'] as const;
 
 export type HabitType = (typeof HABIT_TYPES)[number];
 
+export const HABIT_STATES = ['ACTIVE', 'ARCHIVED', 'TRASHED'] as const;
+
+export type HabitState = (typeof HABIT_STATES)[number];
 export interface HabitResponse {
   id: string;
   title: string;
@@ -14,7 +17,7 @@ export interface HabitResponse {
   frequencyType: HabitFrequencyType | null;
   frequencyDays: number[];
   quitStartedAt: string | null;
-  isActive: boolean;
+  state: HabitState;
   revision: number;
   createdAt: string;
   updatedAt: string;

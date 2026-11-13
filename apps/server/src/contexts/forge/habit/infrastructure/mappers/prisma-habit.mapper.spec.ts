@@ -5,7 +5,7 @@ import {
   HabitType as PrismaHabitType,
 } from '@repo/database';
 
-import { HabitFrequencyType, HabitType } from '../../domain/enums';
+import { HabitFrequencyType, HabitState, HabitType } from '../../domain/enums';
 import {
   HabitLifecycleTransitionedEvent,
   HabitScheduleVersionStartedEvent,
@@ -32,7 +32,9 @@ describe('PrismaHabitMapper', () => {
     frequencyType: PrismaHabitFrequencyType.WEEKLY,
     frequencyDays: [1, 3, 5],
     quitStartedAt: null,
-    isActive: true,
+    state: HabitState.ACTIVE,
+    stateBeforeTrash: null,
+    trashedAt: null,
     revision: 4,
     createdAt,
     createdOn,
@@ -51,7 +53,9 @@ describe('PrismaHabitMapper', () => {
       frequencyType: HabitFrequencyType.WEEKLY,
       frequencyDays: [1, 3, 5],
       quitStartedAt: null,
-      isActive: true,
+      state: HabitState.ACTIVE,
+      stateBeforeTrash: null,
+      trashedAt: null,
       revision: 4,
       createdAt,
       createdOn: '2026-08-20',
@@ -66,10 +70,26 @@ describe('PrismaHabitMapper', () => {
     ).toEqual(raw);
   });
 
+  it('round-trips a Habit in Trash with its previous state and time', () => {
+    const trashed: PrismaHabit = {
+      ...raw,
+      state: 'TRASHED',
+      stateBeforeTrash: 'ARCHIVED',
+      trashedAt: new Date('2026-10-09T03:00:00.000Z'),
+    };
+
+    const habit = PrismaHabitMapper.toDomain(trashed);
+
+    expect(habit.state).toBe(HabitState.TRASHED);
+    expect(habit.stateBeforeTrash).toBe(HabitState.ARCHIVED);
+    expect(habit.trashedAt).toEqual(new Date('2026-10-09T03:00:00.000Z'));
+    expect(PrismaHabitMapper.toPersistence(habit)).toEqual(trashed);
+  });
+
   it('uses the loaded latest transition as the effectiveOn floor', () => {
     const habit = PrismaHabitMapper.toDomain({
       ...raw,
-      isActive: false,
+      state: HabitState.ARCHIVED,
       lifecycleTransitions: [
         { effectiveOn: new Date('2026-10-09T00:00:00.000Z') },
       ],
@@ -102,7 +122,10 @@ describe('PrismaHabitMapper', () => {
   it('refuses archive/restore when the lifecycle floor was not loaded', () => {
     // Reader không nạp lifecycleTransitions: aggregate chỉ dùng để hiển thị.
     const active = PrismaHabitMapper.toDomain(raw);
-    const archived = PrismaHabitMapper.toDomain({ ...raw, isActive: false });
+    const archived = PrismaHabitMapper.toDomain({
+      ...raw,
+      state: HabitState.ARCHIVED,
+    });
 
     expect(() => active.archive(TODAY)).toThrow(
       'Habit lifecycle floor was not loaded',
@@ -110,20 +133,20 @@ describe('PrismaHabitMapper', () => {
     expect(() => archived.restore(TODAY)).toThrow(
       'Habit lifecycle floor was not loaded',
     );
-    expect(active.isActive).toBe(true);
+    expect(active.state).toBe(HabitState.ACTIVE);
     expect(active.revision).toBe(4);
     expect(active.getDomainEvents()).toEqual([]);
   });
 
   it.each([
-    ['ARCHIVED', true, (habit: Habit) => habit.archive(TODAY)],
-    ['RESTORED', false, (habit: Habit) => habit.restore(TODAY)],
+    ['ARCHIVED', HabitState.ACTIVE, (habit: Habit) => habit.archive(TODAY)],
+    ['RESTORED', HabitState.ARCHIVED, (habit: Habit) => habit.restore(TODAY)],
   ] as const)(
     'maps a %s transition event to a persistence row',
-    (action, isActive, change) => {
+    (action, state, change) => {
       const habit = PrismaHabitMapper.toDomain({
         ...raw,
-        isActive,
+        state,
         lifecycleTransitions: [],
       });
       change(habit);

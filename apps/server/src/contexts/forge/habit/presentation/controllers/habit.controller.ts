@@ -9,6 +9,7 @@ import {
   Patch,
   Post,
   Put,
+  Delete,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -29,6 +30,9 @@ import {
   CreateHabitCommand,
   RestoreHabitCommand,
   UpdateHabitCommand,
+  DeleteHabitCommand,
+  TrashHabitCommand,
+  UntrashHabitCommand,
 } from '../../application/commands';
 import {
   GetHabitOverviewQuery,
@@ -47,7 +51,7 @@ import {
 } from '../dtos';
 import { HabitOverviewPresenter } from '../presenters/habit-overview.presenter';
 import { HabitPresenter } from '../presenters/habit.presenter';
-
+import { HabitState } from '../../domain/enums';
 @ApiTags('Habits')
 @ApiBearerAuth()
 @Controller('habits')
@@ -91,7 +95,7 @@ export class HabitController {
         ownerId,
         query.page,
         query.limit,
-        query.status === 'ACTIVE',
+        HabitState[query.status],
         query.search,
         query.sortBy,
         query.sortOrder,
@@ -205,6 +209,44 @@ export class HabitController {
     return this.executeLifecycle(
       new RestoreHabitCommand(habitId, ownerId, body.expectedRevision),
     );
+  }
+
+  @Patch(':id/trash')
+  @ApiOperation({ summary: 'Move a Habit to Trash' })
+  public trash(
+    @GetUser('id') ownerId: string,
+    @Param('id', new ParseUUIDPipe()) habitId: string,
+    @Body() body: HabitRevisionDto,
+  ): Promise<HabitResponse> {
+    return this.executeLifecycle(
+      new TrashHabitCommand(habitId, ownerId, body.expectedRevision),
+    );
+  }
+
+  @Patch(':id/untrash')
+  @ApiOperation({ summary: 'Restore a Habit from Trash' })
+  public untrash(
+    @GetUser('id') ownerId: string,
+    @Param('id', new ParseUUIDPipe()) habitId: string,
+    @Body() body: HabitRevisionDto,
+  ): Promise<HabitResponse> {
+    return this.executeLifecycle(
+      new UntrashHabitCommand(habitId, ownerId, body.expectedRevision),
+    );
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Permanently delete a Habit from Trash' })
+  public async deletePermanently(
+    @GetUser('id') ownerId: string,
+    @Param('id', new ParseUUIDPipe()) habitId: string,
+    @Query() query: HabitRevisionDto,
+  ): Promise<void> {
+    const result = await this.commandBus.execute(
+      new DeleteHabitCommand(habitId, ownerId, query.expectedRevision),
+    );
+    result.unwrap();
   }
 
   private async executeLifecycle(command: ICommand): Promise<HabitResponse> {

@@ -8,10 +8,14 @@ import { OwnedHabitReader } from '../../application/ports/owned-habit-reader.por
 export class PrismaOwnedHabitReader implements OwnedHabitReader {
   constructor(private readonly prisma: PrismaService) {}
 
-  public findByIdForOwner(habitId: string, ownerId: string) {
-    return this.prisma.habit.findFirst({
+  public async findByIdForOwner(habitId: string, ownerId: string) {
+    const habit = await this.prisma.habit.findFirst({
       where: { id: habitId, ownerId },
-      select: { id: true, isActive: true, type: true },
+      select: { id: true, state: true, type: true },
     });
+
+    return habit
+      ? { id: habit.id, isActive: habit.state === 'ACTIVE', type: habit.type }
+      : null;
   }
 }

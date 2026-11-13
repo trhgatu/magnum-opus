@@ -1,6 +1,7 @@
 import {
   ForgeLifecycleAction as PrismaForgeLifecycleAction,
   Habit as PrismaHabit,
+  HabitState as PrismaHabitState,
   HabitFrequencyType as PrismaHabitFrequencyType,
   HabitLifecycleTransition as PrismaHabitLifecycleTransition,
   HabitScheduleVersion as PrismaHabitScheduleVersion,
@@ -11,6 +12,7 @@ import {
   HabitFrequencyType,
   HabitLifecycleAction,
   HabitType,
+  HabitState,
 } from '../../domain/enums';
 import {
   HabitLifecycleTransitionedEvent,
@@ -73,6 +75,18 @@ const persistenceHabitTypes: Record<HabitType, PrismaHabitType> = {
   [HabitType.QUIT]: PrismaHabitType.QUIT,
 };
 
+const domainHabitStates: Record<PrismaHabitState, HabitState> = {
+  [PrismaHabitState.ACTIVE]: HabitState.ACTIVE,
+  [PrismaHabitState.ARCHIVED]: HabitState.ARCHIVED,
+  [PrismaHabitState.TRASHED]: HabitState.TRASHED,
+};
+
+const persistenceHabitStates: Record<HabitState, PrismaHabitState> = {
+  [HabitState.ACTIVE]: PrismaHabitState.ACTIVE,
+  [HabitState.ARCHIVED]: PrismaHabitState.ARCHIVED,
+  [HabitState.TRASHED]: PrismaHabitState.TRASHED,
+};
+
 const persistenceLifecycleActions: Record<
   HabitLifecycleAction,
   PrismaForgeLifecycleAction
@@ -97,7 +111,12 @@ export class PrismaHabitMapper {
               raw.frequencyDays,
             ),
       quitStartedAt: raw.quitStartedAt,
-      isActive: raw.isActive,
+      state: domainHabitStates[raw.state],
+      stateBeforeTrash:
+        raw.stateBeforeTrash === null
+          ? null
+          : domainHabitStates[raw.stateBeforeTrash],
+      trashedAt: raw.trashedAt,
       revision: raw.revision,
       createdAt: raw.createdAt,
       createdOn: HabitCalendarDate.fromPersistenceDate(raw.createdOn),
@@ -126,7 +145,12 @@ export class PrismaHabitMapper {
           : persistenceFrequencyTypes[props.frequencyType],
       frequencyDays: props.frequencyDays,
       quitStartedAt: props.quitStartedAt,
-      isActive: props.isActive,
+      state: persistenceHabitStates[props.state],
+      stateBeforeTrash:
+        props.stateBeforeTrash === null
+          ? null
+          : persistenceHabitStates[props.stateBeforeTrash],
+      trashedAt: props.trashedAt,
       revision: props.revision,
       createdAt: props.createdAt,
       createdOn: habit.createdOn.toPersistenceDate(),

@@ -1,5 +1,5 @@
 import type { HabitOverviewResponse, HabitType } from "@repo/contracts";
-import { Archive, ArrowLeft, ArrowRight, Plus } from "lucide-react";
+import { Archive, ArrowLeft, ArrowRight, Plus, Trash2 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -11,6 +11,7 @@ import { HabitArchivedList } from "@/features/habit/components/habit-archived-li
 import { HabitOverviewList } from "@/features/habit/components/habit-overview-list";
 import { HabitPagination } from "@/features/habit/components/habit-pagination";
 import { HabitSearch } from "@/features/habit/components/habit-search";
+import { HabitTrashListLazy } from "@/features/habit/components/habit-trash-list-lazy";
 import {
   HabitListSkeleton,
   HabitSummarySkeleton,
@@ -62,7 +63,9 @@ function SearchEmptyState({ location }: { location: Location }) {
       description={
         location.status === "ARCHIVED"
           ? `Không có thói quen lưu trữ nào tên chứa “${location.search}”.`
-          : `Không có thói quen ${TAB_LABELS[location.type].toLowerCase()} nào tên chứa “${location.search}”.`
+          : location.status === "TRASHED"
+            ? `Thùng rác không có thói quen nào tên chứa “${location.search}”.`
+            : `Không có thói quen ${TAB_LABELS[location.type].toLowerCase()} nào tên chứa “${location.search}”.`
       }
       action={
         <Link
@@ -176,8 +179,9 @@ async function TabCount({
   );
 }
 
-async function ArchivedHabits({ location }: { location: Location }) {
+async function ListedHabits({ location }: { location: Location }) {
   const result = await getHabits({ ...location, limit: 20 });
+  const trashed = location.status === "TRASHED";
 
   if (result.data.length === 0) {
     // Trang vượt quá cuối (vd vừa khôi phục hết trang cuối): cho đường về.
@@ -185,7 +189,11 @@ async function ArchivedHabits({ location }: { location: Location }) {
       return (
         <EmptyState
           title="Trang này không còn thói quen"
-          description="Các thói quen lưu trữ đã nằm ở những trang trước."
+          description={
+            trashed
+              ? "Các thói quen trong Thùng rác đã nằm ở những trang trước."
+              : "Các thói quen lưu trữ đã nằm ở những trang trước."
+          }
           action={
             <Link
               href={buildHabitHref({
@@ -202,6 +210,11 @@ async function ArchivedHabits({ location }: { location: Location }) {
     }
     return location.search ? (
       <SearchEmptyState location={location} />
+    ) : trashed ? (
+      <EmptyState
+        title="Thùng rác đang trống"
+        description="Thói quen tạo nhầm hay không muốn giữ nữa sẽ nằm ở đây cho tới khi bạn xóa hẳn."
+      />
     ) : (
       <EmptyState
         title="Kho lưu trữ đang trống"
@@ -212,7 +225,11 @@ async function ArchivedHabits({ location }: { location: Location }) {
 
   return (
     <div className="flex flex-col gap-5">
-      <HabitArchivedList habits={result.data} />
+      {trashed ? (
+        <HabitTrashListLazy habits={result.data} />
+      ) : (
+        <HabitArchivedList habits={result.data} />
+      )}
       <HabitPagination
         location={location}
         totalPages={result.meta.totalPages}
@@ -227,10 +244,11 @@ export default async function HabitsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const location = parseHabitLocation(await searchParams);
-  const archived = location.status === "ARCHIVED";
+  // Đã lưu trữ và Thùng rác là danh sách phân trang, không chia tab.
+  const listed = location.status !== "ACTIVE";
   // Một promise cho cả câu tóm tắt lẫn danh sách: apiFetch không dedupe
   // theo URL, gọi hai lần là hai round-trip thật.
-  const overviewPromise = archived ? null : getHabitOverview();
+  const overviewPromise = listed ? null : getHabitOverview();
 
   return (
     <section className="flex flex-col gap-8" aria-labelledby="habits-heading">
@@ -250,6 +268,8 @@ export default async function HabitsPage({
               <Suspense fallback={<HabitSummarySkeleton />}>
                 <ActiveSummary overviewPromise={overviewPromise} />
               </Suspense>
+            ) : location.status === "TRASHED" ? (
+              "Thói quen chờ xóa hẳn. Khôi phục thì mọi dấu vết còn nguyên."
             ) : (
               "Những thói quen đã dừng, giữ lại cùng dấu vết của chúng."
             )}
@@ -261,7 +281,7 @@ export default async function HabitsPage({
       </header>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        {archived ? (
+        {listed ? (
           <Link
             href={buildHabitHref({ search: location.search })}
             className="inline-flex h-10 items-center gap-2 rounded-xl px-1 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -303,16 +323,27 @@ export default async function HabitsPage({
             key={`${location.status}:${location.type}:${location.search}`}
             location={location}
           />
-          {archived ? null : (
-            <Link
-              href={buildHabitHref({
-                status: "ARCHIVED",
-                search: location.search,
-              })}
-              className="inline-flex h-10 items-center gap-2 rounded-xl px-1 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <Archive className="size-4" aria-hidden="true" /> Đã lưu trữ
-            </Link>
+          {listed ? null : (
+            <>
+              <Link
+                href={buildHabitHref({
+                  status: "ARCHIVED",
+                  search: location.search,
+                })}
+                className="inline-flex h-10 items-center gap-2 rounded-xl px-1 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <Archive className="size-4" aria-hidden="true" /> Đã lưu trữ
+              </Link>
+              <Link
+                href={buildHabitHref({
+                  status: "TRASHED",
+                  search: location.search,
+                })}
+                className="inline-flex h-10 items-center gap-2 rounded-xl px-1 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <Trash2 className="size-4" aria-hidden="true" /> Thùng rác
+              </Link>
+            </>
           )}
         </div>
       </div>
@@ -324,7 +355,7 @@ export default async function HabitsPage({
         {overviewPromise ? (
           <ActiveHabits overviewPromise={overviewPromise} location={location} />
         ) : (
-          <ArchivedHabits location={location} />
+          <ListedHabits location={location} />
         )}
       </Suspense>
     </section>

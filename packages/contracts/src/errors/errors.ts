@@ -290,6 +290,11 @@ export const Errors = {
     translationKey: 'exceptions.habit.transition.invalid',
     statusCode: 409,
   },
+  HABIT_PERMANENT_DELETE_FORBIDDEN: {
+    code: 'HABIT_PERMANENT_DELETE_FORBIDDEN',
+    translationKey: 'exceptions.habit.permanent.delete.forbidden',
+    statusCode: 409,
+  },
   INVALID_HABIT_CHECK_IN_ID: {
     code: 'INVALID_HABIT_CHECK_IN_ID',
     translationKey: 'exceptions.habit.check.in.id.invalid',

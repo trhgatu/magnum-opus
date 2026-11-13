@@ -9,10 +9,10 @@ describe('PrismaOwnedHabitReader', () => {
     jest.clearAllMocks();
   });
 
-  it('scopes the lookup to the id and owner, selecting id/isActive/type', async () => {
+  it('scopes the lookup to the id and owner, selecting id/state/type', async () => {
     habitModel.findFirst.mockResolvedValue({
       id: 'habit-id',
-      isActive: true,
+      state: 'ACTIVE',
       type: 'QUIT',
     });
 
@@ -20,9 +20,24 @@ describe('PrismaOwnedHabitReader', () => {
 
     expect(habitModel.findFirst).toHaveBeenCalledWith({
       where: { id: 'habit-id', ownerId: 'owner-id' },
-      select: { id: true, isActive: true, type: true },
+      select: { id: true, state: true, type: true },
     });
     expect(result).toEqual({ id: 'habit-id', isActive: true, type: 'QUIT' });
+  });
+
+  it.each([
+    ['ARCHIVED', false],
+    ['TRASHED', false],
+  ])('reports a %s Habit as not active', async (state, isActive) => {
+    habitModel.findFirst.mockResolvedValue({
+      id: 'habit-id',
+      state,
+      type: 'BUILD',
+    });
+
+    const result = await reader.findByIdForOwner('habit-id', 'owner-id');
+
+    expect(result?.isActive).toBe(isActive);
   });
 
   it('returns null when no Habit matches the owner', async () => {

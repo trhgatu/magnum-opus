@@ -20,8 +20,8 @@ export function HabitSearch({
       role="search"
       className="relative w-full sm:w-72"
     >
-      {location.status === "ARCHIVED" ? (
-        <input type="hidden" name="status" value="ARCHIVED" />
+      {location.status !== "ACTIVE" ? (
+        <input type="hidden" name="status" value={location.status} />
       ) : location.type === "QUIT" ? (
         <input type="hidden" name="type" value="QUIT" />
       ) : null}
