@@ -1,4 +1,4 @@
-import { HabitFrequencyType, HabitType } from '../../domain/enums';
+import { HabitFrequencyType, HabitState, HabitType } from '../../domain/enums';
 import { Habit } from '../../domain/habit.aggregate';
 import {
   HabitCalendarDate,
@@ -17,7 +17,9 @@ describe('HabitPresenter', () => {
       type: HabitType.BUILD,
       frequency: HabitFrequency.weekly([1, 5]),
       quitStartedAt: null,
-      isActive: true,
+      state: HabitState.ACTIVE,
+      stateBeforeTrash: null,
+      trashedAt: null,
       revision: 3,
       createdAt: new Date('2026-08-20T10:00:00.000Z'),
       createdOn: HabitCalendarDate.fromPersistenceDate(
@@ -38,7 +40,7 @@ describe('HabitPresenter', () => {
       frequencyType: HabitFrequencyType.WEEKLY,
       frequencyDays: [1, 5],
       quitStartedAt: null,
-      isActive: true,
+      state: HabitState.ACTIVE,
       revision: 3,
       createdAt: '2026-08-20T10:00:00.000Z',
       updatedAt: '2026-08-21T10:00:00.000Z',
@@ -54,7 +56,9 @@ describe('HabitPresenter', () => {
       type: HabitType.QUIT,
       frequency: null,
       quitStartedAt: new Date('2026-08-01T00:00:00.000Z'),
-      isActive: true,
+      state: HabitState.ACTIVE,
+      stateBeforeTrash: null,
+      trashedAt: null,
       revision: 1,
       createdAt: new Date('2026-08-20T10:00:00.000Z'),
       createdOn: HabitCalendarDate.fromPersistenceDate(

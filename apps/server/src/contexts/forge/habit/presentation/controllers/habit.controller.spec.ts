@@ -5,7 +5,7 @@ import {
   CreateHabitCommand,
 } from '../../application/commands';
 import { GetHabitsQuery } from '../../application/queries';
-import { HabitFrequencyType, HabitType } from '../../domain/enums';
+import { HabitFrequencyType, HabitState, HabitType } from '../../domain/enums';
 import { Habit } from '../../domain/habit.aggregate';
 import {
   HabitCalendarDate,
@@ -70,7 +70,7 @@ describe('HabitController', () => {
       ownerId: 'owner-id',
       page: 2,
       limit: 10,
-      isActive: false,
+      state: HabitState.ARCHIVED,
       search: 'walk',
       sortBy: 'title',
       sortOrder: 'asc',
@@ -108,7 +108,9 @@ function createHabit(): Habit {
     type: HabitType.BUILD,
     frequency: HabitFrequency.weekly([1, 5]),
     quitStartedAt: null,
-    isActive: true,
+    state: HabitState.ACTIVE,
+    stateBeforeTrash: null,
+    trashedAt: null,
     revision: 1,
     createdAt: new Date('2026-08-20T10:00:00.000Z'),
     createdOn: HabitCalendarDate.fromPersistenceDate(

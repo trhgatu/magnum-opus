@@ -16,7 +16,7 @@ describe('PrismaRoutineHabitReader', () => {
   it('loads only the Habit status for the Routine owner', async () => {
     habitModel.findFirst.mockResolvedValue({
       id: 'habit-id',
-      isActive: true,
+      state: 'ACTIVE',
       type: 'BUILD',
     });
 
@@ -29,7 +29,7 @@ describe('PrismaRoutineHabitReader', () => {
       },
       select: {
         id: true,
-        isActive: true,
+        state: true,
         type: true,
       },
     });
@@ -39,6 +39,21 @@ describe('PrismaRoutineHabitReader', () => {
       isActive: true,
       type: 'BUILD',
     });
+  });
+
+  it.each([
+    ['ARCHIVED', false],
+    ['TRASHED', false],
+  ])('reports a %s Habit as not active', async (state, isActive) => {
+    habitModel.findFirst.mockResolvedValue({
+      id: 'habit-id',
+      state,
+      type: 'BUILD',
+    });
+
+    const result = await reader.findByIdForOwner('habit-id', 'owner-id');
+
+    expect(result?.isActive).toBe(isActive);
   });
 
   it('returns null when no Habit belongs to the owner', async () => {

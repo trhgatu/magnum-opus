@@ -1,4 +1,4 @@
-import { HabitType } from '../../domain/enums';
+import { HabitType, HabitState } from '../../domain/enums';
 import { Habit } from '../../domain/habit.aggregate';
 
 export const HABIT_READER = Symbol('HABIT_READER');
@@ -8,7 +8,7 @@ export type HabitSortField = 'title' | 'createdAt' | 'updatedAt';
 export interface FindHabitsOptions {
   skip: number;
   take: number;
-  isActive?: boolean;
+  state?: HabitState;
   type?: HabitType;
   search?: string;
   sortBy?: HabitSortField;

@@ -36,7 +36,7 @@ const habit = {
   frequencyType: "DAILY" as const,
   frequencyDays: [] as number[],
   quitStartedAt: null,
-  isActive: true,
+  state: "ACTIVE",
   revision: 1,
   createdAt: "2026-08-28T06:00:00.000Z",
   updatedAt: "2026-08-28T06:00:00.000Z",
@@ -235,7 +235,7 @@ describe("Habit Server Actions", () => {
   });
 
   it("archives an active Habit", async () => {
-    const archived = { ...habit, isActive: false, revision: 2 };
+    const archived = { ...habit, state: "ARCHIVED", revision: 2 };
     apiFetch.mockResolvedValue(archived);
 
     await expect(
@@ -256,7 +256,7 @@ describe("Habit Server Actions", () => {
   });
 
   it("restores an archived Habit", async () => {
-    apiFetch.mockResolvedValue({ ...habit, isActive: true, revision: 3 });
+    apiFetch.mockResolvedValue({ ...habit, state: "ACTIVE", revision: 3 });
 
     await changeHabitState({
       id: habit.id,

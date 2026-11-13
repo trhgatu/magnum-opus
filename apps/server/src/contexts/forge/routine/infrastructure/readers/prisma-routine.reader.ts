@@ -43,7 +43,7 @@ export class PrismaRoutineReader implements RoutineReader {
               select: {
                 id: true,
                 title: true,
-                isActive: true,
+                state: true,
               },
             },
           },
@@ -65,7 +65,7 @@ export class PrismaRoutineReader implements RoutineReader {
       habits: row.habits.map(({ habit, order }) => ({
         id: habit.id,
         title: habit.title,
-        isActive: habit.isActive,
+        isActive: habit.state === 'ACTIVE',
         order,
       })),
     };
@@ -137,7 +137,7 @@ export class PrismaRoutineReader implements RoutineReader {
 
     const habitWhere: Prisma.HabitWhereInput = {
       ownerId,
-      isActive: true,
+      state: 'ACTIVE',
       routineLinks: {
         none: {
           routineId,

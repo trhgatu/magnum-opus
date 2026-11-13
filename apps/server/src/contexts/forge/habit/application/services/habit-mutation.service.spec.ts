@@ -3,7 +3,7 @@ import {
   HabitRevisionConflictException,
   InvalidHabitTransitionException,
 } from '../../domain/exceptions';
-import { HabitType } from '../../domain/enums';
+import { HabitState, HabitType } from '../../domain/enums';
 import { Habit } from '../../domain/habit.aggregate';
 import {
   HabitCalendarDate,
@@ -40,7 +40,7 @@ describe('HabitMutationService', () => {
       mutate: (current) => current.archive(TODAY),
     });
 
-    expect(result.getValue().isActive).toBe(false);
+    expect(result.getValue().state).toBe(HabitState.ARCHIVED);
     expect(repository.findByIdForOwner).toHaveBeenCalledWith(
       'habit-id',
       'owner-id',
@@ -74,7 +74,7 @@ describe('HabitMutationService', () => {
     });
 
     expect(result.getError()).toBeInstanceOf(HabitRevisionConflictException);
-    expect(habit.isActive).toBe(true);
+    expect(habit.state).toBe(HabitState.ACTIVE);
     expect(repository.update).not.toHaveBeenCalled();
   });
 
@@ -139,7 +139,9 @@ function createHabit(revision = 1): Habit {
     type: HabitType.BUILD,
     frequency: HabitFrequency.daily(),
     quitStartedAt: null,
-    isActive: true,
+    state: HabitState.ACTIVE,
+    stateBeforeTrash: null,
+    trashedAt: null,
     revision,
     createdAt: new Date('2026-08-20T10:00:00.000Z'),
     createdOn: HabitCalendarDate.fromPersistenceDate(

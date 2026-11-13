@@ -1,6 +1,6 @@
 import { IQuery } from '@nestjs/cqrs';
 
-import { HabitType } from '../../domain/enums';
+import { HabitType, HabitState } from '../../domain/enums';
 import { HabitSortField } from '../ports/habit-reader.port';
 
 export class GetHabitsQuery implements IQuery {
@@ -8,7 +8,7 @@ export class GetHabitsQuery implements IQuery {
     public readonly ownerId: string,
     public readonly page: number,
     public readonly limit: number,
-    public readonly isActive?: boolean,
+    public readonly state?: HabitState,
     public readonly search?: string,
     public readonly sortBy?: HabitSortField,
     public readonly sortOrder?: 'asc' | 'desc',

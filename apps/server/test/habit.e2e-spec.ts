@@ -61,7 +61,7 @@ describe('Habit (E2E)', () => {
       type: 'BUILD',
       frequencyType: 'WEEKLY',
       frequencyDays: [1, 5],
-      isActive: true,
+      state: 'ACTIVE',
       revision: 1,
     });
     expect(created.body).not.toHaveProperty('ownerId');
@@ -116,7 +116,7 @@ describe('Habit (E2E)', () => {
       .set('Authorization', `Bearer ${ownerToken}`)
       .send({ expectedRevision: 2 })
       .expect(HttpStatus.OK);
-    expect(archived.body).toMatchObject({ isActive: false, revision: 3 });
+    expect(archived.body).toMatchObject({ state: 'ARCHIVED', revision: 3 });
 
     await request(app.getHttpServer())
       .get('/habits')
@@ -136,7 +136,7 @@ describe('Habit (E2E)', () => {
       .set('Authorization', `Bearer ${ownerToken}`)
       .send({ expectedRevision: 3 })
       .expect(HttpStatus.OK);
-    expect(restored.body).toMatchObject({ isActive: true, revision: 4 });
+    expect(restored.body).toMatchObject({ state: 'ACTIVE', revision: 4 });
   });
 
   it('checks in idempotently, reads history and only undoes today', async () => {

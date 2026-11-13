@@ -24,7 +24,7 @@ export function HabitStreakPanel({
   labels: HabitTodayLabels;
 }) {
   const { habit: item, trace } = overview;
-  const { isActive } = useEditedHabit();
+  const isActive = useEditedHabit().state === "ACTIVE";
   const { checked, streak, withToday, message, isPending, toggle } =
     useHabitCheckIn(item);
   const isQuit = item.type === "QUIT";

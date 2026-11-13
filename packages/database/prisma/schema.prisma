@@ -306,6 +306,12 @@ enum HabitFrequencyType {
   WEEKLY
 }
 
+enum HabitState {
+  ACTIVE
+  ARCHIVED
+  TRASHED
+}
+
 enum HabitType {
   BUILD
   QUIT
@@ -316,6 +322,9 @@ enum ForgeLifecycleAction {
   RESTORED
 }
 
+// CHECK "habits_lifecycle_check" (state đi cùng state_before_trash/trashed_at,
+// giống journal_entries) chỉ có trong migration 20261113120000_habit_state —
+// Prisma không biểu diễn được, đừng bỏ khi sửa model.
 model Habit {
   id            String              @id @default(uuid())
   ownerId       String              @map("owner_id")
@@ -325,7 +334,9 @@ model Habit {
   frequencyType HabitFrequencyType? @map("frequency_type")
   frequencyDays Int[]               @default([]) @map("frequency_days")
   quitStartedAt DateTime?           @map("quit_started_at") @db.Date
-  isActive      Boolean             @default(true) @map("is_active")
+  state HabitState @default(ACTIVE)
+  stateBeforeTrash HabitState? @map("state_before_trash")
+  trashedAt DateTime? @map("trashed_at")
   revision      Int                 @default(1)
   createdAt     DateTime            @default(now()) @map("created_at")
   createdOn     DateTime            @map("created_on") @db.Date
@@ -340,7 +351,7 @@ model Habit {
   routineMembershipHistory RoutineHabitMembership[]
 
   @@unique([id, ownerId])
-  @@index([ownerId, isActive])
+  @@index([ownerId, state])
   @@index([ownerId, type])
   @@map("habits")
 }

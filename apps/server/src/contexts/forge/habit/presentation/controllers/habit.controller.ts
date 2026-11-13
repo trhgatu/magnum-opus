@@ -47,7 +47,7 @@ import {
 } from '../dtos';
 import { HabitOverviewPresenter } from '../presenters/habit-overview.presenter';
 import { HabitPresenter } from '../presenters/habit.presenter';
-
+import { HabitState } from '../../domain/enums';
 @ApiTags('Habits')
 @ApiBearerAuth()
 @Controller('habits')
@@ -91,7 +91,7 @@ export class HabitController {
         ownerId,
         query.page,
         query.limit,
-        query.status === 'ACTIVE',
+        HabitState[query.status],
         query.search,
         query.sortBy,
         query.sortOrder,

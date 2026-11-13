@@ -37,7 +37,7 @@ export class PrismaTodayReader implements TodayReader {
           select: {
             habits: {
               where: {
-                isActive: true,
+                state: 'ACTIVE',
               },
             },
           },
@@ -59,7 +59,7 @@ export class PrismaTodayReader implements TodayReader {
 
     const dueHabitWhere: Prisma.HabitWhereInput = {
       ownerId,
-      isActive: true,
+      state: 'ACTIVE',
       OR: [
         {
           frequencyType: 'DAILY',

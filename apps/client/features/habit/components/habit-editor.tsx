@@ -83,7 +83,7 @@ export function HabitEditor(props: HabitEditorProps) {
   const [hasConflict, setHasConflict] = useState(false);
   const [recoveryError, setRecoveryError] = useState<string>();
   const [isEditable, setIsEditable] = useState(
-    !initialHabit || initialHabit.isActive,
+    !initialHabit || initialHabit.state === "ACTIVE",
   );
   const [isPending, startTransition] = useTransition();
 
@@ -132,7 +132,7 @@ export function HabitEditor(props: HabitEditorProps) {
     setMessage(undefined);
     setHasConflict(false);
     setRecoveryError(undefined);
-    setIsEditable(habit.isActive);
+    setIsEditable(habit.state === "ACTIVE");
   };
 
   const buildFormInput = () =>
@@ -187,7 +187,7 @@ export function HabitEditor(props: HabitEditorProps) {
 
       if (!keepLocal) {
         applyPersistedHabit(latest.habit);
-        if (!latest.habit.isActive) {
+        if (latest.habit.state !== "ACTIVE") {
           setMessage(
             "Thói quen không còn ở trạng thái có thể chỉnh sửa. Nội dung mới nhất đã được hiển thị để xem qua.",
           );
@@ -195,7 +195,7 @@ export function HabitEditor(props: HabitEditorProps) {
         return;
       }
 
-      if (!latest.habit.isActive) {
+      if (latest.habit.state !== "ACTIVE") {
         setPersistedHabit(latest.habit);
         setHasConflict(false);
         setIsEditable(false);

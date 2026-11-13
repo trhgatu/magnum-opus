@@ -1,3 +1,4 @@
+import { HabitState } from '../../../domain/enums';
 import { GetHabitsQuery } from '../get-habits.query';
 import { GetHabitsHandler } from './get-habits.handler';
 
@@ -15,14 +16,22 @@ describe('GetHabitsHandler', () => {
 
   it('translates pagination and forwards owner-scoped filters', async () => {
     const result = await handler.execute(
-      new GetHabitsQuery('owner-id', 3, 20, false, 'walk', 'title', 'asc'),
+      new GetHabitsQuery(
+        'owner-id',
+        3,
+        20,
+        HabitState.ARCHIVED,
+        'walk',
+        'title',
+        'asc',
+      ),
     );
 
     expect(result.getValue()).toEqual({ habits: [], total: 0 });
     expect(reader.findAllForOwner).toHaveBeenCalledWith('owner-id', {
       skip: 40,
       take: 20,
-      isActive: false,
+      state: HabitState.ARCHIVED,
       search: 'walk',
       sortBy: 'title',
       sortOrder: 'asc',
