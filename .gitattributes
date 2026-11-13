@@ -1,4 +1,4 @@
-* text=auto
+* text=auto eol=lf
 
 # Production executables and unit files must keep Unix line endings even when
 # contributors work from Windows. CRLF makes /usr/bin/env and POSIX sh fail.
