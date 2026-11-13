@@ -70,6 +70,22 @@ describe('PrismaHabitMapper', () => {
     ).toEqual(raw);
   });
 
+  it('round-trips a Habit in Trash with its previous state and time', () => {
+    const trashed: PrismaHabit = {
+      ...raw,
+      state: 'TRASHED',
+      stateBeforeTrash: 'ARCHIVED',
+      trashedAt: new Date('2026-10-09T03:00:00.000Z'),
+    };
+
+    const habit = PrismaHabitMapper.toDomain(trashed);
+
+    expect(habit.state).toBe(HabitState.TRASHED);
+    expect(habit.stateBeforeTrash).toBe(HabitState.ARCHIVED);
+    expect(habit.trashedAt).toEqual(new Date('2026-10-09T03:00:00.000Z'));
+    expect(PrismaHabitMapper.toPersistence(habit)).toEqual(trashed);
+  });
+
   it('uses the loaded latest transition as the effectiveOn floor', () => {
     const habit = PrismaHabitMapper.toDomain({
       ...raw,

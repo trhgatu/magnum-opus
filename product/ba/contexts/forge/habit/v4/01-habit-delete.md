@@ -1,6 +1,6 @@
 # Habit V4 — Thùng rác và xóa vĩnh viễn
 
-> Trạng thái: **đã chốt hướng, chờ triển khai**. Bản đầu 2026-11-13.
+> Trạng thái: **đợt 1–2 đã triển khai** (PR #226); đợt 3 (event, dọn Chronicle) chưa làm, xem §9. Bản đầu 2026-11-13.
 > Phụ thuộc: Habit V1–V3, temporal-history (lịch theo phiên bản, lưu trữ/khôi phục).
 > Thay đổi: sửa `KD-HAB-002` (V1). Habit V4 phải xong trước Garden P1.
 
@@ -68,8 +68,8 @@ Habit đã dùng `PATCH /habits/:id/restore` cho "khôi phục từ lưu trữ",
 
 | Endpoint                                | Việc                                                                              |
 | --------------------------------------- | --------------------------------------------------------------------------------- |
-| `PATCH /habits/:id/trash`               | vào Thùng rác                                                                     |
-| `PATCH /habits/:id/untrash`             | khôi phục từ Thùng rác                                                            |
+| `PATCH /habits/:id/trash`               | vào Thùng rác; body `{ "expectedRevision": N }`                                   |
+| `PATCH /habits/:id/untrash`             | khôi phục từ Thùng rác; body `{ "expectedRevision": N }`                          |
 | `DELETE /habits/:id?expectedRevision=N` | xóa vĩnh viễn; Habit không ở Thùng rác thì 409 `HABIT_PERMANENT_DELETE_FORBIDDEN` |
 | `GET /habits?status=TRASHED`            | danh sách Thùng rác, dùng lại danh sách có phân trang như Đã lưu trữ              |
 
@@ -138,7 +138,7 @@ Hộp xác nhận xóa vĩnh viễn (BR-HAB4-005) hiện nói rõ những gì s�
 
 ## 10. Câu hỏi mở
 
-| Mã       | Câu hỏi                                                             | Đề xuất                                                                                                                                                                                   |
-| -------- | ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Q-HAB4-1 | Ngày trong Thùng rác tính là không sống (như lưu trữ) hay vẫn sống? | Không sống. Nếu không, khôi phục sau một tuần sẽ hiện cả tuần là bỏ lỡ, như phạt người dùng vì đã cân nhắc xóa.                                                                           |
-| Q-HAB4-2 | Snapshot Chronicle đã đóng băng có tên Habit bị xóa thì sao?        | Từ nay section Habit lưu thêm `habitId`. Khi xóa vĩnh viễn, thay tên bằng null và giao diện hiện "một thói quen đã xóa". Snapshot cũ chưa có `habitId`: dọn một lần theo `ownerId` + tên. |
+| Mã       | Câu hỏi                                                             | Đề xuất                                                                                                                                                                                                                                                                                                                                           |
+| -------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Q-HAB4-1 | Ngày trong Thùng rác tính là không sống (như lưu trữ) hay vẫn sống? | Không sống. Nếu không, khôi phục sau một tuần sẽ hiện cả tuần là bỏ lỡ, như phạt người dùng vì đã cân nhắc xóa.                                                                                                                                                                                                                                   |
+| Q-HAB4-2 | Snapshot Chronicle đã đóng băng có tên Habit bị xóa thì sao?        | Từ nay section Habit lưu thêm `habitId`. Khi xóa vĩnh viễn, thay tên bằng null và giao diện hiện "một thói quen đã xóa". Snapshot cũ chưa có `habitId`: tên không phải định danh an toàn (hai Habit trùng tên, Habit đã đổi tên), nên không dọn theo tên. Chỉ dọn khi khớp đúng một Habit của owner có tên đó; còn lại coi là mơ hồ và để nguyên. |

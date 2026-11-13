@@ -167,7 +167,7 @@ function HabitTrashItem({ habit }: { habit: HabitResponse }) {
                 <AlertDialogDescription>
                   Mọi lần ghi dấu, tái phạm, lịch sử lịch và chỗ của thói quen
                   trong các nếp sinh hoạt sẽ mất theo, và không thể khôi phục.
-                  Nếu chỉ muốn dừng lại, hãy khôi phục rồi lưu trữ.
+                  Nếu còn muốn giữ dấu vết, hãy khôi phục thay vì xóa hẳn.
                 </AlertDialogDescription>
               </AlertDialogHeader>
 

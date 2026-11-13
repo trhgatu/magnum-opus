@@ -11,7 +11,7 @@ import { HabitArchivedList } from "@/features/habit/components/habit-archived-li
 import { HabitOverviewList } from "@/features/habit/components/habit-overview-list";
 import { HabitPagination } from "@/features/habit/components/habit-pagination";
 import { HabitSearch } from "@/features/habit/components/habit-search";
-import { HabitTrashList } from "@/features/habit/components/habit-trash-list";
+import { HabitTrashListLazy } from "@/features/habit/components/habit-trash-list-lazy";
 import {
   HabitListSkeleton,
   HabitSummarySkeleton,
@@ -226,7 +226,7 @@ async function ListedHabits({ location }: { location: Location }) {
   return (
     <div className="flex flex-col gap-5">
       {trashed ? (
-        <HabitTrashList habits={result.data} />
+        <HabitTrashListLazy habits={result.data} />
       ) : (
         <HabitArchivedList habits={result.data} />
       )}

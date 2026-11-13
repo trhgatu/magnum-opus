@@ -52,8 +52,8 @@ Update/Archive/Restore đều yêu cầu `expectedRevision` trong body.
   "statusCode": 409,
   "code": "INVALID_HABIT_TRANSITION",
   "translationKey": "exceptions.habit.transition.invalid",
-  "message": "Habit is already archived",
-  "args": { "isActive": false },
+  "message": "Habit is archived",
+  "args": { "state": "ARCHIVED" },
   "error": "InvalidHabitTransitionException",
   "timestamp": "2026-09-08T00:00:00.000Z"
 }

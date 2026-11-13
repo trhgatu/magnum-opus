@@ -36,8 +36,11 @@ const routeBudgets = new Map([
   // trên /habits/[id]: radix-ui 1.6.2 → 1.7.0 (popover/focus-scope 1.2,
   // popper, select…). So chunk từng route giữa 2 bản build: phần tăng nằm
   // trọn trong chunk radix, không có package nào bị cài trùng phiên bản.
+  // +1 KiB trên /habits/[id] (đo được +0.5 KiB): nút "Chuyển vào Thùng rác"
+  // (Habit V4) cùng tham chiếu server action trashHabit và isRedirectError.
+  // Danh sách Thùng rác thì tách chunk riêng nên /habits không tăng.
   ["/habits/new", 720 * KIBIBYTE],
-  ["/habits/[id]", 582 * KIBIBYTE],
+  ["/habits/[id]", 583 * KIBIBYTE],
   ["/habits/[id]/edit", 720 * KIBIBYTE],
   ["/routines", 568 * KIBIBYTE],
   // Cùng ConflictAlert/reload-on-conflict trên routine-editor: +2 KiB trên
