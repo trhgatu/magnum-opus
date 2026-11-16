@@ -1,6 +1,8 @@
 -- Section habit v1 chỉ lưu tên. Gắn habitId khi tên khớp ĐÚNG 1 habit còn
--- tồn tại của owner cùng loại (tính cả lưu trữ và Thùng rác). Trùng tên,
--- hoặc habit đã bị xóa trước đó, thì habitId = null: không đoán.
+-- tồn tại của owner cùng loại (tính cả lưu trữ và Thùng rác). Trùng tên thì
+-- habitId = null: không đoán. Habit đã xóa trước migration không còn row nào
+-- để thấy: mục của nó giữ null, hoặc bị gắn vào habit còn sống trùng tên duy
+-- nhất (giới hạn đã ghi ở Habit V4 BA §8).
 -- Sau đó section lên v2, để khi xóa habit Chronicle quên được tên.
 CREATE FUNCTION pg_temp.with_habit_id(p_owner_id TEXT, p_type TEXT, p_item JSONB)
 RETURNS JSONB
