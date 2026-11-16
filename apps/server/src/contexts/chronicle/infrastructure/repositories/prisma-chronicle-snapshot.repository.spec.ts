@@ -9,6 +9,7 @@ describe('PrismaChronicleSnapshotRepository', () => {
   const sectionModel = {
     create: jest.fn(),
     findUniqueOrThrow: jest.fn(),
+    findMany: jest.fn(),
     update: jest.fn(),
   };
   const prisma = {
@@ -164,6 +165,30 @@ describe('PrismaChronicleSnapshotRepository', () => {
         },
         data: { schemaVersion: 2, computedAt, data: {} },
         select: sectionSelect,
+      });
+    });
+  });
+
+  describe('findSectionsForOwner', () => {
+    it('reads one module across every snapshot of the owner', async () => {
+      sectionModel.findMany.mockResolvedValue([]);
+
+      await repository.findSectionsForOwner('owner-id', 'habit');
+
+      expect(sectionModel.findMany).toHaveBeenCalledWith({
+        where: { module: 'habit', snapshot: { ownerId: 'owner-id' } },
+        select: { id: true, ...sectionSelect },
+      });
+    });
+  });
+
+  describe('updateSectionData', () => {
+    it('overwrites only the data of one section', async () => {
+      await repository.updateSectionData('section-id', { forgotten: true });
+
+      expect(sectionModel.update).toHaveBeenCalledWith({
+        where: { id: 'section-id' },
+        data: { data: { forgotten: true } },
       });
     });
   });

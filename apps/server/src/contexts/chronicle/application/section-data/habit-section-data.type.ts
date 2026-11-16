@@ -1,9 +1,18 @@
 export interface HabitSectionData {
   buildCompletionRate: number;
-  bestStreak: { habitTitle: string; days: number } | null;
+  bestStreak: {
+    habitId: string | null;
+    habitTitle: string | null;
+    days: number;
+  } | null;
   mostConsistentHabit: {
-    habitTitle: string;
+    habitId: string | null;
+    habitTitle: string | null;
     completionRate: number;
   } | null;
-  quitHabits: Array<{ habitTitle: string; daysSinceLastRelapse: number }>;
+  quitHabits: Array<{
+    habitId: string | null;
+    habitTitle: string | null;
+    daysSinceLastRelapse: number;
+  }>;
 }

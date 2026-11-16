@@ -71,7 +71,11 @@ export function summarizeHabits(
     totalDone += done;
 
     if (longestStreak > (bestStreak?.days ?? 0)) {
-      bestStreak = { habitTitle: habit.title, days: longestStreak };
+      bestStreak = {
+        habitId: habit.id,
+        habitTitle: habit.title,
+        days: longestStreak,
+      };
     }
 
     if (due >= MIN_DUE_DAYS_FOR_CONSISTENCY) {
@@ -81,7 +85,11 @@ export function summarizeHabits(
         mostConsistentHabit === null ||
         completionRate > mostConsistentHabit.completionRate
       ) {
-        mostConsistentHabit = { habitTitle: habit.title, completionRate };
+        mostConsistentHabit = {
+          habitId: habit.id,
+          habitTitle: habit.title,
+          completionRate,
+        };
       }
     }
   }
@@ -113,6 +121,7 @@ function summarizeQuitHabit(
     .at(-1);
 
   return {
+    habitId: habit.id,
     habitTitle: habit.title,
     daysSinceLastRelapse: daysBetween(
       lastRelapse ?? habit.quitStartedOn,

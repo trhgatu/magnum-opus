@@ -1,6 +1,6 @@
 # Habit V4 — Thùng rác và xóa vĩnh viễn
 
-> Trạng thái: **đợt 1–2 đã triển khai** (PR #226); đợt 3 (event, dọn Chronicle) chưa làm, xem §9. Bản đầu 2026-11-13.
+> Trạng thái: **đợt 1–3a đã triển khai** (đợt 1–2 ở PR #226; đợt 3a là `HabitPermanentlyDeleted` + dọn Chronicle). Đợt 3b (`HabitTrashed` / `HabitRestoredFromTrash`) làm cùng Garden, xem §9. Bản đầu 2026-11-13.
 > Phụ thuộc: Habit V1–V3, temporal-history (lịch theo phiên bản, lưu trữ/khôi phục).
 > Thay đổi: sửa `KD-HAB-002` (V1). Habit V4 phải xong trước Garden P1.
 
@@ -60,7 +60,7 @@ Theo đúng mẫu của Journal và Memory: **một trường `state` quyết đ
 | BR-HAB4-005 | Xóa vĩnh viễn chỉ hợp lệ với Habit đang trong Thùng rác, và luôn qua một bước xác nhận riêng nói rõ điều gì sẽ mất: số lần ghi dấu, số lần tái phạm, các Routine đang chứa nó.                                                                        |
 | BR-HAB4-006 | Xóa vĩnh viễn xóa Habit cùng toàn bộ check-in, tái phạm, phiên bản lịch, lịch sử lưu trữ, liên kết và lịch sử thành viên Routine. Các bảng này đã `onDelete: Cascade` theo Habit.                                                                     |
 | BR-HAB4-007 | Dữ liệu đã chép sang context khác (Chronicle, Garden) phải được dọn theo khi xóa vĩnh viễn. Quyền xóa dữ liệu đứng trên lịch sử bất biến (Q-HAB4-2).                                                                                                  |
-| BR-HAB4-008 | Mỗi hành động phát một domain event qua outbox, chỉ mang định danh, không mang nội dung: `HabitTrashed`, `HabitRestoredFromTrash`, `HabitDeleted`.                                                                                                    |
+| BR-HAB4-008 | Mỗi hành động phát một domain event qua outbox, chỉ mang định danh, không mang nội dung: `HabitTrashed`, `HabitRestoredFromTrash`, `HabitPermanentlyDeleted`.                                                                                         |
 
 ## 6. API
 
@@ -120,19 +120,25 @@ Mọi chỗ đang hiểu `isActive = true` là "đang rèn" đổi thành `state
 
 ## 8. Ảnh hưởng tới context khác
 
-| Context   | Ảnh hưởng                                                                                                                                                                                   |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Routine   | Habit trong Thùng rác bị ẩn khỏi Routine nhưng vẫn giữ chỗ (BR-HAB4-003). Xóa vĩnh viễn thì liên kết mất theo cascade. Routine chỉ còn Habit trong Thùng rác thì hiển thị như Routine rỗng. |
-| Chronicle | Phần Habit của snapshot đã đóng băng lưu `habitTitle` (chuỗi dài nhất, đều đặn nhất, ngày không tái phạm) mà không lưu `habitId`, nên hiện không tìm được để dọn (Q-HAB4-2).                |
-| Garden    | Thùng rác: cây tạm ẩn. Khôi phục: cây hiện lại. Xóa vĩnh viễn: cây và mọi dòng sổ của nó bị xóa (Garden BA §6.3).                                                                           |
+| Context   | Ảnh hưởng                                                                                                                                                                                                                                                                              |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Routine   | Habit trong Thùng rác bị ẩn khỏi Routine nhưng vẫn giữ chỗ (BR-HAB4-003). Xóa vĩnh viễn thì liên kết mất theo cascade. Routine chỉ còn Habit trong Thùng rác thì hiển thị như Routine rỗng.                                                                                            |
+| Chronicle | Section Habit v2 lưu `habitId` cạnh `habitTitle`. Khi nhận `HabitPermanentlyDeleted`, Chronicle thay tên bằng null, giữ nguyên mọi con số; giao diện hiện "Một thói quen đã xóa". Snapshot v1 được migration gắn `habitId` khi tên khớp đúng một Habit cùng loại của owner (Q-HAB4-2). |
+| Garden    | Thùng rác: cây tạm ẩn. Khôi phục: cây hiện lại. Xóa vĩnh viễn: cây và mọi dòng sổ của nó bị xóa (Garden BA §6.3).                                                                                                                                                                      |
+
+Giới hạn đã biết của phần dọn Chronicle (BR-HAB4-007 chưa đáp ứng trọn vẹn):
+
+- Snapshot v1 của Habit đã xóa **trước** migration: migration chỉ thấy Habit còn tồn tại. Nếu không có Habit nào cùng tên, mục đó giữ `habitId = null` và giữ luôn tên, không bao giờ được quên. Nếu tên đó khớp đúng một Habit khác còn tồn tại cùng loại, mục bị gắn vào Habit kia, và tên chỉ được quên khi Habit kia bị xóa.
+- Snapshot tạo đúng lúc đang xóa: snapshot đọc Habit trước khi xóa nhưng ghi sau khi Chronicle đã dọn xong, nên có thể giữ tên. Cửa sổ này rất hẹp và chỉ xảy ra khi xem một tháng đã đóng lần đầu.
 
 ## 9. Triển khai theo đợt
 
-| Đợt | Nội dung                                                                                                                                                     | Trạng thái |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- |
-| 1   | `isActive` → `state` (`ACTIVE`/`ARCHIVED`/`TRASHED`), chưa có hành vi Thùng rác                                                                              | xong       |
-| 2   | Vào / ra Thùng rác, xóa vĩnh viễn, danh sách Thùng rác, giao diện                                                                                            | xong       |
-| 3   | Event `HabitTrashed` / `HabitRestoredFromTrash` / `HabitDeleted` (BR-HAB4-008) và dọn Chronicle (BR-HAB4-007, Q-HAB4-2), làm cùng các event Habit cho Garden | chưa       |
+| Đợt | Nội dung                                                                                                                                        | Trạng thái |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| 1   | `isActive` → `state` (`ACTIVE`/`ARCHIVED`/`TRASHED`), chưa có hành vi Thùng rác                                                                 | xong       |
+| 2   | Vào / ra Thùng rác, xóa vĩnh viễn, danh sách Thùng rác, giao diện                                                                               | xong       |
+| 3a  | Event `HabitPermanentlyDeleted` qua outbox (BR-HAB4-008) và dọn Chronicle (BR-HAB4-007, Q-HAB4-2); còn 2 giới hạn, xem cuối §8                  | xong       |
+| 3b  | Event `HabitTrashed` / `HabitRestoredFromTrash` (BR-HAB4-008): chỉ phát khi đã có context nhận (Garden), vì outbox từ chối event không có route | chưa       |
 
 Hộp xác nhận xóa vĩnh viễn (BR-HAB4-005) hiện nói rõ những gì sẽ mất bằng lời (ghi dấu, tái phạm, lịch, chỗ trong nếp sinh hoạt), chưa kèm số lượng.
 

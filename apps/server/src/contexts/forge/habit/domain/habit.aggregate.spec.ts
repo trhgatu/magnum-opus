@@ -1,9 +1,11 @@
 import { HabitLifecycleAction, HabitState, HabitType } from './enums';
 import {
+  HabitPermanentlyDeletedEvent,
   HabitLifecycleTransitionedEvent,
   HabitScheduleVersionStartedEvent,
 } from './events';
 import {
+  HabitPermanentDeleteForbiddenException,
   InvalidHabitTitleException,
   InvalidHabitTransitionException,
   InvalidHabitTypeException,
@@ -634,6 +636,36 @@ describe('Habit', () => {
         InvalidHabitTransitionException,
       );
     });
+  });
+
+  describe('delete', () => {
+    it('raises HabitPermanentlyDeleted with ids only for a Habit in Trash', () => {
+      const habit = Habit.rehydrate(
+        createProps({
+          state: HabitState.TRASHED,
+          stateBeforeTrash: HabitState.ACTIVE,
+          trashedAt: new Date('2026-10-09T00:00:00Z'),
+        }),
+      );
+
+      habit.deletePermanently();
+
+      const [event] = habit.getDomainEvents();
+      expect(event).toBeInstanceOf(HabitPermanentlyDeletedEvent);
+      expect(event).toMatchObject({ habitId: 'habit-id', ownerId: 'owner-id' });
+    });
+
+    it.each([HabitState.ACTIVE, HabitState.ARCHIVED])(
+      'refuses to delete a %s Habit',
+      (state) => {
+        const habit = Habit.rehydrate(createProps({ state }));
+
+        expect(() => habit.deletePermanently()).toThrow(
+          HabitPermanentDeleteForbiddenException,
+        );
+        expect(habit.getDomainEvents()).toEqual([]);
+      },
+    );
   });
 
   describe('schedule history', () => {

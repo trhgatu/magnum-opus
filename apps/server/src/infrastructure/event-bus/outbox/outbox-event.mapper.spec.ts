@@ -6,6 +6,7 @@ import {
 } from './outbox-event.mapper';
 import { ProjectCycleClosedEvent } from '@/contexts/crucible/project/domain/events/project-cycle-closed.event';
 import { ProjectCycleEndReason } from '@/contexts/crucible/project/domain/enums';
+import { HabitPermanentlyDeletedEvent } from '@/contexts/forge/habit/domain/events';
 
 describe('ProjectCycleClosed outbox event', () => {
   it('round-trips through the outbox', () => {
@@ -64,6 +65,34 @@ describe('ProjectCycleClosed outbox event', () => {
         occurredAt: new Date(),
       }),
     ).toThrow('Unknown cycle end reason "ABANDONED"');
+  });
+});
+
+describe('HabitPermanentlyDeleted outbox event', () => {
+  it('round-trips with ids only', () => {
+    const event = new HabitPermanentlyDeletedEvent('habit-id', 'owner-id');
+
+    const serialized = serializeDomainEvent(event);
+    expect(serialized).toMatchObject({
+      id: event.eventId,
+      type: 'forge.habit.permanently-deleted.v1',
+      aggregateId: 'habit-id',
+      payload: { habitId: 'habit-id', ownerId: 'owner-id' },
+    });
+
+    const restored = rehydrateDomainEvent({
+      id: serialized.id,
+      type: serialized.type,
+      payload: serialized.payload,
+      occurredAt: serialized.occurredAt,
+    });
+    expect(restored).toBeInstanceOf(HabitPermanentlyDeletedEvent);
+    expect(restored).toMatchObject({
+      habitId: 'habit-id',
+      ownerId: 'owner-id',
+      eventId: event.eventId,
+      occurredOn: event.occurredOn,
+    });
   });
 });
 

@@ -70,6 +70,8 @@ describe('GetMonthlyChronicleHandler', () => {
       createOrGet: jest.fn(),
       addSectionOrGet: jest.fn(),
       replaceSection: jest.fn(),
+      findSectionsForOwner: jest.fn(),
+      updateSectionData: jest.fn(),
     };
     build();
   });

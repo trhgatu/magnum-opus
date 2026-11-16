@@ -21,6 +21,7 @@ import { PrismaHabitHistoryReader } from './infrastructure/readers/prisma-habit-
 import { PrismaRoutineChronicleReader } from './infrastructure/readers/prisma-routine-chronicle.reader';
 import { PrismaChronicleSnapshotRepository } from './infrastructure/repositories/prisma-chronicle-snapshot.repository';
 import { ChronicleController } from './presentation/controllers/chronicle.controller';
+import { ForgetDeletedHabitService } from './application/services/forget-deleted-habit.service';
 
 const SECTION_READERS = [
   PrismaHabitChronicleReader,
@@ -36,6 +37,7 @@ const SECTION_READERS = [
   controllers: [ChronicleController],
   providers: [
     { provide: CLOCK, useClass: SystemClock },
+    ForgetDeletedHabitService,
     { provide: USER_TIME_ZONE_READER, useClass: PrismaUserTimeZoneReader },
     {
       provide: CHRONICLE_SNAPSHOT_REPOSITORY,
@@ -56,5 +58,6 @@ const SECTION_READERS = [
     },
     GetMonthlyChronicleHandler,
   ],
+  exports: [ForgetDeletedHabitService],
 })
 export class ChronicleModule {}

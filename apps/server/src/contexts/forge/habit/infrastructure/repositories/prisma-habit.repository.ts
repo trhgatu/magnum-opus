@@ -16,6 +16,8 @@ import {
   PrismaHabitMapper,
 } from '../mappers/prisma-habit.mapper';
 
+import { serializeDomainEvent } from '@infrastructure/event-bus/outbox/outbox-event.mapper';
+
 interface HabitHistoryWrites {
   transitions: HabitLifecycleTransitionPersistence[];
   scheduleVersions: HabitScheduleVersionPersistence[];
@@ -121,20 +123,34 @@ export class PrismaHabitRepository implements HabitRepository {
   }
 
   public async deletePermanently(
-    id: string,
-    ownerId: string,
+    habit: Habit,
     expectedRevision: number,
   ): Promise<boolean> {
-    const result = await this.prisma.habit.deleteMany({
-      where: {
-        id,
-        ownerId,
-        revision: expectedRevision,
-        state: 'TRASHED',
-      },
+    const outboxEvents = habit.getDomainEvents().map(serializeDomainEvent);
+
+    const deleted = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.habit.deleteMany({
+        where: {
+          id: habit.id,
+          ownerId: habit.ownerId,
+          revision: expectedRevision,
+          state: 'TRASHED',
+        },
+      });
+
+      if (result.count !== 1) {
+        return false;
+      }
+
+      await tx.outboxEvent.createMany({ data: outboxEvents });
+      return true;
     });
 
-    return result.count === 1;
+    if (deleted) {
+      habit.clearDomainEvents();
+    }
+
+    return deleted;
   }
 
   private static pullHistory(habit: Habit): HabitHistoryWrites {

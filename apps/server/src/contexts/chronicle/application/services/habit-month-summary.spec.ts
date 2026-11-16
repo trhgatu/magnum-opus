@@ -179,7 +179,11 @@ describe('summarizeHabits', () => {
     );
 
     expect(result.buildCompletionRate).toBe(1);
-    expect(result.bestStreak).toEqual({ habitTitle: 'Chạy bộ', days: 14 });
+    expect(result.bestStreak).toEqual({
+      habitId: 'build-habit',
+      habitTitle: 'Chạy bộ',
+      days: 14,
+    });
   });
 
   it('only counts check-ins on due days', () => {
@@ -238,14 +242,21 @@ describe('summarizeHabits', () => {
   it('breaks ties for bestStreak and mostConsistentHabit in favour of the earlier habit', () => {
     const result = summarizeHabits(
       [
-        build({ title: 'Earlier', checkInDays: days(1, 10) }),
-        build({ title: 'Later', checkInDays: days(1, 10) }),
+        build({ id: 'earlier', title: 'Earlier', checkInDays: days(1, 10) }),
+        build({ id: 'later', title: 'Later', checkInDays: days(1, 10) }),
       ],
       SEPTEMBER,
     );
 
-    expect(result.bestStreak?.habitTitle).toBe('Earlier');
-    expect(result.mostConsistentHabit?.habitTitle).toBe('Earlier');
+    // Kiểm cả habitId: Chronicle quên tên theo id, map nhầm là quên nhầm habit.
+    expect(result.bestStreak).toMatchObject({
+      habitId: 'earlier',
+      habitTitle: 'Earlier',
+    });
+    expect(result.mostConsistentHabit).toMatchObject({
+      habitId: 'earlier',
+      habitTitle: 'Earlier',
+    });
   });
 
   it('requires at least 7 due days to be the most consistent habit', () => {
@@ -253,16 +264,18 @@ describe('summarizeHabits', () => {
       [
         // Tạo ngày 25/9: 6 ngày due, làm đủ 6 (100%) — dưới ngưỡng.
         build({
+          id: 'new',
           title: 'New',
           createdOn: '2026-09-25',
           checkInDays: days(25, 30),
         }),
-        build({ title: 'Steady', checkInDays: days(1, 20) }),
+        build({ id: 'steady', title: 'Steady', checkInDays: days(1, 20) }),
       ],
       SEPTEMBER,
     );
 
     expect(result.mostConsistentHabit).toEqual({
+      habitId: 'steady',
       habitTitle: 'Steady',
       completionRate: 20 / 30,
     });
@@ -295,7 +308,11 @@ describe('summarizeHabits', () => {
       );
 
       expect(result.quitHabits).toEqual([
-        { habitTitle: 'Thuốc lá', daysSinceLastRelapse: 20 },
+        {
+          habitId: 'quit-habit',
+          habitTitle: 'Thuốc lá',
+          daysSinceLastRelapse: 20,
+        },
       ]);
     });
 

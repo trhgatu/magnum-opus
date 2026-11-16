@@ -9,8 +9,10 @@ import {
 import {
   HabitLifecycleTransitionedEvent,
   HabitScheduleVersionStartedEvent,
+  HabitPermanentlyDeletedEvent,
 } from './events';
 import {
+  HabitPermanentDeleteForbiddenException,
   InvalidHabitTitleException,
   InvalidHabitTransitionException,
   InvalidHabitTypeException,
@@ -305,6 +307,16 @@ export class Habit extends AggregateRoot {
     if (restoredState === HabitState.ACTIVE) {
       this.recordLifecycleTransition(HabitLifecycleAction.RESTORED, today);
     }
+  }
+
+  public deletePermanently(): void {
+    if (this.props.state !== HabitState.TRASHED) {
+      throw new HabitPermanentDeleteForbiddenException(this.props.id.value);
+    }
+
+    this.addDomainEvent(
+      new HabitPermanentlyDeletedEvent(this.props.id.value, this.props.ownerId),
+    );
   }
 
   public isDueOn(isoWeekday: number): boolean {

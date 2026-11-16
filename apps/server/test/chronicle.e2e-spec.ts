@@ -192,8 +192,20 @@ describe('Chronicle (E2E)', () => {
       'routine',
     ]);
     expect(
-      snapshot.sections.every((section) => section.schemaVersion === 1),
-    ).toBe(true);
+      Object.fromEntries(
+        snapshot.sections.map((section) => [
+          section.module,
+          section.schemaVersion,
+        ]),
+      ),
+    ).toEqual({
+      habit: 2,
+      journal: 1,
+      memory: 1,
+      mood: 1,
+      project: 1,
+      routine: 1,
+    });
 
     // Đưa 1 bài tháng 8 vào thùng rác SAU lần xem đầu: tháng 8 đã đóng băng.
     await prisma.journalEntry.update({
@@ -231,7 +243,7 @@ describe('Chronicle (E2E)', () => {
       schedule: { frequencyType: 'WEEKLY', frequencyDays: [1] },
     });
     // "Thuốc lá": bỏ từ 1/8, tái phạm 06:30 ngày 21/8 giờ Việt Nam.
-    await createHabit(owner.id, {
+    const smoking = await createHabit(owner.id, {
       title: 'Thuốc lá',
       createdOn: '2026-07-01',
       type: 'QUIT',
@@ -274,9 +286,15 @@ describe('Chronicle (E2E)', () => {
     // 7, không được xét "đều đặn nhất".
     expect(response.body.habit).toEqual({
       buildCompletionRate: 0.75,
-      bestStreak: { habitTitle: 'Chạy bộ', days: 15 },
-      mostConsistentHabit: { habitTitle: 'Chạy bộ', completionRate: 1 },
-      quitHabits: [{ habitTitle: 'Thuốc lá', daysSinceLastRelapse: 10 }],
+      bestStreak: { habitId: running, habitTitle: 'Chạy bộ', days: 15 },
+      mostConsistentHabit: {
+        habitId: running,
+        habitTitle: 'Chạy bộ',
+        completionRate: 1,
+      },
+      quitHabits: [
+        { habitId: smoking, habitTitle: 'Thuốc lá', daysSinceLastRelapse: 10 },
+      ],
     });
     // Routine: 1–15/8 có buổi (Chạy bộ due), 3 và 10/8 thêm Đọc sách nên
     // không hoàn thành; 17, 24, 31/8 chỉ còn Đọc sách → không hoàn thành.

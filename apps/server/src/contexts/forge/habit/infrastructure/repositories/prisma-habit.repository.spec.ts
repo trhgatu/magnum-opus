@@ -31,6 +31,10 @@ describe('PrismaHabitRepository', () => {
     habit: {
       create: jest.fn(),
       updateMany: jest.fn(),
+      deleteMany: jest.fn(),
+    },
+    outboxEvent: {
+      createMany: jest.fn(),
     },
     habitLifecycleTransition: {
       createMany: jest.fn(),
@@ -44,7 +48,6 @@ describe('PrismaHabitRepository', () => {
 
   const habitModel = {
     findFirst: jest.fn(),
-    deleteMany: jest.fn(),
   };
 
   type TransactionCallback = (
@@ -360,13 +363,22 @@ describe('PrismaHabitRepository', () => {
   });
 
   describe('deletePermanently', () => {
-    it('deletes only the owned Habit in Trash at the expected revision', async () => {
-      habitModel.deleteMany.mockResolvedValue({ count: 1 });
+    const deletedHabit = (): Habit => {
+      const habit = createDomainHabit({
+        state: HabitState.TRASHED,
+        stateBeforeTrash: HabitState.ACTIVE,
+        trashedAt: new Date('2026-10-09T00:00:00.000Z'),
+      });
+      habit.deletePermanently();
+      return habit;
+    };
 
-      expect(
-        await repository.deletePermanently('habit-id', 'owner-id', 3),
-      ).toBe(true);
-      expect(habitModel.deleteMany).toHaveBeenCalledWith({
+    it('deletes the owned Habit in Trash and writes HabitPermanentlyDeleted to the outbox', async () => {
+      transactionClient.habit.deleteMany.mockResolvedValue({ count: 1 });
+      const habit = deletedHabit();
+
+      expect(await repository.deletePermanently(habit, 3)).toBe(true);
+      expect(transactionClient.habit.deleteMany).toHaveBeenCalledWith({
         where: {
           id: 'habit-id',
           ownerId: 'owner-id',
@@ -374,19 +386,32 @@ describe('PrismaHabitRepository', () => {
           state: 'TRASHED',
         },
       });
+      expect(transactionClient.outboxEvent.createMany).toHaveBeenCalledWith({
+        data: [
+          expect.objectContaining({
+            type: 'forge.habit.permanently-deleted.v1',
+            aggregateId: 'habit-id',
+            payload: { habitId: 'habit-id', ownerId: 'owner-id' },
+          }),
+        ],
+      });
+      expect(habit.getDomainEvents()).toEqual([]);
     });
 
-    it('reports nothing deleted when the Habit changed or left Trash', async () => {
-      habitModel.deleteMany.mockResolvedValue({ count: 0 });
+    it('writes no outbox row when the Habit changed or left Trash', async () => {
+      transactionClient.habit.deleteMany.mockResolvedValue({ count: 0 });
+      const habit = deletedHabit();
 
-      expect(
-        await repository.deletePermanently('habit-id', 'owner-id', 3),
-      ).toBe(false);
+      expect(await repository.deletePermanently(habit, 3)).toBe(false);
+      expect(transactionClient.outboxEvent.createMany).not.toHaveBeenCalled();
+      expect(habit.getDomainEvents()).toHaveLength(1);
     });
   });
 });
 
-function createDomainHabit(): Habit {
+function createDomainHabit(
+  overrides: Partial<Parameters<typeof Habit.rehydrate>[0]> = {},
+): Habit {
   return Habit.rehydrate({
     id: new HabitId('habit-id'),
     ownerId: 'owner-id',
@@ -408,6 +433,7 @@ function createDomainHabit(): Habit {
       new Date('2026-08-20T00:00:00.000Z'),
     ),
     updatedAt: new Date('2026-08-21T10:00:00.000Z'),
+    ...overrides,
   });
 }
 
