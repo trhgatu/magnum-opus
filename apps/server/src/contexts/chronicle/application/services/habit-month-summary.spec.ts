@@ -179,7 +179,11 @@ describe('summarizeHabits', () => {
     );
 
     expect(result.buildCompletionRate).toBe(1);
-    expect(result.bestStreak).toEqual({ habitTitle: 'Chạy bộ', days: 14 });
+    expect(result.bestStreak).toEqual({
+      habitId: 'build-habit',
+      habitTitle: 'Chạy bộ',
+      days: 14,
+    });
   });
 
   it('only counts check-ins on due days', () => {
@@ -263,6 +267,7 @@ describe('summarizeHabits', () => {
     );
 
     expect(result.mostConsistentHabit).toEqual({
+      habitId: 'build-habit',
       habitTitle: 'Steady',
       completionRate: 20 / 30,
     });
@@ -295,7 +300,11 @@ describe('summarizeHabits', () => {
       );
 
       expect(result.quitHabits).toEqual([
-        { habitTitle: 'Thuốc lá', daysSinceLastRelapse: 20 },
+        {
+          habitId: 'quit-habit',
+          habitTitle: 'Thuốc lá',
+          daysSinceLastRelapse: 20,
+        },
       ]);
     });
 

@@ -10,6 +10,7 @@ import {
   StoredChronicleSnapshot,
 } from '../../application/ports/chronicle-snapshot.repository.port';
 import { ChroniclePeriod } from '../../domain/value-objects';
+import { ChronicleModule } from '../../application/section-data';
 
 const sectionSelect = {
   module: true,
@@ -126,6 +127,26 @@ export class PrismaChronicleSnapshotRepository implements ChronicleSnapshotRepos
         data: section.data as Prisma.InputJsonValue,
       },
       select: sectionSelect,
+    });
+  }
+
+  public async findSectionsForOwner(
+    ownerId: string,
+    module: ChronicleModule,
+  ): Promise<Array<StoredChronicleSection & { id: string }>> {
+    return this.prisma.chronicleSnapshotSection.findMany({
+      where: { module, snapshot: { ownerId } },
+      select: { id: true, ...sectionSelect },
+    });
+  }
+
+  public async updateSectionData(
+    sectionId: string,
+    data: unknown,
+  ): Promise<void> {
+    await this.prisma.chronicleSnapshotSection.update({
+      where: { id: sectionId },
+      data: { data: data as Prisma.InputJsonValue },
     });
   }
 }

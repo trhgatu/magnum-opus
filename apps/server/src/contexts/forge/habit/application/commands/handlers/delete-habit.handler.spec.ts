@@ -38,11 +38,13 @@ describe('DeleteHabitHandler', () => {
       'habit-id',
       'owner-id',
     );
-    expect(repository.deletePermanently).toHaveBeenCalledWith(
-      'habit-id',
-      'owner-id',
-      3,
-    );
+    const [deletedHabit, expectedRevision] = repository.deletePermanently.mock
+      .calls[0] as [Habit, number];
+    expect(deletedHabit.id).toBe('habit-id');
+    expect(expectedRevision).toBe(3);
+    expect(deletedHabit.getDomainEvents()).toEqual([
+      expect.objectContaining({ habitId: 'habit-id', ownerId: 'owner-id' }),
+    ]);
   });
 
   it.each([HabitState.ACTIVE, HabitState.ARCHIVED])(

@@ -35,7 +35,7 @@ describe('PrismaHabitChronicleReader', () => {
 
   it('declares itself as a history-only habit reader', () => {
     expect(reader.module).toBe('habit');
-    expect(reader.schemaVersion).toBe(1);
+    expect(reader.schemaVersion).toBe(2);
     expect(reader.historyOnly).toBe(true);
   });
 
@@ -71,5 +71,32 @@ describe('PrismaHabitChronicleReader', () => {
       to: '2026-09-16',
     });
     expect(summary.buildCompletionRate).toBeCloseTo(3 / 15);
+  });
+
+  describe('upgrade', () => {
+    it('keeps a v1 section as stored and marks every habit id as unknown', () => {
+      const v1 = {
+        buildCompletionRate: 0.5,
+        bestStreak: { habitTitle: 'Đọc sách', days: 12 },
+        mostConsistentHabit: null,
+        quitHabits: [{ habitTitle: 'Thuốc lá', daysSinceLastRelapse: 40 }],
+      };
+
+      expect(reader.upgrade(v1, 1)).toEqual({
+        buildCompletionRate: 0.5,
+        bestStreak: { habitId: null, habitTitle: 'Đọc sách', days: 12 },
+        mostConsistentHabit: null,
+        quitHabits: [
+          { habitId: null, habitTitle: 'Thuốc lá', daysSinceLastRelapse: 40 },
+        ],
+      });
+      expect(habitHistories.findForOwner).not.toHaveBeenCalled();
+    });
+
+    it('refuses a version it does not know', () => {
+      expect(() => reader.upgrade({}, 0)).toThrow(
+        'Habit Chronicle section has no upgrade path from v0',
+      );
+    });
   });
 });

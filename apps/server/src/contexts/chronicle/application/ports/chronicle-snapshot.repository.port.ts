@@ -60,4 +60,11 @@ export interface ChronicleSnapshotRepository {
     section: ChronicleSectionToStore,
     computedAt: Date,
   ): Promise<StoredChronicleSection>;
+
+  findSectionsForOwner(
+    ownerId: string,
+    module: ChronicleModule,
+  ): Promise<Array<StoredChronicleSection & { id: string }>>;
+
+  updateSectionData(sectionId: string, data: unknown): Promise<void>;
 }

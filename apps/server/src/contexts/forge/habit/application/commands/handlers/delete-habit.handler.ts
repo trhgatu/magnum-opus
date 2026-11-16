@@ -51,9 +51,10 @@ export class DeleteHabitHandler implements ICommandHandler<
       );
     }
 
+    habit.deletePermanently();
+
     const deleted = await this.habitRepository.deletePermanently(
-      command.habitId,
-      command.ownerId,
+      habit,
       command.expectedRevision,
     );
 

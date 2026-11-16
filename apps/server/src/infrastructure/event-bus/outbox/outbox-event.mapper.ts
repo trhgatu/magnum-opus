@@ -4,6 +4,7 @@ import { JournalEntrySealedEvent } from '@reflection/journal/domain/events/journ
 import { MemoryCreatedEvent } from '@reflection/memory/domain/events/memory-created.event';
 import { NotificationCreatedEvent } from '@/contexts/notifications/domain/events/notification-created.event';
 import { ProjectCycleClosedEvent } from '@/contexts/crucible/project/domain/events/project-cycle-closed.event';
+import { HabitPermanentlyDeletedEvent } from '@/contexts/forge/habit/domain/events';
 import { ProjectCycleEndReason } from '@/contexts/crucible/project/domain/enums';
 import { DomainEvent } from '@shared/domain/events/domain-event';
 import type { Prisma } from '@repo/database';
@@ -16,6 +17,7 @@ export const OUTBOX_EVENT_TYPES = {
   JOURNAL_ENTRY_SEALED: 'relection.journal-entry.sealed.v1',
   MEMORY_CREATED: 'reflection.memory.created.v1',
   PROJECT_CYCLE_CLOSED: 'crucible.project.cycle-closed.v1',
+  HABIT_PERMANENTLY_DELETED: 'forge.habit.permanently-deleted.v1',
 } as const;
 
 export interface SerializedOutboxEvent {
@@ -156,6 +158,19 @@ const serializeEventPayload = (
     };
   }
 
+  if (event instanceof HabitPermanentlyDeletedEvent) {
+    return {
+      id: event.eventId,
+      type: OUTBOX_EVENT_TYPES.HABIT_PERMANENTLY_DELETED,
+      aggregateId: event.habitId,
+      payload: {
+        habitId: event.habitId,
+        ownerId: event.ownerId,
+      },
+      occurredAt: event.occurredOn,
+    };
+  }
+
   throw new Error(`Unsupported domain event: ${event.constructor.name}`);
 };
 
@@ -222,6 +237,12 @@ export const rehydrateDomainEvent = (
       );
       break;
     }
+    case OUTBOX_EVENT_TYPES.HABIT_PERMANENTLY_DELETED:
+      event = new HabitPermanentlyDeletedEvent(
+        requireString(payload, 'habitId'),
+        requireString(payload, 'ownerId'),
+      );
+      break;
     default:
       throw new Error(`Unsupported outbox event type: ${persisted.type}`);
   }

@@ -11,6 +11,8 @@ import { MemoryCreatedEvent } from '@/contexts/reflection/memory/domain/events/m
 import { ProjectCycleClosedEvent } from '@/contexts/crucible/project/domain/events/project-cycle-closed.event';
 import { ProjectCycleEndReason } from '@/contexts/crucible/project/domain/enums';
 import type { CaptureCycleSnapshotService } from '@/contexts/crucible/project-activity/application/services/capture-cycle-snapshot.service';
+import type { ForgetDeletedHabitService } from '@/contexts/chronicle/application/services/forget-deleted-habit.service';
+import { HabitPermanentlyDeletedEvent } from '@/contexts/forge/habit/domain/events';
 
 import {
   USER_JOBS,
@@ -38,6 +40,9 @@ describe('OutboxEventRouter', () => {
   const cycleSnapshots = {
     capture: jest.fn().mockResolvedValue(undefined),
   } as unknown as jest.Mocked<CaptureCycleSnapshotService>;
+  const forgetDeletedHabit = {
+    execute: jest.fn().mockResolvedValue(undefined),
+  } as unknown as jest.Mocked<ForgetDeletedHabitService>;
 
   const router = new OutboxEventRouter(
     cache,
@@ -46,10 +51,22 @@ describe('OutboxEventRouter', () => {
     notifications,
     timelineWriter,
     cycleSnapshots,
+    forgetDeletedHabit,
   );
 
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  it('makes Chronicle forget the title of a permanently deleted habit', async () => {
+    await router.dispatch(
+      new HabitPermanentlyDeletedEvent('habit-id', 'owner-id'),
+    );
+
+    expect(forgetDeletedHabit.execute).toHaveBeenCalledWith(
+      'owner-id',
+      'habit-id',
+    );
   });
 
   it('captures the activity snapshot of a closed cycle', async () => {

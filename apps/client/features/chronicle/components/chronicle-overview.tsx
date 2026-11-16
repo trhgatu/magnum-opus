@@ -1,4 +1,4 @@
-import type { ChronicleResponse } from "@repo/contracts";
+import type { ChronicleHabitRef, ChronicleResponse } from "@repo/contracts";
 import {
   BookOpenText,
   FolderKanban,
@@ -16,6 +16,10 @@ import {
   formatPercent,
 } from "@/features/chronicle/components/rate-bar";
 import { moodOption } from "@/features/mood/config/mood-labels";
+
+// habitTitle null: habit đã bị xóa vĩnh viễn, tên đã được quên.
+const habitName = ({ habitTitle }: ChronicleHabitRef): string =>
+  habitTitle ?? "Một thói quen đã xóa";
 
 function ChronicleGroup({
   eyebrow,
@@ -118,21 +122,21 @@ export function ChronicleOverview({
           <dl className="flex flex-col gap-3">
             <DetailRow label="Chuỗi dài nhất">
               {habit.bestStreak
-                ? `${habit.bestStreak.habitTitle} · ${habit.bestStreak.days} ngày`
+                ? `${habitName(habit.bestStreak)} · ${habit.bestStreak.days} ngày`
                 : "Chưa có"}
             </DetailRow>
             <DetailRow label="Đều đặn nhất">
               {habit.mostConsistentHabit
-                ? `${habit.mostConsistentHabit.habitTitle} · ${formatPercent(habit.mostConsistentHabit.completionRate)}`
+                ? `${habitName(habit.mostConsistentHabit)} · ${formatPercent(habit.mostConsistentHabit.completionRate)}`
                 : "Chưa có"}
             </DetailRow>
             {/* Tên thói quen do người dùng đặt nên có thể trùng. */}
             {habit.quitHabits.map((quitHabit, index) => (
               <DetailRow
-                key={`${quitHabit.habitTitle}-${index}`}
+                key={`${quitHabit.habitId ?? quitHabit.habitTitle}-${index}`}
                 label="Đang bỏ"
               >
-                {`${quitHabit.habitTitle} · ${quitHabit.daysSinceLastRelapse} ngày không tái phạm`}
+                {`${habitName(quitHabit)} · ${quitHabit.daysSinceLastRelapse} ngày không tái phạm`}
               </DetailRow>
             ))}
           </dl>

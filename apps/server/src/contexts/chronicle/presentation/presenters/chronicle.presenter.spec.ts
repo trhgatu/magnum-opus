@@ -11,9 +11,11 @@ describe('ChroniclePresenter', () => {
       sections: {
         habit: {
           buildCompletionRate: 0.78,
-          bestStreak: { habitTitle: 'Đọc sách', days: 12 },
+          bestStreak: { habitId: 'h1', habitTitle: 'Đọc sách', days: 12 },
           mostConsistentHabit: null,
-          quitHabits: [{ habitTitle: 'Thuốc lá', daysSinceLastRelapse: 40 }],
+          quitHabits: [
+            { habitId: null, habitTitle: null, daysSinceLastRelapse: 40 },
+          ],
         },
         routine: { completionRate: 0.5 },
         project: { activeCount: 2, completedCount: 1, stoppedCount: 0 },
@@ -32,9 +34,11 @@ describe('ChroniclePresenter', () => {
       computedAt: '2026-09-01T02:00:00.000Z',
       habit: {
         buildCompletionRate: 0.78,
-        bestStreak: { habitTitle: 'Đọc sách', days: 12 },
+        bestStreak: { habitId: 'h1', habitTitle: 'Đọc sách', days: 12 },
         mostConsistentHabit: null,
-        quitHabits: [{ habitTitle: 'Thuốc lá', daysSinceLastRelapse: 40 }],
+        quitHabits: [
+          { habitId: null, habitTitle: null, daysSinceLastRelapse: 40 },
+        ],
       },
       routine: { completionRate: 0.5 },
       project: { activeCount: 2, completedCount: 1, stoppedCount: 0 },

@@ -20,6 +20,8 @@ import { UserRegisteredEvent } from '@iam/users/domain/events/user-registered.ev
 import { UserDeactivatedEvent } from '@iam/users/domain/events/user-deactivated.event';
 import { JournalEntrySealedEvent } from '@reflection/journal/domain/events/journal-entry-sealed.event';
 import { MemoryCreatedEvent } from '@reflection/memory/domain/events/memory-created.event';
+import { HabitPermanentlyDeletedEvent } from '@/contexts/forge/habit/domain/events';
+import { ForgetDeletedHabitService } from '@/contexts/chronicle/application/services/forget-deleted-habit.service';
 
 import {
   TIMELINE_WRITER,
@@ -47,6 +49,7 @@ export class OutboxEventRouter {
     @Inject(TIMELINE_WRITER)
     private readonly timelineWriter: TimelineWriter,
     private readonly cycleSnapshots: CaptureCycleSnapshotService,
+    private readonly forgetDeletedHabit: ForgetDeletedHabitService,
   ) {}
 
   async dispatch(event: DomainEvent): Promise<void> {
@@ -136,6 +139,11 @@ export class OutboxEventRouter {
         cycleId: event.cycleId,
         closedAt: event.closedAt,
       });
+      return;
+    }
+
+    if (event instanceof HabitPermanentlyDeletedEvent) {
+      await this.forgetDeletedHabit.execute(event.ownerId, event.habitId);
       return;
     }
 

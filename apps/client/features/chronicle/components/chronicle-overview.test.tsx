@@ -18,9 +18,15 @@ const chronicle = (
   computedAt: "2026-10-09T15:13:00.000Z",
   habit: {
     buildCompletionRate: 39 / 43,
-    bestStreak: { habitTitle: "Đọc sách", days: 20 },
-    mostConsistentHabit: { habitTitle: "Đọc sách", completionRate: 28 / 30 },
-    quitHabits: [{ habitTitle: "Thuốc lá", daysSinceLastRelapse: 18 }],
+    bestStreak: { habitId: "h1", habitTitle: "Đọc sách", days: 20 },
+    mostConsistentHabit: {
+      habitId: "h1",
+      habitTitle: "Đọc sách",
+      completionRate: 28 / 30,
+    },
+    quitHabits: [
+      { habitId: "h2", habitTitle: "Thuốc lá", daysSinceLastRelapse: 18 },
+    ],
   },
   routine: { completionRate: 26 / 30 },
   project: { activeCount: 3, completedCount: 1, stoppedCount: 1 },
@@ -79,6 +85,30 @@ describe("ChronicleOverview", () => {
     );
     expect(
       screen.getByRole("img", { name: "Phân bố tâm trạng: Vui 2, Bình yên 4" }),
+    ).toBeInTheDocument();
+  });
+
+  it("names a permanently deleted habit without its title", () => {
+    render(
+      <ChronicleOverview
+        chronicle={chronicle({
+          habit: {
+            buildCompletionRate: 0.5,
+            bestStreak: { habitId: "h1", habitTitle: null, days: 15 },
+            mostConsistentHabit: null,
+            quitHabits: [
+              { habitId: "h2", habitTitle: null, daysSinceLastRelapse: 7 },
+            ],
+          },
+        })}
+      />,
+    );
+
+    expect(
+      screen.getByText("Một thói quen đã xóa · 15 ngày"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Một thói quen đã xóa · 7 ngày không tái phạm"),
     ).toBeInTheDocument();
   });
 
