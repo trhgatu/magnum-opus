@@ -82,13 +82,11 @@ export class OutboxRegistry implements OnModuleInit, OutboxSerializer {
         );
       }
       this.publications.set(publication.event, publication);
-      for (const legacyType of publication.as.legacyTypes) {
-        if (this.events.has(legacyType)) {
-          throw new Error(
-            `Outbox event type ${legacyType} is registered twice`,
-          );
+      for (const alias of publication.as.aliases) {
+        if (this.events.has(alias)) {
+          throw new Error(`Outbox event type ${alias} is registered twice`);
         }
-        this.events.set(legacyType, publication.as);
+        this.events.set(alias, publication.as);
       }
       this.events.set(publication.as.type, publication.as);
     }
@@ -105,7 +103,7 @@ export class OutboxRegistry implements OnModuleInit, OutboxSerializer {
       ]);
     }
 
-    // Duyệt theo publication: tên cũ (legacyTypes) không có handler riêng.
+    // Duyệt theo publication: tên cũ (aliases) không có handler riêng.
     for (const { as } of this.publications.values()) {
       if (!this.handlers.has(as.type)) {
         throw new Error(`Outbox event type ${as.type} has no handler`);
@@ -142,12 +140,20 @@ export class OutboxRegistry implements OnModuleInit, OutboxSerializer {
       occurredAt: persisted.occurredAt,
       payload: event.parse(asPayload(persisted.payload)),
     };
-    await Promise.all(
-      // Tìm handler theo tên chuẩn: row cũ có thể còn mang tên trong legacyTypes.
+    // Tìm handler theo tên chuẩn: row có thể mang tên trong aliases.
+    // allSettled: đợi mọi handler xong rồi mới báo lỗi, để lần retry không
+    // chạy chồng lên handler còn đang chạy và lúc tắt app không bỏ dở handler.
+    const results = await Promise.allSettled(
       (this.handlers.get(event.type) ?? []).map((handler) =>
         handler.handle(message),
       ),
     );
+    const failure = results.find(
+      (result): result is PromiseRejectedResult => result.status === 'rejected',
+    );
+    if (failure) {
+      throw failure.reason;
+    }
   }
 }
 

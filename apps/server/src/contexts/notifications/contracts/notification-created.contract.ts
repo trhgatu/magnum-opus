@@ -1,5 +1,6 @@
 import {
   defineIntegrationEvent,
+  requireBoolean,
   requireDate,
   requireString,
 } from '@shared/application/integration-event';
@@ -12,7 +13,7 @@ export const NotificationCreated = defineIntegrationEvent(
     title: requireString(payload, 'title'),
     content: requireString(payload, 'content'),
     type: requireString(payload, 'type'),
-    isRead: payload.isRead === true,
+    isRead: requireBoolean(payload, 'isRead'),
     createdAt: requireDate(payload, 'createdAt'),
   }),
 );

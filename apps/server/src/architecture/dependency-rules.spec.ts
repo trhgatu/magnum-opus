@@ -219,13 +219,17 @@ describe('architecture dependency rules', () => {
       'forge',
       'integrations',
     ];
-    const aliases: Array<[string, string]> = [
-      ['@iam/', 'contexts/iam/'],
-      ['@reflection/', 'contexts/reflection/'],
-      ['@integrations/', 'contexts/integrations/'],
-      ['@activity/', 'contexts/activity/'],
-      ['@/', ''],
-    ];
+    // Đọc alias từ tsconfig: thêm alias mới thì luật tự áp dụng, không lọt.
+    const { compilerOptions } = JSON.parse(
+      readFileSync(join(sourceRoot, '..', 'tsconfig.json'), 'utf8'),
+    ) as { compilerOptions: { paths: Record<string, string[]> } };
+    const aliases = Object.entries(compilerOptions.paths)
+      .map(([pattern, [target]]): [string, string] => [
+        pattern.replace(/\*$/, ''),
+        target.replace(/^\.\/src\//, '').replace(/\*$/, ''),
+      ])
+      // Alias dài khớp trước, để '@/' chỉ là phương án cuối.
+      .sort(([a], [b]) => b.length - a.length);
     const toSourcePath = (file: string, specifier: string): string | null => {
       if (specifier.startsWith('.')) {
         return relative(sourceRoot, resolve(dirname(file), specifier))
@@ -278,10 +282,12 @@ describe('architecture dependency rules', () => {
           }))
           .filter(({ target }) => {
             const other = contextOf(target);
+            const contracts = `contexts/${other}/contracts`;
             return (
               other !== null &&
               other !== own &&
-              !target.startsWith(`contexts/${other}/contracts/`)
+              target !== contracts &&
+              !target.startsWith(`${contracts}/`)
             );
           })
           .map(({ specifier }) => `${file}: ${specifier}`);

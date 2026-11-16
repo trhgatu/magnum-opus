@@ -3,13 +3,16 @@ import { OutboxHandler } from '@infrastructure/event-bus/outbox/outbox.decorator
 import { UserDeactivated } from '@iam/users/contracts/user-deactivated.contract';
 import { UserRegistered } from '@iam/users/contracts/user-registered.contract';
 
+import type { CreateNotificationService } from '../../application/services/create-notification.service';
 import { NotificationCreated } from '../../contracts/notification-created.contract';
 
 import { NotifyDeactivatedUserHandler } from './notify-deactivated-user.handler';
 import { PushCreatedNotificationHandler } from './push-created-notification.handler';
 import { WelcomeRegisteredUserHandler } from './welcome-registered-user.handler';
 
-const notifications = { execute: jest.fn().mockResolvedValue('id') };
+const notifications = {
+  execute: jest.fn().mockResolvedValue('id'),
+} as unknown as jest.Mocked<CreateNotificationService>;
 const realtime = {
   sendToUser: jest.fn(),
 } as unknown as jest.Mocked<IRealtimePort>;
@@ -31,7 +34,7 @@ describe('notification outbox handlers', () => {
 
 describe('WelcomeRegisteredUserHandler', () => {
   it('creates the welcome notification with the event id, so a replay is a no-op', async () => {
-    await new WelcomeRegisteredUserHandler(notifications as never).handle({
+    await new WelcomeRegisteredUserHandler(notifications).handle({
       eventId: 'event-id',
       occurredAt,
       payload: {
@@ -53,7 +56,7 @@ describe('WelcomeRegisteredUserHandler', () => {
 
 describe('NotifyDeactivatedUserHandler', () => {
   it('creates the deactivation warning with the event id', async () => {
-    await new NotifyDeactivatedUserHandler(notifications as never).handle({
+    await new NotifyDeactivatedUserHandler(notifications).handle({
       eventId: 'event-id',
       occurredAt,
       payload: { userId: 'user-id', email: 'user@example.com' },

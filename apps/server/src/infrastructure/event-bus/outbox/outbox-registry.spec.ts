@@ -163,6 +163,40 @@ describe('OutboxRegistry', () => {
       ).rejects.toThrow('down');
     });
 
+    it('waits for every handler to finish before reporting a failure', async () => {
+      const failing = handler();
+      failing.handle.mockRejectedValue(new Error('down'));
+      let slowFinished = false;
+      const slow: OutboxEventHandler<unknown> = {
+        handle: () =>
+          new Promise<void>((resolve) =>
+            setTimeout(() => {
+              slowFinished = true;
+              resolve();
+            }, 20),
+          ),
+      };
+      const registry = createRegistry();
+      registry.register(
+        [thingHappened],
+        [
+          { event: ThingHappened, handler: failing },
+          { event: ThingHappened, handler: slow },
+        ],
+      );
+
+      await expect(
+        registry.dispatch({
+          id: 'event-id',
+          type: 'test.thing.happened.v1',
+          payload: { thingId: 'thing-id' },
+          occurredAt,
+        }),
+      ).rejects.toThrow('down');
+      // Retry chỉ được lên lịch khi không còn handler nào đang chạy dở.
+      expect(slowFinished).toBe(true);
+    });
+
     it('rejects an unknown persisted type and a malformed payload', async () => {
       const registry = createRegistry();
       registry.register(

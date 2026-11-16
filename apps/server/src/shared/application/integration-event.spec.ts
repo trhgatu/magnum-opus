@@ -1,5 +1,6 @@
 import {
   defineIntegrationEvent,
+  requireBoolean,
   requireDate,
   requireString,
 } from '@shared/application/integration-event';
@@ -36,5 +37,20 @@ describe('requireDate', () => {
     const at = new Date('2026-11-16T03:00:00.000Z');
 
     expect(requireDate({ at: at.toISOString() }, 'at')).toEqual(at);
+  });
+});
+
+describe('payload readers reject malformed values', () => {
+  it('rejects a string that is not a date', () => {
+    expect(() => requireDate({ at: 'yesterday' }, 'at')).toThrow(
+      'Outbox payload property "at" must be a valid date',
+    );
+  });
+
+  it('reads a boolean and rejects anything else', () => {
+    expect(requireBoolean({ isRead: false }, 'isRead')).toBe(false);
+    expect(() => requireBoolean({ isRead: 'false' }, 'isRead')).toThrow(
+      'Outbox payload property "isRead" must be a boolean',
+    );
   });
 });

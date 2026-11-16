@@ -86,6 +86,11 @@ describe('PrismaMemoryRepository', () => {
             id: createdEvent.eventId,
             type: 'reflection.memory.created.v1',
             aggregateId: aggregate.id,
+            payload: {
+              memoryId: aggregate.id,
+              ownerId: aggregate.ownerId,
+              memoryOccurredOn: '2024-08-01T00:00:00.000Z',
+            },
           }),
         ],
       });

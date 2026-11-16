@@ -20,6 +20,7 @@ import { OutboxPublisher } from './outbox.decorators';
 const at = new Date('2026-11-16T03:00:00.000Z');
 
 interface PublicationCase {
+  name: string;
   publisher: object;
   event: DomainEvent;
   type: string;
@@ -30,6 +31,7 @@ interface PublicationCase {
 // Chuỗi type đã nằm trong DB: test khóa từng chuỗi để không ai đổi nhầm.
 const cases: PublicationCase[] = [
   {
+    name: 'UserRegistered',
     publisher: UsersOutbox,
     event: new UserRegisteredEvent('user-id', 'user@example.com', 'user'),
     type: 'iam.user.registered.v1',
@@ -37,6 +39,7 @@ const cases: PublicationCase[] = [
     parsed: { userId: 'user-id', email: 'user@example.com', username: 'user' },
   },
   {
+    name: 'UserDeactivated',
     publisher: UsersOutbox,
     event: new UserDeactivatedEvent('user-id', 'user@example.com'),
     type: 'iam.user.deactivated.v1',
@@ -44,6 +47,7 @@ const cases: PublicationCase[] = [
     parsed: { userId: 'user-id', email: 'user@example.com' },
   },
   {
+    name: 'NotificationCreated',
     publisher: NotificationsOutbox,
     event: new NotificationCreatedEvent(
       'notification-id',
@@ -67,13 +71,15 @@ const cases: PublicationCase[] = [
     },
   },
   {
+    name: 'JournalEntrySealed',
     publisher: JournalOutbox,
     event: new JournalEntrySealedEvent('entry-id', 'owner-id', at),
-    type: 'reflection.journal-entry.sealed.v1',
+    type: 'relection.journal-entry.sealed.v1',
     aggregateId: 'entry-id',
     parsed: { journalEntryId: 'entry-id', ownerId: 'owner-id', sealedAt: at },
   },
   {
+    name: 'MemoryCreated with a date',
     publisher: MemoryOutbox,
     event: new MemoryCreatedEvent('memory-id', 'owner-id', at),
     type: 'reflection.memory.created.v1',
@@ -85,6 +91,7 @@ const cases: PublicationCase[] = [
     },
   },
   {
+    name: 'MemoryCreated without a date',
     publisher: MemoryOutbox,
     event: new MemoryCreatedEvent('memory-id', 'owner-id', null),
     type: 'reflection.memory.created.v1',
@@ -96,6 +103,7 @@ const cases: PublicationCase[] = [
     },
   },
   {
+    name: 'ProjectCycleClosed',
     publisher: ProjectOutbox,
     event: new ProjectCycleClosedEvent(
       'project-id',
@@ -115,6 +123,7 @@ const cases: PublicationCase[] = [
     },
   },
   {
+    name: 'HabitPermanentlyDeleted',
     publisher: HabitOutbox,
     event: new HabitPermanentlyDeletedEvent('habit-id', 'owner-id'),
     type: 'forge.habit.permanently-deleted.v1',
@@ -140,7 +149,7 @@ const publicationFor = (
 
 describe('outbox publications', () => {
   it.each(cases)(
-    '$type keeps its persisted name and round-trips the payload',
+    '$name keeps its persisted type $type and round-trips the payload',
     ({ publisher, event, type, aggregateId, parsed }) => {
       const publication = publicationFor(publisher, event);
 
@@ -154,14 +163,14 @@ describe('outbox publications', () => {
     },
   );
 
-  it('still reads Journal rows stored under the old misspelled type', () => {
+  it('already reads Journal rows under the corrected type (rename step 1 of 3)', () => {
     const publication = publicationFor(
       JournalOutbox,
       new JournalEntrySealedEvent('entry-id', 'owner-id', at),
     );
 
-    expect(publication.as.legacyTypes).toEqual([
-      'relection.journal-entry.sealed.v1',
+    expect(publication.as.aliases).toEqual([
+      'reflection.journal-entry.sealed.v1',
     ]);
   });
 
