@@ -1,3 +1,5 @@
+import { outboxSerializerFor } from '@infrastructure/event-bus/outbox/testing/outbox-serializer.testing';
+import { HabitOutbox } from '../outbox/habit.outbox';
 import {
   Habit as PrismaHabit,
   HabitFrequencyType as PrismaHabitFrequencyType,
@@ -61,7 +63,10 @@ describe('PrismaHabitRepository', () => {
     ),
   };
 
-  const repository = new PrismaHabitRepository(prisma as never);
+  const repository = new PrismaHabitRepository(
+    prisma as never,
+    outboxSerializerFor(HabitOutbox),
+  );
 
   beforeEach(() => {
     jest.clearAllMocks();

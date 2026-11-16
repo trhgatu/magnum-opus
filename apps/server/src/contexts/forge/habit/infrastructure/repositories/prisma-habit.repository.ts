@@ -16,8 +16,7 @@ import {
   PrismaHabitMapper,
 } from '../mappers/prisma-habit.mapper';
 
-import { serializeDomainEvent } from '@infrastructure/event-bus/outbox/outbox-event.mapper';
-
+import { OutboxSerializer } from '@infrastructure/event-bus/outbox/outbox-publication';
 interface HabitHistoryWrites {
   transitions: HabitLifecycleTransitionPersistence[];
   scheduleVersions: HabitScheduleVersionPersistence[];
@@ -25,14 +24,15 @@ interface HabitHistoryWrites {
 
 @Injectable()
 export class PrismaHabitRepository implements HabitRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly outbox: OutboxSerializer,
+  ) {}
 
   public async create(habit: Habit): Promise<void> {
     const raw = PrismaHabitMapper.toPersistence(habit);
     const { scheduleVersions } = PrismaHabitRepository.pullHistory(habit);
 
-    // Phiên bản tần suất ban đầu ghi cùng transaction với Habit: không bao giờ
-    // có Habit BUILD thiếu phiên bản đang mở (02 §5).
     await this.prisma.$transaction(async (transaction) => {
       await transaction.habit.create({ data: raw });
 
@@ -52,9 +52,6 @@ export class PrismaHabitRepository implements HabitRepository {
     const { transitions, scheduleVersions } =
       PrismaHabitRepository.pullHistory(habit);
 
-    // Lịch sử lifecycle và tần suất ghi cùng transaction với optimistic
-    // update: revision lệch thì không có dòng lịch sử nào được ghi
-    // (DAP-FTH-003).
     return this.prisma.$transaction(async (transaction) => {
       const result = await transaction.habit.updateMany({
         where: {
@@ -110,7 +107,6 @@ export class PrismaHabitRepository implements HabitRepository {
           orderBy: [{ effectiveOn: 'desc' }, { occurredAt: 'desc' }],
           take: 1,
         },
-        // Partial unique index bảo đảm tối đa 1 phiên bản đang mở.
         scheduleVersions: {
           select: { effectiveFrom: true },
           where: { effectiveTo: null },
@@ -126,7 +122,9 @@ export class PrismaHabitRepository implements HabitRepository {
     habit: Habit,
     expectedRevision: number,
   ): Promise<boolean> {
-    const outboxEvents = habit.getDomainEvents().map(serializeDomainEvent);
+    const outboxEvents = habit
+      .getDomainEvents()
+      .map((event) => this.outbox.serialize(event));
 
     const deleted = await this.prisma.$transaction(async (tx) => {
       const result = await tx.habit.deleteMany({
@@ -172,9 +170,6 @@ export class PrismaHabitRepository implements HabitRepository {
     };
   }
 
-  // Lịch sử chỉ có 2 thao tác ghi (KD-FTH-006): đóng phiên bản đang mở tại
-  // ngày bắt đầu của phiên bản mới, rồi thêm phiên bản mới. Ghi tuần tự theo
-  // thứ tự event để partial unique index "1 phiên bản mở / Habit" luôn đúng.
   private static async writeScheduleVersions(
     transaction: Prisma.TransactionClient,
     versions: HabitScheduleVersionPersistence[],

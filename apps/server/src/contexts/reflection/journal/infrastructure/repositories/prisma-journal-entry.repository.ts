@@ -5,8 +5,7 @@ import {
 } from '@repo/database';
 
 import { PrismaService } from '@infrastructure/database/prisma.service';
-import { serializeDomainEvent } from '@infrastructure/event-bus/outbox/outbox-event.mapper';
-
+import { OutboxSerializer } from '@infrastructure/event-bus/outbox/outbox-publication';
 import { JournalEntry } from '../../domain/journal-entry.aggregate';
 import {
   FindJournalEntriesOptions,
@@ -16,7 +15,10 @@ import { PrismaJournalEntryMapper } from '../mappers/prisma-journal-entry.mapper
 
 @Injectable()
 export class PrismaJournalEntryRepository implements JournalEntryRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly outbox: OutboxSerializer,
+  ) {}
 
   public async create(entry: JournalEntry): Promise<void> {
     const raw = PrismaJournalEntryMapper.toPersistence(entry);
@@ -31,7 +33,9 @@ export class PrismaJournalEntryRepository implements JournalEntryRepository {
     expectedRevision: number,
   ): Promise<boolean> {
     const raw = PrismaJournalEntryMapper.toPersistence(entry);
-    const outboxEvents = entry.getDomainEvents().map(serializeDomainEvent);
+    const outboxEvents = entry
+      .getDomainEvents()
+      .map((event) => this.outbox.serialize(event));
 
     const updated = await this.prisma.$transaction(async (tx) => {
       const result = await tx.journalEntry.updateMany({

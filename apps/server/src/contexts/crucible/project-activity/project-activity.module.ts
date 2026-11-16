@@ -5,6 +5,7 @@ import { ActivityModule } from '@activity/activity.module';
 
 import { LinkActivitySourceHandler } from './application/commands/handlers/link-activity-source.handler';
 import { UnlinkActivitySourceHandler } from './application/commands/handlers/unlink-activity-source.handler';
+import { CaptureCycleSnapshotHandler } from './infrastructure/outbox/capture-cycle-snapshot.handler';
 import { ACCOUNT_TIME_ZONE_READER } from './application/ports/account-time-zone-reader.port';
 import { CLOCK } from './application/ports/clock.port';
 import { PROJECT_DECLARATION_READER } from './application/ports/project-declaration-reader.port';
@@ -52,8 +53,8 @@ import { ProjectActivityController } from './presentation/controllers/project-ac
     ListActivitySourcesHandler,
     ListCycleSnapshotsHandler,
     CaptureCycleSnapshotService,
+    CaptureCycleSnapshotHandler,
   ],
-  // Outbox chụp snapshot khi nhận ProjectCycleClosed.
   exports: [CaptureCycleSnapshotService],
 })
 export class ProjectActivityModule {}

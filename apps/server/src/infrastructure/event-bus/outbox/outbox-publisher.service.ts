@@ -5,11 +5,10 @@ import {
   OnApplicationShutdown,
   OnModuleDestroy,
 } from '@nestjs/common';
+import { OutboxRegistry } from './outbox-registry';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@infrastructure/database/prisma.service';
-import { rehydrateDomainEvent } from './outbox-event.mapper';
 import type { OutboxEvent } from '@repo/database';
-import { OutboxEventRouter } from './outbox-event.router';
 import { runWithCorrelationId } from '@infrastructure/observability/correlation-context';
 
 const OUTBOX_STATUS = {
@@ -40,7 +39,7 @@ export class OutboxPublisherService
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly router: OutboxEventRouter,
+    private readonly registry: OutboxRegistry,
     private readonly configService: ConfigService,
   ) {}
 
@@ -191,12 +190,10 @@ export class OutboxPublisherService
     if (claimed.count === 0) return;
 
     try {
-      const event = rehydrateDomainEvent(candidate);
-      // Chạy dispatch bên trong context của request gốc: log của router và
-      // job đẩy vào queue đều mang cùng correlation ID.
       await runWithCorrelationId(candidate.correlationId ?? '', () =>
-        this.router.dispatch(event),
+        this.registry.dispatch(candidate),
       );
+
       await this.prisma.outboxEvent.update({
         where: { id: candidate.id },
         data: {

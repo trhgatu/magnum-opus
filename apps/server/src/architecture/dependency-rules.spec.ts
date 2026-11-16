@@ -1,5 +1,5 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { basename, dirname, join } from 'node:path';
+import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 
 const sourceRoot = join(__dirname, '..');
 
@@ -196,6 +196,105 @@ describe('architecture dependency rules', () => {
     expect(
       sharedDomainFiles.filter((file) => file.includes(join('domain', 'base'))),
     ).toEqual([]);
+  });
+
+  describe('integration events', () => {
+    const importsOf = (file: string): string[] =>
+      [...readFileSync(file, 'utf8').matchAll(/from ['"]([^'"]+)['"]/g)].map(
+        (match) => match[1],
+      );
+    const contextFiles = collectTypeScriptFiles(join(sourceRoot, 'contexts'));
+    const contractFiles = contextFiles.filter((file) =>
+      file.includes(`${join('', 'contracts')}`),
+    );
+    const outboxAdapterFiles = contextFiles.filter((file) =>
+      file.includes(join('infrastructure', 'outbox')),
+    );
+
+    // Các nhóm có nhiều bounded context con: iam/users, forge/habit, ...
+    const contextGroups = [
+      'iam',
+      'reflection',
+      'crucible',
+      'forge',
+      'integrations',
+    ];
+    // Đọc alias từ tsconfig: thêm alias mới thì luật tự áp dụng, không lọt.
+    const { compilerOptions } = JSON.parse(
+      readFileSync(join(sourceRoot, '..', 'tsconfig.json'), 'utf8'),
+    ) as { compilerOptions: { paths: Record<string, string[]> } };
+    const aliases = Object.entries(compilerOptions.paths)
+      .map(([pattern, [target]]): [string, string] => [
+        pattern.replace(/\*$/, ''),
+        target.replace(/^\.\/src\//, '').replace(/\*$/, ''),
+      ])
+      // Alias dài khớp trước, để '@/' chỉ là phương án cuối.
+      .sort(([a], [b]) => b.length - a.length);
+    const toSourcePath = (file: string, specifier: string): string | null => {
+      if (specifier.startsWith('.')) {
+        return relative(sourceRoot, resolve(dirname(file), specifier))
+          .split(sep)
+          .join('/');
+      }
+      const alias = aliases.find(([prefix]) => specifier.startsWith(prefix));
+      return alias ? alias[1] + specifier.slice(alias[0].length) : null;
+    };
+    const contextOf = (sourcePath: string): string | null => {
+      const [root, group, child] = sourcePath.split('/');
+      if (root !== 'contexts') return null;
+      return contextGroups.includes(group) ? `${group}/${child}` : group;
+    };
+
+    it('keeps published contracts free of domain, application and infrastructure code', () => {
+      // Hợp đồng công khai chỉ được dựa vào @shared và chính thư mục contracts.
+      const violations = contractFiles.flatMap((file) =>
+        importsOf(file)
+          .filter(
+            (specifier) =>
+              !specifier.startsWith('@shared/') && !specifier.startsWith('./'),
+          )
+          .map((specifier) => `${file}: ${specifier}`),
+      );
+
+      expect(violations).toEqual([]);
+    });
+
+    it('keeps the outbox core unaware of every bounded context', () => {
+      const outboxCoreFiles = collectTypeScriptFiles(
+        join(sourceRoot, 'infrastructure', 'event-bus'),
+      );
+      const violations = outboxCoreFiles.flatMap((file) =>
+        importsOf(file)
+          .filter((specifier) => contextOf(toSourcePath(file, specifier) ?? ''))
+          .map((specifier) => `${file}: ${specifier}`),
+      );
+
+      expect(violations).toEqual([]);
+    });
+
+    it('lets outbox adapters reach other contexts only through their contracts', () => {
+      const violations = outboxAdapterFiles.flatMap((file) => {
+        const own = contextOf(relative(sourceRoot, file).split(sep).join('/'));
+        return importsOf(file)
+          .map((specifier) => ({
+            specifier,
+            target: toSourcePath(file, specifier) ?? '',
+          }))
+          .filter(({ target }) => {
+            const other = contextOf(target);
+            const contracts = `contexts/${other}/contracts`;
+            return (
+              other !== null &&
+              other !== own &&
+              target !== contracts &&
+              !target.startsWith(`${contracts}/`)
+            );
+          })
+          .map(({ specifier }) => `${file}: ${specifier}`);
+      });
+
+      expect(violations).toEqual([]);
+    });
   });
 
   it('names each bounded-context composition root after its directory', () => {

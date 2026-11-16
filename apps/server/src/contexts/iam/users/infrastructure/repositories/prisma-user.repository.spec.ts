@@ -1,3 +1,5 @@
+import { outboxSerializerFor } from '@infrastructure/event-bus/outbox/testing/outbox-serializer.testing';
+import { UsersOutbox } from '../outbox/users.outbox';
 import type { PrismaService } from '@infrastructure/database/prisma.service';
 import { UserEntity } from '../../domain/user.entity';
 import { PrismaUserRepository } from './prisma-user.repository';
@@ -23,7 +25,10 @@ describe('PrismaUserRepository administrator invariant', () => {
           callback(transaction),
       ),
     } as unknown as PrismaService;
-    const repository = new PrismaUserRepository(prisma);
+    const repository = new PrismaUserRepository(
+      prisma,
+      outboxSerializerFor(UsersOutbox),
+    );
     const administrator = UserEntity.register({
       id: 'admin-id',
       email: 'admin@example.com',
@@ -47,9 +52,12 @@ describe('PrismaUserRepository administrator invariant', () => {
 describe('PrismaUserRepository.changePassword', () => {
   it('updates only an active credential and increments tokenVersion atomically', async () => {
     const updateMany = jest.fn().mockResolvedValue({ count: 1 });
-    const repository = new PrismaUserRepository({
-      user: { updateMany },
-    } as unknown as PrismaService);
+    const repository = new PrismaUserRepository(
+      {
+        user: { updateMany },
+      } as unknown as PrismaService,
+      outboxSerializerFor(UsersOutbox),
+    );
 
     await expect(
       repository.changePassword('user-id', 'new-hash'),
@@ -68,9 +76,12 @@ describe('PrismaUserRepository.changePassword', () => {
 describe('PrismaUserRepository.changeTimeZone', () => {
   it('writes only the time zone column and records who changed it', async () => {
     const updateMany = jest.fn().mockResolvedValue({ count: 1 });
-    const repository = new PrismaUserRepository({
-      user: { updateMany },
-    } as unknown as PrismaService);
+    const repository = new PrismaUserRepository(
+      {
+        user: { updateMany },
+      } as unknown as PrismaService,
+      outboxSerializerFor(UsersOutbox),
+    );
 
     await expect(
       repository.changeTimeZone('user-id', 'Asia/Ho_Chi_Minh', 'user-id'),
@@ -86,9 +97,12 @@ describe('PrismaUserRepository.changeTimeZone', () => {
   });
 
   it('reports a missing or deleted user', async () => {
-    const repository = new PrismaUserRepository({
-      user: { updateMany: jest.fn().mockResolvedValue({ count: 0 }) },
-    } as unknown as PrismaService);
+    const repository = new PrismaUserRepository(
+      {
+        user: { updateMany: jest.fn().mockResolvedValue({ count: 0 }) },
+      } as unknown as PrismaService,
+      outboxSerializerFor(UsersOutbox),
+    );
 
     await expect(
       repository.changeTimeZone('gone', 'UTC', 'gone'),
@@ -113,9 +127,12 @@ describe('PrismaUserRepository.save', () => {
       role: { findMany: jest.fn().mockResolvedValue([]), findFirst: jest.fn() },
       outboxEvent: { createMany: jest.fn() },
     };
-    const repository = new PrismaUserRepository({
-      $transaction: (run: (client: typeof tx) => Promise<void>) => run(tx),
-    } as unknown as PrismaService);
+    const repository = new PrismaUserRepository(
+      {
+        $transaction: (run: (client: typeof tx) => Promise<void>) => run(tx),
+      } as unknown as PrismaService,
+      outboxSerializerFor(UsersOutbox),
+    );
     const user = UserEntity.register({
       id: 'user-id',
       email: 'member@example.com',

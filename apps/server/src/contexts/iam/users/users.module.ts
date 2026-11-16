@@ -1,3 +1,4 @@
+import { UsersOutbox } from './infrastructure/outbox/users.outbox';
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { BullModule } from '@nestjs/bullmq';
@@ -12,6 +13,8 @@ import { DeleteUserCommandHandler } from './application/commands/handlers/delete
 import { ActivateUserCommandHandler } from './application/commands/handlers/activate-user.handler';
 import { UpdateUserCommandHandler } from './application/commands/handlers/update-user.handler';
 import { UpdateMyTimeZoneHandler } from './application/commands/handlers/update-my-time-zone.handler';
+import { SendWelcomeEmailHandler } from './infrastructure/outbox/send-welcome-email.handler';
+import { EndDeactivatedUserAccessHandler } from './infrastructure/outbox/end-deactivated-user-access.handler';
 import { USER_QUEUE } from './application/jobs/user-email.jobs';
 import { USER_REPOSITORY } from './domain/ports/user.repository';
 import { PASSWORD_HASHER } from './application/ports/password-hasher.port';
@@ -22,6 +25,7 @@ import { PASSWORD_HASHER } from './application/ports/password-hasher.port';
   imports: [CqrsModule, BullModule.registerQueue({ name: USER_QUEUE })],
   controllers: [UserController],
   providers: [
+    UsersOutbox,
     {
       provide: USER_REPOSITORY,
       useClass: PrismaUserRepository,
@@ -38,6 +42,8 @@ import { PASSWORD_HASHER } from './application/ports/password-hasher.port';
     ActivateUserCommandHandler,
     UpdateUserCommandHandler,
     UpdateMyTimeZoneHandler,
+    SendWelcomeEmailHandler,
+    EndDeactivatedUserAccessHandler,
   ],
   exports: [USER_REPOSITORY, PASSWORD_HASHER, BullModule],
 })

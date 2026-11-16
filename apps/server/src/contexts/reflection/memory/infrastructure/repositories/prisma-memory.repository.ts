@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { MemoryState as PrismaMemoryState, Prisma } from '@repo/database';
 
-import { serializeDomainEvent } from '@infrastructure/event-bus/outbox/outbox-event.mapper';
+import { OutboxSerializer } from '@infrastructure/event-bus/outbox/outbox-publication';
 import { PrismaService } from '@infrastructure/database/prisma.service';
 
 import { MemoryState } from '../../domain/enums';
@@ -21,11 +21,16 @@ const persistenceStates: Record<MemoryState, PrismaMemoryState> = {
 
 @Injectable()
 export class PrismaMemoryRepository implements MemoryRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly outbox: OutboxSerializer,
+  ) {}
 
   public async create(memory: Memory): Promise<void> {
     const raw = PrismaMemoryMapper.toPersistence(memory);
-    const outboxEvents = memory.getDomainEvents().map(serializeDomainEvent);
+    const outboxEvents = memory
+      .getDomainEvents()
+      .map((event) => this.outbox.serialize(event));
 
     await this.prisma.$transaction(async (tx) => {
       await tx.memory.create({

@@ -1,3 +1,5 @@
+import { outboxSerializerFor } from '@infrastructure/event-bus/outbox/testing/outbox-serializer.testing';
+import { ProjectOutbox } from '../outbox/project.outbox';
 import type { Project as PrismaProject } from '@repo/database';
 
 import { Project } from '../../domain/project.aggregate';
@@ -43,7 +45,10 @@ describe('PrismaProjectRepository', () => {
     ),
   };
 
-  const repository = new PrismaProjectRepository(prisma as never);
+  const repository = new PrismaProjectRepository(
+    prisma as never,
+    outboxSerializerFor(ProjectOutbox),
+  );
 
   beforeEach(() => {
     jest.clearAllMocks();
