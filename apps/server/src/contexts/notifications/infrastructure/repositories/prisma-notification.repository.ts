@@ -4,17 +4,19 @@ import { PrismaService } from '@infrastructure/database/prisma.service';
 import { NotificationRepository } from '../../domain/ports/notification.repository';
 import { NotificationEntity } from '../../domain/notification.entity';
 import { NotificationMapper } from '../mappers/notification.mapper';
-import { serializeDomainEvent } from '@infrastructure/event-bus/outbox/outbox-event.mapper';
-
+import { OutboxSerializer } from '@infrastructure/event-bus/outbox/outbox-publication';
 @Injectable()
 export class PrismaNotificationRepository implements NotificationRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly outbox: OutboxSerializer,
+  ) {}
 
   async createIfAbsent(notification: NotificationEntity): Promise<boolean> {
     const raw = NotificationMapper.toPersistence(notification);
     const outboxEvents = notification
       .getDomainEvents()
-      .map(serializeDomainEvent);
+      .map((event) => this.outbox.serialize(event));
 
     try {
       await this.prisma.$transaction(async (tx) => {

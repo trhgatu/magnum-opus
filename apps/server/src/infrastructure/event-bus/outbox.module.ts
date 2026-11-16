@@ -1,20 +1,17 @@
-import { Module, Global } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
+import { DiscoveryModule } from '@nestjs/core';
 import { OutboxPublisherService } from './outbox/outbox-publisher.service';
-import { OutboxEventRouter } from './outbox/outbox-event.router';
-import { NotificationsModule } from '@/contexts/notifications/notifications.module';
-import { TimelineModule } from '@/contexts/reflection/timeline/timeline.module';
-import { ProjectActivityModule } from '@/contexts/crucible/project-activity/project-activity.module';
-import { ChronicleModule } from '@/contexts/chronicle/chronicle.module';
+import { OutboxRegistry } from './outbox/outbox-registry';
+import { OutboxSerializer } from './outbox/outbox-publication';
 
 @Global()
 @Module({
-  imports: [
-    NotificationsModule,
-    TimelineModule,
-    ProjectActivityModule,
-    ChronicleModule,
+  imports: [DiscoveryModule],
+  providers: [
+    OutboxRegistry,
+    { provide: OutboxSerializer, useExisting: OutboxRegistry },
+    OutboxPublisherService,
   ],
-  providers: [OutboxEventRouter, OutboxPublisherService],
-  exports: [OutboxPublisherService],
+  exports: [OutboxSerializer, OutboxPublisherService],
 })
 export class OutboxModule {}

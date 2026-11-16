@@ -22,6 +22,7 @@ import { PrismaRoutineChronicleReader } from './infrastructure/readers/prisma-ro
 import { PrismaChronicleSnapshotRepository } from './infrastructure/repositories/prisma-chronicle-snapshot.repository';
 import { ChronicleController } from './presentation/controllers/chronicle.controller';
 import { ForgetDeletedHabitService } from './application/services/forget-deleted-habit.service';
+import { ForgetDeletedHabitHandler } from './infrastructure/outbox/forget-deleted-habit.handler';
 
 const SECTION_READERS = [
   PrismaHabitChronicleReader,
@@ -56,8 +57,8 @@ const SECTION_READERS = [
         ChronicleSectionReaderRegistry.from(readers),
       inject: [CHRONICLE_SECTION_READERS],
     },
+    ForgetDeletedHabitHandler,
     GetMonthlyChronicleHandler,
   ],
-  exports: [ForgetDeletedHabitService],
 })
 export class ChronicleModule {}

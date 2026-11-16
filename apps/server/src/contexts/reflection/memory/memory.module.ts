@@ -1,3 +1,4 @@
+import { MemoryOutbox } from './infrastructure/outbox/memory.outbox';
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 
@@ -28,6 +29,7 @@ const queryHandlers = [GetMemoriesHandler, GetMemoryHandler];
   imports: [CqrsModule],
   controllers: [MemoryController],
   providers: [
+    MemoryOutbox,
     {
       provide: MEMORY_REPOSITORY,
       useClass: PrismaMemoryRepository,

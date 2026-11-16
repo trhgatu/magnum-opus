@@ -1,3 +1,5 @@
+import { outboxSerializerFor } from '@infrastructure/event-bus/outbox/testing/outbox-serializer.testing';
+import { NotificationsOutbox } from '../outbox/notifications.outbox';
 import { Prisma } from '@repo/database';
 
 import { NotificationEntity } from '../../domain/notification.entity';
@@ -20,7 +22,10 @@ describe('PrismaNotificationRepository', () => {
       callback(prisma),
     ),
   };
-  const repository = new PrismaNotificationRepository(prisma as never);
+  const repository = new PrismaNotificationRepository(
+    prisma as never,
+    outboxSerializerFor(NotificationsOutbox),
+  );
 
   beforeEach(() => jest.clearAllMocks());
 

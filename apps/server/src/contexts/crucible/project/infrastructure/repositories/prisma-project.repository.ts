@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import { PrismaService } from '@infrastructure/database/prisma.service';
-import { serializeDomainEvent } from '@infrastructure/event-bus/outbox/outbox-event.mapper';
-
+import { OutboxSerializer } from '@infrastructure/event-bus/outbox/outbox-publication';
 import { Project } from '../../domain/project.aggregate';
 import { ProjectRepository } from '../../domain/ports/project.repository';
 import { PrismaProjectMapper } from '../mappers/prisma-project.mapper';
@@ -13,7 +12,10 @@ import {
 
 @Injectable()
 export class PrismaProjectRepository implements ProjectRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly outbox: OutboxSerializer,
+  ) {}
 
   public async create(project: Project): Promise<void> {
     const raw = PrismaProjectMapper.toPersistence(project);
@@ -38,7 +40,7 @@ export class PrismaProjectRepository implements ProjectRepository {
     // Cycle khép → outbox, cùng transaction: không có lần khép nào mất event.
     const outboxEvents = events
       .filter((event) => event instanceof ProjectCycleClosedEvent)
-      .map(serializeDomainEvent);
+      .map((event) => this.outbox.serialize(event));
 
     return this.prisma.$transaction(async (transaction) => {
       const result = await transaction.project.updateMany({

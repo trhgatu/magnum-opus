@@ -1,10 +1,10 @@
+import { outboxSerializerFor } from '@infrastructure/event-bus/outbox/testing/outbox-serializer.testing';
+import { MemoryOutbox } from '../outbox/memory.outbox';
 import {
   Memory as PrismaMemory,
   MemoryDatePrecision as PrismaMemoryDatePrecision,
   MemoryState as PrismaMemoryState,
 } from '@repo/database';
-
-import { serializeDomainEvent } from '@infrastructure/event-bus/outbox/outbox-event.mapper';
 
 import { MemoryDatePrecision, MemoryState } from '../../domain/enums';
 import { Memory, type MemoryProps } from '../../domain/memory.aggregate';
@@ -38,7 +38,10 @@ describe('PrismaMemoryRepository', () => {
     }),
   };
 
-  const repository = new PrismaMemoryRepository(prisma as never);
+  const repository = new PrismaMemoryRepository(
+    prisma as never,
+    outboxSerializerFor(MemoryOutbox),
+  );
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -78,7 +81,13 @@ describe('PrismaMemoryRepository', () => {
       await repository.create(aggregate);
 
       expect(outboxEvent.createMany).toHaveBeenCalledWith({
-        data: [serializeDomainEvent(createdEvent)],
+        data: [
+          expect.objectContaining({
+            id: createdEvent.eventId,
+            type: 'reflection.memory.created.v1',
+            aggregateId: aggregate.id,
+          }),
+        ],
       });
       expect(aggregate.getDomainEvents()).toEqual([]);
     });

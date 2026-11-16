@@ -1,9 +1,9 @@
+import { outboxSerializerFor } from '@infrastructure/event-bus/outbox/testing/outbox-serializer.testing';
+import { JournalOutbox } from '../outbox/journal.outbox';
 import {
   JournalEntry as PrismaJournalEntry,
   JournalEntryState as PrismaJournalEntryState,
 } from '@repo/database';
-
-import { serializeDomainEvent } from '@infrastructure/event-bus/outbox/outbox-event.mapper';
 
 import { JournalEntryState } from '../../domain/enums';
 import { JournalEntry } from '../../domain/journal-entry.aggregate';
@@ -37,7 +37,10 @@ describe('PrismaJournalEntryRepository', () => {
     }),
   };
 
-  const repository = new PrismaJournalEntryRepository(prisma as never);
+  const repository = new PrismaJournalEntryRepository(
+    prisma as never,
+    outboxSerializerFor(JournalOutbox),
+  );
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -113,7 +116,13 @@ describe('PrismaJournalEntryRepository', () => {
 
       expect(updated).toBe(true);
       expect(outboxEvent.createMany).toHaveBeenCalledWith({
-        data: [serializeDomainEvent(sealedEvent)],
+        data: [
+          expect.objectContaining({
+            id: sealedEvent.eventId,
+            type: 'reflection.journal-entry.sealed.v1',
+            aggregateId: entry.id,
+          }),
+        ],
       });
       // Aggregate không nên giữ lại event đã ghi thành công, tránh outbox
       // ghi trùng nếu cùng entry được update() một lần nữa.

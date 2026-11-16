@@ -1,3 +1,4 @@
+import { JournalOutbox } from './infrastructure/outbox/journal.outbox';
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 
@@ -31,6 +32,7 @@ const queryHandlers = [GetJournalEntriesHandler, GetJournalEntryHandler];
   imports: [CqrsModule],
   controllers: [JournalController],
   providers: [
+    JournalOutbox,
     {
       provide: JOURNAL_ENTRY_REPOSITORY,
       useClass: PrismaJournalEntryRepository,

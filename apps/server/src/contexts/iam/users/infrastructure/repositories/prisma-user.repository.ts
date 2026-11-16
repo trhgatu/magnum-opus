@@ -7,12 +7,15 @@ import {
 import { UserEntity } from '../../domain/user.entity';
 import { PrismaUserMapper } from '../mappers/prisma-user.mapper';
 import * as crypto from 'crypto';
-import { serializeDomainEvent } from '@infrastructure/event-bus/outbox/outbox-event.mapper';
+import { OutboxSerializer } from '@infrastructure/event-bus/outbox/outbox-publication';
 import type { Prisma } from '@repo/database';
 
 @Injectable()
 export class PrismaUserRepository implements UserRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly outbox: OutboxSerializer,
+  ) {}
 
   async save(user: UserEntity): Promise<void> {
     await this.prisma.$transaction((tx) => this.persist(tx, user));
@@ -71,7 +74,9 @@ export class PrismaUserRepository implements UserRepository {
     user: UserEntity,
   ): Promise<void> {
     const data = user.toPrimitives();
-    const outboxEvents = user.getDomainEvents().map(serializeDomainEvent);
+    const outboxEvents = user
+      .getDomainEvents()
+      .map((event) => this.outbox.serialize(event));
     const isNewUser = !(await tx.user.findFirst({ where: { id: data.id } }));
 
     await tx.user.upsert({
@@ -84,8 +89,6 @@ export class PrismaUserRepository implements UserRepository {
         isActive: data.isActive,
         isDeleted: data.isDeleted,
         tokenVersion: data.tokenVersion,
-        // timeZone cố ý không có ở đây: chỉ changeTimeZone() được ghi nó,
-        // để lần lưu hồ sơ/vai trò từ snapshot cũ không ghi đè lựa chọn mới.
         emailVerifiedAt: data.emailVerifiedAt,
         updatedBy: data.updatedBy,
       },
@@ -104,7 +107,6 @@ export class PrismaUserRepository implements UserRepository {
       },
     });
 
-    // Synchronize User Roles
     await tx.userRole.deleteMany({
       where: { userId: data.id },
     });

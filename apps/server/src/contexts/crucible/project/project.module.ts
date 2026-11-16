@@ -1,3 +1,4 @@
+import { ProjectOutbox } from './infrastructure/outbox/project.outbox';
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 
@@ -45,6 +46,7 @@ const queryHandlers = [
   imports: [CqrsModule],
   controllers: [ProjectController],
   providers: [
+    ProjectOutbox,
     {
       provide: PROJECT_REPOSITORY,
       useClass: PrismaProjectRepository,

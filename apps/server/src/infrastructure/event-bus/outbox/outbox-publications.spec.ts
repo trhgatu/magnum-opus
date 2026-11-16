@@ -1,0 +1,204 @@
+import { UsersOutbox } from '@iam/users/infrastructure/outbox/users.outbox';
+import { UserRegisteredEvent } from '@iam/users/domain/events/user-registered.event';
+import { UserDeactivatedEvent } from '@iam/users/domain/events/user-deactivated.event';
+import { NotificationsOutbox } from '@/contexts/notifications/infrastructure/outbox/notifications.outbox';
+import { NotificationCreatedEvent } from '@/contexts/notifications/domain/events/notification-created.event';
+import { JournalOutbox } from '@reflection/journal/infrastructure/outbox/journal.outbox';
+import { JournalEntrySealedEvent } from '@reflection/journal/domain/events/journal-entry-sealed.event';
+import { MemoryOutbox } from '@reflection/memory/infrastructure/outbox/memory.outbox';
+import { MemoryCreatedEvent } from '@reflection/memory/domain/events/memory-created.event';
+import { ProjectOutbox } from '@/contexts/crucible/project/infrastructure/outbox/project.outbox';
+import { ProjectCycleClosedEvent } from '@/contexts/crucible/project/domain/events/project-cycle-closed.event';
+import { ProjectCycleEndReason } from '@/contexts/crucible/project/domain/enums';
+import { HabitOutbox } from '@/contexts/forge/habit/infrastructure/outbox/habit.outbox';
+import { HabitPermanentlyDeletedEvent } from '@/contexts/forge/habit/domain/events';
+import { DomainEvent } from '@shared/domain/events/domain-event';
+
+import type { OutboxPublication } from './outbox-publication';
+import { OutboxPublisher } from './outbox.decorators';
+
+const at = new Date('2026-11-16T03:00:00.000Z');
+
+interface PublicationCase {
+  publisher: object;
+  event: DomainEvent;
+  type: string;
+  aggregateId: string;
+  parsed: unknown;
+}
+
+// Chuỗi type đã nằm trong DB: test khóa từng chuỗi để không ai đổi nhầm.
+const cases: PublicationCase[] = [
+  {
+    publisher: UsersOutbox,
+    event: new UserRegisteredEvent('user-id', 'user@example.com', 'user'),
+    type: 'iam.user.registered.v1',
+    aggregateId: 'user-id',
+    parsed: { userId: 'user-id', email: 'user@example.com', username: 'user' },
+  },
+  {
+    publisher: UsersOutbox,
+    event: new UserDeactivatedEvent('user-id', 'user@example.com'),
+    type: 'iam.user.deactivated.v1',
+    aggregateId: 'user-id',
+    parsed: { userId: 'user-id', email: 'user@example.com' },
+  },
+  {
+    publisher: NotificationsOutbox,
+    event: new NotificationCreatedEvent(
+      'notification-id',
+      'user-id',
+      'Title',
+      'Content',
+      'INFO',
+      false,
+      at,
+    ),
+    type: 'notifications.notification.created.v1',
+    aggregateId: 'notification-id',
+    parsed: {
+      id: 'notification-id',
+      userId: 'user-id',
+      title: 'Title',
+      content: 'Content',
+      type: 'INFO',
+      isRead: false,
+      createdAt: at,
+    },
+  },
+  {
+    publisher: JournalOutbox,
+    event: new JournalEntrySealedEvent('entry-id', 'owner-id', at),
+    type: 'reflection.journal-entry.sealed.v1',
+    aggregateId: 'entry-id',
+    parsed: { journalEntryId: 'entry-id', ownerId: 'owner-id', sealedAt: at },
+  },
+  {
+    publisher: MemoryOutbox,
+    event: new MemoryCreatedEvent('memory-id', 'owner-id', at),
+    type: 'reflection.memory.created.v1',
+    aggregateId: 'memory-id',
+    parsed: {
+      memoryId: 'memory-id',
+      ownerId: 'owner-id',
+      memoryOccurredOn: at,
+    },
+  },
+  {
+    publisher: MemoryOutbox,
+    event: new MemoryCreatedEvent('memory-id', 'owner-id', null),
+    type: 'reflection.memory.created.v1',
+    aggregateId: 'memory-id',
+    parsed: {
+      memoryId: 'memory-id',
+      ownerId: 'owner-id',
+      memoryOccurredOn: null,
+    },
+  },
+  {
+    publisher: ProjectOutbox,
+    event: new ProjectCycleClosedEvent(
+      'project-id',
+      'owner-id',
+      'cycle-id',
+      ProjectCycleEndReason.COMPLETED,
+      at,
+    ),
+    type: 'crucible.project.cycle-closed.v1',
+    aggregateId: 'project-id',
+    parsed: {
+      projectId: 'project-id',
+      ownerId: 'owner-id',
+      cycleId: 'cycle-id',
+      endReason: ProjectCycleEndReason.COMPLETED,
+      closedAt: at,
+    },
+  },
+  {
+    publisher: HabitOutbox,
+    event: new HabitPermanentlyDeletedEvent('habit-id', 'owner-id'),
+    type: 'forge.habit.permanently-deleted.v1',
+    aggregateId: 'habit-id',
+    parsed: { habitId: 'habit-id', ownerId: 'owner-id' },
+  },
+];
+
+const publicationFor = (
+  publisher: object,
+  event: DomainEvent,
+): OutboxPublication => {
+  const publications = Reflect.getMetadata(
+    OutboxPublisher.KEY,
+    publisher,
+  ) as OutboxPublication[];
+  const publication = publications.find((p) => event instanceof p.event);
+  if (!publication) {
+    throw new Error(`No publication for ${event.constructor.name}`);
+  }
+  return publication;
+};
+
+describe('outbox publications', () => {
+  it.each(cases)(
+    '$type keeps its persisted name and round-trips the payload',
+    ({ publisher, event, type, aggregateId, parsed }) => {
+      const publication = publicationFor(publisher, event);
+
+      expect(publication.as.type).toBe(type);
+      expect(publication.aggregateId(event)).toBe(aggregateId);
+      // Đi qua JSON như khi nằm trong cột jsonb.
+      const stored = JSON.parse(
+        JSON.stringify(publication.toPayload(event)),
+      ) as Record<string, unknown>;
+      expect(publication.as.parse(stored)).toEqual(parsed);
+    },
+  );
+
+  it('still reads Journal rows stored under the old misspelled type', () => {
+    const publication = publicationFor(
+      JournalOutbox,
+      new JournalEntrySealedEvent('entry-id', 'owner-id', at),
+    );
+
+    expect(publication.as.legacyTypes).toEqual([
+      'relection.journal-entry.sealed.v1',
+    ]);
+  });
+
+  it('rejects a cycle end reason the domain does not know', () => {
+    const publication = publicationFor(
+      ProjectOutbox,
+      new ProjectCycleClosedEvent(
+        'p',
+        'o',
+        'c',
+        ProjectCycleEndReason.COMPLETED,
+        at,
+      ),
+    );
+
+    expect(() =>
+      publication.as.parse({
+        projectId: 'p',
+        ownerId: 'o',
+        cycleId: 'c',
+        endReason: 'EXPLODED',
+        closedAt: at.toISOString(),
+      }),
+    ).toThrow('Unknown cycle end reason "EXPLODED"');
+  });
+
+  // Contract giữ bản sao riêng của các lý do kết thúc chu kỳ. Domain thêm lý
+  // do mới mà quên contract thì event đó sẽ kẹt trong outbox: chặn ở đây.
+  it.each(Object.values(ProjectCycleEndReason))(
+    'accepts the domain cycle end reason %s',
+    (endReason) => {
+      const event = new ProjectCycleClosedEvent('p', 'o', 'c', endReason, at);
+      const publication = publicationFor(ProjectOutbox, event);
+
+      expect(publication.as.parse(publication.toPayload(event))).toEqual(
+        expect.objectContaining({ endReason }),
+      );
+    },
+  );
+});

@@ -1,13 +1,12 @@
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@infrastructure/database/prisma.service';
-import { OUTBOX_EVENT_TYPES } from './outbox-event.mapper';
 import { OutboxPublisherService } from './outbox-publisher.service';
-import { OutboxEventRouter } from './outbox-event.router';
+import { OutboxRegistry } from './outbox-registry';
 
 describe('OutboxPublisherService', () => {
   const candidate = {
     id: 'event-id',
-    type: OUTBOX_EVENT_TYPES.USER_REGISTERED,
+    type: 'iam.user.registered.v1',
     aggregateId: 'user-id',
     payload: {
       userId: 'user-id',
@@ -40,7 +39,7 @@ describe('OutboxPublisherService', () => {
     const prisma = createPrismaMock();
     const router = {
       dispatch: jest.fn().mockResolvedValue(undefined),
-    } as unknown as jest.Mocked<OutboxEventRouter>;
+    } as unknown as jest.Mocked<OutboxRegistry>;
     const service = new OutboxPublisherService(
       prisma,
       router,
@@ -50,7 +49,7 @@ describe('OutboxPublisherService', () => {
     await service.poll();
 
     expect(router.dispatch).toHaveBeenCalledWith(
-      expect.objectContaining({ eventId: 'event-id' }),
+      expect.objectContaining({ id: 'event-id' }),
     );
     expect(prisma.outboxEvent.update).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -64,7 +63,7 @@ describe('OutboxPublisherService', () => {
     const prisma = createPrismaMock();
     const router = {
       dispatch: jest.fn().mockRejectedValue(new Error('delivery unavailable')),
-    } as unknown as jest.Mocked<OutboxEventRouter>;
+    } as unknown as jest.Mocked<OutboxRegistry>;
     const service = new OutboxPublisherService(
       prisma,
       router,
@@ -94,7 +93,7 @@ describe('OutboxPublisherService', () => {
     } as unknown as jest.Mocked<PrismaService>;
     const router = {
       dispatch: jest.fn(),
-    } as unknown as jest.Mocked<OutboxEventRouter>;
+    } as unknown as jest.Mocked<OutboxRegistry>;
     const service = new OutboxPublisherService(
       prisma,
       router,
@@ -121,7 +120,7 @@ describe('OutboxPublisherService', () => {
     } as unknown as jest.Mocked<PrismaService>;
     const service = new OutboxPublisherService(
       prisma,
-      {} as unknown as jest.Mocked<OutboxEventRouter>,
+      {} as unknown as jest.Mocked<OutboxRegistry>,
       new ConfigService(),
     );
 
