@@ -1,6 +1,7 @@
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@infrastructure/database/prisma.service';
 import { OutboxPublisherService } from './outbox-publisher.service';
+import { NonRetryableOutboxError } from './non-retryable-outbox-error';
 import { OutboxRegistry } from './outbox-registry';
 
 describe('OutboxPublisherService', () => {
@@ -27,10 +28,7 @@ describe('OutboxPublisherService', () => {
     ({
       outboxEvent: {
         findMany: jest.fn().mockResolvedValue([candidate]),
-        updateMany: jest
-          .fn()
-          .mockResolvedValueOnce({ count: 0 })
-          .mockResolvedValueOnce({ count: 1 }),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
         update: jest.fn().mockResolvedValue(candidate),
       },
     }) as unknown as jest.Mocked<PrismaService>;
@@ -39,6 +37,7 @@ describe('OutboxPublisherService', () => {
     const prisma = createPrismaMock();
     const router = {
       dispatch: jest.fn().mockResolvedValue(undefined),
+      knownTypes: jest.fn().mockReturnValue(['iam.user.registered.v1']),
     } as unknown as jest.Mocked<OutboxRegistry>;
     const service = new OutboxPublisherService(
       prisma,
@@ -63,6 +62,7 @@ describe('OutboxPublisherService', () => {
     const prisma = createPrismaMock();
     const router = {
       dispatch: jest.fn().mockRejectedValue(new Error('delivery unavailable')),
+      knownTypes: jest.fn().mockReturnValue(['iam.user.registered.v1']),
     } as unknown as jest.Mocked<OutboxRegistry>;
     const service = new OutboxPublisherService(
       prisma,
@@ -81,6 +81,91 @@ describe('OutboxPublisherService', () => {
         }),
       }),
     );
+  });
+
+  const routerThatFails = (error: Error) =>
+    ({
+      dispatch: jest.fn().mockRejectedValue(error),
+      knownTypes: jest.fn().mockReturnValue(['iam.user.registered.v1']),
+    }) as unknown as jest.Mocked<OutboxRegistry>;
+
+  // Lúc deploy, instance cũ chạy song song instance mới: nó không được lấy
+  // row có type mà code của nó chưa biết.
+  it('claims only types this build can handle', async () => {
+    const prisma = createPrismaMock();
+    const service = new OutboxPublisherService(
+      prisma,
+      routerThatFails(new Error('unused')),
+      new ConfigService(),
+    );
+    jest.spyOn(service['logger'], 'error').mockImplementation(() => undefined);
+
+    await service.poll();
+
+    expect(prisma.outboxEvent.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          type: { in: ['iam.user.registered.v1'] },
+        }),
+      }),
+    );
+  });
+
+  it('gives up at once on an error that retrying cannot fix', async () => {
+    const prisma = createPrismaMock();
+    const service = new OutboxPublisherService(
+      prisma,
+      routerThatFails(new NonRetryableOutboxError('thingId must be a string')),
+      new ConfigService(),
+    );
+    jest.spyOn(service['logger'], 'error').mockImplementation(() => undefined);
+
+    await service.poll();
+
+    expect(prisma.outboxEvent.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'event-id' },
+        data: expect.objectContaining({
+          status: 'FAILED',
+          lastError: 'thingId must be a string',
+        }),
+      }),
+    );
+  });
+
+  // Row kẹt ở PROCESSING nghĩa là process chết giữa chừng. Đã thử đủ số lần
+  // mà vẫn trả về PENDING thì handler đó sẽ làm sập app mãi.
+  it('fails stale claims that used every attempt and releases the rest', async () => {
+    const prisma = createPrismaMock();
+    (prisma.outboxEvent.findMany as jest.Mock).mockResolvedValue([]);
+    const service = new OutboxPublisherService(
+      prisma,
+      routerThatFails(new Error('unused')),
+      new ConfigService(),
+    );
+
+    await service.poll();
+
+    expect(
+      (prisma.outboxEvent.updateMany as jest.Mock).mock.calls.map(
+        ([args]: [unknown]) => args,
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        where: expect.objectContaining({
+          status: 'PROCESSING',
+          attempts: { gte: 10 },
+        }),
+        data: expect.objectContaining({ status: 'FAILED', lockedAt: null }),
+      }),
+      expect.objectContaining({
+        where: expect.objectContaining({
+          status: 'PROCESSING',
+          attempts: { lt: 10 },
+        }),
+        data: expect.objectContaining({ status: 'PENDING', lockedAt: null }),
+      }),
+    ]);
   });
 
   it('backs off and stops spamming logs while the database is unreachable', async () => {

@@ -6,6 +6,7 @@ import {
   requireString,
 } from '@shared/application/integration-event';
 import { OutboxEventHandler, publish } from './outbox-publication';
+import { NonRetryableOutboxError } from './non-retryable-outbox-error';
 import { OutboxRegistry } from './outbox-registry';
 
 class ThingHappenedEvent extends DomainEvent {
@@ -220,6 +221,80 @@ describe('OutboxRegistry', () => {
           occurredAt,
         }),
       ).rejects.toThrow('Outbox event payload must be an object');
+    });
+
+    // Retry không chữa được payload hỏng: báo cho publisher bỏ cuộc ngay.
+    it.each([
+      ['an unknown type', { type: 'unknown.v1', payload: {} }],
+      ['a non-object payload', { type: 'test.thing.happened.v1', payload: [] }],
+      [
+        'a payload the contract rejects',
+        { type: 'test.thing.happened.v1', payload: {} },
+      ],
+    ])('marks %s as not retryable', async (_, row) => {
+      const registry = createRegistry();
+      registry.register(
+        [thingHappened],
+        [{ event: ThingHappened, handler: handler() }],
+      );
+
+      await expect(
+        registry.dispatch({ id: 'e', occurredAt, ...row }),
+      ).rejects.toBeInstanceOf(NonRetryableOutboxError);
+    });
+
+    it('keeps a handler failure retryable', async () => {
+      const registry = createRegistry();
+      const failing = handler();
+      failing.handle.mockRejectedValue(new Error('smtp down'));
+      registry.register(
+        [thingHappened],
+        [{ event: ThingHappened, handler: failing }],
+      );
+
+      const error: unknown = await registry
+        .dispatch({
+          id: 'e',
+          type: 'test.thing.happened.v1',
+          payload: { thingId: 't' },
+          occurredAt,
+        })
+        .catch((e: unknown) => e);
+
+      expect(error).toEqual(new Error('smtp down'));
+      expect(error).not.toBeInstanceOf(NonRetryableOutboxError);
+    });
+  });
+
+  describe('knownTypes', () => {
+    it('lists every persisted type this build can read, old names included', () => {
+      const registry = createRegistry();
+      const Renamed = defineIntegrationEvent(
+        'test.thing.renamed.v1',
+        () => ({}),
+        ['test.thing.old-name.v1'],
+      );
+      registry.register(
+        [
+          thingHappened,
+          publish({
+            event: OtherEvent,
+            as: Renamed,
+            aggregateId: () => 'a',
+            toPayload: () => ({}),
+          }),
+        ],
+        [
+          { event: ThingHappened, handler: handler() },
+          { event: Renamed, handler: handler() },
+        ],
+      );
+
+      expect([...registry.knownTypes()].sort()).toEqual([
+        'test.thing.happened.v1',
+        'test.thing.old-name.v1',
+        'test.thing.renamed.v1',
+      ]);
     });
   });
 
