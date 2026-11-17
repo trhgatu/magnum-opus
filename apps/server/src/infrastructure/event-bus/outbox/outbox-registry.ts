@@ -2,6 +2,7 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { DiscoveryService } from '@nestjs/core';
 import type { DomainEvent } from '@shared/domain/events/domain-event';
 import { getCorrelationId } from '@infrastructure/observability/correlation-context';
+import { NonRetryableOutboxError } from './non-retryable-outbox-error';
 
 import type {
   IntegrationEvent,
@@ -130,19 +131,31 @@ export class OutboxRegistry implements OnModuleInit, OutboxSerializer {
     };
   }
 
+  knownTypes(): string[] {
+    return [...this.events.keys()];
+  }
+
   async dispatch(persisted: PersistedOutboxEvent): Promise<void> {
     const event = this.events.get(persisted.type);
     if (!event) {
-      throw new Error(`Unsupported outbox event type: ${persisted.type}`);
+      throw new NonRetryableOutboxError(
+        `Unsupported outbox event type: ${persisted.type}`,
+      );
     }
+
+    let payload: unknown;
+    try {
+      payload = event.parse(asPayload(persisted.payload));
+    } catch (error: unknown) {
+      throw new NonRetryableOutboxError(error);
+    }
+
     const message = {
       eventId: persisted.id,
       occurredAt: persisted.occurredAt,
-      payload: event.parse(asPayload(persisted.payload)),
+      payload,
     };
-    // Tìm handler theo tên chuẩn: row có thể mang tên trong aliases.
-    // allSettled: đợi mọi handler xong rồi mới báo lỗi, để lần retry không
-    // chạy chồng lên handler còn đang chạy và lúc tắt app không bỏ dở handler.
+
     const results = await Promise.allSettled(
       (this.handlers.get(event.type) ?? []).map((handler) =>
         handler.handle(message),

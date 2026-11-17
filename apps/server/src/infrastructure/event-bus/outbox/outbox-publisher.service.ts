@@ -10,6 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@infrastructure/database/prisma.service';
 import type { OutboxEvent } from '@repo/database';
 import { runWithCorrelationId } from '@infrastructure/observability/correlation-context';
+import { NonRetryableOutboxError } from './non-retryable-outbox-error';
 
 const OUTBOX_STATUS = {
   PENDING: 'PENDING',
@@ -121,7 +122,6 @@ export class OutboxPublisherService
 
   async poll(): Promise<void> {
     if (this.shuttingDown || this.polling) return;
-    // Đang trong thời gian chờ sau lỗi hạ tầng — bỏ qua nhịp quét này.
     if (Date.now() < this.nextPollAllowedAt) return;
     this.polling = true;
 
@@ -131,6 +131,7 @@ export class OutboxPublisherService
         where: {
           status: OUTBOX_STATUS.PENDING,
           availableAt: { lte: new Date() },
+          type: { in: this.registry.knownTypes() },
         },
         orderBy: { createdAt: 'asc' },
         take: 50,
@@ -205,7 +206,9 @@ export class OutboxPublisherService
       });
     } catch (error: unknown) {
       const attempts = candidate.attempts + 1;
-      const exhausted = attempts >= this.maxAttempts;
+      const exhausted =
+        error instanceof NonRetryableOutboxError ||
+        attempts >= this.maxAttempts;
       const retryDelayMs = Math.min(2 ** attempts * 1_000, 60_000);
 
       await this.prisma.outboxEvent.update({
@@ -229,6 +232,20 @@ export class OutboxPublisherService
       where: {
         status: OUTBOX_STATUS.PROCESSING,
         lockedAt: { lt: staleBefore },
+        attempts: { gte: this.maxAttempts },
+      },
+      data: {
+        status: OUTBOX_STATUS.FAILED,
+        lockedAt: null,
+        lastError: 'Processing stopped before finishing',
+      },
+    });
+
+    await this.prisma.outboxEvent.updateMany({
+      where: {
+        status: OUTBOX_STATUS.PROCESSING,
+        lockedAt: { lt: staleBefore },
+        attempts: { lt: this.maxAttempts },
       },
       data: {
         status: OUTBOX_STATUS.PENDING,
