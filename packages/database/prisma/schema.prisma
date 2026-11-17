@@ -190,8 +190,9 @@ model OutboxEvent {
   lastError     String?   @map("last_error")
   correlationId String?   @map("correlation_id")
   createdAt     DateTime  @default(now()) @map("created_at")
-
+  sequence BigInt @default(autoincrement())
   @@index([status, availableAt])
+  @@index([aggregateId, sequence])
   @@map("outbox_events")
 }
 
