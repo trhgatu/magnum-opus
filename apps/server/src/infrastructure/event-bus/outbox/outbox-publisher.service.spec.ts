@@ -154,6 +154,7 @@ describe('OutboxPublisherService', () => {
       expect.objectContaining({
         where: expect.objectContaining({
           status: 'PROCESSING',
+          lockedAt: { lt: expect.any(Date) },
           attempts: { gte: 10 },
         }),
         data: expect.objectContaining({ status: 'FAILED', lockedAt: null }),
@@ -161,6 +162,7 @@ describe('OutboxPublisherService', () => {
       expect.objectContaining({
         where: expect.objectContaining({
           status: 'PROCESSING',
+          lockedAt: { lt: expect.any(Date) },
           attempts: { lt: 10 },
         }),
         data: expect.objectContaining({ status: 'PENDING', lockedAt: null }),
