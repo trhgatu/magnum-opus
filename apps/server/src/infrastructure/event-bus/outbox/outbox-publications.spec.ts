@@ -163,17 +163,6 @@ describe('outbox publications', () => {
     },
   );
 
-  it('still reads Journal rows written under the misspelled type (rename step 2 of 3)', () => {
-    const publication = publicationFor(
-      JournalOutbox,
-      new JournalEntrySealedEvent('entry-id', 'owner-id', at),
-    );
-
-    expect(publication.as.aliases).toEqual([
-      'relection.journal-entry.sealed.v1',
-    ]);
-  });
-
   it('rejects a cycle end reason the domain does not know', () => {
     const publication = publicationFor(
       ProjectOutbox,
