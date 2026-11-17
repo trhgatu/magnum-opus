@@ -127,14 +127,22 @@ export class OutboxPublisherService
 
     try {
       await this.recoverStaleClaims();
+      const claimable = await this.prisma.$queryRaw<{ id: string }[]>`
+        SELECT o.id FROM outbox_events o
+        WHERE o.status = ${OUTBOX_STATUS.PENDING}
+          AND o.available_at <= ${new Date()}
+          AND o.type = ANY(${this.registry.knownTypes()})
+          AND NOT EXISTS (
+            SELECT 1 FROM outbox_events e
+            WHERE e.aggregate_id = o.aggregate_id
+              AND e.sequence < o.sequence
+              AND e.status <> ${OUTBOX_STATUS.PUBLISHED}
+          )
+        ORDER BY o.sequence
+        LIMIT 50`;
       const candidates = await this.prisma.outboxEvent.findMany({
-        where: {
-          status: OUTBOX_STATUS.PENDING,
-          availableAt: { lte: new Date() },
-          type: { in: this.registry.knownTypes() },
-        },
-        orderBy: { createdAt: 'asc' },
-        take: 50,
+        where: { id: { in: claimable.map((row) => row.id) } },
+        orderBy: { sequence: 'asc' },
       });
 
       for (const candidate of candidates) {

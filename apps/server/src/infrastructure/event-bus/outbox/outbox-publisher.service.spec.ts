@@ -26,6 +26,7 @@ describe('OutboxPublisherService', () => {
 
   const createPrismaMock = () =>
     ({
+      $queryRaw: jest.fn().mockResolvedValue([{ id: candidate.id }]),
       outboxEvent: {
         findMany: jest.fn().mockResolvedValue([candidate]),
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
@@ -89,9 +90,9 @@ describe('OutboxPublisherService', () => {
       knownTypes: jest.fn().mockReturnValue(['iam.user.registered.v1']),
     }) as unknown as jest.Mocked<OutboxRegistry>;
 
-  // Lúc deploy, instance cũ chạy song song instance mới: nó không được lấy
-  // row có type mà code của nó chưa biết.
-  it('claims only types this build can handle', async () => {
+  // Điều kiện SQL (type, thứ tự theo aggregate) được kiểm trên DB thật ở
+  // test/outbox-order.e2e-spec.ts. Ở đây chỉ kiểm lấy đúng các row đã chọn.
+  it('loads only the rows the ordering query picked, in sequence order', async () => {
     const prisma = createPrismaMock();
     const service = new OutboxPublisherService(
       prisma,
@@ -102,13 +103,10 @@ describe('OutboxPublisherService', () => {
 
     await service.poll();
 
-    expect(prisma.outboxEvent.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          type: { in: ['iam.user.registered.v1'] },
-        }),
-      }),
-    );
+    expect(prisma.outboxEvent.findMany).toHaveBeenCalledWith({
+      where: { id: { in: ['event-id'] } },
+      orderBy: { sequence: 'asc' },
+    });
   });
 
   it('gives up at once on an error that retrying cannot fix', async () => {
