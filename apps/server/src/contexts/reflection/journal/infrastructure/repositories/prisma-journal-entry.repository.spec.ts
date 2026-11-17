@@ -119,7 +119,7 @@ describe('PrismaJournalEntryRepository', () => {
         data: [
           expect.objectContaining({
             id: sealedEvent.eventId,
-            type: 'relection.journal-entry.sealed.v1',
+            type: 'reflection.journal-entry.sealed.v1',
             aggregateId: entry.id,
             payload: {
               journalEntryId: entry.id,
