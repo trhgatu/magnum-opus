@@ -74,7 +74,7 @@ const cases: PublicationCase[] = [
     name: 'JournalEntrySealed',
     publisher: JournalOutbox,
     event: new JournalEntrySealedEvent('entry-id', 'owner-id', at),
-    type: 'relection.journal-entry.sealed.v1',
+    type: 'reflection.journal-entry.sealed.v1',
     aggregateId: 'entry-id',
     parsed: { journalEntryId: 'entry-id', ownerId: 'owner-id', sealedAt: at },
   },
@@ -163,14 +163,14 @@ describe('outbox publications', () => {
     },
   );
 
-  it('already reads Journal rows under the corrected type (rename step 1 of 3)', () => {
+  it('still reads Journal rows written under the misspelled type (rename step 2 of 3)', () => {
     const publication = publicationFor(
       JournalOutbox,
       new JournalEntrySealedEvent('entry-id', 'owner-id', at),
     );
 
     expect(publication.as.aliases).toEqual([
-      'reflection.journal-entry.sealed.v1',
+      'relection.journal-entry.sealed.v1',
     ]);
   });
 

@@ -5,15 +5,16 @@ import {
 } from '@shared/application/integration-event';
 
 export const JournalEntrySealed = defineIntegrationEvent(
-  // "relection" sai chính tả nhưng đang nằm trong DB. Nhịp 1/3 của việc đổi
-  // tên: vẫn ghi tên cũ để instance cũ chạy song song lúc deploy đọc được.
-  // shortcut: nhịp 2 (đổi type + migration đổi tên row) làm ở PR sau, khi
-  // bản này đã lên production.
-  'relection.journal-entry.sealed.v1',
+  // Nhịp 2/3 của việc đổi tên "relection" → "reflection": từ bản này ghi tên
+  // đúng. Tên cũ vẫn đọc được, vì instance cũ còn chạy lúc deploy vẫn ghi nó.
+  // shortcut: nhịp 3 làm ở PR sau, khi bản này đã lên production: tạo thư mục
+  // migration MỚI lặp lại câu UPDATE của 20261117090000 (Prisma không chạy lại
+  // migration đã ghi nhận), rồi bỏ alias.
+  'reflection.journal-entry.sealed.v1',
   (payload) => ({
     journalEntryId: requireString(payload, 'journalEntryId'),
     ownerId: requireString(payload, 'ownerId'),
     sealedAt: requireDate(payload, 'sealedAt'),
   }),
-  ['reflection.journal-entry.sealed.v1'],
+  ['relection.journal-entry.sealed.v1'],
 );
