@@ -1,5 +1,6 @@
 import { HabitLifecycleAction, HabitState, HabitType } from './enums';
 import {
+  HabitCreatedEvent,
   HabitPermanentlyDeletedEvent,
   HabitLifecycleTransitionedEvent,
   HabitScheduleVersionStartedEvent,
@@ -48,12 +49,30 @@ describe('Habit', () => {
     it('starts the initial schedule version on createdOn', () => {
       const habit = createHabit({ frequency: HabitFrequency.weekly([5, 1]) });
 
-      const [event] = habit.getDomainEvents();
-      expect(event).toBeInstanceOf(HabitScheduleVersionStartedEvent);
+      const event = habit
+        .getDomainEvents()
+        .find((e) => e instanceof HabitScheduleVersionStartedEvent);
       expect(event).toMatchObject({ habitId: habit.id, ownerId: 'owner-id' });
       expect(scheduleVersions(habit)).toEqual([
         { frequency: 'WEEKLY:1,5', effectiveFrom: '2026-10-09' },
       ]);
+    });
+
+    // Event đầu tiên của một Habit: các nơi khác (Garden) bắt đầu từ đây.
+    it('announces the creation first, starting on createdOn', () => {
+      const habit = createHabit({ frequency: HabitFrequency.daily() });
+
+      const [first] = habit.getDomainEvents();
+      expect(first).toBeInstanceOf(HabitCreatedEvent);
+      expect(first).toEqual(
+        expect.objectContaining({
+          habitId: habit.id,
+          ownerId: 'owner-id',
+          type: HabitType.BUILD,
+          title: habit.title,
+          startedOn: TODAY,
+        }),
+      );
     });
 
     it('normalizes an omitted or blank description to null', () => {
@@ -111,7 +130,30 @@ describe('Habit', () => {
       expect(habit.type).toBe(HabitType.QUIT);
       expect(habit.frequency).toBeNull();
       expect(habit.quitStartedAt).toEqual(new Date('2026-08-01'));
-      expect(habit.getDomainEvents()).toEqual([]);
+      expect(habit.getDomainEvents().map((event) => event.constructor)).toEqual(
+        [HabitCreatedEvent],
+      );
+    });
+
+    // Habit QUIT bắt đầu từ ngày bắt đầu bỏ, không phải ngày tạo.
+    it('announces the creation starting on quitStartedAt', () => {
+      const habit = Habit.create({
+        ownerId: 'owner-id',
+        today: TODAY,
+        title: 'Quit smoking',
+        type: HabitType.QUIT,
+        quitStartedAt: new Date('2026-08-01'),
+      });
+
+      expect(habit.getDomainEvents()[0]).toEqual(
+        expect.objectContaining({
+          habitId: habit.id,
+          ownerId: 'owner-id',
+          type: HabitType.QUIT,
+          title: 'Quit smoking',
+          startedOn: calendarDate('2026-08-01'),
+        }),
+      );
     });
 
     it('defaults quitStartedAt to today when omitted', () => {
@@ -419,10 +461,8 @@ describe('Habit', () => {
       const [event] = habit
         .getDomainEvents()
         .filter(
-          (candidate) =>
-            !(candidate instanceof HabitScheduleVersionStartedEvent),
+          (candidate) => candidate instanceof HabitLifecycleTransitionedEvent,
         );
-      expect(event).toBeInstanceOf(HabitLifecycleTransitionedEvent);
       expect(event).toMatchObject({
         habitId: habit.id,
         ownerId: 'owner-id',

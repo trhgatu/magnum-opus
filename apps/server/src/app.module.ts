@@ -19,6 +19,7 @@ import { CrucibleModule } from './contexts/crucible/crucible.module';
 import { IntegrationsModule } from './contexts/integrations/integrations.module';
 import { ActivityModule } from './contexts/activity/activity.module';
 import { ChronicleModule } from './contexts/chronicle/chronicle.module';
+import { GardenModule } from './contexts/garden/garden.module';
 
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { AuditLogInterceptor } from '@presentation/interceptors/audit-log.interceptor';
@@ -64,6 +65,7 @@ import { createPinoHttpOptions } from '@infrastructure/observability/logger.conf
     IntegrationsModule,
     ActivityModule,
     ChronicleModule,
+    GardenModule,
   ],
   providers: [
     {

@@ -11,7 +11,12 @@ import { ProjectOutbox } from '@/contexts/crucible/project/infrastructure/outbox
 import { ProjectCycleClosedEvent } from '@/contexts/crucible/project/domain/events/project-cycle-closed.event';
 import { ProjectCycleEndReason } from '@/contexts/crucible/project/domain/enums';
 import { HabitOutbox } from '@/contexts/forge/habit/infrastructure/outbox/habit.outbox';
-import { HabitPermanentlyDeletedEvent } from '@/contexts/forge/habit/domain/events';
+import {
+  HabitCreatedEvent,
+  HabitPermanentlyDeletedEvent,
+} from '@/contexts/forge/habit/domain/events';
+import { HabitType } from '@/contexts/forge/habit/domain/enums';
+import { HabitCalendarDate } from '@/contexts/forge/habit/domain/value-objects';
 import { DomainEvent } from '@shared/domain/events/domain-event';
 
 import type { OutboxPublication } from './outbox-publication';
@@ -123,6 +128,28 @@ const cases: PublicationCase[] = [
     },
   },
   {
+    name: 'HabitCreated',
+    publisher: HabitOutbox,
+    event: new HabitCreatedEvent(
+      'habit-id',
+      'owner-id',
+      HabitType.BUILD,
+      'Morning walk',
+      HabitCalendarDate.fromPersistenceDate(
+        new Date('2026-11-16T00:00:00.000Z'),
+      ),
+    ),
+    type: 'forge.habit.created.v1',
+    aggregateId: 'habit-id',
+    parsed: {
+      habitId: 'habit-id',
+      ownerId: 'owner-id',
+      habitType: 'BUILD',
+      title: 'Morning walk',
+      startedOn: new Date('2026-11-16T00:00:00.000Z'),
+    },
+  },
+  {
     name: 'HabitPermanentlyDeleted',
     publisher: HabitOutbox,
     event: new HabitPermanentlyDeletedEvent('habit-id', 'owner-id'),
@@ -185,6 +212,48 @@ describe('outbox publications', () => {
       }),
     ).toThrow('Unknown cycle end reason "EXPLODED"');
   });
+
+  it('rejects a habit type the domain does not know', () => {
+    const publication = publicationFor(
+      HabitOutbox,
+      new HabitCreatedEvent(
+        'h',
+        'o',
+        HabitType.BUILD,
+        't',
+        HabitCalendarDate.fromPersistenceDate(at),
+      ),
+    );
+
+    expect(() =>
+      publication.as.parse({
+        habitId: 'h',
+        ownerId: 'o',
+        habitType: 'MAYBE',
+        title: 't',
+        startedOn: at.toISOString(),
+      }),
+    ).toThrow('Unknown habit type "MAYBE"');
+  });
+
+  // Contract giữ bản sao riêng của loại Habit, như lý do kết thúc chu kỳ dưới.
+  it.each(Object.values(HabitType))(
+    'accepts the domain habit type %s',
+    (habitType) => {
+      const event = new HabitCreatedEvent(
+        'h',
+        'o',
+        habitType,
+        't',
+        HabitCalendarDate.fromPersistenceDate(at),
+      );
+      const publication = publicationFor(HabitOutbox, event);
+
+      expect(publication.as.parse(publication.toPayload(event))).toEqual(
+        expect.objectContaining({ habitType }),
+      );
+    },
+  );
 
   // Contract giữ bản sao riêng của các lý do kết thúc chu kỳ. Domain thêm lý
   // do mới mà quên contract thì event đó sẽ kẹt trong outbox: chặn ở đây.

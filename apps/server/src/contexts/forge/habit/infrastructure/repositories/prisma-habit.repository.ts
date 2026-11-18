@@ -5,6 +5,7 @@ import type { Prisma } from '@repo/database';
 import { PrismaService } from '@infrastructure/database/prisma.service';
 
 import {
+  HabitCreatedEvent,
   HabitLifecycleTransitionedEvent,
   HabitScheduleVersionStartedEvent,
 } from '../../domain/events';
@@ -31,11 +32,17 @@ export class PrismaHabitRepository implements HabitRepository {
 
   public async create(habit: Habit): Promise<void> {
     const raw = PrismaHabitMapper.toPersistence(habit);
+
+    const outboxEvents = habit
+      .getDomainEvents()
+      .filter((event) => event instanceof HabitCreatedEvent)
+      .map((event) => this.outbox.serialize(event));
+
     const { scheduleVersions } = PrismaHabitRepository.pullHistory(habit);
 
     await this.prisma.$transaction(async (transaction) => {
       await transaction.habit.create({ data: raw });
-
+      await transaction.outboxEvent.createMany({ data: outboxEvents });
       if (scheduleVersions.length > 0) {
         await transaction.habitScheduleVersion.createMany({
           data: scheduleVersions,

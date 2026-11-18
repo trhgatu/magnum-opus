@@ -36,8 +36,12 @@ describe('CreateHabitHandler', () => {
 
     expect(timeZoneReader.getForUser).toHaveBeenCalledWith('owner-id');
     expect(result.getValue().createdOn.value).toBe('2026-10-09');
-    const [event] = result.getValue().getDomainEvents();
-    expect(event).toBeInstanceOf(HabitScheduleVersionStartedEvent);
+    const event = result
+      .getValue()
+      .getDomainEvents()
+      .find(
+        (candidate) => candidate instanceof HabitScheduleVersionStartedEvent,
+      );
     expect(
       (event as HabitScheduleVersionStartedEvent).effectiveFrom.value,
     ).toBe('2026-10-09');
