@@ -10,6 +10,7 @@ import {
   HabitLifecycleTransitionedEvent,
   HabitScheduleVersionStartedEvent,
   HabitPermanentlyDeletedEvent,
+  HabitCreatedEvent,
 } from './events';
 import {
   HabitPermanentDeleteForbiddenException,
@@ -113,8 +114,18 @@ export class Habit extends AggregateRoot {
       updatedAt: now,
     });
 
-    // Habit BUILD bắt đầu với phiên bản tần suất [createdOn, null); Habit
-    // QUIT không có tần suất nên không bao giờ có phiên bản.
+    habit.addDomainEvent(
+      new HabitCreatedEvent(
+        habit.id,
+        habit.ownerId,
+        habit.type,
+        habit.title,
+        quitStartedAt
+          ? HabitCalendarDate.fromPersistenceDate(quitStartedAt)
+          : input.today,
+      ),
+    );
+
     if (frequency !== null) {
       habit.recordScheduleVersion(frequency, input.today);
     }

@@ -74,6 +74,9 @@ describe('PrismaHabitRepository', () => {
     transactionClient.habit.create.mockImplementation(
       track('habit.create', rawHabit()),
     );
+    transactionClient.outboxEvent.createMany.mockImplementation(
+      track('outbox.createMany', { count: 1 }),
+    );
     transactionClient.habitScheduleVersion.createMany.mockImplementation(
       track('scheduleVersion.createMany', { count: 1 }),
     );
@@ -110,7 +113,11 @@ describe('PrismaHabitRepository', () => {
       await repository.create(habit);
 
       expect(prisma.$transaction).toHaveBeenCalledTimes(1);
-      expect(calls).toEqual(['habit.create', 'scheduleVersion.createMany']);
+      expect(calls).toEqual([
+        'habit.create',
+        'outbox.createMany',
+        'scheduleVersion.createMany',
+      ]);
       expect(
         transactionClient.habitScheduleVersion.createMany,
       ).toHaveBeenCalledWith({
@@ -127,6 +134,39 @@ describe('PrismaHabitRepository', () => {
       expect(
         transactionClient.habitScheduleVersion.updateMany,
       ).not.toHaveBeenCalled();
+      expect(habit.getDomainEvents()).toEqual([]);
+    });
+
+    // Cùng transaction với Habit: không bao giờ có Habit mà nơi khác không
+    // biết, hay event về một Habit chưa từng được lưu.
+    it('writes HabitCreated to the outbox in the same transaction, after the Habit', async () => {
+      const habit = Habit.create({
+        ownerId: 'owner-id',
+        title: 'Quit smoking',
+        type: HabitType.QUIT,
+        quitStartedAt: new Date('2026-08-01T00:00:00.000Z'),
+        today: TODAY,
+      });
+
+      await repository.create(habit);
+
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+      expect(calls).toEqual(['habit.create', 'outbox.createMany']);
+      expect(transactionClient.outboxEvent.createMany).toHaveBeenCalledWith({
+        data: [
+          expect.objectContaining({
+            type: 'forge.habit.created.v1',
+            aggregateId: habit.id,
+            payload: {
+              habitId: habit.id,
+              ownerId: 'owner-id',
+              habitType: 'QUIT',
+              title: 'Quit smoking',
+              startedOn: '2026-08-01',
+            },
+          }),
+        ],
+      });
       expect(habit.getDomainEvents()).toEqual([]);
     });
 

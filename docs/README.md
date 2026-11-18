@@ -21,6 +21,7 @@ Handbook này giải thích cách Magnum Opus được tổ chức và chạy. N
 | [09 — Code walkthrough](walkthroughs/end-to-end.md)               | Đọc từng dòng có ý nghĩa của một vertical slice từ UI đến database như thế nào?                  |
 | [10 — Bản đồ file](10-file-map.md)                                | Mở một file bất kỳ thì biết nó thuộc vùng nào, được ai gọi và được phép phụ thuộc vào đâu?       |
 | [11 — Cách xây module](11-building-a-module.md)                   | Viết một vertical slice mới theo thứ tự nào, kiểm tra gì ở mỗi bước và tránh lỗi gì?             |
+| [12 — Garden](modules/garden.md)                                  | Garden nhận sự kiện từ module khác, ghi sổ và dựng vườn thế nào?                                 |
 
 ## Bản đồ repository
 

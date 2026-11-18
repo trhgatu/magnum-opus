@@ -295,6 +295,26 @@ describe('architecture dependency rules', () => {
 
       expect(violations).toEqual([]);
     });
+
+    // Garden chỉ lắng nghe: module nguồn không được biết vườn tồn tại.
+    it('keeps every other context unaware of Garden', () => {
+      const violations = contextFiles
+        .filter(
+          (file) =>
+            contextOf(relative(sourceRoot, file).split(sep).join('/')) !==
+            'garden',
+        )
+        .flatMap((file) =>
+          importsOf(file)
+            .filter(
+              (specifier) =>
+                contextOf(toSourcePath(file, specifier) ?? '') === 'garden',
+            )
+            .map((specifier) => `${file}: ${specifier}`),
+        );
+
+      expect(violations).toEqual([]);
+    });
   });
 
   it('names each bounded-context composition root after its directory', () => {

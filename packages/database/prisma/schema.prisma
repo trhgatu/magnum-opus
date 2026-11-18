@@ -30,6 +30,8 @@ model User {
   activityFeeds ActivityFeed[]
 
   chronicleSnapshots ChronicleSnapshot[]
+  gardenSubjects GardenSubject[]
+
 
   userRoles               UserRole[]
   notifications           Notification[]
@@ -766,4 +768,29 @@ model CycleActivitySnapshot {
   // CHECK "cycle_activity_snapshots_counts_check" (mọi số đếm >= 0,
   // paused_active_days <= active_days) chỉ có trong migration SQL.
   @@map("cycle_activity_snapshots")
+}
+
+enum GardenSubjectKind {
+  HABIT
+}
+
+enum GardenVariant {
+  BUILD
+  QUIT
+}
+
+model GardenSubject {
+  id String @id @default(uuid())
+  ownerId String @map("owner_id")
+  subjectKind GardenSubjectKind @map("subject_kind")
+  subjectId String @map("subject_id")
+  variant GardenVariant
+  nameAtPlanting String @map("name_at_planting")
+  simVersion     Int               @map("sim_version")
+  plantedOn      DateTime          @map("planted_on") @db.Date
+  createdAt DateTime @default(now()) @map("created_at")
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  @@unique([subjectKind, subjectId])
+  @@index([ownerId])
+  @@map("garden_subjects")
 }

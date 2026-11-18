@@ -51,6 +51,7 @@ Mỗi domain đi qua các giai đoạn theo thứ tự:
 | Memory                                                            | Chưa     | Chưa         | Chưa           | Chưa        | Chưa      | Chưa         |
 | Habit & Routine (Forge)                                           | Chưa     | Chưa         | Chưa           | Chưa        | Chưa      | Chưa         |
 | [Project (Crucible)](contexts/crucible/project/01-ba-overview.md) | Xong     | Xong         | Xong           | Xong        | Xong      | Chưa         |
+| [Garden](contexts/garden/01-ba-overview.md)                       | Nháp     | Chưa         | Chưa           | Chưa        | Chưa      | Chưa         |
 
 Cập nhật bảng này mỗi khi một file mới được thêm cho một domain.
 
