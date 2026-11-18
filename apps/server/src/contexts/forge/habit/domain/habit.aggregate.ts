@@ -92,7 +92,7 @@ export class Habit extends AggregateRoot {
       input.type,
       input.frequency ?? null,
       input.quitStartedAt ?? null,
-      now,
+      input.today,
     );
 
     const habit = new Habit({
@@ -209,6 +209,7 @@ export class Habit extends AggregateRoot {
       this.resolveFieldsForUpdate(
         input.frequency ?? null,
         input.quitStartedAt ?? null,
+        input.today,
       );
     const frequencyChanged = !Habit.frequenciesEqual(
       this.props.frequency,
@@ -379,9 +380,6 @@ export class Habit extends AggregateRoot {
     }
   }
 
-  // Mốc hiệu lực không bao giờ giảm (DAP-FTH-001): nếu "hôm nay" theo múi
-  // giờ hiện tại sớm hơn mốc đã ghi, transition được kẹp về mốc đó. Chuỗi
-  // lifecycle bắt đầu từ createdOn nên createdOn cũng là mốc sàn.
   private recordLifecycleTransition(
     action: HabitLifecycleAction,
     today: HabitCalendarDate,
@@ -442,6 +440,7 @@ export class Habit extends AggregateRoot {
   private resolveFieldsForUpdate(
     frequency: HabitFrequency | null,
     quitStartedAt: Date | null,
+    today: HabitCalendarDate | undefined,
   ): TypeScopedFields {
     if (this.props.type === HabitType.BUILD) {
       if (!frequency || quitStartedAt) {
@@ -455,8 +454,11 @@ export class Habit extends AggregateRoot {
       throw new InvalidHabitTypeException();
     }
 
+    if (!today) {
+      throw new Error('Owner calendar date is required to set quitStartedAt');
+    }
     const normalizedQuitStartedAt = Habit.startOfUtcDay(quitStartedAt);
-    Habit.ensureNotFutureDate(normalizedQuitStartedAt);
+    Habit.ensureNotFutureDate(normalizedQuitStartedAt, today);
 
     return { frequency: null, quitStartedAt: normalizedQuitStartedAt };
   }
@@ -465,7 +467,7 @@ export class Habit extends AggregateRoot {
     type: HabitType,
     frequency: HabitFrequency | null,
     quitStartedAt: Date | null,
-    now: Date,
+    today: HabitCalendarDate,
   ): TypeScopedFields {
     if (type === HabitType.BUILD) {
       if (!frequency || quitStartedAt) {
@@ -483,17 +485,19 @@ export class Habit extends AggregateRoot {
       throw new InvalidHabitTypeException();
     }
 
-    const resolvedQuitStartedAt = Habit.startOfUtcDay(quitStartedAt ?? now);
-    Habit.ensureNotFutureDate(resolvedQuitStartedAt);
+    const resolvedQuitStartedAt = Habit.startOfUtcDay(
+      quitStartedAt ?? today.toPersistenceDate(),
+    );
+    Habit.ensureNotFutureDate(resolvedQuitStartedAt, today);
 
     return { frequency: null, quitStartedAt: resolvedQuitStartedAt };
   }
 
-  private static ensureNotFutureDate(date: Date): void {
-    if (
-      Habit.startOfUtcDay(date).getTime() >
-      Habit.startOfUtcDay(new Date()).getTime()
-    ) {
+  private static ensureNotFutureDate(
+    date: Date,
+    today: HabitCalendarDate,
+  ): void {
+    if (HabitCalendarDate.fromPersistenceDate(date).isAfter(today)) {
       throw new InvalidQuitStartedAtException();
     }
   }

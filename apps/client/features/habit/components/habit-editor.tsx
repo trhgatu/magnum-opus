@@ -38,7 +38,7 @@ import { HabitQuitStartedAtPicker } from "@/features/habit/components/habit-quit
 import { ISO_WEEKDAYS } from "@/features/habit/lib/habit-frequency";
 import {
   quitStartedAtFromDate,
-  todayAsUtcCalendarDate,
+  todayAsLocalCalendarDate,
 } from "@/features/habit/lib/habit-quit";
 import { useUnsavedChangesWarning } from "@/hooks/use-unsaved-changes-warning";
 import { notifySuccess } from "@/lib/toast";
@@ -77,7 +77,7 @@ export function HabitEditor(props: HabitEditorProps) {
   const [days, setDays] = useState(initialHabit?.frequencyDays ?? []);
   const [quitStartedAt, setQuitStartedAt] = useState(
     initialHabit?.quitStartedAt ??
-      quitStartedAtFromDate(todayAsUtcCalendarDate()),
+      quitStartedAtFromDate(todayAsLocalCalendarDate()),
   );
   const [message, setMessage] = useState<string>();
   const [hasConflict, setHasConflict] = useState(false);
@@ -127,7 +127,7 @@ export function HabitEditor(props: HabitEditorProps) {
     setFrequencyType(habit.frequencyType ?? "DAILY");
     setDays(habit.frequencyDays);
     setQuitStartedAt(
-      habit.quitStartedAt ?? quitStartedAtFromDate(todayAsUtcCalendarDate()),
+      habit.quitStartedAt ?? quitStartedAtFromDate(todayAsLocalCalendarDate()),
     );
     setMessage(undefined);
     setHasConflict(false);

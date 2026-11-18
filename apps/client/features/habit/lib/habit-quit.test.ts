@@ -4,7 +4,7 @@ import {
   formatQuitStartedAt,
   quitStartedAtFromDate,
   quitStartedAtToDate,
-  todayAsUtcCalendarDate,
+  todayAsLocalCalendarDate,
 } from "./habit-quit";
 
 describe("quitStartedAtFromDate / quitStartedAtToDate", () => {
@@ -34,15 +34,18 @@ describe("formatQuitStartedAt", () => {
   });
 });
 
-describe("todayAsUtcCalendarDate", () => {
+describe("todayAsLocalCalendarDate", () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
 
-  it("uses the UTC calendar day even when local time is a day ahead", () => {
-    // 2026-08-14T23:30:00Z là 2026-08-15 06:30 ở UTC+7 — ngày lịch UTC
-    // vẫn còn là 14, phải khớp với cách server chuẩn hóa quitStartedAt.
-    vi.setSystemTime(new Date("2026-08-14T23:30:00.000Z"));
+  // Server so với ngày của owner, nên mặc định phải là ngày người dùng đang
+  // thấy, không phải ngày UTC.
+  it("uses the local calendar day", () => {
+    const now = new Date("2026-08-14T23:30:00.000Z");
+    vi.setSystemTime(now);
 
-    expect(quitStartedAtFromDate(todayAsUtcCalendarDate())).toBe("2026-08-14");
+    expect(todayAsLocalCalendarDate()).toEqual(
+      new Date(now.getFullYear(), now.getMonth(), now.getDate()),
+    );
   });
 });
