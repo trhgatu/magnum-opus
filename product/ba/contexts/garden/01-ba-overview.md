@@ -205,7 +205,7 @@ garden_entries             — sổ
 garden_links (P5)          — rễ, do người dùng tạo
 ```
 
-Tên hiển thị là `name_at_planting`: Garden không đọc module gốc (KD-GDN-012). Đổi tên ở module gốc thì phải báo sang Garden bằng một sự kiện (Q-GDN-10).
+Tên hiển thị là `name_at_planting`: Garden không đọc module gốc (KD-GDN-012). Cây có đổi tên theo module gốc hay không còn để mở (Q-GDN-10).
 
 ### 6.3 Quy tắc của sổ
 

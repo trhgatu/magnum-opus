@@ -2,6 +2,8 @@
 
 Tài liệu kỹ thuật của bounded context Garden. Phần nghiệp vụ (vấn đề, quy tắc, lộ trình) ở [BA Garden](../../product/ba/contexts/garden/01-ba-overview.md).
 
+Đây là thiết kế đích. Hiện mới có lát G1a: bảng `garden_subjects`, cổng `GardenLedgerWriter` cùng writer Prisma, và hai handler gieo/nhổ cây theo `HabitCreated` / `HabitPermanentlyDeleted`. Phần chưa có được ghi _(dự kiến)_.
+
 ## 1. Ba trục độc lập
 
 ```
@@ -39,28 +41,31 @@ Một event chỉ được publish khi đã có handler (`OutboxRegistry` chặn
 
 ## 3. Bố cục
 
-Garden là một bounded context, cùng bố cục bốn tầng như các context khác:
+Garden là một bounded context, cùng bố cục bốn tầng như các context khác. Dòng đánh `*` là dự kiến, chưa có:
 
 ```
 apps/server/src/contexts/garden/
 ├─ garden.module.ts
-├─ domain/                              policy thuần: rhythm/, weeds, marks, climate
+├─ domain/garden-subject.ts             GardenSubjectKind, GardenVariant, CURRENT_SIM_VERSION
+├─ domain/                            * policy thuần: rhythm/, weeds, marks, climate
 ├─ application/
-│  ├─ ports/                            garden-ledger-writer.port.ts, garden-ledger-reader.port.ts
-│  ├─ commands/                         backfill-garden
-│  └─ queries/                          get-garden (sau này ?at= để tua)
+│  ├─ ports/garden-ledger-writer.port.ts
+│  ├─ ports/garden-ledger-reader.port.ts *
+│  ├─ commands/                       * backfill-garden
+│  └─ queries/                        * get-garden (sau này ?at= để tua)
 ├─ infrastructure/
 │  ├─ outbox/                           ← chỗ duy nhất biết contract của Forge
-│  │  └─ plant-created-habit.handler.ts, record-habit-check-in.handler.ts, …
+│  │  ├─ plant-created-habit.handler.ts, uproot-deleted-habit.handler.ts
+│  │  └─ record-habit-check-in.handler.ts, … *
 │  ├─ writers/prisma-garden-ledger.writer.ts
-│  └─ readers/prisma-garden-ledger.reader.ts
-└─ presentation/                        GET /garden
+│  └─ readers/prisma-garden-ledger.reader.ts *
+└─ presentation/                      * GET /garden
 
-packages/garden-sim/                    thuần TS: rng, space colonization, pipe model
+packages/garden-sim/                  * thuần TS: rng, space colonization, pipe model
   species/   tree, thorn-bush, vine, fallback
   versions/  v1, v2…                    không bao giờ sửa phiên bản cũ
-packages/contracts/                     GardenView, enum dùng chung
-apps/client/features/garden/            renderer three.js (lazy), registry giống cây
+packages/contracts/                   * GardenView, enum dùng chung
+apps/client/features/garden/          * renderer three.js (lazy), registry giống cây
 ```
 
 ## 4. Luật phụ thuộc (thêm vào `architecture/dependency-rules.spec.ts`)
@@ -74,7 +79,17 @@ apps/client/features/garden/            renderer three.js (lazy), registry giố
 
 ## 5. Luồng
 
-**Ghi** (người dùng check-in):
+**Gieo** (đã có, G1a):
+
+```
+CreateHabitHandler lưu Habit + forge.habit.created.v1 vào outbox (một transaction)
+→ publisher → OutboxRegistry → PlantCreatedHabitHandler (Garden)
+→ ghi garden_subjects (trùng (subject_kind, subject_id) thì bỏ qua)
+```
+
+Xóa vĩnh viễn Habit thì `forge.habit.permanently-deleted.v1` đi qua `UprootDeletedHabitHandler`, xóa hàng của nó.
+
+**Ghi** _(dự kiến, G1b)_ (người dùng check-in):
 
 ```
 CheckInHabitHandler lưu check-in + forge.habit.checked-in.v1 vào outbox (một transaction), trả kết quả ngay
@@ -85,7 +100,7 @@ CheckInHabitHandler lưu check-in + forge.habit.checked-in.v1 vào outbox (một
 
 Garden lỗi thì outbox thử lại; check-in không bị ảnh hưởng.
 
-**Đọc** (người dùng mở vườn):
+**Đọc** _(dự kiến, G2)_ (người dùng mở vườn):
 
 ```
 GET /garden → đọc garden_subjects (không ẩn) + garden_entries của owner
@@ -112,4 +127,4 @@ Trước khi thêm, module phải qua KD-GDN-011: việc của nó là chăm só
 
 ## 7. Dữ liệu
 
-`kind`, `subject_kind`, `variant`, `mark` là Prisma enum, giống `ActivityEvent.kind`. Thêm loại mới là thêm giá trị enum kèm một migration nhỏ.
+Hiện có hai Prisma enum: `GardenSubjectKind` (`HABIT`) và `GardenVariant` (`BUILD`, `QUIT`), dùng cho `garden_subjects`. Bảng `garden_entries` với enum `kind` và `mark` là dự kiến (G1b). Thêm loại mới là thêm giá trị enum kèm một migration nhỏ, giống `ActivityEvent.kind`.
