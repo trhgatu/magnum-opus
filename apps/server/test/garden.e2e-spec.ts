@@ -7,6 +7,9 @@ import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/infrastructure/database/prisma.service';
 import { DomainExceptionFilter } from '../src/presentation/filters/domain-exception.filter';
 
+// Thời gian chờ mỗi test phải dài hơn hạn chờ 10s của `eventually`.
+jest.setTimeout(20_000);
+
 // Garden ghi sổ qua outbox, chạy nền: chờ tới khi điều kiện đúng.
 const eventually = async <T>(
   read: () => Promise<T>,

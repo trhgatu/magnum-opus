@@ -41,7 +41,7 @@ Garden đi qua bốn tầng. Phạm vi P1 chỉ là tầng 1, nhưng thiết k�
 | KD-GDN-006 | Không sửa quá khứ                     | Cái đã mọc thì không bị viết lại. Hai ngoại lệ có chủ đích: người dùng **xóa vĩnh viễn** dữ liệu nguồn (quyền dữ liệu đứng trên lịch sử), và sửa ngày bắt đầu bỏ của Habit QUIT (BR-GDN-007). |
 | KD-GDN-007 | Mùa nào cũng đúng                     | Mùa đông của đời sống là nghỉ, không phải sa sút. Không mùa nào được trình bày là xấu.                                                                                                        |
 | KD-GDN-008 | Ý nghĩa tách khỏi phông nền           | Giờ và thời tiết thật chỉ là không khí, không bao giờ mang ý nghĩa và không làm cây kém đi.                                                                                                   |
-| KD-GDN-009 | Mở rộng không cần sửa lõi             | Module mới góp vào vườn bằng cách phát sự kiện và thêm một nguồn (§9). Lõi Garden không biết module cụ thể.                                                                                   |
+| KD-GDN-009 | Mở rộng không cần sửa lõi             | Module mới góp vào vườn bằng cách phát sự kiện và thêm một nguồn (§9, Engineering Handbook). Lõi Garden không biết module cụ thể.                                                             |
 | KD-GDN-010 | Không bao giờ gọi người dùng quay lại | Không thông báo, không nhắc "cây đang chờ". Vườn chỉ hiện ra khi người dùng tự mở.                                                                                                            |
 | KD-GDN-011 | Chỉ chăm sóc và nhìn lại mới vào vườn | Một module có chỗ trong vườn khi việc của nó là chăm một thứ lâu dài hoặc nhìn lại chính mình. Việc đo đếm (vd tài chính) không vào vườn, vì ép vào sẽ thành chấm điểm.                       |
 | KD-GDN-012 | Garden tự đủ, ở mức tối thiểu         | Để tính lại cây, Garden chỉ đọc sổ của chính nó. Nguồn chép vào sổ đúng những gì cần để tính (ngày, lịch, giống cây), không bao giờ chép nội dung riêng tư.                                   |
@@ -54,8 +54,8 @@ Garden đi qua bốn tầng. Phạm vi P1 chỉ là tầng 1, nhưng thiết k�
 | **Hạt trong túi**    | Một ý định đã có nhưng chưa cam kết (Project `NOT_STARTED`).                                                                                           |
 | **Gieo**             | Lúc một chủ thể bắt đầu được nuôi (tạo Habit, Start Project).                                                                                          |
 | **Cây**              | Một chủ thể được nuôi lâu dài. Dáng cây là lịch sử theo kỳ của nó được phát lại.                                                                       |
-| **Giống cây**        | Cách một cây mọc thành hình: cây thân gỗ, bụi gai, dây leo. Không phụ thuộc module (§9.3).                                                             |
-| **Nhịp**             | Quy tắc "một kỳ thế nào là có chăm" của từng loại chủ thể (§9.2).                                                                                      |
+| **Giống cây**        | Cách một cây mọc thành hình: cây thân gỗ, bụi gai, dây leo. Không phụ thuộc module (§9).                                                               |
+| **Nhịp**             | Quy tắc "một kỳ thế nào là có chăm" của từng loại chủ thể (§9).                                                                                        |
 | **Nguồn**            | Một context nội bộ góp vào vườn (Forge, Crucible, Reflection…). Không gọi là provider: provider trong dự án dành cho bên thứ ba (GitHub, WakaTime).    |
 | **Luống**            | Một nhóm cây đứng chung vì người dùng gom chúng lại (Routine).                                                                                         |
 | **Dấu vết**          | Ký hiệu trên cây kể một sự kiện: mắt gỗ (quay lại sau nghỉ), sẹo (tái phạm), hoa (cycle xong), trái (Project hoàn thành), vòng năm (một năm khép lại). |
@@ -205,9 +205,7 @@ garden_entries             — sổ
 garden_links (P5)          — rễ, do người dùng tạo
 ```
 
-`kind`, `subject_kind`, `variant`, `mark` là Prisma enum, giống `ActivityEvent.kind`. Thêm loại mới là thêm giá trị enum kèm một migration nhỏ.
-
-Tên hiển thị đọc từ module gốc khi chủ thể còn; `name_at_planting` chỉ là dự phòng.
+Tên hiển thị là `name_at_planting`: Garden không đọc module gốc (KD-GDN-012). Đổi tên ở module gốc thì phải báo sang Garden bằng một sự kiện (Q-GDN-10).
 
 ### 6.3 Quy tắc của sổ
 
@@ -302,113 +300,7 @@ Bấm vào cây thì hiện vài dòng kể bằng chữ, không có điểm s�
 
 ## 9. Kiến trúc
 
-### 9.1 Ba trục độc lập
-
-```
- sự kiện riêng của module      ngôn ngữ chung              hình dạng riêng
- HabitCheckedIn      ┐
- HabitRelapsed       ├─► NGUỒN ─► sổ ─► NHỊP ─► chuỗi kỳ + dấu ─► GIỐNG CÂY ─► hình học
- ProjectCycleClosed  ┤   (dịch)         (tính)                   (mọc)
- JournalEntrySealed  ┘
-```
-
-| Trục                       | Biết gì                         | Không biết gì           | Một cho mỗi  |
-| -------------------------- | ------------------------------- | ----------------------- | ------------ |
-| **Nguồn** (`GardenSource`) | sự kiện cụ thể của module       | cây mọc ra sao          | module       |
-| **Nhịp** (`GardenRhythm`)  | thế nào là có chăm trong một kỳ | sự kiện gốc, hình dạng  | loại chủ thể |
-| **Giống cây** (species)    | cách mọc thành hình             | module nào, sự kiện nào | giống cây    |
-
-Ba trục ghép tự do: một module có thể ra nhiều giống (Habit: BUILD, QUIT); nhiều module có thể dùng chung một giống (Project và một module Học tương lai cùng là dây leo). Giống cây chỉ nhận chuỗi kỳ và dấu; nếu cần thêm thông tin thì mở rộng ngôn ngữ chung (thêm một dấu), không cho giống cây nhìn sự kiện gốc.
-
-### 9.2 Ổ cắm
-
-**Nguồn** là một nhóm outbox handler. Module gốc công bố integration event trong `contexts/<module>/contracts/` (xem `defineIntegrationEvent`). Garden viết mỗi handler `@OutboxHandler(<Contract>)` dịch payload thành dòng sổ, rồi ghi qua cổng `GardenLedgerWriter`. `OutboxRegistry` tự tìm handler lúc boot, nên không có router trung tâm hay danh sách nguồn phải sửa. Handler chỉ thấy payload của contract, không thấy domain event của module gốc.
-
-```ts
-// domain thuần; chỉ nguồn loại "cây" mới có
-interface GardenRhythm {
-  readonly subjectKind: GardenSubjectKind;
-  readonly unit: 'WEEK' | 'MONTH' | 'YEAR'; // P1 chỉ cài WEEK
-  periodState(period: Period, history: SubjectHistory): PeriodState;
-}
-```
-
-Nhịp đăng ký qua multi-provider của Nest (`GARDEN_RHYTHMS`). Lõi không bao giờ `switch` theo `subject_kind`.
-
-Một event chỉ được publish khi đã có handler (`OutboxRegistry` chặn lúc boot), nên event mới của Forge và handler Garden của nó luôn đi chung một PR. Event của cùng một Habit dùng `aggregateId = habitId`, nên outbox giao chúng đúng thứ tự ghi (`outbox_events.sequence`).
-
-### 9.3 Bố cục
-
-Garden là một bounded context, cùng bố cục bốn tầng như các context khác:
-
-```
-apps/server/src/contexts/garden/
-├─ garden.module.ts
-├─ domain/                              policy thuần: rhythm/, weeds, marks, climate
-├─ application/
-│  ├─ ports/                            garden-ledger-writer.port.ts, garden-ledger-reader.port.ts
-│  ├─ commands/                         backfill-garden
-│  └─ queries/                          get-garden (sau này ?at= để tua)
-├─ infrastructure/
-│  ├─ outbox/                           ← chỗ duy nhất biết contract của Forge
-│  │  └─ plant-created-habit.handler.ts, record-habit-check-in.handler.ts, …
-│  ├─ writers/prisma-garden-ledger.writer.ts
-│  └─ readers/prisma-garden-ledger.reader.ts
-└─ presentation/                        GET /garden
-
-packages/garden-sim/                    thuần TS: rng, space colonization, pipe model
-  species/   tree, thorn-bush, vine, fallback
-  versions/  v1, v2…                    không bao giờ sửa phiên bản cũ
-packages/contracts/                     GardenView, enum dùng chung
-apps/client/features/garden/            renderer three.js (lazy), registry giống cây
-```
-
-### 9.4 Luật phụ thuộc (thêm vào `architecture/dependency-rules.spec.ts`)
-
-| Luật                                                                                              | Lý do                                                                                    |
-| ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Garden chỉ chạm context khác qua `contexts/<module>/contracts`, và chỉ từ `infrastructure/outbox` | Garden application và domain không biết Forge. Luật outbox adapter đã có sẵn lo phần này |
-| Không context nào import `garden`                                                                 | Module nguồn không biết vườn tồn tại                                                     |
-| `garden/domain` không import Prisma hay Nest                                                      | Nhịp, cỏ, khí hậu là hàm thuần                                                           |
-| `packages/garden-sim` không phụ thuộc gói nào                                                     | Chạy được ở server, client, test                                                         |
-
-### 9.5 Luồng
-
-**Ghi** (người dùng check-in):
-
-```
-CheckInHabitHandler lưu check-in + forge.habit.checked-in.v1 vào outbox (một transaction), trả kết quả ngay
-→ publisher → OutboxRegistry → RecordHabitCheckInHandler (Garden)
-→ dịch payload thành một TENDED
-→ ghi garden_entries (trùng source_event_id thì bỏ qua) → xóa cache garden:{owner}
-```
-
-Garden lỗi thì outbox thử lại; check-in không bị ảnh hưởng.
-
-**Đọc** (người dùng mở vườn):
-
-```
-GET /garden → đọc garden_subjects (không ẩn) + garden_entries của owner
-→ nhịp → chuỗi kỳ; policy → cỏ, dấu; (P2+) khí hậu
-→ GardenView { subjects: [{ id, seed, variant, simVersion, plot, name, periods, marks, weeds }] }
-→ client: garden-sim(simVersion) dựng hình học → three.js vẽ
-```
-
-Server chỉ gửi chuỗi kỳ; việc mọc cây chạy ở trình duyệt.
-
-### 9.6 Thêm một module mới
-
-| Việc                                                       | Ở đâu                                   | Đụng lõi?     |
-| ---------------------------------------------------------- | --------------------------------------- | ------------- |
-| Module phát sự kiện                                        | context của module                      | không         |
-| Viết nguồn: handler dịch contract + nạp lịch sử            | `garden/infrastructure/outbox/`         | không         |
-| Viết nhịp, nếu là loại cây                                 | `garden/domain/rhythm/`                 | không         |
-| Đăng ký handler vào `providers`, nhịp vào `GARDEN_RHYTHMS` | `garden.module.ts`                      | vài dòng      |
-| Giá trị enum mới, nếu cần                                  | Prisma + contracts                      | một migration |
-| Giống cây mới, nếu cần; thiếu thì dùng `fallback`          | `garden-sim/species/` + registry client | không         |
-| Chạy nạp lịch sử một lần                                   | lệnh                                    | không         |
-
-Trước khi thêm, module phải qua KD-GDN-011: việc của nó là chăm sóc hoặc nhìn lại, không phải đo đếm.
+Kiến trúc kỹ thuật (nguồn, nhịp, giống cây, bố cục code, luật phụ thuộc, luồng ghi/đọc) nằm ở [Engineering Handbook: Garden](../../../../docs/modules/garden.md).
 
 ## 10. Lộ trình
 
@@ -445,9 +337,10 @@ P0 và phần ghi sổ của P1 đi chung, theo từng lát. Mỗi lát gồm ev
 
 ## 12. Câu hỏi mở
 
-| Mã      | Câu hỏi                                                                                                                                                      | Chốt ở                |
-| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------- |
-| Q-GDN-6 | Dây leo Project "có chăm" khi nào: có activity (commit, coding time), đang trong cycle, hay kết hợp? Nghiêng về kết hợp.                                     | P3                    |
-| Q-GDN-7 | Vườn đông dần qua nhiều năm thì hiển thị thế nào?                                                                                                            | P5                    |
-| Q-GDN-8 | Công thức mùa của đời sống                                                                                                                                   | P4, trên dữ liệu thật |
-| Q-GDN-9 | Gió, mưa động có trái nguyên tắc "chuyển động chỉ giải thích thay đổi trạng thái" của `product/vision.md` không? Bỏ, hay ghi Garden là ngoại lệ có chủ đích. | P5                    |
+| Mã       | Câu hỏi                                                                                                                                                      | Chốt ở                |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------- |
+| Q-GDN-6  | Dây leo Project "có chăm" khi nào: có activity (commit, coding time), đang trong cycle, hay kết hợp? Nghiêng về kết hợp.                                     | P3                    |
+| Q-GDN-7  | Vườn đông dần qua nhiều năm thì hiển thị thế nào?                                                                                                            | P5                    |
+| Q-GDN-8  | Công thức mùa của đời sống                                                                                                                                   | P4, trên dữ liệu thật |
+| Q-GDN-9  | Gió, mưa động có trái nguyên tắc "chuyển động chỉ giải thích thay đổi trạng thái" của `product/vision.md` không? Bỏ, hay ghi Garden là ngoại lệ có chủ đích. | P5                    |
+| Q-GDN-10 | Người dùng đổi tên Habit thì cây đổi tên theo không? Nếu có, Forge phát thêm sự kiện đổi tên.                                                                | G2                    |

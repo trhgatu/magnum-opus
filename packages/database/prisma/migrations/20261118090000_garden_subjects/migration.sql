@@ -18,3 +18,5 @@ CREATE TABLE "garden_subjects" (
 CREATE UNIQUE INDEX "garden_subjects_subject_kind_subject_id_key"
   ON "garden_subjects"("subject_kind", "subject_id");
 CREATE INDEX "garden_subjects_owner_id_idx" ON "garden_subjects"("owner_id");
+
+ALTER TABLE "garden_subjects" ADD CONSTRAINT "garden_subjects_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
