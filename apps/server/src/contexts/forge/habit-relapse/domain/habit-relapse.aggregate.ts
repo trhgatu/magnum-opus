@@ -1,5 +1,7 @@
 import { AggregateRoot } from '@shared/domain/aggregate-root';
 
+import type { CalendarDay } from '@shared/domain/calendar-day';
+import { HabitRelapsedEvent } from './events';
 import { HabitRelapseId } from './value-objects';
 
 export interface HabitRelapseProps {
@@ -27,9 +29,20 @@ export class HabitRelapse extends AggregateRoot {
     habitId: string;
     ownerId: string;
     occurredAt: Date;
+    relapsedOn: CalendarDay;
     createdAt: Date;
   }): HabitRelapse {
-    return new HabitRelapse({ id: HabitRelapseId.generate(), ...input });
+    const { relapsedOn, ...props } = input;
+    const relapse = new HabitRelapse({
+      id: HabitRelapseId.generate(),
+      ...props,
+    });
+
+    relapse.addDomainEvent(
+      new HabitRelapsedEvent(relapse.habitId, relapse.ownerId, relapsedOn),
+    );
+
+    return relapse;
   }
 
   public static rehydrate(props: HabitRelapseProps): HabitRelapse {

@@ -64,6 +64,7 @@ export class PrismaGardenLedgerWriter implements GardenLedgerWriter {
           ownerId: subject.ownerId,
           subjectId: subject.id,
           kind: entry.kind,
+          mark: entry.mark,
           occurredOn: entry.occurredOn,
           sourceEventId: entry.sourceEventId,
         },
@@ -77,5 +78,19 @@ export class PrismaGardenLedgerWriter implements GardenLedgerWriter {
       }
       throw error;
     }
+  }
+
+  async replant(
+    subjectKind: GardenSubjectKind,
+    subjectId: string,
+    plantedOn: Date,
+  ): Promise<void> {
+    await this.prisma.gardenSubject.updateMany({
+      where: {
+        subjectKind,
+        subjectId,
+      },
+      data: { plantedOn },
+    });
   }
 }

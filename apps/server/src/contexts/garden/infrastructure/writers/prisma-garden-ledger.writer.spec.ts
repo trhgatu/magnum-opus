@@ -9,6 +9,7 @@ describe('PrismaGardenLedgerWriter', () => {
     create: jest.fn(),
     deleteMany: jest.fn(),
     findUnique: jest.fn(),
+    updateMany: jest.fn(),
   };
   const gardenEntry = {
     create: jest.fn(),
@@ -76,7 +77,46 @@ describe('PrismaGardenLedgerWriter', () => {
     });
   });
 
+  describe('replant', () => {
+    // Dòng sổ cũ giữ nguyên; diễn giải bỏ qua phần trước ngày gieo (BR-GDN-007).
+    it('moves only the planting day of the subject', async () => {
+      gardenSubject.updateMany.mockResolvedValue({ count: 1 });
+
+      await writer.replant(
+        'HABIT',
+        'habit-id',
+        new Date('2026-11-10T00:00:00.000Z'),
+      );
+
+      expect(gardenSubject.updateMany).toHaveBeenCalledWith({
+        where: { subjectKind: 'HABIT', subjectId: 'habit-id' },
+        data: { plantedOn: new Date('2026-11-10T00:00:00.000Z') },
+      });
+    });
+  });
+
   describe('record', () => {
+    it('writes the mark of a MARKED entry', async () => {
+      gardenSubject.findUnique.mockResolvedValue({
+        id: 'subject-id',
+        ownerId: 'owner-id',
+      });
+      gardenEntry.create.mockResolvedValue(undefined);
+
+      await writer.record({
+        subjectKind: 'HABIT',
+        subjectId: 'habit-id',
+        kind: 'MARKED',
+        mark: 'SCAR',
+        occurredOn: new Date('2026-11-16T00:00:00.000Z'),
+        sourceEventId: 'event-id',
+      });
+
+      expect(gardenEntry.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ kind: 'MARKED', mark: 'SCAR' }),
+      });
+    });
+
     const entry = {
       subjectKind: 'HABIT' as const,
       subjectId: 'habit-id',

@@ -14,7 +14,7 @@ import { PrismaOwnedHabitReader } from './infrastructure/readers/prisma-owned-ha
 import { PrismaUserTimeZoneReader } from './infrastructure/readers/prisma-user-time-zone.reader';
 import { PrismaHabitRelapseRepository } from './infrastructure/repositories/prisma-habit-relapse.repository';
 import { HabitRelapseController } from './presentation/controllers/habit-relapse.controller';
-
+import { HabitRelapseOutbox } from './infrastructure/outbox/habit-relapse.outbox';
 @Module({
   imports: [CqrsModule],
   controllers: [HabitRelapseController],
@@ -29,6 +29,7 @@ import { HabitRelapseController } from './presentation/controllers/habit-relapse
     },
     LogRelapseHandler,
     GetHabitProgressHandler,
+    HabitRelapseOutbox,
   ],
 })
 export class HabitRelapseModule {}

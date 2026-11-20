@@ -2,7 +2,7 @@
 
 Tài liệu kỹ thuật của bounded context Garden. Phần nghiệp vụ (vấn đề, quy tắc, lộ trình) ở [BA Garden](../../product/ba/contexts/garden/01-ba-overview.md).
 
-Đây là thiết kế đích. Hiện đã có lát G1a và G1b: bảng `garden_subjects` và `garden_entries`, cổng `GardenLedgerWriter` cùng writer Prisma, handler gieo/nhổ cây theo `HabitCreated` / `HabitPermanentlyDeleted`, và handler ghi `TENDED` / `UNTENDED` theo `HabitCheckedIn` / `HabitCheckInUndone`. Phần chưa có được ghi _(dự kiến)_.
+Đây là thiết kế đích. Hiện đã có lát G1a, G1b và G1c: bảng `garden_subjects` và `garden_entries`, cổng `GardenLedgerWriter` cùng writer Prisma, handler gieo/nhổ cây theo `HabitCreated` / `HabitPermanentlyDeleted`, handler ghi `TENDED` / `UNTENDED` theo `HabitCheckedIn` / `HabitCheckInUndone`, handler ghi sẹo theo `HabitRelapsed` và gieo lại cây theo `HabitQuitStartChanged`. Phần chưa có được ghi _(dự kiến)_.
 
 ## 1. Ba trục độc lập
 
@@ -57,7 +57,8 @@ apps/server/src/contexts/garden/
 │  ├─ outbox/                           ← chỗ duy nhất biết contract của Forge
 │  │  ├─ plant-created-habit.handler.ts, uproot-deleted-habit.handler.ts
 │  │  ├─ record-habit-check-in.handler.ts, record-habit-check-in-undone.handler.ts
-│  │  └─ record-habit-relapse.handler.ts, … *
+│  │  ├─ record-habit-relapse.handler.ts, replant-quit-habit.handler.ts
+│  │  └─ … *
 │  ├─ writers/prisma-garden-ledger.writer.ts
 │  └─ readers/prisma-garden-ledger.reader.ts *
 └─ presentation/                      * GET /garden
@@ -103,6 +104,18 @@ Check-in trùng ngày thì transaction rollback, không phát event lần hai. R
 
 Garden lỗi thì outbox thử lại; check-in không bị ảnh hưởng.
 
+**Sẹo và gieo lại** (đã có, G1c) (Habit QUIT):
+
+```
+LogRelapseHandler lưu tái phạm + forge.habit.relapsed.v1 vào outbox (một transaction)
+→ RecordHabitRelapseHandler (Garden) → một MARKED với mark SCAR
+
+UpdateHabitHandler đổi quitStartedAt → forge.habit.quit-start-changed.v1 cùng transaction với update
+→ ReplantQuitHabitHandler (Garden) → đổi planted_on của cây
+```
+
+Ngày của sẹo là ngày theo múi giờ tài khoản lúc tái phạm (BR-GDN-SB-002). Sổ ghi đủ từng lần tái phạm; gộp một sẹo mỗi tuần là việc của lúc diễn giải (BR-GDN-004). Gieo lại chỉ dời `planted_on`, không xóa dòng sổ nào; lúc đọc, dòng trước ngày gieo bị bỏ qua (BR-GDN-007). Chỉ sửa tên mà giữ nguyên ngày thì không phát event.
+
 **Đọc** _(dự kiến, G2)_ (người dùng mở vườn):
 
 ```
@@ -130,4 +143,4 @@ Trước khi thêm, module phải qua KD-GDN-011: việc của nó là chăm só
 
 ## 7. Dữ liệu
 
-Hiện có ba Prisma enum: `GardenSubjectKind` (`HABIT`) và `GardenVariant` (`BUILD`, `QUIT`) cho `garden_subjects`, `GardenEntryKind` (`TENDED`, `UNTENDED`) cho `garden_entries`. `garden_entries` thuộc về một chủ thể (`ON DELETE CASCADE`), nên nhổ cây thì sổ đi theo. Các loại sổ khác và enum `mark` là dự kiến (G1c, G1d). Thêm loại mới là thêm giá trị enum kèm một migration nhỏ, giống `ActivityEvent.kind`.
+Hiện có ba Prisma enum: `GardenSubjectKind` (`HABIT`) và `GardenVariant` (`BUILD`, `QUIT`) cho `garden_subjects`, `GardenEntryKind` (`TENDED`, `UNTENDED`, `MARKED`) và `GardenMark` (`SCAR`) cho `garden_entries`; cột `mark` chỉ có giá trị khi `kind = MARKED`. `garden_entries` thuộc về một chủ thể (`ON DELETE CASCADE`), nên nhổ cây thì sổ đi theo. Các loại sổ khác là dự kiến (G1d). Thêm loại mới là thêm giá trị enum kèm một migration nhỏ, giống `ActivityEvent.kind`.

@@ -5,6 +5,10 @@ import request from 'supertest';
 
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/infrastructure/database/prisma.service';
+import {
+  calendarDayAt,
+  calendarDayToDate,
+} from '../src/shared/domain/calendar-day';
 import { DomainExceptionFilter } from '../src/presentation/filters/domain-exception.filter';
 
 // Thời gian chờ mỗi test phải dài hơn hạn chờ 10s của `eventually`.
@@ -191,6 +195,74 @@ describe('Garden ledger (E2E)', () => {
     ).toBeNull();
   });
 
+  it("records each relapse as a SCAR on the owner's day", async () => {
+    const habitId = await createPlantedQuitHabit('Quit coffee', '2026-11-01');
+
+    const relapse = await request(app.getHttpServer())
+      .post(`/habits/${habitId}/relapses`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(HttpStatus.CREATED);
+    await request(app.getHttpServer())
+      .post(`/habits/${habitId}/relapses`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(HttpStatus.CREATED);
+
+    const { ownerId } = (await subjectOf(habitId))!;
+    const { timeZone } = await prisma.user.findUniqueOrThrow({
+      where: { id: ownerId },
+      select: { timeZone: true },
+    });
+    const occurredOn = calendarDayToDate(
+      calendarDayAt(new Date(relapse.body.occurredAt as string), timeZone),
+    );
+    // Sổ ghi đủ từng lần; gộp một sẹo mỗi tuần là việc của lúc diễn giải.
+    const entries = await eventually(
+      () => entriesOf(habitId),
+      (rows) => rows.length >= 2,
+    );
+    expect(
+      entries.map(({ kind, mark, occurredOn }) => ({ kind, mark, occurredOn })),
+    ).toEqual([
+      { kind: 'MARKED', mark: 'SCAR', occurredOn },
+      { kind: 'MARKED', mark: 'SCAR', occurredOn },
+    ]);
+  });
+
+  it('replants a QUIT Habit when its start day changes', async () => {
+    const habitId = await createPlantedQuitHabit('Quit gaming', '2026-11-01');
+
+    // Chỉ sửa tên thì cây giữ ngày gieo.
+    await request(app.getHttpServer())
+      .put(`/habits/${habitId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        title: 'Quit video games',
+        description: null,
+        quitStartedAt: '2026-11-01',
+        expectedRevision: 1,
+      })
+      .expect(HttpStatus.OK);
+    await request(app.getHttpServer())
+      .put(`/habits/${habitId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        title: 'Quit video games',
+        description: null,
+        quitStartedAt: '2026-11-05',
+        expectedRevision: 2,
+      })
+      .expect(HttpStatus.OK);
+
+    const subject = await eventually(
+      () => subjectOf(habitId),
+      (row) => row?.plantedOn.toISOString() === '2026-11-05T00:00:00.000Z',
+    );
+    expect(subject).toMatchObject({
+      plantedOn: new Date('2026-11-05T00:00:00.000Z'),
+      nameAtPlanting: 'Quit gaming',
+    });
+  });
+
   const entriesOf = (habitId: string) =>
     prisma.gardenEntry.findMany({
       where: {
@@ -204,6 +276,23 @@ describe('Garden ledger (E2E)', () => {
       .post('/habits')
       .set('Authorization', `Bearer ${token}`)
       .send({ title, type: 'BUILD', frequencyType: 'DAILY', frequencyDays: [] })
+      .expect(HttpStatus.CREATED);
+    const habitId = created.body.id as string;
+    await eventually(
+      () => subjectOf(habitId),
+      (row) => row !== null,
+    );
+    return habitId;
+  }
+
+  async function createPlantedQuitHabit(
+    title: string,
+    quitStartedAt: string,
+  ): Promise<string> {
+    const created = await request(app.getHttpServer())
+      .post('/habits')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ title, type: 'QUIT', quitStartedAt })
       .expect(HttpStatus.CREATED);
     const habitId = created.body.id as string;
     await eventually(

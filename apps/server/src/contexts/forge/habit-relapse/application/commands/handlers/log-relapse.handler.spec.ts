@@ -9,12 +9,43 @@ describe('LogRelapseHandler', () => {
   const repository = { create: jest.fn() };
   const habitReader = { findByIdForOwner: jest.fn() };
   const clock = { now: jest.fn() };
+  const timeZoneReader = { getForUser: jest.fn() };
 
-  const handler = new LogRelapseHandler(repository, habitReader, clock);
+  const handler = new LogRelapseHandler(
+    repository,
+    habitReader,
+    clock,
+    timeZoneReader,
+  );
 
   beforeEach(() => {
     jest.clearAllMocks();
     clock.now.mockReturnValue(new Date('2026-08-20T10:00:00.000Z'));
+    timeZoneReader.getForUser.mockResolvedValue('Asia/Ho_Chi_Minh');
+  });
+
+  // 18:00Z ngày 20 đã là ngày 21 ở Asia/Ho_Chi_Minh.
+  it("stamps the relapse event with the owner's calendar day", async () => {
+    clock.now.mockReturnValue(new Date('2026-08-20T18:00:00.000Z'));
+    habitReader.findByIdForOwner.mockResolvedValue({
+      id: 'habit-id',
+      isActive: true,
+      type: 'QUIT',
+    });
+    repository.create.mockResolvedValue(undefined);
+
+    const result = await handler.execute(
+      new LogRelapseCommand('habit-id', 'owner-id'),
+    );
+
+    expect(timeZoneReader.getForUser).toHaveBeenCalledWith('owner-id');
+    expect(result.getValue().getDomainEvents()).toEqual([
+      expect.objectContaining({
+        habitId: 'habit-id',
+        ownerId: 'owner-id',
+        relapsedOn: '2026-08-21',
+      }),
+    ]);
   });
 
   it('logs a relapse for an active QUIT-type Habit', async () => {
@@ -60,6 +91,7 @@ describe('LogRelapseHandler', () => {
     );
 
     expect(result.getError()).toBeInstanceOf(HabitNotFoundException);
+    expect(timeZoneReader.getForUser).not.toHaveBeenCalled();
     expect(repository.create).not.toHaveBeenCalled();
   });
 

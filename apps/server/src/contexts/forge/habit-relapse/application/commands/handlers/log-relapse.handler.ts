@@ -3,6 +3,7 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
 import { DomainException } from '@shared/domain/exceptions/domain.exception';
 import { Result } from '@shared/domain/result';
+import { calendarDayAt } from '@shared/domain/calendar-day';
 
 import {
   HabitNotFoundException,
@@ -14,6 +15,10 @@ import {
   type HabitRelapseRepository,
 } from '../../../domain/ports/habit-relapse.repository';
 import { CLOCK, type Clock } from '../../ports/clock.port';
+import {
+  USER_TIME_ZONE_READER,
+  type UserTimeZoneReader,
+} from '../../ports/user-time-zone-reader.port';
 import {
   OWNED_HABIT_READER,
   type OwnedHabitReader,
@@ -32,6 +37,8 @@ export class LogRelapseHandler implements ICommandHandler<
     private readonly habitReader: OwnedHabitReader,
     @Inject(CLOCK)
     private readonly clock: Clock,
+    @Inject(USER_TIME_ZONE_READER)
+    private readonly timeZoneReader: UserTimeZoneReader,
   ) {}
 
   public async execute(
@@ -48,11 +55,15 @@ export class LogRelapseHandler implements ICommandHandler<
       return Result.fail(new HabitRelapseForbiddenException(command.habitId));
     }
 
+    const now = this.clock.now();
+    const timeZone = await this.timeZoneReader.getForUser(command.ownerId);
+
     const relapse = HabitRelapse.create({
       habitId: command.habitId,
       ownerId: command.ownerId,
-      occurredAt: this.clock.now(),
-      createdAt: this.clock.now(),
+      occurredAt: now,
+      relapsedOn: calendarDayAt(now, timeZone),
+      createdAt: now,
     });
 
     await this.repository.create(relapse);

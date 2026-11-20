@@ -6,7 +6,10 @@ import { HabitPermanentlyDeleted } from '../../contracts/habit-permanently-delet
 import { HabitPermanentlyDeletedEvent } from '../../domain/events';
 
 import { HabitCreated } from '../../contracts/habit-created.contract';
+import { HabitQuitStartChanged } from '../../contracts/habit-quit-start-changed.contract';
+
 import { HabitCreatedEvent } from '../../domain/events';
+import { HabitQuitStartChangedEvent } from '../../domain/events';
 
 @Injectable()
 @OutboxPublisher([
@@ -26,6 +29,17 @@ import { HabitCreatedEvent } from '../../domain/events';
       ownerId: event.ownerId,
       habitType: event.type,
       title: event.title,
+      startedOn: event.startedOn.value,
+    }),
+  }),
+
+  publish({
+    event: HabitQuitStartChangedEvent,
+    as: HabitQuitStartChanged,
+    aggregateId: (event) => event.habitId,
+    toPayload: (event) => ({
+      habitId: event.habitId,
+      ownerId: event.ownerId,
       startedOn: event.startedOn.value,
     }),
   }),

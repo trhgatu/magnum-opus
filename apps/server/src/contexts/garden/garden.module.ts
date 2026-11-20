@@ -5,6 +5,8 @@ import { PlantCreatedHabitHandler } from './infrastructure/outbox/plant-created-
 import { UprootDeletedHabitHandler } from './infrastructure/outbox/uproot-deleted-habit.handler';
 import { RecordHabitCheckInHandler } from './infrastructure/outbox/record-habit-check-in.handler';
 import { RecordHabitCheckInUndoneHandler } from './infrastructure/outbox/record-habit-check-in-undone.handler';
+import { RecordHabitRelapseHandler } from './infrastructure/outbox/record-habit-relapse.handler';
+import { ReplantQuitHabitHandler } from './infrastructure/outbox/replant-quit-habit.handler';
 import { PrismaGardenLedgerWriter } from './infrastructure/writers/prisma-garden-ledger.writer';
 
 @Module({
@@ -13,6 +15,8 @@ import { PrismaGardenLedgerWriter } from './infrastructure/writers/prisma-garden
     UprootDeletedHabitHandler,
     RecordHabitCheckInHandler,
     RecordHabitCheckInUndoneHandler,
+    RecordHabitRelapseHandler,
+    ReplantQuitHabitHandler,
     { provide: GARDEN_LEDGER_WRITER, useClass: PrismaGardenLedgerWriter },
   ],
 })

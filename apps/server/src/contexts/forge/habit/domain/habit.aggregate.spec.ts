@@ -4,6 +4,7 @@ import {
   HabitPermanentlyDeletedEvent,
   HabitLifecycleTransitionedEvent,
   HabitScheduleVersionStartedEvent,
+  HabitQuitStartChangedEvent,
 } from './events';
 import {
   HabitPermanentDeleteForbiddenException,
@@ -349,6 +350,53 @@ describe('Habit', () => {
       expect(habit.revision).toBe(2);
     });
 
+    // Garden gieo lại cây từ ngày mới (BR-GDN-007).
+    it('announces the new start day when quitStartedAt changes', () => {
+      const habit = Habit.rehydrate(
+        createProps({
+          type: HabitType.QUIT,
+          frequency: null,
+          quitStartedAt: new Date('2026-08-01T00:00:00.000Z'),
+          openScheduleEffectiveFrom: undefined,
+        }),
+      );
+
+      habit.update({
+        title: habit.title,
+        quitStartedAt: new Date('2026-08-15T09:45:00.000Z'),
+        today: TODAY,
+      });
+
+      const events = habit.getDomainEvents();
+      expect(events).toHaveLength(1);
+      expect(events[0]).toBeInstanceOf(HabitQuitStartChangedEvent);
+      expect(events[0]).toMatchObject({
+        habitId: habit.id,
+        ownerId: habit.ownerId,
+        startedOn: calendarDate('2026-08-15'),
+      });
+    });
+
+    it('announces nothing when only the title of a QUIT Habit changes', () => {
+      const habit = Habit.rehydrate(
+        createProps({
+          type: HabitType.QUIT,
+          frequency: null,
+          quitStartedAt: new Date('2026-08-01T00:00:00.000Z'),
+          openScheduleEffectiveFrom: undefined,
+        }),
+      );
+
+      habit.update({
+        title: 'Quit sugar',
+        quitStartedAt: new Date('2026-08-01T00:00:00.000Z'),
+        today: TODAY,
+      });
+
+      expect(habit.title).toBe('Quit sugar');
+      expect(habit.getDomainEvents()).toEqual([]);
+    });
+
     it('normalizes a quitStartedAt with a time component to a canonical day', () => {
       const habit = Habit.create({
         ownerId: 'owner-id',
@@ -550,9 +598,7 @@ describe('Habit', () => {
         ownerId: 'owner-id',
         action: HabitLifecycleAction.ARCHIVED,
       });
-      expect((event as HabitLifecycleTransitionedEvent).effectiveOn.value).toBe(
-        '2026-10-09',
-      );
+      expect(event.effectiveOn.value).toBe('2026-10-09');
     });
 
     it('records one transition per change, even on the same day', () => {
@@ -976,7 +1022,7 @@ describe('Habit', () => {
       });
 
       expect(habit.revision).toBe(2);
-      expect(habit.getDomainEvents()).toEqual([]);
+      expect(scheduleVersions(habit)).toEqual([]);
     });
 
     it('does not touch schedule versions on archive or restore', () => {

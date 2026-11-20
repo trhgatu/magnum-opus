@@ -800,6 +800,11 @@ model GardenSubject {
 enum GardenEntryKind {
   TENDED
   UNTENDED
+  MARKED
+}
+
+enum GardenMark {
+  SCAR
 }
 
 model GardenEntry {
@@ -807,6 +812,7 @@ model GardenEntry {
   ownerId String @map("owner_id")
   subjectId String @map("subject_id")
   kind GardenEntryKind
+  mark GardenMark?
   occurredOn DateTime @map("occurred_on") @db.Date
   sourceEventId String @unique @map("source_event_id")
   recordedAt DateTime @default(now()) @map("recorded_at")
