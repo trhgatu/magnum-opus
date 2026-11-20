@@ -35,17 +35,26 @@ describe("formatQuitStartedAt", () => {
 });
 
 describe("todayAsLocalCalendarDate", () => {
-  beforeEach(() => vi.useFakeTimers());
-  afterEach(() => vi.useRealTimers());
+  const originalTimeZone = process.env.TZ;
+
+  beforeEach(() => {
+    // Node đọc lại TZ khi nó đổi: ép múi giờ dương để ngày local khác ngày UTC.
+    process.env.TZ = "Asia/Ho_Chi_Minh";
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    process.env.TZ = originalTimeZone;
+  });
 
   // Server so với ngày của owner, nên mặc định phải là ngày người dùng đang
   // thấy, không phải ngày UTC.
-  it("uses the local calendar day", () => {
-    const now = new Date("2026-08-14T23:30:00.000Z");
-    vi.setSystemTime(now);
+  it("uses the local calendar day while UTC is still the day before", () => {
+    // 2026-08-14T23:30Z là 06:30 ngày 15 ở UTC+7.
+    vi.setSystemTime(new Date("2026-08-14T23:30:00.000Z"));
 
-    expect(todayAsLocalCalendarDate()).toEqual(
-      new Date(now.getFullYear(), now.getMonth(), now.getDate()),
+    expect(quitStartedAtFromDate(todayAsLocalCalendarDate())).toBe(
+      "2026-08-15",
     );
   });
 });

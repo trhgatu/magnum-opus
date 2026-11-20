@@ -458,6 +458,28 @@ describe('Habit', () => {
       ).toThrow('Owner calendar date is required to set quitStartedAt');
       expect(habit.quitStartedAt).toEqual(new Date('2026-10-01T00:00:00.000Z'));
     });
+
+    // Habit cũ lưu ngày UTC có thể sớm hơn ngày của owner ở múi giờ âm.
+    // Chỉ chặn ngày tương lai khi ngày thật sự đổi, để sửa tên vẫn được.
+    it("allows editing other fields when the stored start day is after the owner's today", () => {
+      const habit = Habit.rehydrate(
+        createProps({
+          type: HabitType.QUIT,
+          frequency: null,
+          quitStartedAt: new Date('2026-10-10T00:00:00.000Z'),
+          openScheduleEffectiveFrom: undefined,
+        }),
+      );
+
+      habit.update({
+        title: 'Quit sugar',
+        quitStartedAt: new Date('2026-10-10T00:00:00.000Z'),
+        today: TODAY,
+      });
+
+      expect(habit.title).toBe('Quit sugar');
+      expect(habit.quitStartedAt).toEqual(new Date('2026-10-10T00:00:00.000Z'));
+    });
   });
 
   describe('archive and restore', () => {

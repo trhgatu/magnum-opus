@@ -454,12 +454,14 @@ export class Habit extends AggregateRoot {
       throw new InvalidHabitTypeException();
     }
 
-    if (!today) {
-      throw new Error('Owner calendar date is required to set quitStartedAt');
-    }
     const normalizedQuitStartedAt = Habit.startOfUtcDay(quitStartedAt);
-    Habit.ensureNotFutureDate(normalizedQuitStartedAt, today);
 
+    if (!Habit.datesEqual(this.props.quitStartedAt, normalizedQuitStartedAt)) {
+      if (!today) {
+        throw new Error('Owner calendar date is required to set quitStartedAt');
+      }
+      Habit.ensureNotFutureDate(normalizedQuitStartedAt, today);
+    }
     return { frequency: null, quitStartedAt: normalizedQuitStartedAt };
   }
 
