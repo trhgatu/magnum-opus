@@ -1,3 +1,5 @@
+import { Logger } from '@nestjs/common';
+
 import {
   WakaTimeKeyInvalidException,
   WakaTimeRateLimitedException,
@@ -320,4 +322,78 @@ describe('WakaTimeHttpClient.durations', () => {
       exception,
     );
   });
+});
+
+// Lỗi gốc bị bỏ để token không lọt ra ngoài, nên log lý do để biết vì sao
+// WakaTime "chưa cập nhật được".
+describe('WakaTimeHttpClient logs why WakaTime is unavailable', () => {
+  let warn: jest.SpyInstance;
+
+  beforeEach(() => {
+    warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
+  });
+  afterEach(() => warn.mockRestore());
+
+  const logged = (): string[] => warn.mock.calls.map(([line]) => String(line));
+
+  it('logs the HTTP status and the endpoint without its query', async () => {
+    const { client } = setup(json(502, { error: 'Bad Gateway' }));
+
+    await expect(client.durations(KEY, '2026-11-20')).rejects.toBeInstanceOf(
+      WakaTimeUnavailableException,
+    );
+
+    expect(logged()).toEqual([
+      'WakaTime /users/current/durations unavailable: HTTP 502',
+    ]);
+  });
+
+  it('logs only the name of a network failure, never its message', async () => {
+    const { client } = setup(
+      new TypeError(`fetch failed for https://wakatime.test?key=${KEY}`),
+    );
+
+    await expect(client.currentUser(KEY)).rejects.toBeInstanceOf(
+      WakaTimeUnavailableException,
+    );
+
+    expect(logged()).toEqual([
+      'WakaTime /users/current unavailable: TypeError',
+    ]);
+    expect(logged().join()).not.toContain(KEY);
+  });
+
+  it('logs a day WakaTime returned without its bounds', async () => {
+    const { client } = setup(json(200, { data: [] }));
+
+    await expect(client.durations(KEY, '2026-11-20')).rejects.toBeInstanceOf(
+      WakaTimeUnavailableException,
+    );
+
+    expect(logged()).toEqual([
+      'WakaTime /users/current/durations unavailable: missing start or end',
+    ]);
+  });
+
+  it('logs nothing for a rejected token', async () => {
+    const { client } = setup(json(401, {}));
+
+    await expect(client.currentUser(KEY)).rejects.toBeInstanceOf(
+      WakaTimeKeyInvalidException,
+    );
+
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  function setup(response: Response | Error) {
+    const fetchFn = jest.fn<Promise<Response>, Parameters<typeof fetch>>();
+    if (response instanceof Error) fetchFn.mockRejectedValueOnce(response);
+    else fetchFn.mockResolvedValueOnce(response);
+    return {
+      client: new WakaTimeHttpClient({
+        fetchFn: fetchFn as unknown as typeof fetch,
+        baseUrl: 'https://wakatime.test/api/v1',
+      }),
+    };
+  }
 });

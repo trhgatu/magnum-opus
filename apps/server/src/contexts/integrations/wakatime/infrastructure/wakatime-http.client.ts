@@ -1,3 +1,5 @@
+import { Logger } from '@nestjs/common';
+
 import type {
   WakaTimeApi,
   WakaTimeDay,
@@ -15,7 +17,6 @@ import type { WakaTimeAccount } from '../domain/wakatime-connection.entity';
 
 const DEFAULT_TIMEOUT_MS = 10_000;
 const DEFAULT_RETRY_AFTER_SECONDS = 60;
-/** Chặn vòng lặp vô hạn nếu WakaTime trả next_page sai. */
 const MAX_PROJECT_PAGES = 50;
 
 export interface WakaTimeHttpClientOptions {
@@ -24,17 +25,11 @@ export interface WakaTimeHttpClientOptions {
   timeoutMs?: number;
 }
 
-/**
- * WakaTime API v1, chỉ đọc. Xác thực bằng OAuth token cá nhân gửi kiểu
- * `Bearer` (BA 08 §2.1): từ 2026-11 WakaTime chỉ cho API key gọi các endpoint
- * của plugin, mọi endpoint đọc trả 403 với API key. Tên `apiKey` trong code
- * giữ nguyên, giá trị giờ là token.
- * Không bao giờ để token lọt vào lỗi.
- */
 export class WakaTimeHttpClient implements WakaTimeApi {
   private readonly fetchFn: typeof fetch;
   private readonly baseUrl: string;
   private readonly timeoutMs: number;
+  private readonly logger = new Logger(WakaTimeHttpClient.name);
 
   constructor(options: WakaTimeHttpClientOptions = {}) {
     this.fetchFn = options.fetchFn ?? fetch;
@@ -49,14 +44,13 @@ export class WakaTimeHttpClient implements WakaTimeApi {
   async currentUser(apiKey: string): Promise<WakaTimeUser> {
     const payload = await this.getJson('/users/current', apiKey);
     const user = payload.data;
-    // JSON từ bên ngoài: chỉ tin trường là chuỗi không rỗng.
     const id = isRecord(user) ? text(user.id) : null;
-    if (!isRecord(user) || !id) throw new WakaTimeUnavailableException();
+    if (!isRecord(user) || !id)
+      throw this.unavailable('/users/current', 'user without id');
 
     return {
       account: {
         id,
-        // Tài khoản chưa đặt username vẫn có tên hiển thị hoặc id.
         username: text(user.username) ?? text(user.display_name) ?? id,
       },
       timeZone: validTimeZone(text(user.timezone)) ?? 'UTC',
@@ -85,9 +79,11 @@ export class WakaTimeHttpClient implements WakaTimeApi {
       }
       page = typeof payload.next_page === 'number' ? payload.next_page : null;
     }
-    // Hết giới hạn mà WakaTime vẫn còn trang: danh sách chưa đủ, không được
-    // kết luận project nào đó không tồn tại.
-    if (page !== null) throw new WakaTimeUnavailableException();
+    if (page !== null)
+      throw this.unavailable(
+        '/users/current/projects',
+        `more than ${MAX_PROJECT_PAGES} pages`,
+      );
     return projects;
   }
 
@@ -98,10 +94,16 @@ export class WakaTimeHttpClient implements WakaTimeApi {
     );
     const start = instant(payload.start);
     const lastSecond = instant(payload.end);
-    if (!start || !lastSecond) throw new WakaTimeUnavailableException();
-    // Không có mảng data thì không biết ngày này có gì: không được để sổ
-    // thay nó bằng một ngày rỗng.
-    if (!Array.isArray(payload.data)) throw new WakaTimeUnavailableException();
+    if (!start || !lastSecond)
+      throw this.unavailable(
+        '/users/current/durations',
+        'missing start or end',
+      );
+    if (!Array.isArray(payload.data))
+      throw this.unavailable(
+        '/users/current/durations',
+        'data is not an array',
+      );
 
     const sessions: WakaTimeSession[] = [];
     for (const item of list(payload.data)) {
@@ -114,29 +116,25 @@ export class WakaTimeHttpClient implements WakaTimeApi {
 
     return {
       start,
-      // WakaTime trả giây cuối của ngày (23:59:59); ngày kết thúc ngay sau
-      // giây đó, để các ngày nối nhau không hở.
       end: new Date(Math.floor(lastSecond.getTime() / 1000) * 1000 + 1000),
       sessions,
     };
   }
 
-  /** GET, map lỗi HTTP về exception của WakaTime, trả object JSON. */
   private async getJson(
     path: string,
     apiKey: string,
   ): Promise<Record<string, unknown>> {
     const response = await this.request(path, apiKey);
-    // 401: token sai hoặc đã thu hồi. 403: token thiếu quyền read_heartbeats,
-    // hoặc vẫn là API key cũ. Cả hai đều phải tạo token mới.
     if (response.status === 401 || response.status === 403) {
       throw new WakaTimeKeyInvalidException();
     }
     if (response.status === 429) throw rateLimited(response);
-    if (!response.ok) throw new WakaTimeUnavailableException();
+    if (!response.ok) throw this.unavailable(path, `HTTP ${response.status}`);
 
     const payload: unknown = await response.json().catch(() => null);
-    if (!isRecord(payload)) throw new WakaTimeUnavailableException();
+    if (!isRecord(payload))
+      throw this.unavailable(path, 'body is not a JSON object');
     return payload;
   }
 
@@ -150,11 +148,21 @@ export class WakaTimeHttpClient implements WakaTimeApi {
         },
         signal: AbortSignal.timeout(this.timeoutMs),
       });
-    } catch {
-      // Lỗi mạng hoặc quá thời gian. Không giữ lỗi gốc: thông điệp của nó
-      // có thể chứa URL hoặc header của request.
-      throw new WakaTimeUnavailableException();
+    } catch (error) {
+      throw this.unavailable(
+        path,
+        error instanceof Error ? error.name : 'unknown error',
+      );
     }
+  }
+
+  private unavailable(
+    path: string,
+    reason: string,
+  ): WakaTimeUnavailableException {
+    const endpoint = path.split('?')[0];
+    this.logger.warn(`WakaTime ${endpoint} unavailable: ${reason}`);
+    return new WakaTimeUnavailableException();
   }
 }
 
@@ -175,7 +183,6 @@ function instant(value: unknown): Date | null {
   return date && !Number.isNaN(date.getTime()) ? date : null;
 }
 
-/** Múi giờ Intl hiểu được; tên lạ thì null. */
 function validTimeZone(timeZone: string | null): string | null {
   if (!timeZone) return null;
   try {
