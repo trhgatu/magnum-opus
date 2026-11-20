@@ -16,4 +16,6 @@ CREATE INDEX "garden_entries_owner_id_occurred_on_idx" ON "garden_entries"("owne
 CREATE INDEX "garden_entries_subject_id_occurred_on_idx" ON "garden_entries"("subject_id", "occurred_on");
 
 ALTER TABLE "garden_entries" ADD CONSTRAINT "garden_entries_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-ALTER TABLE "garden_entries" ADD CONSTRAINT "garden_entries_subject_id_fkey" FOREIGN KEY ("subject_id") REFERENCES "garden_subjects"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+CREATE UNIQUE INDEX "garden_subjects_id_owner_id_key" ON "garden_subjects"("id", "owner_id");
+ALTER TABLE "garden_entries" ADD CONSTRAINT "garden_entries_subject_id_owner_id_fkey" FOREIGN KEY ("subject_id", "owner_id") REFERENCES "garden_subjects"("id", "owner_id") ON DELETE CASCADE ON UPDATE CASCADE;

@@ -79,6 +79,7 @@ describe('PrismaHabitCheckInRepository', () => {
           }),
         ],
       });
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
       expect(calls).toEqual(['habitCheckIn.create', 'outbox.createMany']);
       expect(created.id).toBe(raw.id);
     });
@@ -183,6 +184,7 @@ describe('PrismaHabitCheckInRepository', () => {
           }),
         ],
       });
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
       expect(calls).toEqual(['habitCheckIn.deleteMany', 'outbox.createMany']);
     });
 

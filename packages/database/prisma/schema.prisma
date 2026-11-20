@@ -792,6 +792,7 @@ model GardenSubject {
   createdAt DateTime @default(now()) @map("created_at")
   owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   @@unique([subjectKind, subjectId])
+  @@unique([id, ownerId])
   @@index([ownerId])
   @@map("garden_subjects")
 }
@@ -811,7 +812,7 @@ model GardenEntry {
   recordedAt DateTime @default(now()) @map("recorded_at")
 
   owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade )
-  subject GardenSubject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subject GardenSubject @relation(fields: [subjectId, ownerId], references: [id, ownerId], onDelete: Cascade)
 
   @@index([ownerId, occurredOn])
   @@index([subjectId, occurredOn])
