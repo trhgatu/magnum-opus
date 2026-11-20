@@ -2,7 +2,7 @@
 
 Tài liệu kỹ thuật của bounded context Garden. Phần nghiệp vụ (vấn đề, quy tắc, lộ trình) ở [BA Garden](../../product/ba/contexts/garden/01-ba-overview.md).
 
-Đây là thiết kế đích. Hiện mới có lát G1a: bảng `garden_subjects`, cổng `GardenLedgerWriter` cùng writer Prisma, và hai handler gieo/nhổ cây theo `HabitCreated` / `HabitPermanentlyDeleted`. Phần chưa có được ghi _(dự kiến)_.
+Đây là thiết kế đích. Hiện đã có lát G1a và G1b: bảng `garden_subjects` và `garden_entries`, cổng `GardenLedgerWriter` cùng writer Prisma, handler gieo/nhổ cây theo `HabitCreated` / `HabitPermanentlyDeleted`, và handler ghi `TENDED` / `UNTENDED` theo `HabitCheckedIn` / `HabitCheckInUndone`. Phần chưa có được ghi _(dự kiến)_.
 
 ## 1. Ba trục độc lập
 
@@ -56,7 +56,8 @@ apps/server/src/contexts/garden/
 ├─ infrastructure/
 │  ├─ outbox/                           ← chỗ duy nhất biết contract của Forge
 │  │  ├─ plant-created-habit.handler.ts, uproot-deleted-habit.handler.ts
-│  │  └─ record-habit-check-in.handler.ts, … *
+│  │  ├─ record-habit-check-in.handler.ts, record-habit-check-in-undone.handler.ts
+│  │  └─ record-habit-relapse.handler.ts, … *
 │  ├─ writers/prisma-garden-ledger.writer.ts
 │  └─ readers/prisma-garden-ledger.reader.ts *
 └─ presentation/                      * GET /garden
@@ -89,14 +90,16 @@ CreateHabitHandler lưu Habit + forge.habit.created.v1 vào outbox (một transa
 
 Xóa vĩnh viễn Habit thì `forge.habit.permanently-deleted.v1` đi qua `UprootDeletedHabitHandler`, xóa hàng của nó.
 
-**Ghi** _(dự kiến, G1b)_ (người dùng check-in):
+**Ghi** (đã có, G1b) (người dùng check-in):
 
 ```
 CheckInHabitHandler lưu check-in + forge.habit.checked-in.v1 vào outbox (một transaction), trả kết quả ngay
 → publisher → OutboxRegistry → RecordHabitCheckInHandler (Garden)
 → dịch payload thành một TENDED
-→ ghi garden_entries (trùng source_event_id thì bỏ qua) → xóa cache garden:{owner}
+→ ghi garden_entries (trùng source_event_id thì bỏ qua)
 ```
+
+Check-in trùng ngày thì transaction rollback, không phát event lần hai. Rút lại check-in đi qua `HabitCheckIn.undo()` và `forge.habit.check-in-undone.v1`, thành một `UNTENDED`; chỉ lần xóa được dòng mới phát event. Habit chưa có cây (tạo trước G1a) thì dòng sổ bị bỏ qua cho tới khi nạp lịch sử (G1e). Event check-in dùng `aggregateId = habitId`, nên luôn tới sau `HabitCreated` của cùng Habit.
 
 Garden lỗi thì outbox thử lại; check-in không bị ảnh hưởng.
 
@@ -127,4 +130,4 @@ Trước khi thêm, module phải qua KD-GDN-011: việc của nó là chăm só
 
 ## 7. Dữ liệu
 
-Hiện có hai Prisma enum: `GardenSubjectKind` (`HABIT`) và `GardenVariant` (`BUILD`, `QUIT`), dùng cho `garden_subjects`. Bảng `garden_entries` với enum `kind` và `mark` là dự kiến (G1b). Thêm loại mới là thêm giá trị enum kèm một migration nhỏ, giống `ActivityEvent.kind`.
+Hiện có ba Prisma enum: `GardenSubjectKind` (`HABIT`) và `GardenVariant` (`BUILD`, `QUIT`) cho `garden_subjects`, `GardenEntryKind` (`TENDED`, `UNTENDED`) cho `garden_entries`. `garden_entries` thuộc về một chủ thể (`ON DELETE CASCADE`), nên nhổ cây thì sổ đi theo. Các loại sổ khác và enum `mark` là dự kiến (G1c, G1d). Thêm loại mới là thêm giá trị enum kèm một migration nhỏ, giống `ActivityEvent.kind`.

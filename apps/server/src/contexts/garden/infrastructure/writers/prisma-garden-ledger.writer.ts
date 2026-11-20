@@ -5,6 +5,7 @@ import { PrismaService } from '@infrastructure/database/prisma.service';
 
 import type {
   GardenLedgerWriter,
+  LedgerEntry,
   PlantedSubject,
 } from '../../application/ports/garden-ledger-writer.port';
 import {
@@ -39,5 +40,42 @@ export class PrismaGardenLedgerWriter implements GardenLedgerWriter {
     await this.prisma.gardenSubject.deleteMany({
       where: { subjectKind, subjectId },
     });
+  }
+
+  async record(entry: LedgerEntry): Promise<void> {
+    const subject = await this.prisma.gardenSubject.findUnique({
+      where: {
+        subjectKind_subjectId: {
+          subjectKind: entry.subjectKind,
+          subjectId: entry.subjectId,
+        },
+      },
+      select: {
+        id: true,
+        ownerId: true,
+      },
+    });
+
+    if (!subject) return;
+
+    try {
+      await this.prisma.gardenEntry.create({
+        data: {
+          ownerId: subject.ownerId,
+          subjectId: subject.id,
+          kind: entry.kind,
+          occurredOn: entry.occurredOn,
+          sourceEventId: entry.sourceEventId,
+        },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code == 'P2002'
+      ) {
+        return;
+      }
+      throw error;
+    }
   }
 }

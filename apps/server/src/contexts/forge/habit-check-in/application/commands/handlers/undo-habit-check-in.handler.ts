@@ -31,11 +31,15 @@ export class UndoHabitCheckInHandler implements ICommandHandler<
       false,
     );
 
-    await this.repository.deleteByHabitAndDateForOwner(
+    const checkIn = await this.repository.findByHabitAndDateForOwner(
       command.habitId,
       command.ownerId,
       date.value,
     );
+    if (checkIn) {
+      checkIn.undo();
+      await this.repository.delete(checkIn);
+    }
 
     return Result.ok(undefined);
   }
