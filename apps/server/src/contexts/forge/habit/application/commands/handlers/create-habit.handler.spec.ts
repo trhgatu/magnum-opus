@@ -81,7 +81,8 @@ describe('CreateHabitHandler', () => {
     expect(result.getValue().frequency?.days).toEqual([]);
   });
 
-  it('creates a QUIT Habit defaulting quitStartedAt to today', async () => {
+  // Lúc 18:00 UTC ngày 08, owner ở Asia/Ho_Chi_Minh đã sang ngày 09.
+  it("creates a QUIT Habit defaulting quitStartedAt to the owner's today", async () => {
     const result = await handler.execute(
       new CreateHabitCommand({
         ownerId: 'owner-id',
@@ -92,7 +93,7 @@ describe('CreateHabitHandler', () => {
 
     const habit = result.getValue();
     expect(habit.frequency).toBeNull();
-    expect(habit.quitStartedAt).not.toBeNull();
+    expect(habit.quitStartedAt).toEqual(new Date('2026-10-09T00:00:00.000Z'));
   });
 
   it('rejects frequencyDays supplied without a frequencyType', async () => {

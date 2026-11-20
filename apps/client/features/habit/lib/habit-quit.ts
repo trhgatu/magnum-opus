@@ -40,14 +40,11 @@ export function formatQuitStartedAt(value: string): string {
 }
 
 /**
- * "Hôm nay" theo ngày lịch UTC — khớp với cách server chuẩn hóa
- * quitStartedAt (Habit.startOfUtcDay), không phải theo giờ địa phương
- * trình duyệt. Cần thiết vì với múi giờ dương (vd. UTC+7), "hôm nay"
- * theo giờ địa phương có thể đã sang ngày mới trong khi UTC vẫn còn
- * ngày hôm trước — nếu dùng giờ địa phương làm mặc định/giới hạn chọn,
- * request có thể bị từ chối vì "quitStartedAt là ngày trong tương lai".
+ * "Hôm nay" theo giờ trình duyệt, dùng làm ngày mặc định và giới hạn chọn
+ * của quitStartedAt. Server so với ngày theo múi giờ tài khoản; hai ngày này
+ * chỉ lệch khi trình duyệt khác múi giờ tài khoản, và khi đó server vẫn chặn.
  */
-export function todayAsUtcCalendarDate(): Date {
+export function todayAsLocalCalendarDate(): Date {
   const now = new Date();
-  return new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
 }

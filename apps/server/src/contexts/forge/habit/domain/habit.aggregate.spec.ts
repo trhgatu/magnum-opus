@@ -156,24 +156,45 @@ describe('Habit', () => {
       );
     });
 
-    it('defaults quitStartedAt to today when omitted', () => {
-      const before = new Date();
-
-      const habit = Habit.create({
-        ownerId: 'owner-id',
-        today: TODAY,
-        title: 'Quit smoking',
-        type: HabitType.QUIT,
+    // 2026-10-08T18:00Z là 01:00 ngày 09/10 ở UTC+7: ngày UTC còn chậm một
+    // ngày so với ngày của owner. Mọi mốc "hôm nay" phải theo owner.
+    describe("while the UTC day is still behind the owner's day", () => {
+      beforeEach(() => {
+        jest.useFakeTimers({ now: new Date('2026-10-08T18:00:00.000Z') });
+      });
+      afterEach(() => {
+        jest.useRealTimers();
       });
 
-      const expected = new Date(
-        Date.UTC(
-          before.getUTCFullYear(),
-          before.getUTCMonth(),
-          before.getUTCDate(),
-        ),
-      );
-      expect(habit.quitStartedAt).toEqual(expected);
+      it("defaults quitStartedAt to the owner's today", () => {
+        const habit = Habit.create({
+          ownerId: 'owner-id',
+          today: TODAY,
+          title: 'Quit smoking',
+          type: HabitType.QUIT,
+        });
+
+        expect(habit.quitStartedAt).toEqual(
+          new Date('2026-10-09T00:00:00.000Z'),
+        );
+        expect(habit.getDomainEvents()[0]).toMatchObject({
+          startedOn: TODAY,
+        });
+      });
+
+      it("accepts the owner's today as quitStartedAt", () => {
+        const habit = Habit.create({
+          ownerId: 'owner-id',
+          today: TODAY,
+          title: 'Quit smoking',
+          type: HabitType.QUIT,
+          quitStartedAt: new Date('2026-10-09T00:00:00.000Z'),
+        });
+
+        expect(habit.quitStartedAt).toEqual(
+          new Date('2026-10-09T00:00:00.000Z'),
+        );
+      });
     });
 
     it('rejects QUIT with a frequency', () => {
@@ -188,17 +209,14 @@ describe('Habit', () => {
       ).toThrow(InvalidHabitTypeException);
     });
 
-    it('rejects a quitStartedAt in the future', () => {
-      const tomorrow = new Date();
-      tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-
+    it("rejects a quitStartedAt after the owner's today", () => {
       expect(() =>
         Habit.create({
           ownerId: 'owner-id',
           today: TODAY,
           title: 'Quit smoking',
           type: HabitType.QUIT,
-          quitStartedAt: tomorrow,
+          quitStartedAt: new Date('2026-10-10T00:00:00.000Z'),
         }),
       ).toThrow(InvalidQuitStartedAtException);
     });
@@ -380,23 +398,87 @@ describe('Habit', () => {
       ).toThrow(InvalidHabitTypeException);
     });
 
-    it('rejects a future quitStartedAt', () => {
+    it("rejects a quitStartedAt after the owner's today", () => {
       const habit = Habit.create({
         ownerId: 'owner-id',
         today: TODAY,
         title: 'Quit smoking',
         type: HabitType.QUIT,
       });
-      const tomorrow = new Date();
-      tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
 
       expect(() =>
         habit.update({
           title: 'Quit smoking',
-          quitStartedAt: tomorrow,
+          quitStartedAt: new Date('2026-10-10T00:00:00.000Z'),
           today: TODAY,
         }),
       ).toThrow(InvalidQuitStartedAtException);
+    });
+
+    it("accepts the owner's today while the UTC day is still behind", () => {
+      jest.useFakeTimers({ now: new Date('2026-10-08T18:00:00.000Z') });
+      try {
+        const habit = Habit.create({
+          ownerId: 'owner-id',
+          today: TODAY,
+          title: 'Quit smoking',
+          type: HabitType.QUIT,
+          quitStartedAt: new Date('2026-10-01T00:00:00.000Z'),
+        });
+
+        habit.update({
+          title: 'Quit smoking',
+          quitStartedAt: new Date('2026-10-09T00:00:00.000Z'),
+          today: TODAY,
+        });
+
+        expect(habit.quitStartedAt).toEqual(
+          new Date('2026-10-09T00:00:00.000Z'),
+        );
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    // Không có ngày của owner thì không biết đâu là "tương lai".
+    it('requires the owner calendar date to set quitStartedAt', () => {
+      const habit = Habit.create({
+        ownerId: 'owner-id',
+        today: TODAY,
+        title: 'Quit smoking',
+        type: HabitType.QUIT,
+        quitStartedAt: new Date('2026-10-01T00:00:00.000Z'),
+      });
+
+      expect(() =>
+        habit.update({
+          title: 'Quit smoking',
+          quitStartedAt: new Date('2026-10-02T00:00:00.000Z'),
+        }),
+      ).toThrow('Owner calendar date is required to set quitStartedAt');
+      expect(habit.quitStartedAt).toEqual(new Date('2026-10-01T00:00:00.000Z'));
+    });
+
+    // Habit cũ lưu ngày UTC có thể sớm hơn ngày của owner ở múi giờ âm.
+    // Chỉ chặn ngày tương lai khi ngày thật sự đổi, để sửa tên vẫn được.
+    it("allows editing other fields when the stored start day is after the owner's today", () => {
+      const habit = Habit.rehydrate(
+        createProps({
+          type: HabitType.QUIT,
+          frequency: null,
+          quitStartedAt: new Date('2026-10-10T00:00:00.000Z'),
+          openScheduleEffectiveFrom: undefined,
+        }),
+      );
+
+      habit.update({
+        title: 'Quit sugar',
+        quitStartedAt: new Date('2026-10-10T00:00:00.000Z'),
+        today: TODAY,
+      });
+
+      expect(habit.title).toBe('Quit sugar');
+      expect(habit.quitStartedAt).toEqual(new Date('2026-10-10T00:00:00.000Z'));
     });
   });
 

@@ -4,7 +4,7 @@ import {
   formatQuitStartedAt,
   quitStartedAtFromDate,
   quitStartedAtToDate,
-  todayAsUtcCalendarDate,
+  todayAsLocalCalendarDate,
 } from "./habit-quit";
 
 describe("quitStartedAtFromDate / quitStartedAtToDate", () => {
@@ -34,15 +34,29 @@ describe("formatQuitStartedAt", () => {
   });
 });
 
-describe("todayAsUtcCalendarDate", () => {
-  beforeEach(() => vi.useFakeTimers());
-  afterEach(() => vi.useRealTimers());
+describe("todayAsLocalCalendarDate", () => {
+  const originalTimeZone = process.env.TZ;
 
-  it("uses the UTC calendar day even when local time is a day ahead", () => {
-    // 2026-08-14T23:30:00Z là 2026-08-15 06:30 ở UTC+7 — ngày lịch UTC
-    // vẫn còn là 14, phải khớp với cách server chuẩn hóa quitStartedAt.
+  beforeEach(() => {
+    // Node đọc lại TZ khi nó đổi: ép múi giờ dương để ngày local khác ngày UTC.
+    process.env.TZ = "Asia/Ho_Chi_Minh";
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    // Gán undefined vào process.env sẽ thành chuỗi "undefined", nên phải xoá.
+    if (originalTimeZone === undefined) delete process.env.TZ;
+    else process.env.TZ = originalTimeZone;
+  });
+
+  // Server so với ngày của owner, nên mặc định phải là ngày người dùng đang
+  // thấy, không phải ngày UTC.
+  it("uses the local calendar day while UTC is still the day before", () => {
+    // 2026-08-14T23:30Z là 06:30 ngày 15 ở UTC+7.
     vi.setSystemTime(new Date("2026-08-14T23:30:00.000Z"));
 
-    expect(quitStartedAtFromDate(todayAsUtcCalendarDate())).toBe("2026-08-14");
+    expect(quitStartedAtFromDate(todayAsLocalCalendarDate())).toBe(
+      "2026-08-15",
+    );
   });
 });

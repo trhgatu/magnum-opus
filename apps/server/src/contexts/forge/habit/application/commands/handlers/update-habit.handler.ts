@@ -6,6 +6,7 @@ import { Result } from '@shared/domain/result';
 import { InvalidHabitTypeException } from '../../../domain/exceptions';
 import { Habit } from '../../../domain/habit.aggregate';
 import { HabitFrequency } from '../../../domain/value-objects';
+import { HabitType } from '../../../domain';
 import { HabitMutationService, HabitTodayService } from '../../services';
 import { UpdateHabitCommand } from '../update-habit.command';
 
@@ -35,12 +36,10 @@ export class UpdateHabitHandler implements ICommandHandler<
           ? HabitFrequency.create(command.frequencyType, command.frequencyDays)
           : null;
 
-        // "Hôm nay" chỉ tính sau khi Habit đã được tìm thấy, và chỉ khi tần
-        // suất thật sự đổi — sửa tên/mô tả hay Habit QUIT không cần đọc múi
-        // giờ của owner.
-        const today = habit.changesFrequency(frequency)
-          ? await this.todayService.todayForOwner(command.ownerId)
-          : undefined;
+        const today =
+          habit.type === HabitType.QUIT || habit.changesFrequency(frequency)
+            ? await this.todayService.todayForOwner(command.ownerId)
+            : undefined;
 
         habit.update({
           title: command.title,

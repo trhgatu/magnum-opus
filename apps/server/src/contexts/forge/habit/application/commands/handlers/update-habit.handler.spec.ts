@@ -8,6 +8,7 @@ import {
   HabitNotFoundException,
   HabitRevisionConflictException,
   InvalidHabitTypeException,
+  InvalidQuitStartedAtException,
 } from '../../../domain/exceptions';
 import { Habit } from '../../../domain/habit.aggregate';
 import {
@@ -159,6 +160,38 @@ describe('UpdateHabitHandler', () => {
     expect(repository.update).not.toHaveBeenCalled();
   });
 
+  describe('QUIT start day', () => {
+    const quitCommand = (quitStartedAt: string) =>
+      new UpdateHabitCommand({
+        habitId: 'habit-id',
+        ownerId: 'owner-id',
+        expectedRevision: 1,
+        title: 'Quit smoking',
+        quitStartedAt: new Date(`${quitStartedAt}T00:00:00.000Z`),
+      });
+
+    beforeEach(() => {
+      repository.findByIdForOwner.mockResolvedValue(createQuitHabit());
+    });
+
+    // Lúc 18:00 UTC ngày 08, owner ở Asia/Ho_Chi_Minh đã sang ngày 09.
+    it("accepts the owner's today as the start day", async () => {
+      const result = await handler.execute(quitCommand('2026-10-09'));
+
+      expect(timeZoneReader.getForUser).toHaveBeenCalledWith('owner-id');
+      expect(result.getValue().quitStartedAt).toEqual(
+        new Date('2026-10-09T00:00:00.000Z'),
+      );
+    });
+
+    it("rejects a start day after the owner's today", async () => {
+      const result = await handler.execute(quitCommand('2026-10-10'));
+
+      expect(result.getError()).toBeInstanceOf(InvalidQuitStartedAtException);
+      expect(repository.update).not.toHaveBeenCalled();
+    });
+  });
+
   it('fails loudly on a frequency change when the repository did not load the schedule floor', async () => {
     repository.findByIdForOwner.mockResolvedValue(createHabit(1, NOT_LOADED));
 
@@ -222,6 +255,29 @@ function createHabit(
             new Date(`${openScheduleEffectiveFrom}T00:00:00.000Z`),
           ),
     updatedAt: new Date('2026-08-20T10:00:00.000Z'),
+  });
+}
+
+function createQuitHabit(): Habit {
+  return Habit.rehydrate({
+    id: new HabitId('habit-id'),
+    ownerId: 'owner-id',
+    title: 'Quit smoking',
+    description: null,
+    type: HabitType.QUIT,
+    frequency: null,
+    quitStartedAt: new Date('2026-10-01T00:00:00.000Z'),
+    state: HabitState.ACTIVE,
+    stateBeforeTrash: null,
+    trashedAt: null,
+    revision: 1,
+    createdAt: new Date('2026-10-01T10:00:00.000Z'),
+    createdOn: HabitCalendarDate.fromPersistenceDate(
+      new Date('2026-10-01T00:00:00.000Z'),
+    ),
+    latestLifecycleEffectiveOn: null,
+    openScheduleEffectiveFrom: null,
+    updatedAt: new Date('2026-10-01T10:00:00.000Z'),
   });
 }
 
