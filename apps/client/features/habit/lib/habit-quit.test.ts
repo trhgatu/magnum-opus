@@ -44,7 +44,9 @@ describe("todayAsLocalCalendarDate", () => {
   });
   afterEach(() => {
     vi.useRealTimers();
-    process.env.TZ = originalTimeZone;
+    // Gán undefined vào process.env sẽ thành chuỗi "undefined", nên phải xoá.
+    if (originalTimeZone === undefined) delete process.env.TZ;
+    else process.env.TZ = originalTimeZone;
   });
 
   // Server so với ngày của owner, nên mặc định phải là ngày người dùng đang
