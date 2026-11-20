@@ -3,18 +3,23 @@ import { HabitCreated } from '@/contexts/forge/habit/contracts/habit-created.con
 import { HabitPermanentlyDeleted } from '@/contexts/forge/habit/contracts/habit-permanently-deleted.contract';
 import { HabitCheckedIn } from '@/contexts/forge/habit-check-in/contracts/habit-checked-in.contract';
 import { HabitCheckInUndone } from '@/contexts/forge/habit-check-in/contracts/habit-check-in-undone.contract';
+import { HabitRelapsed } from '@/contexts/forge/habit-relapse/contracts/habit-relapsed.contract';
+import { HabitQuitStartChanged } from '@/contexts/forge/habit/contracts/habit-quit-start-changed.contract';
 
 import type { GardenLedgerWriter } from '../../application/ports/garden-ledger-writer.port';
 
 import { PlantCreatedHabitHandler } from './plant-created-habit.handler';
 import { RecordHabitCheckInHandler } from './record-habit-check-in.handler';
 import { RecordHabitCheckInUndoneHandler } from './record-habit-check-in-undone.handler';
+import { RecordHabitRelapseHandler } from './record-habit-relapse.handler';
+import { ReplantQuitHabitHandler } from './replant-quit-habit.handler';
 import { UprootDeletedHabitHandler } from './uproot-deleted-habit.handler';
 
 const ledger = {
   plant: jest.fn().mockResolvedValue(undefined),
   uproot: jest.fn().mockResolvedValue(undefined),
   record: jest.fn().mockResolvedValue(undefined),
+  replant: jest.fn().mockResolvedValue(undefined),
 } as unknown as jest.Mocked<GardenLedgerWriter>;
 const at = new Date('2026-11-18T03:00:00.000Z');
 
@@ -36,6 +41,12 @@ describe('garden outbox handlers', () => {
     expect(
       Reflect.getMetadata(OutboxHandler.KEY, RecordHabitCheckInUndoneHandler),
     ).toBe(HabitCheckInUndone);
+    expect(
+      Reflect.getMetadata(OutboxHandler.KEY, RecordHabitRelapseHandler),
+    ).toBe(HabitRelapsed);
+    expect(
+      Reflect.getMetadata(OutboxHandler.KEY, ReplantQuitHabitHandler),
+    ).toBe(HabitQuitStartChanged);
   });
 
   it.each(['BUILD', 'QUIT'] as const)(
@@ -97,6 +108,46 @@ describe('garden outbox handlers', () => {
       occurredOn: new Date('2026-11-16T00:00:00.000Z'),
       sourceEventId: 'event-id',
     });
+  });
+
+  // Mỗi lần tái phạm đều vào sổ; gộp một sẹo mỗi tuần là việc của lúc diễn giải (BR-GDN-004).
+  it('records a relapse as a SCAR mark on its day', async () => {
+    await new RecordHabitRelapseHandler(ledger).handle({
+      eventId: 'event-id',
+      occurredAt: at,
+      payload: {
+        habitId: 'habit-id',
+        ownerId: 'owner-id',
+        occurredOn: new Date('2026-11-16T00:00:00.000Z'),
+      },
+    });
+
+    expect(ledger.record).toHaveBeenCalledWith({
+      subjectKind: 'HABIT',
+      subjectId: 'habit-id',
+      kind: 'MARKED',
+      mark: 'SCAR',
+      occurredOn: new Date('2026-11-16T00:00:00.000Z'),
+      sourceEventId: 'event-id',
+    });
+  });
+
+  it('replants a QUIT Habit on its new start day', async () => {
+    await new ReplantQuitHabitHandler(ledger).handle({
+      eventId: 'event-id',
+      occurredAt: at,
+      payload: {
+        habitId: 'habit-id',
+        ownerId: 'owner-id',
+        startedOn: new Date('2026-11-10T00:00:00.000Z'),
+      },
+    });
+
+    expect(ledger.replant).toHaveBeenCalledWith(
+      'HABIT',
+      'habit-id',
+      new Date('2026-11-10T00:00:00.000Z'),
+    );
   });
 });
 

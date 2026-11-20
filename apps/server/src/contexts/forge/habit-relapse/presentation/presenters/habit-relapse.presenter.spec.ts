@@ -7,6 +7,7 @@ describe('HabitRelapsePresenter', () => {
       habitId: 'habit-id',
       ownerId: 'owner-id',
       occurredAt: new Date('2026-08-20T10:00:00.000Z'),
+      relapsedOn: '2026-08-20',
       createdAt: new Date('2026-08-20T10:00:00.000Z'),
     });
 

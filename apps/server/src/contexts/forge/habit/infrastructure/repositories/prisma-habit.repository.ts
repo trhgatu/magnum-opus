@@ -8,6 +8,7 @@ import {
   HabitCreatedEvent,
   HabitLifecycleTransitionedEvent,
   HabitScheduleVersionStartedEvent,
+  HabitQuitStartChangedEvent,
 } from '../../domain/events';
 import { Habit } from '../../domain/habit.aggregate';
 import { HabitRepository } from '../../domain/ports/habit.repository';
@@ -56,6 +57,10 @@ export class PrismaHabitRepository implements HabitRepository {
     expectedRevision: number,
   ): Promise<boolean> {
     const raw = PrismaHabitMapper.toPersistence(habit);
+    const outboxEvents = habit
+      .getDomainEvents()
+      .filter((event) => event instanceof HabitQuitStartChangedEvent)
+      .map((event) => this.outbox.serialize(event));
     const { transitions, scheduleVersions } =
       PrismaHabitRepository.pullHistory(habit);
 
@@ -84,6 +89,9 @@ export class PrismaHabitRepository implements HabitRepository {
         return false;
       }
 
+      if (outboxEvents.length > 0) {
+        await transaction.outboxEvent.createMany({ data: outboxEvents });
+      }
       if (transitions.length > 0) {
         await transaction.habitLifecycleTransition.createMany({
           data: transitions,

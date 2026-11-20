@@ -11,6 +11,7 @@ import {
   HabitScheduleVersionStartedEvent,
   HabitPermanentlyDeletedEvent,
   HabitCreatedEvent,
+  HabitQuitStartChangedEvent,
 } from './events';
 import {
   HabitPermanentDeleteForbiddenException,
@@ -198,7 +199,6 @@ export class Habit extends AggregateRoot {
     description?: string | null;
     frequency?: HabitFrequency | null;
     quitStartedAt?: Date | null;
-    // Chỉ bắt buộc khi tần suất thật sự đổi — xem changesFrequency().
     today?: HabitCalendarDate;
   }): void {
     this.ensureActive();
@@ -216,17 +216,21 @@ export class Habit extends AggregateRoot {
       nextFrequency,
     );
 
+    const quitStartChanged = !Habit.datesEqual(
+      this.props.quitStartedAt,
+      nextQuitStartedAt,
+    );
+
     const changed =
       this.props.title !== nextTitle ||
       this.props.description !== nextDescription ||
       frequencyChanged ||
-      !Habit.datesEqual(this.props.quitStartedAt, nextQuitStartedAt);
+      quitStartChanged;
 
     if (!changed) {
       return;
     }
 
-    // Kiểm tra trước khi đổi bất kỳ field nào để aggregate không bị sửa dở.
     if (frequencyChanged) {
       this.ensureScheduleFloorLoaded();
     }
@@ -243,16 +247,21 @@ export class Habit extends AggregateRoot {
     this.props.quitStartedAt = nextQuitStartedAt;
     this.trackChange();
 
-    // Chỉ Habit BUILD mới đổi được tần suất (QUIT luôn null ở cả 2 phía).
     if (frequencyChanged && nextFrequency !== null && input.today) {
       this.recordScheduleVersion(nextFrequency, input.today);
     }
+
+    if (quitStartChanged && nextQuitStartedAt !== null) {
+      this.addDomainEvent(
+        new HabitQuitStartChangedEvent(
+          this.props.id.value,
+          this.props.ownerId,
+          HabitCalendarDate.fromPersistenceDate(nextQuitStartedAt),
+        ),
+      );
+    }
   }
 
-  /**
-   * Lần update với tần suất này có mở phiên bản tần suất mới không — để tầng
-   * application chỉ tính "hôm nay" của owner (đọc múi giờ) khi thật sự cần.
-   */
   public changesFrequency(frequency: HabitFrequency | null): boolean {
     return (
       frequency !== null &&
@@ -411,11 +420,6 @@ export class Habit extends AggregateRoot {
     }
   }
 
-  // Mốc hiệu lực không giảm (DAP-FTH-001): chuỗi phiên bản bắt đầu từ
-  // createdOn, và phiên bản mới không được bắt đầu trước phiên bản đang mở —
-  // nếu không, đóng phiên bản cũ sẽ tạo khoảng effectiveTo < effectiveFrom khi
-  // owner đổi múi giờ về phía tây. Đổi nhiều lần trong cùng ngày D để lại các
-  // khoảng rỗng [D, D) (KD-FTH-006) — cố ý, không gộp hay xóa.
   private recordScheduleVersion(
     frequency: HabitFrequency,
     today: HabitCalendarDate,

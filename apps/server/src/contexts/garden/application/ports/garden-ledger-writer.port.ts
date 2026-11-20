@@ -2,7 +2,7 @@ import type {
   GardenSubjectKind,
   GardenVariant,
 } from '../../domain/garden-subject';
-import { GardenEntryKind } from '../../domain/garden-entry';
+import { GardenEntryKind, GardenMark } from '../../domain/garden-entry';
 
 export const GARDEN_LEDGER_WRITER = Symbol('GARDEN_LEDGER_WRITER');
 
@@ -15,16 +15,23 @@ export interface PlantedSubject {
   plantedOn: Date;
 }
 
-export interface LedgerEntry {
+export type LedgerEntry = {
   subjectKind: GardenSubjectKind;
   subjectId: string;
-  kind: GardenEntryKind;
   occurredOn: Date;
   sourceEventId: string;
-}
+} & (
+  | { kind: Exclude<GardenEntryKind, 'MARKED'>; mark?: never }
+  | { kind: 'MARKED'; mark: GardenMark }
+);
 
 export interface GardenLedgerWriter {
   plant(subject: PlantedSubject): Promise<void>;
   uproot(subjectKind: GardenSubjectKind, subjectId: string): Promise<void>;
   record(entry: LedgerEntry): Promise<void>;
+  replant(
+    subjectKind: GardenSubjectKind,
+    subjectId: string,
+    plantedOn: Date,
+  ): Promise<void>;
 }

@@ -233,6 +233,57 @@ describe('PrismaHabitRepository', () => {
       ).not.toHaveBeenCalled();
     });
 
+    it('writes HabitQuitStartChanged to the outbox after the update succeeds', async () => {
+      transactionClient.habit.updateMany.mockImplementation(
+        track('habit.update', { count: 1 }),
+      );
+      const habit = quitHabit();
+      habit.update({
+        title: habit.title,
+        quitStartedAt: new Date('2026-08-15T00:00:00.000Z'),
+        today: TODAY,
+      });
+
+      await repository.update(habit, 4);
+
+      expect(calls).toEqual(['habit.update', 'outbox.createMany']);
+      expect(transactionClient.outboxEvent.createMany).toHaveBeenCalledWith({
+        data: [
+          expect.objectContaining({
+            type: 'forge.habit.quit-start-changed.v1',
+            aggregateId: 'habit-id',
+            payload: {
+              habitId: 'habit-id',
+              ownerId: 'owner-id',
+              startedOn: '2026-08-15',
+            },
+          }),
+        ],
+      });
+    });
+
+    it('writes no outbox row when the start day did not change or the revision is stale', async () => {
+      transactionClient.habit.updateMany.mockResolvedValue({ count: 1 });
+      const unchanged = quitHabit();
+      unchanged.update({
+        title: 'Quit sugar',
+        quitStartedAt: new Date('2026-08-01T00:00:00.000Z'),
+        today: TODAY,
+      });
+      await repository.update(unchanged, 4);
+
+      transactionClient.habit.updateMany.mockResolvedValue({ count: 0 });
+      const stale = quitHabit();
+      stale.update({
+        title: stale.title,
+        quitStartedAt: new Date('2026-08-15T00:00:00.000Z'),
+        today: TODAY,
+      });
+      await expect(repository.update(stale, 4)).resolves.toBe(false);
+
+      expect(transactionClient.outboxEvent.createMany).not.toHaveBeenCalled();
+    });
+
     it('closes the open schedule version and opens a new one in the same transaction', async () => {
       transactionClient.habit.updateMany.mockImplementation(
         track('habit.update', { count: 1 }),
@@ -479,6 +530,16 @@ function createDomainHabit(
     ),
     updatedAt: new Date('2026-08-21T10:00:00.000Z'),
     ...overrides,
+  });
+}
+
+function quitHabit(): Habit {
+  return createDomainHabit({
+    title: 'Quit smoking',
+    type: HabitType.QUIT,
+    frequency: null,
+    quitStartedAt: new Date('2026-08-01T00:00:00.000Z'),
+    openScheduleEffectiveFrom: null,
   });
 }
 
