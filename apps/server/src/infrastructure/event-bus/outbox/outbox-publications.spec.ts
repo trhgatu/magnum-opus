@@ -17,6 +17,12 @@ import {
 } from '@/contexts/forge/habit/domain/events';
 import { HabitType } from '@/contexts/forge/habit/domain/enums';
 import { HabitCalendarDate } from '@/contexts/forge/habit/domain/value-objects';
+import { HabitCheckInOutbox } from '@/contexts/forge/habit-check-in/infrastructure/outbox/habit-check-in.outbox';
+import {
+  HabitCheckInUndoneEvent,
+  HabitCheckedInEvent,
+} from '@/contexts/forge/habit-check-in/domain/events';
+import { HabitCheckInDate } from '@/contexts/forge/habit-check-in/domain/value-objects';
 import { DomainEvent } from '@shared/domain/events/domain-event';
 
 import type { OutboxPublication } from './outbox-publication';
@@ -156,6 +162,38 @@ const cases: PublicationCase[] = [
     type: 'forge.habit.permanently-deleted.v1',
     aggregateId: 'habit-id',
     parsed: { habitId: 'habit-id', ownerId: 'owner-id' },
+  },
+  {
+    name: 'HabitCheckedIn',
+    publisher: HabitCheckInOutbox,
+    event: new HabitCheckedInEvent(
+      'habit-id',
+      'owner-id',
+      HabitCheckInDate.create('2026-11-16'),
+    ),
+    type: 'forge.habit.checked-in.v1',
+    aggregateId: 'habit-id',
+    parsed: {
+      habitId: 'habit-id',
+      ownerId: 'owner-id',
+      date: new Date('2026-11-16T00:00:00.000Z'),
+    },
+  },
+  {
+    name: 'HabitCheckInUndone',
+    publisher: HabitCheckInOutbox,
+    event: new HabitCheckInUndoneEvent(
+      'habit-id',
+      'owner-id',
+      HabitCheckInDate.create('2026-11-16'),
+    ),
+    type: 'forge.habit.check-in-undone.v1',
+    aggregateId: 'habit-id',
+    parsed: {
+      habitId: 'habit-id',
+      ownerId: 'owner-id',
+      date: new Date('2026-11-16T00:00:00.000Z'),
+    },
   },
 ];
 

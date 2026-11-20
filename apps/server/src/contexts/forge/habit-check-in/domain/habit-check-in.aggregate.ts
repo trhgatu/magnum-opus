@@ -1,6 +1,7 @@
 import { AggregateRoot } from '@shared/domain/aggregate-root';
 
 import { HabitCheckInDate, HabitCheckInId } from './value-objects';
+import { HabitCheckedInEvent, HabitCheckInUndoneEvent } from './events';
 
 export interface HabitCheckInProps {
   id: HabitCheckInId;
@@ -29,7 +30,20 @@ export class HabitCheckIn extends AggregateRoot {
     date: HabitCheckInDate;
     createdAt: Date;
   }): HabitCheckIn {
-    return new HabitCheckIn({ id: HabitCheckInId.generate(), ...input });
+    const checkIn = new HabitCheckIn({
+      id: HabitCheckInId.generate(),
+      ...input,
+    });
+    checkIn.addDomainEvent(
+      new HabitCheckedInEvent(checkIn.habitId, checkIn.ownerId, checkIn.date),
+    );
+    return checkIn;
+  }
+
+  public undo(): void {
+    this.addDomainEvent(
+      new HabitCheckInUndoneEvent(this.habitId, this.ownerId, this.date),
+    );
   }
 
   public static rehydrate(props: HabitCheckInProps): HabitCheckIn {

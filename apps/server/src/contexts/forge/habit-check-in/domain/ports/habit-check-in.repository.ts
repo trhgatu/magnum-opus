@@ -9,9 +9,5 @@ export interface HabitCheckInRepository {
     ownerId: string,
     date: string,
   ): Promise<HabitCheckIn | null>;
-  deleteByHabitAndDateForOwner(
-    habitId: string,
-    ownerId: string,
-    date: string,
-  ): Promise<boolean>;
+  delete(checkIn: HabitCheckIn): Promise<boolean>;
 }

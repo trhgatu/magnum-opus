@@ -124,6 +124,95 @@ describe('Garden ledger (E2E)', () => {
     ).toBeNull();
   });
 
+  it('records a check-in as TENDED and its undo as UNTENDED', async () => {
+    const habitId = await createPlantedBuildHabit('Morning walk');
+
+    const checkIn = await request(app.getHttpServer())
+      .put(`/habits/${habitId}/check-ins/today`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(HttpStatus.OK);
+    // Check-in lần hai cùng ngày không ghi thêm dòng sổ nào.
+    await request(app.getHttpServer())
+      .put(`/habits/${habitId}/check-ins/today`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(HttpStatus.OK);
+    await request(app.getHttpServer())
+      .delete(`/habits/${habitId}/check-ins/today`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(HttpStatus.NO_CONTENT);
+    // Không còn gì để rút lại: không ghi thêm.
+    await request(app.getHttpServer())
+      .delete(`/habits/${habitId}/check-ins/today`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(HttpStatus.NO_CONTENT);
+
+    const occurredOn = new Date(`${checkIn.body.date as string}T00:00:00.000Z`);
+    const entries = await eventually(
+      () => entriesOf(habitId),
+      (rows) => rows.length >= 2,
+    );
+    expect(
+      entries.map(({ kind, occurredOn }) => ({ kind, occurredOn })),
+    ).toEqual([
+      { kind: 'TENDED', occurredOn },
+      { kind: 'UNTENDED', occurredOn },
+    ]);
+  });
+
+  it('removes the entries together with an uprooted subject', async () => {
+    const habitId = await createPlantedBuildHabit('Short-lived');
+    await request(app.getHttpServer())
+      .put(`/habits/${habitId}/check-ins/today`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(HttpStatus.OK);
+    const [entry] = await eventually(
+      () => entriesOf(habitId),
+      (rows) => rows.length === 1,
+    );
+
+    await request(app.getHttpServer())
+      .patch(`/habits/${habitId}/trash`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ expectedRevision: 1 })
+      .expect(HttpStatus.OK);
+    await request(app.getHttpServer())
+      .delete(`/habits/${habitId}`)
+      .query({ expectedRevision: 2 })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(HttpStatus.NO_CONTENT);
+    await eventually(
+      () => subjectOf(habitId),
+      (row) => row === null,
+    );
+
+    expect(entry).toBeDefined();
+    expect(
+      await prisma.gardenEntry.findUnique({ where: { id: entry.id } }),
+    ).toBeNull();
+  });
+
+  const entriesOf = (habitId: string) =>
+    prisma.gardenEntry.findMany({
+      where: {
+        subject: { subjectKind: 'HABIT', subjectId: habitId },
+      },
+      orderBy: { recordedAt: 'asc' },
+    });
+
+  async function createPlantedBuildHabit(title: string): Promise<string> {
+    const created = await request(app.getHttpServer())
+      .post('/habits')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ title, type: 'BUILD', frequencyType: 'DAILY', frequencyDays: [] })
+      .expect(HttpStatus.CREATED);
+    const habitId = created.body.id as string;
+    await eventually(
+      () => subjectOf(habitId),
+      (row) => row !== null,
+    );
+    return habitId;
+  }
+
   async function registerAndLogin(): Promise<string> {
     const suffix = `${Date.now()}${Math.random().toString(16).slice(2)}`;
     const email = `garden.${suffix}@example.com`;

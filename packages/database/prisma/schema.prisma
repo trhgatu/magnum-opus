@@ -31,7 +31,7 @@ model User {
 
   chronicleSnapshots ChronicleSnapshot[]
   gardenSubjects GardenSubject[]
-
+  gardenEntries GardenEntry[]
 
   userRoles               UserRole[]
   notifications           Notification[]
@@ -787,10 +787,33 @@ model GardenSubject {
   variant GardenVariant
   nameAtPlanting String @map("name_at_planting")
   simVersion     Int               @map("sim_version")
+  entries GardenEntry[]
   plantedOn      DateTime          @map("planted_on") @db.Date
   createdAt DateTime @default(now()) @map("created_at")
   owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   @@unique([subjectKind, subjectId])
   @@index([ownerId])
   @@map("garden_subjects")
+}
+
+enum GardenEntryKind {
+  TENDED
+  UNTENDED
+}
+
+model GardenEntry {
+  id String @id @default(uuid())
+  ownerId String @map("owner_id")
+  subjectId String @map("subject_id")
+  kind GardenEntryKind
+  occurredOn DateTime @map("occurred_on") @db.Date
+  sourceEventId String @unique @map("source_event_id")
+  recordedAt DateTime @default(now()) @map("recorded_at")
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade )
+  subject GardenSubject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId, occurredOn])
+  @@index([subjectId, occurredOn])
+  @@map("garden_entries")
 }
