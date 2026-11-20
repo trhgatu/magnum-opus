@@ -15,14 +15,15 @@ export interface PlantedSubject {
   plantedOn: Date;
 }
 
-export interface LedgerEntry {
+export type LedgerEntry = {
   subjectKind: GardenSubjectKind;
   subjectId: string;
-  kind: GardenEntryKind;
-  mark?: GardenMark;
   occurredOn: Date;
   sourceEventId: string;
-}
+} & (
+  | { kind: Exclude<GardenEntryKind, 'MARKED'>; mark?: never }
+  | { kind: 'MARKED'; mark: GardenMark }
+);
 
 export interface GardenLedgerWriter {
   plant(subject: PlantedSubject): Promise<void>;
