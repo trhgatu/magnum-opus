@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 
+import { HabitCheckInOutbox } from './infrastructure/outbox/habit-check-in.outbox';
 import { CheckInHabitHandler } from './application/commands/handlers/check-in-habit.handler';
 import { UndoHabitCheckInHandler } from './application/commands/handlers/undo-habit-check-in.handler';
 import { CLOCK } from './application/ports/clock.port';
@@ -35,6 +36,7 @@ import { HabitCheckInController } from './presentation/controllers/habit-check-i
     UndoHabitCheckInHandler,
     GetHabitCheckInTodayHandler,
     GetHabitCheckInsHandler,
+    HabitCheckInOutbox,
   ],
 })
 export class HabitCheckInModule {}

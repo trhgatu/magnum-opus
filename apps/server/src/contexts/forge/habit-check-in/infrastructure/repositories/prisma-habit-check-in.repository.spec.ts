@@ -1,47 +1,101 @@
 import { HabitCheckIn as PrismaHabitCheckIn, Prisma } from '@repo/database';
+import { outboxSerializerFor } from '@infrastructure/event-bus/outbox/testing/outbox-serializer.testing';
 
 import { HabitCheckIn } from '../../domain/habit-check-in.aggregate';
 import { HabitCheckInDate } from '../../domain/value-objects';
 import { PrismaHabitCheckInMapper } from '../mappers/prisma-habit-check-in.mapper';
+import { HabitCheckInOutbox } from '../outbox/habit-check-in.outbox';
 import { PrismaHabitCheckInRepository } from './prisma-habit-check-in.repository';
 
 describe('PrismaHabitCheckInRepository', () => {
+  const calls: string[] = [];
+  const track =
+    <T>(name: string, value: T) =>
+    () => {
+      calls.push(name);
+      return Promise.resolve(value);
+    };
+
+  const transactionClient = {
+    habitCheckIn: {
+      create: jest.fn(),
+      deleteMany: jest.fn(),
+    },
+    outboxEvent: {
+      createMany: jest.fn(),
+    },
+  };
   const habitCheckInModel = {
-    create: jest.fn(),
     findFirst: jest.fn(),
-    deleteMany: jest.fn(),
   };
 
-  const prisma = { habitCheckIn: habitCheckInModel };
+  type TransactionCallback = (
+    transaction: typeof transactionClient,
+  ) => Promise<unknown>;
 
-  const repository = new PrismaHabitCheckInRepository(prisma as never);
+  const prisma = {
+    habitCheckIn: habitCheckInModel,
+    $transaction: jest.fn((callback: TransactionCallback) =>
+      callback(transactionClient),
+    ),
+  };
+
+  const repository = new PrismaHabitCheckInRepository(
+    prisma as never,
+    outboxSerializerFor(HabitCheckInOutbox),
+  );
 
   beforeEach(() => {
     jest.clearAllMocks();
+    calls.length = 0;
+    transactionClient.outboxEvent.createMany.mockImplementation(
+      track('outbox.createMany', { count: 1 }),
+    );
   });
 
   describe('createIfAbsent', () => {
-    it('persists a new check-in', async () => {
+    it('persists a new check-in and its outbox event in one transaction', async () => {
       const checkIn = createDomainCheckIn();
       const raw = rawCheckIn();
-      habitCheckInModel.create.mockResolvedValue(raw);
+      transactionClient.habitCheckIn.create.mockImplementation(
+        track('habitCheckIn.create', raw),
+      );
 
       const created = await repository.createIfAbsent(checkIn);
 
-      expect(habitCheckInModel.create).toHaveBeenCalledWith({
+      expect(transactionClient.habitCheckIn.create).toHaveBeenCalledWith({
         data: PrismaHabitCheckInMapper.toPersistence(checkIn),
       });
+      expect(transactionClient.outboxEvent.createMany).toHaveBeenCalledWith({
+        data: [
+          expect.objectContaining({
+            type: 'forge.habit.checked-in.v1',
+            aggregateId: 'habit-id',
+            payload: {
+              habitId: 'habit-id',
+              ownerId: 'owner-id',
+              date: '2026-08-24',
+            },
+          }),
+        ],
+      });
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+      expect(calls).toEqual(['habitCheckIn.create', 'outbox.createMany']);
       expect(created.id).toBe(raw.id);
     });
 
-    it('returns the already-persisted check-in when a concurrent request wins the unique constraint', async () => {
+    // Check-in trùng ngày: transaction rollback, không phát event lần hai.
+    it('returns the already-persisted check-in without a second event when a concurrent request wins', async () => {
       const checkIn = createDomainCheckIn();
       const raw = rawCheckIn();
-      habitCheckInModel.create.mockRejectedValue(uniqueConstraintError());
+      transactionClient.habitCheckIn.create.mockRejectedValue(
+        uniqueConstraintError(),
+      );
       habitCheckInModel.findFirst.mockResolvedValue(raw);
 
       const created = await repository.createIfAbsent(checkIn);
 
+      expect(transactionClient.outboxEvent.createMany).not.toHaveBeenCalled();
       expect(habitCheckInModel.findFirst).toHaveBeenCalledWith({
         where: {
           habitId: checkIn.habitId,
@@ -55,7 +109,7 @@ describe('PrismaHabitCheckInRepository', () => {
     it('rethrows the unique-constraint error when no existing check-in can be found (unexpected race)', async () => {
       const checkIn = createDomainCheckIn();
       const conflict = uniqueConstraintError();
-      habitCheckInModel.create.mockRejectedValue(conflict);
+      transactionClient.habitCheckIn.create.mockRejectedValue(conflict);
       habitCheckInModel.findFirst.mockResolvedValue(null);
 
       await expect(repository.createIfAbsent(checkIn)).rejects.toBe(conflict);
@@ -64,7 +118,7 @@ describe('PrismaHabitCheckInRepository', () => {
     it('rethrows unexpected persistence errors without a fallback lookup', async () => {
       const checkIn = createDomainCheckIn();
       const error = new Error('database unavailable');
-      habitCheckInModel.create.mockRejectedValue(error);
+      transactionClient.habitCheckIn.create.mockRejectedValue(error);
 
       await expect(repository.createIfAbsent(checkIn)).rejects.toBe(error);
       expect(habitCheckInModel.findFirst).not.toHaveBeenCalled();
@@ -105,37 +159,44 @@ describe('PrismaHabitCheckInRepository', () => {
     });
   });
 
-  describe('deleteByHabitAndDateForOwner', () => {
-    it('reports success when exactly one row is removed', async () => {
-      habitCheckInModel.deleteMany.mockResolvedValue({ count: 1 });
+  describe('delete', () => {
+    it('removes the check-in and records its undo in one transaction', async () => {
+      const checkIn = undoneCheckIn();
+      transactionClient.habitCheckIn.deleteMany.mockImplementation(
+        track('habitCheckIn.deleteMany', { count: 1 }),
+      );
 
-      await expect(
-        repository.deleteByHabitAndDateForOwner(
-          'habit-id',
-          'owner-id',
-          '2026-08-24',
-        ),
-      ).resolves.toBe(true);
+      await expect(repository.delete(checkIn)).resolves.toBe(true);
 
-      expect(habitCheckInModel.deleteMany).toHaveBeenCalledWith({
-        where: {
-          habitId: 'habit-id',
-          ownerId: 'owner-id',
-          date: new Date('2026-08-24T00:00:00.000Z'),
-        },
+      expect(transactionClient.habitCheckIn.deleteMany).toHaveBeenCalledWith({
+        where: { id: checkIn.id, ownerId: 'owner-id' },
       });
+      expect(transactionClient.outboxEvent.createMany).toHaveBeenCalledWith({
+        data: [
+          expect.objectContaining({
+            type: 'forge.habit.check-in-undone.v1',
+            aggregateId: 'habit-id',
+            payload: {
+              habitId: 'habit-id',
+              ownerId: 'owner-id',
+              date: '2026-08-24',
+            },
+          }),
+        ],
+      });
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+      expect(calls).toEqual(['habitCheckIn.deleteMany', 'outbox.createMany']);
     });
 
-    it('reports failure when no row matched', async () => {
-      habitCheckInModel.deleteMany.mockResolvedValue({ count: 0 });
+    // Hai lần undo đua nhau: chỉ lần xóa được dòng mới phát event.
+    it('records no undo when another request already removed the check-in', async () => {
+      transactionClient.habitCheckIn.deleteMany.mockResolvedValue({
+        count: 0,
+      });
 
-      await expect(
-        repository.deleteByHabitAndDateForOwner(
-          'habit-id',
-          'owner-id',
-          '2026-08-24',
-        ),
-      ).resolves.toBe(false);
+      await expect(repository.delete(undoneCheckIn())).resolves.toBe(false);
+
+      expect(transactionClient.outboxEvent.createMany).not.toHaveBeenCalled();
     });
   });
 });
@@ -147,6 +208,12 @@ function createDomainCheckIn(): HabitCheckIn {
     date: HabitCheckInDate.create('2026-08-24'),
     createdAt: new Date('2026-08-24T09:15:00.000Z'),
   });
+}
+
+function undoneCheckIn(): HabitCheckIn {
+  const checkIn = PrismaHabitCheckInMapper.toDomain(rawCheckIn());
+  checkIn.undo();
+  return checkIn;
 }
 
 function rawCheckIn(): PrismaHabitCheckIn {
