@@ -334,7 +334,9 @@ describe('WakaTimeHttpClient logs why WakaTime is unavailable', () => {
   });
   afterEach(() => warn.mockRestore());
 
-  const logged = (): string[] => warn.mock.calls.map(([line]) => String(line));
+  // Gộp mọi đối số của mỗi lần warn: lỗi gốc truyền ở đối số thứ hai cũng bị bắt.
+  const logged = (): string[] =>
+    warn.mock.calls.map((args: unknown[]) => args.map(String).join(' '));
 
   it('logs the HTTP status and the endpoint without its query', async () => {
     const { client } = setup(json(502, { error: 'Bad Gateway' }));
@@ -372,6 +374,37 @@ describe('WakaTimeHttpClient logs why WakaTime is unavailable', () => {
 
     expect(logged()).toEqual([
       'WakaTime /users/current/durations unavailable: missing start or end',
+    ]);
+  });
+
+  it('tells a body that is not JSON from one that timed out while reading', async () => {
+    // Lỗi do Response thật ném ra thuộc realm khác với vm của Jest, nên
+    // instanceof sai trong test. Tạo lỗi trong realm của test cho đúng như
+    // khi chạy trên Node thật.
+    const failingBody = (error: Error) => {
+      const response = new Response('{}', { status: 200 });
+      jest.spyOn(response, 'json').mockRejectedValue(error);
+      return response;
+    };
+    const broken = setup(failingBody(new SyntaxError('Unexpected token <')));
+    const slow = setup(
+      failingBody(
+        Object.assign(new Error('The operation timed out.'), {
+          name: 'TimeoutError',
+        }),
+      ),
+    );
+
+    await expect(broken.client.currentUser(KEY)).rejects.toBeInstanceOf(
+      WakaTimeUnavailableException,
+    );
+    await expect(slow.client.currentUser(KEY)).rejects.toBeInstanceOf(
+      WakaTimeUnavailableException,
+    );
+
+    expect(logged()).toEqual([
+      'WakaTime /users/current unavailable: body is not JSON',
+      'WakaTime /users/current unavailable: TimeoutError',
     ]);
   });
 

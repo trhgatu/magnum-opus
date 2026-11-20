@@ -132,7 +132,19 @@ export class WakaTimeHttpClient implements WakaTimeApi {
     if (response.status === 429) throw rateLimited(response);
     if (!response.ok) throw this.unavailable(path, `HTTP ${response.status}`);
 
-    const payload: unknown = await response.json().catch(() => null);
+    let payload: unknown;
+    try {
+      payload = await response.json();
+    } catch (error) {
+      // Body hỏng thì là SyntaxError; đọc body quá giờ thì là TimeoutError.
+      const reason =
+        error instanceof SyntaxError
+          ? 'body is not JSON'
+          : error instanceof Error
+            ? error.name
+            : 'unknown error';
+      throw this.unavailable(path, reason);
+    }
     if (!isRecord(payload))
       throw this.unavailable(path, 'body is not a JSON object');
     return payload;
