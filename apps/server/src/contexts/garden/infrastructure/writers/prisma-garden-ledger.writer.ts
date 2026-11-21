@@ -20,7 +20,11 @@ export class PrismaGardenLedgerWriter implements GardenLedgerWriter {
   async plant(subject: PlantedSubject): Promise<void> {
     try {
       await this.prisma.gardenSubject.create({
-        data: { ...subject, simVersion: CURRENT_SIM_VERSION },
+        data: {
+          ...subject,
+          name: subject.nameAtPlanting,
+          simVersion: CURRENT_SIM_VERSION,
+        },
       });
     } catch (error) {
       if (
@@ -110,6 +114,17 @@ export class PrismaGardenLedgerWriter implements GardenLedgerWriter {
     await this.prisma.gardenSubject.updateMany({
       where: { subjectKind, subjectId },
       data: { hiddenAt: null },
+    });
+  }
+
+  async rename(
+    subjectKind: GardenSubjectKind,
+    subjectId: string,
+    name: string,
+  ): Promise<void> {
+    await this.prisma.gardenSubject.updateMany({
+      where: { subjectKind, subjectId },
+      data: { name },
     });
   }
 }

@@ -282,11 +282,38 @@ describe('PrismaHabitRepository', () => {
       });
     });
 
+    it('writes HabitRenamed to the outbox when the title changes', async () => {
+      transactionClient.habit.updateMany.mockResolvedValue({ count: 1 });
+      const habit = quitHabit();
+      habit.update({
+        title: 'Quit sugar',
+        quitStartedAt: new Date('2026-08-01T00:00:00.000Z'),
+        today: TODAY,
+      });
+
+      await repository.update(habit, 4);
+
+      expect(transactionClient.outboxEvent.createMany).toHaveBeenCalledWith({
+        data: [
+          expect.objectContaining({
+            type: 'forge.habit.renamed.v1',
+            aggregateId: 'habit-id',
+            payload: {
+              habitId: 'habit-id',
+              ownerId: 'owner-id',
+              title: 'Quit sugar',
+            },
+          }),
+        ],
+      });
+    });
+
     it('writes no outbox row when the start day did not change or the revision is stale', async () => {
       transactionClient.habit.updateMany.mockResolvedValue({ count: 1 });
       const unchanged = quitHabit();
       unchanged.update({
-        title: 'Quit sugar',
+        title: unchanged.title,
+        description: 'Only the note changed',
         quitStartedAt: new Date('2026-08-01T00:00:00.000Z'),
         today: TODAY,
       });

@@ -40,7 +40,12 @@ describe('PrismaGardenLedgerWriter', () => {
       await writer.plant(subject);
 
       expect(gardenSubject.create).toHaveBeenCalledWith({
-        data: { ...subject, simVersion: CURRENT_SIM_VERSION },
+        // Tên hiện tại bắt đầu bằng tên lúc gieo; đổi tên Habit sẽ cập nhật nó.
+        data: {
+          ...subject,
+          name: subject.nameAtPlanting,
+          simVersion: CURRENT_SIM_VERSION,
+        },
       });
     });
 
@@ -91,6 +96,20 @@ describe('PrismaGardenLedgerWriter', () => {
       expect(gardenSubject.updateMany).toHaveBeenCalledWith({
         where: { subjectKind: 'HABIT', subjectId: 'habit-id' },
         data: { plantedOn: new Date('2026-11-10T00:00:00.000Z') },
+      });
+    });
+  });
+
+  describe('rename', () => {
+    // Chỉ đổi tên hiện tại; name_at_planting giữ cho câu chuyện của cây.
+    it('updates the current name of the subject', async () => {
+      gardenSubject.updateMany.mockResolvedValue({ count: 1 });
+
+      await writer.rename('HABIT', 'habit-id', 'Evening walk');
+
+      expect(gardenSubject.updateMany).toHaveBeenCalledWith({
+        where: { subjectKind: 'HABIT', subjectId: 'habit-id' },
+        data: { name: 'Evening walk' },
       });
     });
   });
