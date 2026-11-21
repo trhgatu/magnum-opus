@@ -126,7 +126,7 @@ Trash / Untrash Habit → forge.habit.trashed.v1 / forge.habit.restored-from-tra
 → HideTrashedHabitHandler / ShowRestoredHabitHandler → đặt / xóa hidden_at của cây
 ```
 
-Cây trong Thùng rác chỉ bị ẩn; sổ giữ nguyên (BR-GDN-SB-007). Đưa Habit đang sống vào Thùng rác phát thêm `ARCHIVED`, nên những ngày trong Thùng rác là nghỉ (BR-GDN-006). Habit đã lưu trữ hoặc nằm trong Thùng rác từ trước G1d chưa có dòng sổ hay `hidden_at` cho tới khi nạp lịch sử (G1e). Lịch Habit (`RHYTHM_SET`) là G1d-2.
+Cây trong Thùng rác chỉ bị ẩn; sổ giữ nguyên (BR-GDN-SB-007). Đưa Habit đang sống vào Thùng rác phát thêm `ARCHIVED`, nên những ngày trong Thùng rác là nghỉ (BR-GDN-006). Habit lưu trữ hoặc vào Thùng rác từ trước G1d chưa có dòng `RESTED` / `RESUMED` cho lần đó, và chưa có `hidden_at`, cho tới khi nạp lịch sử (G1e); các dòng `TENDED`, `UNTENDED`, `MARKED` từ G1b–G1c vẫn có. Lịch Habit (`RHYTHM_SET`) là G1d-2.
 
 **Đọc** _(dự kiến, G2)_ (người dùng mở vườn):
 
