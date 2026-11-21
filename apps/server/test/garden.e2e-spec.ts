@@ -228,6 +228,45 @@ describe('Garden ledger (E2E)', () => {
     ]);
   });
 
+  it('records the schedule of a BUILD Habit, then each change, as RHYTHM_SET', async () => {
+    const created = await request(app.getHttpServer())
+      .post('/habits')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        title: 'Gym',
+        type: 'BUILD',
+        frequencyType: 'WEEKLY',
+        frequencyDays: [5, 1],
+      })
+      .expect(HttpStatus.CREATED);
+    const habitId = created.body.id as string;
+
+    await request(app.getHttpServer())
+      .put(`/habits/${habitId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        title: 'Gym',
+        description: null,
+        frequencyType: 'DAILY',
+        frequencyDays: [],
+        expectedRevision: 1,
+      })
+      .expect(HttpStatus.OK);
+
+    const rhythms = await eventually(
+      () => rhythmsOf(habitId),
+      (rows) => rows.length >= 2,
+    );
+    expect(rhythms.map(({ detail, mark }) => ({ detail, mark }))).toEqual([
+      { detail: { type: 'WEEKLY', days: [1, 5] }, mark: null },
+      { detail: { type: 'DAILY', days: [] }, mark: null },
+    ]);
+    // Nhịp đầu tiên có hiệu lực từ ngày gieo (createdOn của Habit BUILD).
+    expect(rhythms[0].occurredOn).toEqual(
+      (await subjectOf(habitId))?.plantedOn,
+    );
+  });
+
   it('records archive as RESTED and restore as RESUMED', async () => {
     const habitId = await createPlantedBuildHabit('Evening read');
 
@@ -303,10 +342,21 @@ describe('Garden ledger (E2E)', () => {
     });
   });
 
+  // Dòng nhịp có riêng rhythmsOf; các test khác chỉ xét những gì đã xảy ra.
   const entriesOf = (habitId: string) =>
     prisma.gardenEntry.findMany({
       where: {
         subject: { subjectKind: 'HABIT', subjectId: habitId },
+        kind: { not: 'RHYTHM_SET' },
+      },
+      orderBy: { recordedAt: 'asc' },
+    });
+
+  const rhythmsOf = (habitId: string) =>
+    prisma.gardenEntry.findMany({
+      where: {
+        subject: { subjectKind: 'HABIT', subjectId: habitId },
+        kind: 'RHYTHM_SET',
       },
       orderBy: { recordedAt: 'asc' },
     });

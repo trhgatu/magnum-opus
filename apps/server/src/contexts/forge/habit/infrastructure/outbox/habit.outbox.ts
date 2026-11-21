@@ -20,6 +20,9 @@ import { HabitTrashedEvent } from '../../domain/events';
 import { HabitRestoredFromTrash } from '../../contracts/habit-restored-from-trash.contract';
 import { HabitRestoredFromTrashEvent } from '../../domain/events';
 
+import { HabitScheduleVersionStarted } from '../../contracts/habit-schedule-version-started.contract';
+import { HabitScheduleVersionStartedEvent } from '../../domain/events';
+
 @Injectable()
 @OutboxPublisher([
   publish({
@@ -77,6 +80,19 @@ import { HabitRestoredFromTrashEvent } from '../../domain/events';
     as: HabitRestoredFromTrash,
     aggregateId: (event) => event.habitId,
     toPayload: (event) => ({ habitId: event.habitId, ownerId: event.ownerId }),
+  }),
+
+  publish({
+    event: HabitScheduleVersionStartedEvent,
+    as: HabitScheduleVersionStarted,
+    aggregateId: (event) => event.habitId,
+    toPayload: (event) => ({
+      habitId: event.habitId,
+      ownerId: event.ownerId,
+      frequencyType: event.frequency.type,
+      frequencyDays: event.frequency.days,
+      effectiveFrom: event.effectiveFrom.value,
+    }),
   }),
 ])
 export class HabitOutbox {}

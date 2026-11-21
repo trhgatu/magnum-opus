@@ -2,7 +2,11 @@ import type {
   GardenSubjectKind,
   GardenVariant,
 } from '../../domain/garden-subject';
-import { GardenEntryKind, GardenMark } from '../../domain/garden-entry';
+import {
+  GardenEntryKind,
+  GardenMark,
+  GardenRhythm,
+} from '../../domain/garden-entry';
 
 export const GARDEN_LEDGER_WRITER = Symbol('GARDEN_LEDGER_WRITER');
 
@@ -21,8 +25,13 @@ export type LedgerEntry = {
   occurredOn: Date;
   sourceEventId: string;
 } & (
-  | { kind: Exclude<GardenEntryKind, 'MARKED'>; mark?: never }
-  | { kind: 'MARKED'; mark: GardenMark }
+  | {
+      kind: Exclude<GardenEntryKind, 'MARKED' | 'RHYTHM_SET'>;
+      mark?: never;
+      detail?: never;
+    }
+  | { kind: 'MARKED'; mark: GardenMark; detail?: never }
+  | { kind: 'RHYTHM_SET'; detail: GardenRhythm; mark?: never }
 );
 
 export interface GardenLedgerWriter {
