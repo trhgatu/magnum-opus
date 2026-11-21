@@ -238,7 +238,7 @@ Dáng cây là chuỗi này được phát lại: `CARED` thì mọc, `RESTED` v
 
 ### 7.2 Cỏ
 
-Cỏ mọc quanh một chủ thể **đang hoạt động** khi cuối chuỗi có từ **3 tuần `RESTED` liên tiếp** trở lên. Cỏ cao dần theo số tuần, có giới hạn trên. Chăm lại thì cỏ gọn dần trong vài tuần, không mất ngay. `SKIPPED` cắt chuỗi đếm và không bao giờ làm mọc cỏ. Ngưỡng 3 chỉnh lại sau khi xem dữ liệu thật.
+Cỏ mọc quanh một chủ thể **đang hoạt động** khi cuối chuỗi có từ **3 tuần `RESTED` liên tiếp** trở lên. Từ tuần `RESTED` liên tiếp thứ 3, mỗi tuần cỏ cao thêm một bậc, tối đa 5 bậc. Chăm lại thì mỗi tuần `CARED` cỏ gọn đi một bậc, không mất ngay. `SKIPPED` cắt chuỗi đếm, không làm cỏ mọc và không làm cỏ gọn. Ngưỡng 3 và trần 5 bậc chỉnh lại sau khi xem dữ liệu thật (chốt 2026-11-21).
 
 ### 7.3 Khí hậu (P2, P4)
 
@@ -327,16 +327,16 @@ P0 và phần ghi sổ của P1 đi chung, theo từng lát. Mỗi lát gồm ev
 
 ## 11. Quyết định đã chốt (2026-11-13, Q-GDN-10 ngày 2026-11-21)
 
-| Mã       | Câu hỏi                                        | Chốt                                                                                            |
-| -------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| Q-GDN-1  | Check-in ngày không đến lịch có tính là chăm?  | Có (BR-GDN-003)                                                                                 |
-| Q-GDN-2  | Nhiều lần tái phạm trong một tuần thì mấy sẹo? | Một (BR-GDN-004)                                                                                |
-| Q-GDN-3  | Habit tạo thử có thành cây?                    | Có; người dùng xóa ở Forge (Habit V4), Garden không có nút ẩn                                   |
-| Q-GDN-4  | Sửa `quitStartedAt` thì cây gieo lại?          | Có (BR-GDN-007)                                                                                 |
-| Q-GDN-5  | Ngưỡng mọc cỏ?                                 | 3 tuần, chỉnh sau khi có dữ liệu thật                                                           |
-| —        | Garden đọc DB module khác hay tự đủ?           | Tự đủ ở mức tối thiểu (KD-GDN-012)                                                              |
-| —        | Dữ liệu nguồn bị xóa vĩnh viễn?                | Xóa theo (BR-GDN-SB-006)                                                                        |
-| Q-GDN-10 | Đổi tên Habit thì cây đổi tên theo?            | Có (2026-11-21): Forge phát `HabitRenamed`, Garden giữ cả `name` hiện tại và `name_at_planting` |
+| Mã       | Câu hỏi                                        | Chốt                                                                                                                            |
+| -------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Q-GDN-1  | Check-in ngày không đến lịch có tính là chăm?  | Có (BR-GDN-003)                                                                                                                 |
+| Q-GDN-2  | Nhiều lần tái phạm trong một tuần thì mấy sẹo? | Một (BR-GDN-004)                                                                                                                |
+| Q-GDN-3  | Habit tạo thử có thành cây?                    | Có; người dùng xóa ở Forge (Habit V4), Garden không có nút ẩn                                                                   |
+| Q-GDN-4  | Sửa `quitStartedAt` thì cây gieo lại?          | Có (BR-GDN-007)                                                                                                                 |
+| Q-GDN-5  | Ngưỡng mọc cỏ?                                 | 3 tuần RESTED liên tiếp; tối đa 5 bậc; mỗi tuần CARED gọn 1 bậc (trần và độ gọn chốt 2026-11-21). Chỉnh sau khi có dữ liệu thật |
+| —        | Garden đọc DB module khác hay tự đủ?           | Tự đủ ở mức tối thiểu (KD-GDN-012)                                                                                              |
+| —        | Dữ liệu nguồn bị xóa vĩnh viễn?                | Xóa theo (BR-GDN-SB-006)                                                                                                        |
+| Q-GDN-10 | Đổi tên Habit thì cây đổi tên theo?            | Có (2026-11-21): Forge phát `HabitRenamed`, Garden giữ cả `name` hiện tại và `name_at_planting`                                 |
 
 ## 12. Câu hỏi mở
 

@@ -786,7 +786,7 @@ model GardenSubject {
   subjectId String @map("subject_id")
   variant GardenVariant
   nameAtPlanting String @map("name_at_planting")
-  name String?
+  name String
   simVersion     Int               @map("sim_version")
   entries GardenEntry[]
   plantedOn      DateTime          @map("planted_on") @db.Date
@@ -822,11 +822,13 @@ model GardenEntry {
   occurredOn DateTime @map("occurred_on") @db.Date
   sourceEventId String @unique @map("source_event_id")
   recordedAt DateTime @default(now()) @map("recorded_at")
+  sequence BigInt @default(autoincrement())
 
   owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade )
   subject GardenSubject @relation(fields: [subjectId, ownerId], references: [id, ownerId], onDelete: Cascade)
 
   @@index([ownerId, occurredOn])
   @@index([subjectId, occurredOn])
+  @@index([subjectId, sequence])
   @@map("garden_entries")
 }

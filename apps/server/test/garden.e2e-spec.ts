@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser';
 import request from 'supertest';
 
 import { AppModule } from '../src/app.module';
+import { weekStartOf } from '../src/contexts/garden/domain/garden-week';
 import { PrismaService } from '../src/infrastructure/database/prisma.service';
 import {
   calendarDayAt,
@@ -359,6 +360,60 @@ describe('Garden ledger (E2E)', () => {
     });
   });
 
+  it('serves the garden as weekly series and leaves trashed trees out', async () => {
+    const tendedId = await createPlantedBuildHabit('Read a page');
+    const checkIn = await request(app.getHttpServer())
+      .put(`/habits/${tendedId}/check-ins/today`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(HttpStatus.OK);
+    const trashedId = await createPlantedBuildHabit('Hidden for now');
+    await patchHabit(trashedId, 'trash', 1);
+    await eventually(
+      () => subjectOf(trashedId),
+      (row) => row?.hiddenAt != null,
+    );
+    // Chờ nhịp đầu tiên và lần chăm vào sổ rồi mới đọc vườn.
+    await eventually(
+      () => entriesOf(tendedId),
+      (rows) => rows.length >= 1,
+    );
+    await eventually(
+      () => rhythmsOf(tendedId),
+      (rows) => rows.length >= 1,
+    );
+
+    const garden = await request(app.getHttpServer())
+      .get('/garden')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(HttpStatus.OK);
+
+    // Các ngày lấy ở những thời điểm khác nhau có thể vắt qua nửa đêm của
+    // owner: chỉ so tuần chứa ngày check-in, không so ngày tuyệt đối.
+    const checkedOn = checkIn.body.date as string;
+    expect(garden.body.today >= checkedOn).toBe(true);
+    const trees = garden.body.trees as {
+      subjectId: string;
+      plantedOn: string;
+      weeks: { start: string; status: string; scarred: boolean }[];
+    }[];
+    expect(trees.map((tree) => tree.subjectId)).toContain(tendedId);
+    expect(trees.map((tree) => tree.subjectId)).not.toContain(trashedId);
+    const tree = trees.find((candidate) => candidate.subjectId === tendedId);
+    expect(tree).toMatchObject({
+      variant: 'BUILD',
+      name: 'Read a page',
+      weeds: 0,
+    });
+    expect(tree!.plantedOn <= checkedOn).toBe(true);
+    expect(
+      tree!.weeks.find((week) => week.start === weekStartOf(checkedOn)),
+    ).toEqual({
+      start: weekStartOf(checkedOn),
+      status: 'CARED',
+      scarred: false,
+    });
+  });
+
   // Dòng nhịp có riêng rhythmsOf; các test khác chỉ xét những gì đã xảy ra.
   const entriesOf = (habitId: string) =>
     prisma.gardenEntry.findMany({
@@ -366,7 +421,7 @@ describe('Garden ledger (E2E)', () => {
         subject: { subjectKind: 'HABIT', subjectId: habitId },
         kind: { not: 'RHYTHM_SET' },
       },
-      orderBy: { recordedAt: 'asc' },
+      orderBy: { sequence: 'asc' },
     });
 
   const rhythmsOf = (habitId: string) =>
@@ -375,7 +430,7 @@ describe('Garden ledger (E2E)', () => {
         subject: { subjectKind: 'HABIT', subjectId: habitId },
         kind: 'RHYTHM_SET',
       },
-      orderBy: { recordedAt: 'asc' },
+      orderBy: { sequence: 'asc' },
     });
 
   async function createPlantedBuildHabit(title: string): Promise<string> {

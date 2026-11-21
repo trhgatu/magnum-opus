@@ -3,7 +3,7 @@ export type GardenEntryKind =
 
 export type GardenMark = 'SCAR';
 
-export type GardenRhythm = {
+export type GardenSchedule = {
   type: 'DAILY' | 'WEEKLY';
   days: number[];
 };
