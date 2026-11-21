@@ -199,12 +199,26 @@ describe('gardenWeeks edges', () => {
       today: TODAY,
       entries: [
         rhythm('2026-11-02', DAILY),
-        // Đổi sang chỉ Chủ nhật ngay trong ngày gieo.
-        rhythm('2026-11-02', { type: 'WEEKLY', days: [7] }),
+        // Đổi sang lịch không có ngày nào ngay trong ngày gieo.
+        rhythm('2026-11-02', { type: 'WEEKLY', days: [] }),
       ],
     });
 
-    // Tuần 02/11 vẫn có Chủ nhật đến lịch nên RESTED; nhịp hằng ngày bị thay.
+    // Giữ nhịp hằng ngày thì tuần này RESTED; nhịp ghi sau thắng nên SKIPPED.
+    expect(statuses(weeks)['2026-11-02']).toBe('SKIPPED');
+  });
+
+  it('keeps the earlier rhythm when the later one is recorded first', () => {
+    const weeks = gardenWeeks({
+      variant: 'BUILD',
+      plantedOn: '2026-11-02',
+      today: TODAY,
+      entries: [
+        rhythm('2026-11-02', { type: 'WEEKLY', days: [] }),
+        rhythm('2026-11-02', DAILY),
+      ],
+    });
+
     expect(statuses(weeks)['2026-11-02']).toBe('RESTED');
   });
 

@@ -47,26 +47,28 @@ Garden là một bounded context, cùng bố cục bốn tầng như các contex
 apps/server/src/contexts/garden/
 ├─ garden.module.ts
 ├─ domain/garden-subject.ts             GardenSubjectKind, GardenVariant, CURRENT_SIM_VERSION
-├─ domain/                            * policy thuần: rhythm/, weeds, marks, climate
+├─ domain/garden-entry.ts               GardenEntryKind, GardenMark, GardenRhythm
+├─ domain/garden-week.ts                gardenWeeks, weedsAfter (thuần: chuỗi tuần, sẹo, cỏ)
+├─ domain/                            * climate (P2+)
 ├─ application/
 │  ├─ ports/garden-ledger-writer.port.ts
-│  ├─ ports/garden-ledger-reader.port.ts *
-│  ├─ commands/                       * backfill-garden
-│  └─ queries/                        * get-garden (sau này ?at= để tua)
+│  ├─ ports/garden-ledger-reader.port.ts, clock.port.ts, user-time-zone-reader.port.ts
+│  └─ queries/get-garden.query.ts       (sau này ?at= để tua, P4)
 ├─ infrastructure/
 │  ├─ outbox/                           ← chỗ duy nhất biết contract của Forge
 │  │  ├─ plant-created-habit.handler.ts, uproot-deleted-habit.handler.ts
 │  │  ├─ record-habit-check-in.handler.ts, record-habit-check-in-undone.handler.ts
 │  │  ├─ record-habit-relapse.handler.ts, replant-quit-habit.handler.ts
-│  │  └─ … *
+│  │  ├─ record-habit-lifecycle.handler.ts, hide-trashed-habit.handler.ts, show-restored-habit.handler.ts
+│  │  └─ record-habit-rhythm.handler.ts, rename-habit-tree.handler.ts
 │  ├─ writers/prisma-garden-ledger.writer.ts
-│  └─ readers/prisma-garden-ledger.reader.ts *
-└─ presentation/                      * GET /garden
+│  └─ readers/prisma-garden-ledger.reader.ts, prisma-user-time-zone.reader.ts
+└─ presentation/                        GET /garden (garden.controller.ts, garden.presenter.ts)
 
 packages/garden-sim/                  * thuần TS: rng, space colonization, pipe model
   species/   tree, thorn-bush, vine, fallback
   versions/  v1, v2…                    không bao giờ sửa phiên bản cũ
-packages/contracts/                   * GardenView, enum dùng chung
+packages/contracts/src/garden/          GardenResponse, enum dùng chung
 apps/client/features/garden/          * renderer three.js (lazy), registry giống cây
 ```
 
@@ -181,4 +183,4 @@ Trước khi thêm, module phải qua KD-GDN-011: việc của nó là chăm só
 
 ## 7. Dữ liệu
 
-Hiện có bốn Prisma enum: `GardenSubjectKind` (`HABIT`) và `GardenVariant` (`BUILD`, `QUIT`) cho `garden_subjects`, `GardenEntryKind` (`TENDED`, `UNTENDED`, `MARKED`, `RESTED`, `RESUMED`, `RHYTHM_SET`) và `GardenMark` (`SCAR`) cho `garden_entries`; cột `mark` chỉ có giá trị khi `kind = MARKED`, cột `detail` (JSONB, `{ type, days }`) chỉ có giá trị khi `kind = RHYTHM_SET`; cả hai được giữ bằng CHECK. `garden_entries` thuộc về một chủ thể (`ON DELETE CASCADE`), nên nhổ cây thì sổ đi theo. `garden_subjects.name` là tên hiện tại, đổi theo Habit; `name_at_planting` không bao giờ đổi. G2a thêm `name` cho phép null để server cũ còn gieo được cây trong lúc deploy; G2b đồng bộ lại `name` từ `habits.title` cho mọi cây (server cũ có thể đã đổi tên mà không phát `HabitRenamed`) rồi đặt `NOT NULL`. `garden_subjects.hidden_at` khác null khi Habit nằm trong Thùng rác. Các loại sổ khác là dự kiến. Thêm loại mới là thêm giá trị enum kèm một migration nhỏ, giống `ActivityEvent.kind`.
+Hiện có bốn Prisma enum: `GardenSubjectKind` (`HABIT`) và `GardenVariant` (`BUILD`, `QUIT`) cho `garden_subjects`, `GardenEntryKind` (`TENDED`, `UNTENDED`, `MARKED`, `RESTED`, `RESUMED`, `RHYTHM_SET`) và `GardenMark` (`SCAR`) cho `garden_entries`; cột `mark` chỉ có giá trị khi `kind = MARKED`, cột `detail` (JSONB, `{ type, days }`) chỉ có giá trị khi `kind = RHYTHM_SET`; cả hai được giữ bằng CHECK. `garden_entries` thuộc về một chủ thể (`ON DELETE CASCADE`), nên nhổ cây thì sổ đi theo. `garden_entries.sequence` (BIGSERIAL) là thứ tự ghi: phần đọc xếp sổ theo nó, vì `recorded_at` có thể trùng (cùng mili giây, hoặc mọi dòng của lần nạp lịch sử). `garden_subjects.name` là tên hiện tại, đổi theo Habit; `name_at_planting` không bao giờ đổi. G2a thêm `name` cho phép null để server cũ còn gieo được cây trong lúc deploy; G2b đồng bộ lại `name` từ `habits.title` cho mọi cây (server cũ có thể đã đổi tên mà không phát `HabitRenamed`) rồi đặt `NOT NULL`. `garden_subjects.hidden_at` khác null khi Habit nằm trong Thùng rác. Các loại sổ khác là dự kiến. Thêm loại mới là thêm giá trị enum kèm một migration nhỏ, giống `ActivityEvent.kind`.

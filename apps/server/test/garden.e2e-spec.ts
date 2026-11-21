@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser';
 import request from 'supertest';
 
 import { AppModule } from '../src/app.module';
+import { weekStartOf } from '../src/contexts/garden/domain/garden-week';
 import { PrismaService } from '../src/infrastructure/database/prisma.service';
 import {
   calendarDayAt,
@@ -386,24 +387,30 @@ describe('Garden ledger (E2E)', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(HttpStatus.OK);
 
-    const today = checkIn.body.date as string;
-    expect(garden.body.today).toBe(today);
-    const subjectIds = (garden.body.trees as { subjectId: string }[]).map(
-      (tree) => tree.subjectId,
-    );
-    expect(subjectIds).toContain(tendedId);
-    expect(subjectIds).not.toContain(trashedId);
-    // Habit gieo hôm nay và đã chăm hôm nay: một tuần duy nhất, CARED.
-    expect(
-      (garden.body.trees as { subjectId: string }[]).find(
-        (tree) => tree.subjectId === tendedId,
-      ),
-    ).toMatchObject({
+    // Các ngày lấy ở những thời điểm khác nhau có thể vắt qua nửa đêm của
+    // owner: chỉ so tuần chứa ngày check-in, không so ngày tuyệt đối.
+    const checkedOn = checkIn.body.date as string;
+    expect(garden.body.today >= checkedOn).toBe(true);
+    const trees = garden.body.trees as {
+      subjectId: string;
+      plantedOn: string;
+      weeks: { start: string; status: string; scarred: boolean }[];
+    }[];
+    expect(trees.map((tree) => tree.subjectId)).toContain(tendedId);
+    expect(trees.map((tree) => tree.subjectId)).not.toContain(trashedId);
+    const tree = trees.find((candidate) => candidate.subjectId === tendedId);
+    expect(tree).toMatchObject({
       variant: 'BUILD',
       name: 'Read a page',
-      plantedOn: today,
-      weeks: [{ status: 'CARED', scarred: false }],
       weeds: 0,
+    });
+    expect(tree!.plantedOn <= checkedOn).toBe(true);
+    expect(
+      tree!.weeks.find((week) => week.start === weekStartOf(checkedOn)),
+    ).toEqual({
+      start: weekStartOf(checkedOn),
+      status: 'CARED',
+      scarred: false,
     });
   });
 
@@ -414,7 +421,7 @@ describe('Garden ledger (E2E)', () => {
         subject: { subjectKind: 'HABIT', subjectId: habitId },
         kind: { not: 'RHYTHM_SET' },
       },
-      orderBy: { recordedAt: 'asc' },
+      orderBy: { sequence: 'asc' },
     });
 
   const rhythmsOf = (habitId: string) =>
@@ -423,7 +430,7 @@ describe('Garden ledger (E2E)', () => {
         subject: { subjectKind: 'HABIT', subjectId: habitId },
         kind: 'RHYTHM_SET',
       },
-      orderBy: { recordedAt: 'asc' },
+      orderBy: { sequence: 'asc' },
     });
 
   async function createPlantedBuildHabit(title: string): Promise<string> {

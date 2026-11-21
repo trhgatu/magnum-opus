@@ -27,7 +27,7 @@ export class PrismaGardenLedgerReader implements GardenLedgerReader {
         plantedOn: true,
         // Thứ tự ghi: cùng ngày thì dòng ghi sau thắng (vd đổi lịch hai lần).
         entries: {
-          orderBy: [{ recordedAt: 'asc' }, { id: 'asc' }],
+          orderBy: { sequence: 'asc' },
           select: { kind: true, occurredOn: true, mark: true, detail: true },
         },
       },

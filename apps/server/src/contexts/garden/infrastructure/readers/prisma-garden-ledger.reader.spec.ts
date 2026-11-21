@@ -39,7 +39,7 @@ describe('PrismaGardenLedgerReader', () => {
         where: { ownerId: 'owner-id', hiddenAt: null },
         select: expect.objectContaining({
           entries: expect.objectContaining({
-            orderBy: [{ recordedAt: 'asc' }, { id: 'asc' }],
+            orderBy: { sequence: 'asc' },
           }),
         }),
       }),
