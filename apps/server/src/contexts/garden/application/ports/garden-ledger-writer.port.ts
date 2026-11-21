@@ -5,7 +5,7 @@ import type {
 import {
   GardenEntryKind,
   GardenMark,
-  GardenRhythm,
+  GardenSchedule,
 } from '../../domain/garden-entry';
 
 export const GARDEN_LEDGER_WRITER = Symbol('GARDEN_LEDGER_WRITER');
@@ -31,7 +31,7 @@ export type LedgerEntry = {
       detail?: never;
     }
   | { kind: 'MARKED'; mark: GardenMark; detail?: never }
-  | { kind: 'RHYTHM_SET'; detail: GardenRhythm; mark?: never }
+  | { kind: 'RHYTHM_SET'; detail: GardenSchedule; mark?: never }
 );
 
 export interface GardenLedgerWriter {

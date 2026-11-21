@@ -7,7 +7,7 @@ import type {
   GardenLedgerReader,
   GardenSubjectLedger,
 } from '../../application/ports/garden-ledger-reader.port';
-import type { GardenRhythm } from '../../domain/garden-entry';
+import type { GardenSchedule } from '../../domain/garden-entry';
 
 @Injectable()
 export class PrismaGardenLedgerReader implements GardenLedgerReader {
@@ -41,7 +41,7 @@ export class PrismaGardenLedgerReader implements GardenLedgerReader {
         occurredOn: calendarDayOf(entry.occurredOn),
         mark: entry.mark,
         // CHECK của DB chỉ cho detail trên dòng RHYTHM_SET, đúng dạng writer ghi.
-        detail: entry.detail as GardenRhythm | null,
+        detail: entry.detail as GardenSchedule | null,
       })),
     }));
   }

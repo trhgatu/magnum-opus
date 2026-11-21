@@ -829,5 +829,6 @@ model GardenEntry {
 
   @@index([ownerId, occurredOn])
   @@index([subjectId, occurredOn])
+  @@index([subjectId, sequence])
   @@map("garden_entries")
 }

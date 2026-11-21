@@ -13,3 +13,7 @@ FROM (
   FROM "garden_entries"
 ) AS r
 WHERE e.id = r.id;
+
+-- Phần đọc lấy sổ từng cây theo thứ tự ghi.
+CREATE INDEX "garden_entries_subject_id_sequence_idx"
+  ON "garden_entries"("subject_id", "sequence");

@@ -5,7 +5,11 @@ import {
   isoWeekday,
 } from '@shared/domain/calendar-day';
 
-import type { GardenEntryKind, GardenMark, GardenRhythm } from './garden-entry';
+import type {
+  GardenEntryKind,
+  GardenMark,
+  GardenSchedule,
+} from './garden-entry';
 import type { GardenVariant } from './garden-subject';
 
 /** Trạng thái một tuần của chủ thể (BA §7.1). */
@@ -16,7 +20,7 @@ export interface GardenLedgerRow {
   kind: GardenEntryKind;
   occurredOn: CalendarDay;
   mark: GardenMark | null;
-  detail: GardenRhythm | null;
+  detail: GardenSchedule | null;
 }
 
 export interface GardenWeek {

@@ -47,7 +47,7 @@ Garden là một bounded context, cùng bố cục bốn tầng như các contex
 apps/server/src/contexts/garden/
 ├─ garden.module.ts
 ├─ domain/garden-subject.ts             GardenSubjectKind, GardenVariant, CURRENT_SIM_VERSION
-├─ domain/garden-entry.ts               GardenEntryKind, GardenMark, GardenRhythm
+├─ domain/garden-entry.ts               GardenEntryKind, GardenMark, GardenSchedule (lịch trong `detail` của RHYTHM_SET)
 ├─ domain/garden-week.ts                gardenWeeks, weedsAfter (thuần: chuỗi tuần, sẹo, cỏ)
 ├─ domain/                            * climate (P2+)
 ├─ application/

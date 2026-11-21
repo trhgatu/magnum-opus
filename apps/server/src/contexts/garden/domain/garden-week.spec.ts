@@ -1,6 +1,6 @@
 import type { CalendarDay } from '@shared/domain/calendar-day';
 
-import type { GardenRhythm } from './garden-entry';
+import type { GardenSchedule } from './garden-entry';
 import {
   type GardenLedgerRow,
   type GardenWeek,
@@ -23,15 +23,15 @@ const row = (
   detail: null,
   ...extra,
 });
-const rhythm = (occurredOn: CalendarDay, detail: GardenRhythm) =>
+const rhythm = (occurredOn: CalendarDay, detail: GardenSchedule) =>
   row('RHYTHM_SET', occurredOn, { detail });
 const scar = (occurredOn: CalendarDay) =>
   row('MARKED', occurredOn, { mark: 'SCAR' });
 const tended = (...days: CalendarDay[]) =>
   days.map((day) => row('TENDED', day));
 
-const DAILY: GardenRhythm = { type: 'DAILY', days: [] };
-const MON_WED_FRI: GardenRhythm = { type: 'WEEKLY', days: [1, 3, 5] };
+const DAILY: GardenSchedule = { type: 'DAILY', days: [] };
+const MON_WED_FRI: GardenSchedule = { type: 'WEEKLY', days: [1, 3, 5] };
 
 const statuses = (weeks: GardenWeek[]) =>
   Object.fromEntries(weeks.map((week) => [week.start, week.status]));
