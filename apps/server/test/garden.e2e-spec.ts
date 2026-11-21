@@ -322,7 +322,7 @@ describe('Garden ledger (E2E)', () => {
     ).toEqual(['RESTED', 'RESUMED']);
   });
 
-  it('replants a QUIT Habit when its start day changes', async () => {
+  it('renames and replants a QUIT Habit as it is edited', async () => {
     const habitId = await createPlantedQuitHabit('Quit gaming', '2026-11-01');
 
     // Chỉ sửa tên thì cây giữ ngày gieo.
@@ -354,6 +354,8 @@ describe('Garden ledger (E2E)', () => {
     expect(subject).toMatchObject({
       plantedOn: new Date('2026-11-05T00:00:00.000Z'),
       nameAtPlanting: 'Quit gaming',
+      // Cây đổi tên theo Habit; tên lúc gieo giữ nguyên (Q-GDN-10).
+      name: 'Quit video games',
     });
   });
 

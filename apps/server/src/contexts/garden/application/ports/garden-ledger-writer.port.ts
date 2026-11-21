@@ -49,4 +49,9 @@ export interface GardenLedgerWriter {
     hiddenAt: Date,
   ): Promise<void>;
   show(subjectKind: GardenSubjectKind, subjectId: string): Promise<void>;
+  rename(
+    subjectKind: GardenSubjectKind,
+    subjectId: string,
+    name: string,
+  ): Promise<void>;
 }

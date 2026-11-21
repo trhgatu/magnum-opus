@@ -14,6 +14,7 @@ import {
   HabitQuitStartChangedEvent,
   HabitTrashedEvent,
   HabitRestoredFromTrashEvent,
+  HabitRenamedEvent,
 } from './events';
 import {
   HabitPermanentDeleteForbiddenException,
@@ -40,15 +41,7 @@ export interface HabitProps {
   revision: number;
   createdAt: Date;
   createdOn: HabitCalendarDate;
-  // effectiveOn của lifecycle transition mới nhất đã ghi — mốc sàn để
-  // effectiveOn không bao giờ giảm khi owner đổi múi giờ về phía tây.
-  // null = đã nạp, chưa có transition nào; undefined = không được nạp (vd
-  // aggregate dựng từ reader chỉ để hiển thị) — khi đó cấm archive/restore.
   latestLifecycleEffectiveOn: HabitCalendarDate | null | undefined;
-  // effectiveFrom của phiên bản tần suất đang mở — mốc sàn khi đổi tần suất,
-  // để không bao giờ đóng phiên bản trước ngày nó bắt đầu. null = đã nạp,
-  // không có phiên bản mở (Habit QUIT); undefined = không được nạp — khi đó
-  // cấm đổi tần suất.
   openScheduleEffectiveFrom: HabitCalendarDate | null | undefined;
   updatedAt: Date;
 }
@@ -223,8 +216,10 @@ export class Habit extends AggregateRoot {
       nextQuitStartedAt,
     );
 
+    const titleChanged = this.props.title !== nextTitle;
+
     const changed =
-      this.props.title !== nextTitle ||
+      titleChanged ||
       this.props.description !== nextDescription ||
       frequencyChanged ||
       quitStartChanged;
@@ -259,6 +254,16 @@ export class Habit extends AggregateRoot {
           this.props.id.value,
           this.props.ownerId,
           HabitCalendarDate.fromPersistenceDate(nextQuitStartedAt),
+        ),
+      );
+    }
+
+    if (titleChanged) {
+      this.addDomainEvent(
+        new HabitRenamedEvent(
+          this.props.id.value,
+          this.props.ownerId,
+          nextTitle,
         ),
       );
     }

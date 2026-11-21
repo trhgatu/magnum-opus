@@ -2,7 +2,7 @@
 
 Tài liệu kỹ thuật của bounded context Garden. Phần nghiệp vụ (vấn đề, quy tắc, lộ trình) ở [BA Garden](../../product/ba/contexts/garden/01-ba-overview.md).
 
-Đây là thiết kế đích. Hiện đã có lát G1a đến G1e: bảng `garden_subjects` và `garden_entries`, cổng `GardenLedgerWriter` cùng writer Prisma, handler gieo/nhổ cây theo `HabitCreated` / `HabitPermanentlyDeleted`, handler ghi `TENDED` / `UNTENDED` theo `HabitCheckedIn` / `HabitCheckInUndone`, handler ghi sẹo theo `HabitRelapsed` gieo lại cây theo `HabitQuitStartChanged`, ghi `RESTED` / `RESUMED` theo `HabitLifecycleTransitioned`, ẩn/hiện cây theo `HabitTrashed` / `HabitRestoredFromTrash`, ghi `RHYTHM_SET` theo `HabitScheduleVersionStarted`, và migration nạp lịch sử cho dữ liệu có từ trước. Phần chưa có được ghi _(dự kiến)_.
+Đây là thiết kế đích. Hiện đã có lát G1a đến G1e: bảng `garden_subjects` và `garden_entries`, cổng `GardenLedgerWriter` cùng writer Prisma, handler gieo/nhổ cây theo `HabitCreated` / `HabitPermanentlyDeleted`, handler ghi `TENDED` / `UNTENDED` theo `HabitCheckedIn` / `HabitCheckInUndone`, handler ghi sẹo theo `HabitRelapsed` gieo lại cây theo `HabitQuitStartChanged`, ghi `RESTED` / `RESUMED` theo `HabitLifecycleTransitioned`, ẩn/hiện cây theo `HabitTrashed` / `HabitRestoredFromTrash`, ghi `RHYTHM_SET` theo `HabitScheduleVersionStarted`, đổi tên cây theo `HabitRenamed`, và migration nạp lịch sử cho dữ liệu có từ trước. Phần chưa có được ghi _(dự kiến)_.
 
 ## 1. Ba trục độc lập
 
@@ -137,6 +137,8 @@ Tạo Habit BUILD / đổi tần suất → forge.habit.schedule-version-started
 
 Lúc tạo, `HabitCreated` ghi vào outbox trước, nên cây được gieo trước khi có nhịp đầu tiên. Đổi lịch nhiều lần trong một ngày ghi nhiều `RHYTHM_SET` cùng ngày; lúc đọc (G2), dòng ghi sau thắng. Lịch có từ trước G1d-2 được nạp lịch sử (G1e) bù lại.
 
+**Đổi tên** (đã có, G2a): đổi tiêu đề Habit phát `forge.habit.renamed.v1` cùng transaction với update; `RenameHabitTreeHandler` cập nhật `garden_subjects.name`. `name_at_planting` giữ tên lúc gieo cho câu chuyện của cây (Q-GDN-10, BR-GDN-009).
+
 **Nạp lịch sử** (đã có, G1e): migration `20261121150000_garden_backfill`, chạy một lần khi deploy, trong một transaction.
 
 | Bước | Nguồn                         | Kết quả                                                                                  |
@@ -177,4 +179,4 @@ Trước khi thêm, module phải qua KD-GDN-011: việc của nó là chăm só
 
 ## 7. Dữ liệu
 
-Hiện có bốn Prisma enum: `GardenSubjectKind` (`HABIT`) và `GardenVariant` (`BUILD`, `QUIT`) cho `garden_subjects`, `GardenEntryKind` (`TENDED`, `UNTENDED`, `MARKED`, `RESTED`, `RESUMED`, `RHYTHM_SET`) và `GardenMark` (`SCAR`) cho `garden_entries`; cột `mark` chỉ có giá trị khi `kind = MARKED`, cột `detail` (JSONB, `{ type, days }`) chỉ có giá trị khi `kind = RHYTHM_SET`; cả hai được giữ bằng CHECK. `garden_entries` thuộc về một chủ thể (`ON DELETE CASCADE`), nên nhổ cây thì sổ đi theo. `garden_subjects.hidden_at` khác null khi Habit nằm trong Thùng rác. Các loại sổ khác là dự kiến. Thêm loại mới là thêm giá trị enum kèm một migration nhỏ, giống `ActivityEvent.kind`.
+Hiện có bốn Prisma enum: `GardenSubjectKind` (`HABIT`) và `GardenVariant` (`BUILD`, `QUIT`) cho `garden_subjects`, `GardenEntryKind` (`TENDED`, `UNTENDED`, `MARKED`, `RESTED`, `RESUMED`, `RHYTHM_SET`) và `GardenMark` (`SCAR`) cho `garden_entries`; cột `mark` chỉ có giá trị khi `kind = MARKED`, cột `detail` (JSONB, `{ type, days }`) chỉ có giá trị khi `kind = RHYTHM_SET`; cả hai được giữ bằng CHECK. `garden_entries` thuộc về một chủ thể (`ON DELETE CASCADE`), nên nhổ cây thì sổ đi theo. `garden_subjects.name` là tên hiện tại, đổi theo Habit; `name_at_planting` không bao giờ đổi. `garden_subjects.hidden_at` khác null khi Habit nằm trong Thùng rác. Các loại sổ khác là dự kiến. Thêm loại mới là thêm giá trị enum kèm một migration nhỏ, giống `ActivityEvent.kind`.
