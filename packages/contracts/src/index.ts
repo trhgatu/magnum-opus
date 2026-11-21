@@ -15,6 +15,7 @@ export * from './habit/habit.js';
 export * from './habit/habit-overview.js';
 export * from './habit-check-in/habit-check-in.js';
 export * from './habit-relapse/habit-relapse.js';
+export * from './garden/garden.js';
 export * from './routine/routine.js';
 export * from './today/today.js';
 export * from './project/project.js';

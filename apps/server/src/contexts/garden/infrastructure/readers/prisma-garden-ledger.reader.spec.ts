@@ -1,0 +1,73 @@
+import { PrismaGardenLedgerReader } from './prisma-garden-ledger.reader';
+
+describe('PrismaGardenLedgerReader', () => {
+  const gardenSubject = { findMany: jest.fn() };
+  const reader = new PrismaGardenLedgerReader({ gardenSubject } as never);
+
+  it("reads the owner's visible trees with their ledger in recorded order", async () => {
+    gardenSubject.findMany.mockResolvedValue([
+      {
+        id: 'subject-id',
+        subjectKind: 'HABIT',
+        subjectId: 'habit-id',
+        variant: 'BUILD',
+        name: 'Gym',
+        simVersion: 1,
+        plantedOn: new Date('2026-11-02T00:00:00.000Z'),
+        entries: [
+          {
+            kind: 'RHYTHM_SET',
+            occurredOn: new Date('2026-11-02T00:00:00.000Z'),
+            mark: null,
+            detail: { type: 'WEEKLY', days: [1, 5] },
+          },
+          {
+            kind: 'TENDED',
+            occurredOn: new Date('2026-11-06T00:00:00.000Z'),
+            mark: null,
+            detail: null,
+          },
+        ],
+      },
+    ]);
+
+    const subjects = await reader.visibleSubjectsOf('owner-id');
+
+    // Cây đang ẩn (nguồn ở Thùng rác) không vào vườn (BR-GDN-SB-007).
+    expect(gardenSubject.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { ownerId: 'owner-id', hiddenAt: null },
+        select: expect.objectContaining({
+          entries: expect.objectContaining({
+            orderBy: [{ recordedAt: 'asc' }, { id: 'asc' }],
+          }),
+        }),
+      }),
+    );
+    expect(subjects).toEqual([
+      {
+        id: 'subject-id',
+        subjectKind: 'HABIT',
+        subjectId: 'habit-id',
+        variant: 'BUILD',
+        name: 'Gym',
+        simVersion: 1,
+        plantedOn: '2026-11-02',
+        entries: [
+          {
+            kind: 'RHYTHM_SET',
+            occurredOn: '2026-11-02',
+            mark: null,
+            detail: { type: 'WEEKLY', days: [1, 5] },
+          },
+          {
+            kind: 'TENDED',
+            occurredOn: '2026-11-06',
+            mark: null,
+            detail: null,
+          },
+        ],
+      },
+    ]);
+  });
+});

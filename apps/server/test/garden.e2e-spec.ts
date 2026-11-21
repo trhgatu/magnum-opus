@@ -359,6 +359,54 @@ describe('Garden ledger (E2E)', () => {
     });
   });
 
+  it('serves the garden as weekly series and leaves trashed trees out', async () => {
+    const tendedId = await createPlantedBuildHabit('Read a page');
+    const checkIn = await request(app.getHttpServer())
+      .put(`/habits/${tendedId}/check-ins/today`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(HttpStatus.OK);
+    const trashedId = await createPlantedBuildHabit('Hidden for now');
+    await patchHabit(trashedId, 'trash', 1);
+    await eventually(
+      () => subjectOf(trashedId),
+      (row) => row?.hiddenAt != null,
+    );
+    // Chờ nhịp đầu tiên và lần chăm vào sổ rồi mới đọc vườn.
+    await eventually(
+      () => entriesOf(tendedId),
+      (rows) => rows.length >= 1,
+    );
+    await eventually(
+      () => rhythmsOf(tendedId),
+      (rows) => rows.length >= 1,
+    );
+
+    const garden = await request(app.getHttpServer())
+      .get('/garden')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(HttpStatus.OK);
+
+    const today = checkIn.body.date as string;
+    expect(garden.body.today).toBe(today);
+    const subjectIds = (garden.body.trees as { subjectId: string }[]).map(
+      (tree) => tree.subjectId,
+    );
+    expect(subjectIds).toContain(tendedId);
+    expect(subjectIds).not.toContain(trashedId);
+    // Habit gieo hôm nay và đã chăm hôm nay: một tuần duy nhất, CARED.
+    expect(
+      (garden.body.trees as { subjectId: string }[]).find(
+        (tree) => tree.subjectId === tendedId,
+      ),
+    ).toMatchObject({
+      variant: 'BUILD',
+      name: 'Read a page',
+      plantedOn: today,
+      weeks: [{ status: 'CARED', scarred: false }],
+      weeds: 0,
+    });
+  });
+
   // Dòng nhịp có riêng rhythmsOf; các test khác chỉ xét những gì đã xảy ra.
   const entriesOf = (habitId: string) =>
     prisma.gardenEntry.findMany({

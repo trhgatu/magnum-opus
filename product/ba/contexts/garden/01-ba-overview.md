@@ -238,7 +238,7 @@ Dáng cây là chuỗi này được phát lại: `CARED` thì mọc, `RESTED` v
 
 ### 7.2 Cỏ
 
-Cỏ mọc quanh một chủ thể **đang hoạt động** khi cuối chuỗi có từ **3 tuần `RESTED` liên tiếp** trở lên. Cỏ cao dần theo số tuần, có giới hạn trên. Chăm lại thì cỏ gọn dần trong vài tuần, không mất ngay. `SKIPPED` cắt chuỗi đếm và không bao giờ làm mọc cỏ. Ngưỡng 3 chỉnh lại sau khi xem dữ liệu thật.
+Cỏ mọc quanh một chủ thể **đang hoạt động** khi cuối chuỗi có từ **3 tuần `RESTED` liên tiếp** trở lên. Từ tuần `RESTED` liên tiếp thứ 3, mỗi tuần cỏ cao thêm một bậc, tối đa 5 bậc. Chăm lại thì mỗi tuần `CARED` cỏ gọn đi một bậc, không mất ngay. `SKIPPED` cắt chuỗi đếm, không làm cỏ mọc và không làm cỏ gọn. Ngưỡng 3 và trần 5 bậc chỉnh lại sau khi xem dữ liệu thật (chốt 2026-11-21).
 
 ### 7.3 Khí hậu (P2, P4)
 
