@@ -93,4 +93,22 @@ export class PrismaGardenLedgerWriter implements GardenLedgerWriter {
       data: { plantedOn },
     });
   }
+
+  async hide(
+    subjectKind: GardenSubjectKind,
+    subjectId: string,
+    hiddenAt: Date,
+  ): Promise<void> {
+    await this.prisma.gardenSubject.updateMany({
+      where: { subjectKind, subjectId },
+      data: { hiddenAt },
+    });
+  }
+
+  async show(subjectKind: GardenSubjectKind, subjectId: string): Promise<void> {
+    await this.prisma.gardenSubject.updateMany({
+      where: { subjectKind, subjectId },
+      data: { hiddenAt: null },
+    });
+  }
 }

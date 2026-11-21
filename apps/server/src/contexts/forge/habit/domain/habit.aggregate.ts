@@ -12,6 +12,8 @@ import {
   HabitPermanentlyDeletedEvent,
   HabitCreatedEvent,
   HabitQuitStartChangedEvent,
+  HabitTrashedEvent,
+  HabitRestoredFromTrashEvent,
 } from './events';
 import {
   HabitPermanentDeleteForbiddenException,
@@ -306,6 +308,10 @@ export class Habit extends AggregateRoot {
     this.props.trashedAt = new Date();
     this.trackChange();
 
+    this.addDomainEvent(
+      new HabitTrashedEvent(this.props.id.value, this.props.ownerId),
+    );
+
     if (wasActive) {
       this.recordLifecycleTransition(HabitLifecycleAction.ARCHIVED, today);
     }
@@ -324,6 +330,10 @@ export class Habit extends AggregateRoot {
     this.props.stateBeforeTrash = null;
     this.props.trashedAt = null;
     this.trackChange();
+
+    this.addDomainEvent(
+      new HabitRestoredFromTrashEvent(this.props.id.value, this.props.ownerId),
+    );
 
     if (restoredState === HabitState.ACTIVE) {
       this.recordLifecycleTransition(HabitLifecycleAction.RESTORED, today);

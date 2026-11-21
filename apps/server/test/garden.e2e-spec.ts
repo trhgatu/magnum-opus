@@ -228,6 +228,46 @@ describe('Garden ledger (E2E)', () => {
     ]);
   });
 
+  it('records archive as RESTED and restore as RESUMED', async () => {
+    const habitId = await createPlantedBuildHabit('Evening read');
+
+    await patchHabit(habitId, 'archive', 1);
+    await patchHabit(habitId, 'restore', 2);
+
+    const entries = await eventually(
+      () => entriesOf(habitId),
+      (rows) => rows.length >= 2,
+    );
+    expect(entries.map(({ kind }) => kind)).toEqual(['RESTED', 'RESUMED']);
+  });
+
+  it('hides the tree while its Habit is in Trash', async () => {
+    const habitId = await createPlantedBuildHabit('Maybe later');
+
+    await patchHabit(habitId, 'trash', 1);
+    const hidden = await eventually(
+      () => subjectOf(habitId),
+      (row) => row?.hiddenAt != null,
+    );
+    expect(hidden?.hiddenAt).toBeInstanceOf(Date);
+
+    await patchHabit(habitId, 'untrash', 2);
+    const shown = await eventually(
+      () => subjectOf(habitId),
+      (row) => row?.hiddenAt === null,
+    );
+    expect(shown?.hiddenAt).toBeNull();
+    // Trash từ ACTIVE là nghỉ, khôi phục là mọc tiếp; sổ không bị xóa.
+    expect(
+      (
+        await eventually(
+          () => entriesOf(habitId),
+          (rows) => rows.length >= 2,
+        )
+      ).map(({ kind }) => kind),
+    ).toEqual(['RESTED', 'RESUMED']);
+  });
+
   it('replants a QUIT Habit when its start day changes', async () => {
     const habitId = await createPlantedQuitHabit('Quit gaming', '2026-11-01');
 
@@ -300,6 +340,18 @@ describe('Garden ledger (E2E)', () => {
       (row) => row !== null,
     );
     return habitId;
+  }
+
+  async function patchHabit(
+    habitId: string,
+    action: 'archive' | 'restore' | 'trash' | 'untrash',
+    expectedRevision: number,
+  ): Promise<void> {
+    await request(app.getHttpServer())
+      .patch(`/habits/${habitId}/${action}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ expectedRevision })
+      .expect(HttpStatus.OK);
   }
 
   async function registerAndLogin(): Promise<string> {

@@ -410,6 +410,41 @@ describe('PrismaHabitRepository', () => {
       expect(habit.getDomainEvents()).toEqual([]);
     });
 
+    it('writes the lifecycle and Trash events to the outbox for Garden', async () => {
+      transactionClient.habit.updateMany.mockResolvedValue({ count: 1 });
+      const habit = createDomainHabit();
+      habit.moveToTrash(TODAY);
+
+      await repository.update(habit, 4);
+
+      expect(transactionClient.outboxEvent.createMany).toHaveBeenCalledWith({
+        data: expect.arrayContaining([
+          expect.objectContaining({
+            type: 'forge.habit.trashed.v1',
+            aggregateId: 'habit-id',
+            payload: { habitId: 'habit-id', ownerId: 'owner-id' },
+          }),
+          expect.objectContaining({
+            type: 'forge.habit.lifecycle-transitioned.v1',
+            aggregateId: 'habit-id',
+            payload: {
+              habitId: 'habit-id',
+              ownerId: 'owner-id',
+              action: 'ARCHIVED',
+              effectiveOn: '2026-10-09',
+            },
+          }),
+        ]),
+      });
+      expect(
+        (
+          transactionClient.outboxEvent.createMany.mock.calls[0] as [
+            { data: unknown[] },
+          ]
+        )[0].data,
+      ).toHaveLength(2);
+    });
+
     it('writes no transition when the revision is stale', async () => {
       transactionClient.habit.updateMany.mockResolvedValue({ count: 0 });
       const habit = createDomainHabit();

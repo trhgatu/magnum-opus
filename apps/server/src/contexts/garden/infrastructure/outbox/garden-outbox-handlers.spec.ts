@@ -5,6 +5,9 @@ import { HabitCheckedIn } from '@/contexts/forge/habit-check-in/contracts/habit-
 import { HabitCheckInUndone } from '@/contexts/forge/habit-check-in/contracts/habit-check-in-undone.contract';
 import { HabitRelapsed } from '@/contexts/forge/habit-relapse/contracts/habit-relapsed.contract';
 import { HabitQuitStartChanged } from '@/contexts/forge/habit/contracts/habit-quit-start-changed.contract';
+import { HabitLifecycleTransitioned } from '@/contexts/forge/habit/contracts/habit-lifecycle-transitioned.contract';
+import { HabitTrashed } from '@/contexts/forge/habit/contracts/habit-trashed.contract';
+import { HabitRestoredFromTrash } from '@/contexts/forge/habit/contracts/habit-restored-from-trash.contract';
 
 import type { GardenLedgerWriter } from '../../application/ports/garden-ledger-writer.port';
 
@@ -13,6 +16,9 @@ import { RecordHabitCheckInHandler } from './record-habit-check-in.handler';
 import { RecordHabitCheckInUndoneHandler } from './record-habit-check-in-undone.handler';
 import { RecordHabitRelapseHandler } from './record-habit-relapse.handler';
 import { ReplantQuitHabitHandler } from './replant-quit-habit.handler';
+import { RecordHabitLifecycleHandler } from './record-habit-lifecycle.handler';
+import { HideTrashedHabitHandler } from './hide-trashed-habit.handler';
+import { ShowRestoredHabitHandler } from './show-restored-habit.handler';
 import { UprootDeletedHabitHandler } from './uproot-deleted-habit.handler';
 
 const ledger = {
@@ -20,6 +26,8 @@ const ledger = {
   uproot: jest.fn().mockResolvedValue(undefined),
   record: jest.fn().mockResolvedValue(undefined),
   replant: jest.fn().mockResolvedValue(undefined),
+  hide: jest.fn().mockResolvedValue(undefined),
+  show: jest.fn().mockResolvedValue(undefined),
 } as unknown as jest.Mocked<GardenLedgerWriter>;
 const at = new Date('2026-11-18T03:00:00.000Z');
 
@@ -47,6 +55,15 @@ describe('garden outbox handlers', () => {
     expect(
       Reflect.getMetadata(OutboxHandler.KEY, ReplantQuitHabitHandler),
     ).toBe(HabitQuitStartChanged);
+    expect(
+      Reflect.getMetadata(OutboxHandler.KEY, RecordHabitLifecycleHandler),
+    ).toBe(HabitLifecycleTransitioned);
+    expect(
+      Reflect.getMetadata(OutboxHandler.KEY, HideTrashedHabitHandler),
+    ).toBe(HabitTrashed);
+    expect(
+      Reflect.getMetadata(OutboxHandler.KEY, ShowRestoredHabitHandler),
+    ).toBe(HabitRestoredFromTrash);
   });
 
   it.each(['BUILD', 'QUIT'] as const)(
@@ -148,6 +165,45 @@ describe('garden outbox handlers', () => {
       'habit-id',
       new Date('2026-11-10T00:00:00.000Z'),
     );
+  });
+
+  // Lưu trữ là nghỉ có chủ đích, khôi phục là mọc tiếp (BR-GDN-005).
+  it.each([
+    ['ARCHIVED', 'RESTED'],
+    ['RESTORED', 'RESUMED'],
+  ] as const)('records %s as %s on its effective day', async (action, kind) => {
+    await new RecordHabitLifecycleHandler(ledger).handle({
+      eventId: 'event-id',
+      occurredAt: at,
+      payload: {
+        habitId: 'habit-id',
+        ownerId: 'owner-id',
+        action,
+        effectiveOn: new Date('2026-11-16T00:00:00.000Z'),
+      },
+    });
+
+    expect(ledger.record).toHaveBeenCalledWith({
+      subjectKind: 'HABIT',
+      subjectId: 'habit-id',
+      kind,
+      occurredOn: new Date('2026-11-16T00:00:00.000Z'),
+      sourceEventId: 'event-id',
+    });
+  });
+
+  it('hides the tree of a trashed Habit and shows it again on restore', async () => {
+    const message = {
+      eventId: 'event-id',
+      occurredAt: at,
+      payload: { habitId: 'habit-id', ownerId: 'owner-id' },
+    };
+
+    await new HideTrashedHabitHandler(ledger).handle(message);
+    await new ShowRestoredHabitHandler(ledger).handle(message);
+
+    expect(ledger.hide).toHaveBeenCalledWith('HABIT', 'habit-id', at);
+    expect(ledger.show).toHaveBeenCalledWith('HABIT', 'habit-id');
   });
 });
 

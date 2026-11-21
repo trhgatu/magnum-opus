@@ -2,7 +2,7 @@
 
 Tài liệu kỹ thuật của bounded context Garden. Phần nghiệp vụ (vấn đề, quy tắc, lộ trình) ở [BA Garden](../../product/ba/contexts/garden/01-ba-overview.md).
 
-Đây là thiết kế đích. Hiện đã có lát G1a, G1b và G1c: bảng `garden_subjects` và `garden_entries`, cổng `GardenLedgerWriter` cùng writer Prisma, handler gieo/nhổ cây theo `HabitCreated` / `HabitPermanentlyDeleted`, handler ghi `TENDED` / `UNTENDED` theo `HabitCheckedIn` / `HabitCheckInUndone`, handler ghi sẹo theo `HabitRelapsed` và gieo lại cây theo `HabitQuitStartChanged`. Phần chưa có được ghi _(dự kiến)_.
+Đây là thiết kế đích. Hiện đã có lát G1a, G1b, G1c và G1d-1: bảng `garden_subjects` và `garden_entries`, cổng `GardenLedgerWriter` cùng writer Prisma, handler gieo/nhổ cây theo `HabitCreated` / `HabitPermanentlyDeleted`, handler ghi `TENDED` / `UNTENDED` theo `HabitCheckedIn` / `HabitCheckInUndone`, handler ghi sẹo theo `HabitRelapsed` gieo lại cây theo `HabitQuitStartChanged`, ghi `RESTED` / `RESUMED` theo `HabitLifecycleTransitioned`, và ẩn/hiện cây theo `HabitTrashed` / `HabitRestoredFromTrash`. Phần chưa có được ghi _(dự kiến)_.
 
 ## 1. Ba trục độc lập
 
@@ -116,6 +116,18 @@ UpdateHabitHandler đổi quitStartedAt → forge.habit.quit-start-changed.v1 c�
 
 Ngày của sẹo là ngày theo múi giờ tài khoản lúc tái phạm (BR-GDN-SB-002). Sổ ghi đủ từng lần tái phạm; gộp một sẹo mỗi tuần là việc của lúc diễn giải (BR-GDN-004). Gieo lại chỉ dời `planted_on`, không xóa dòng sổ nào; lúc đọc, dòng trước ngày gieo bị bỏ qua (BR-GDN-007). Chỉ sửa tên mà giữ nguyên ngày thì không phát event.
 
+**Nghỉ và Thùng rác** (đã có, G1d-1):
+
+```
+Archive / Restore Habit → forge.habit.lifecycle-transitioned.v1 cùng transaction với update
+→ RecordHabitLifecycleHandler (Garden) → ARCHIVED thành RESTED, RESTORED thành RESUMED, vào ngày hiệu lực
+
+Trash / Untrash Habit → forge.habit.trashed.v1 / forge.habit.restored-from-trash.v1
+→ HideTrashedHabitHandler / ShowRestoredHabitHandler → đặt / xóa hidden_at của cây
+```
+
+Cây trong Thùng rác chỉ bị ẩn; sổ giữ nguyên (BR-GDN-SB-007). Đưa Habit đang sống vào Thùng rác phát thêm `ARCHIVED`, nên những ngày trong Thùng rác là nghỉ (BR-GDN-006). Habit đã lưu trữ hoặc nằm trong Thùng rác từ trước G1d chưa có dòng sổ hay `hidden_at` cho tới khi nạp lịch sử (G1e). Lịch Habit (`RHYTHM_SET`) là G1d-2.
+
 **Đọc** _(dự kiến, G2)_ (người dùng mở vườn):
 
 ```
@@ -143,4 +155,4 @@ Trước khi thêm, module phải qua KD-GDN-011: việc của nó là chăm só
 
 ## 7. Dữ liệu
 
-Hiện có bốn Prisma enum: `GardenSubjectKind` (`HABIT`) và `GardenVariant` (`BUILD`, `QUIT`) cho `garden_subjects`, `GardenEntryKind` (`TENDED`, `UNTENDED`, `MARKED`) và `GardenMark` (`SCAR`) cho `garden_entries`; cột `mark` chỉ có giá trị khi `kind = MARKED`. `garden_entries` thuộc về một chủ thể (`ON DELETE CASCADE`), nên nhổ cây thì sổ đi theo. Các loại sổ khác là dự kiến (G1d). Thêm loại mới là thêm giá trị enum kèm một migration nhỏ, giống `ActivityEvent.kind`.
+Hiện có bốn Prisma enum: `GardenSubjectKind` (`HABIT`) và `GardenVariant` (`BUILD`, `QUIT`) cho `garden_subjects`, `GardenEntryKind` (`TENDED`, `UNTENDED`, `MARKED`, `RESTED`, `RESUMED`) và `GardenMark` (`SCAR`) cho `garden_entries`; cột `mark` chỉ có giá trị khi `kind = MARKED`. `garden_entries` thuộc về một chủ thể (`ON DELETE CASCADE`), nên nhổ cây thì sổ đi theo. `garden_subjects.hidden_at` khác null khi Habit nằm trong Thùng rác. Các loại sổ khác là dự kiến (G1d-2 trở đi). Thêm loại mới là thêm giá trị enum kèm một migration nhỏ, giống `ActivityEvent.kind`.

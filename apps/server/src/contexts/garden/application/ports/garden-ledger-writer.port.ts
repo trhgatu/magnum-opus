@@ -34,4 +34,10 @@ export interface GardenLedgerWriter {
     subjectId: string,
     plantedOn: Date,
   ): Promise<void>;
+  hide(
+    subjectKind: GardenSubjectKind,
+    subjectId: string,
+    hiddenAt: Date,
+  ): Promise<void>;
+  show(subjectKind: GardenSubjectKind, subjectId: string): Promise<void>;
 }
