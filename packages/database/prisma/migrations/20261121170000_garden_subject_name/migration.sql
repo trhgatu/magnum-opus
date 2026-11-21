@@ -2,11 +2,11 @@
 ALTER TABLE "garden_subjects" ADD COLUMN "name" TEXT;
 
 -- Tên hiện tại của Habit; chủ thể không còn nguồn thì giữ tên lúc gieo.
-UPDATE "garden_subjects" SET "name" = "name_at_planting";
+-- Chưa NOT NULL: CI migrate trước khi deploy, server cũ vẫn gieo cây không
+-- có name trong lúc chuyển. G2b đặt NOT NULL khi server mới đã chạy.
 UPDATE "garden_subjects" s
-SET "name" = h."title"
-FROM "habits" h
-WHERE s."subject_kind" = 'HABIT' AND s."subject_id" = h."id";
-
-ALTER TABLE "garden_subjects" ALTER COLUMN "name" SET NOT NULL;
-
+SET "name" = COALESCE(
+  (SELECT h."title" FROM "habits" h
+   WHERE s."subject_kind" = 'HABIT' AND h."id" = s."subject_id"),
+  s."name_at_planting"
+);

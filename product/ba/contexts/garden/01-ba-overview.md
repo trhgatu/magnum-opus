@@ -120,6 +120,7 @@ Không góp: `iam`, `audit`, `menu`, `notifications`, `storage`, `analytics`. Đ
 | Hủy check-in trong ngày    | rút lần chăm                                       | `HabitCheckInUndone`                                        | **Cần thêm** |
 | Tái phạm (QUIT)            | sẹo                                                | `HabitRelapsed`                                             | **Cần thêm** |
 | Sửa ngày bắt đầu bỏ (QUIT) | gieo lại từ ngày mới (BR-GDN-007)                  | `HabitQuitStartChanged`                                     | **Cần thêm** |
+| Đổi tên Habit              | cây đổi tên (Q-GDN-10)                             | `HabitRenamed`                                              | **Cần thêm** |
 | Đổi lịch (BUILD)           | đổi nhịp từ ngày hiệu lực                          | `HabitScheduleVersionStarted`                               | Có           |
 | Lưu trữ / khôi phục        | ngủ đông / mọc tiếp                                | `HabitLifecycleTransitioned`                                | Có           |
 | Vào / ra Thùng rác         | cây ẩn / hiện lại                                  | `HabitTrashed`, `HabitRestoredFromTrash`                    | **Habit V4** |
@@ -185,7 +186,8 @@ garden_subjects            — mỗi chủ thể đã gieo
   subject_kind      enum   HABIT | PROJECT | …
   subject_id               định danh bên module gốc; UNIQUE (subject_kind, subject_id)
   variant           enum   BUILD | QUIT | VINE | …   (giống cây)
-  name_at_planting         tên lúc gieo, chỉ dùng khi module gốc không còn
+  name                     tên hiện tại, đổi theo module gốc qua sự kiện đổi tên (Q-GDN-10)
+  name_at_planting         tên lúc gieo, không bao giờ đổi; dùng cho câu chuyện của cây
   sim_version       int    phiên bản thuật toán mọc lúc gieo; cây giữ dáng mãi
   plot                     vị trí trong vườn, chốt lúc gieo, không bao giờ dời
   planted_on        date
@@ -323,7 +325,7 @@ P0 và phần ghi sổ của P1 đi chung, theo từng lát. Mỗi lát gồm ev
 | P4  | Chronicle: vòng năm, tua thời gian (`?at=`); khí hậu: mùa của đời sống, bầu trời, Mood |
 | P5  | Rễ do người dùng nối; hình ảnh: phông nền giờ thật, thời tiết thật (người dùng tự bật) |
 
-## 11. Quyết định đã chốt (2026-11-13)
+## 11. Quyết định đã chốt (2026-11-13, Q-GDN-10 ngày 2026-11-21)
 
 | Mã       | Câu hỏi                                        | Chốt                                                                                            |
 | -------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------- |
