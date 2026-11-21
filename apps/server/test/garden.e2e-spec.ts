@@ -257,13 +257,28 @@ describe('Garden ledger (E2E)', () => {
       () => rhythmsOf(habitId),
       (rows) => rows.length >= 2,
     );
-    expect(rhythms.map(({ detail, mark }) => ({ detail, mark }))).toEqual([
-      { detail: { type: 'WEEKLY', days: [1, 5] }, mark: null },
-      { detail: { type: 'DAILY', days: [] }, mark: null },
-    ]);
-    // Nhịp đầu tiên có hiệu lực từ ngày gieo (createdOn của Habit BUILD).
-    expect(rhythms[0].occurredOn).toEqual(
-      (await subjectOf(habitId))?.plantedOn,
+    // Tạo và đổi lịch cùng ngày gieo: cả hai nhịp có hiệu lực từ ngày đó.
+    // recordedAt có thể trùng mili giây nên không so thứ tự.
+    const plantedOn = (await subjectOf(habitId))?.plantedOn;
+    const seen = rhythms.map(({ detail, mark, occurredOn }) => ({
+      detail,
+      mark,
+      occurredOn,
+    }));
+    expect(seen).toHaveLength(2);
+    expect(seen).toEqual(
+      expect.arrayContaining([
+        {
+          detail: { type: 'WEEKLY', days: [1, 5] },
+          mark: null,
+          occurredOn: plantedOn,
+        },
+        {
+          detail: { type: 'DAILY', days: [] },
+          mark: null,
+          occurredOn: plantedOn,
+        },
+      ]),
     );
   });
 

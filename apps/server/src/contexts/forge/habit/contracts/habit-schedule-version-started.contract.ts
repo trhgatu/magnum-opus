@@ -17,13 +17,20 @@ export const HabitScheduleVersionStarted = defineIntegrationEvent(
     if (!isFrequencyType(frequencyType)) {
       throw new Error(`Unknown frequency type "${frequencyType}"`);
     }
-    const days = payload.frequencyDays;
-    if (
-      !Array.isArray(days) ||
-      !days.every((day) => Number.isInteger(day) && day >= 1 && day <= 7)
-    ) {
+    const days: unknown = payload.frequencyDays;
+    const isCanonical =
+      Array.isArray(days) &&
+      days.every(
+        (day, index) =>
+          Number.isInteger(day) &&
+          day >= 1 &&
+          day <= 7 &&
+          (index === 0 || day > days[index - 1]),
+      ) &&
+      (frequencyType === 'DAILY' ? days.length === 0 : days.length > 0);
+    if (!isCanonical) {
       throw new Error(
-        'Outbox payload property "frequencyDays" must be ISO weekdays',
+        `Outbox payload property "frequencyDays" does not fit a ${frequencyType} schedule`,
       );
     }
     return {
