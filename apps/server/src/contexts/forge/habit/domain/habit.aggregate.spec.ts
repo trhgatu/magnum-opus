@@ -5,6 +5,8 @@ import {
   HabitLifecycleTransitionedEvent,
   HabitScheduleVersionStartedEvent,
   HabitQuitStartChangedEvent,
+  HabitRestoredFromTrashEvent,
+  HabitTrashedEvent,
 } from './events';
 import {
   HabitPermanentDeleteForbiddenException,
@@ -783,6 +785,30 @@ describe('Habit', () => {
       expect(archived.state).toBe(HabitState.ARCHIVED);
       expect(lifecycleTransitions(archived)).toEqual([]);
     });
+
+    // Garden ẩn cây khi Habit vào Thùng rác và hiện lại khi khôi phục, dù
+    // trước đó Habit đang sống hay đang lưu trữ (BR-GDN-SB-007).
+    it.each([HabitState.ACTIVE, HabitState.ARCHIVED])(
+      'announces a %s Habit entering and leaving Trash',
+      (state) => {
+        const habit = Habit.rehydrate(createProps({ state }));
+
+        habit.moveToTrash(TODAY);
+        const entering = habit.pullDomainEvents();
+        habit.restoreFromTrash(TODAY);
+        const leaving = habit.pullDomainEvents();
+
+        const ids = { habitId: habit.id, ownerId: habit.ownerId };
+        expect(
+          entering.filter((event) => event instanceof HabitTrashedEvent),
+        ).toEqual([expect.objectContaining(ids)]);
+        expect(
+          leaving.filter(
+            (event) => event instanceof HabitRestoredFromTrashEvent,
+          ),
+        ).toEqual([expect.objectContaining(ids)]);
+      },
+    );
 
     it('rejects trashing a trashed Habit and restoring one not in Trash', () => {
       const trashed = createHabit();

@@ -789,6 +789,7 @@ model GardenSubject {
   simVersion     Int               @map("sim_version")
   entries GardenEntry[]
   plantedOn      DateTime          @map("planted_on") @db.Date
+  hiddenAt DateTime? @map("hidden_at")
   createdAt DateTime @default(now()) @map("created_at")
   owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   @@unique([subjectKind, subjectId])
@@ -801,6 +802,8 @@ enum GardenEntryKind {
   TENDED
   UNTENDED
   MARKED
+  RESTED
+  RESUMED
 }
 
 enum GardenMark {

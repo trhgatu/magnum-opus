@@ -11,6 +11,15 @@ import { HabitQuitStartChanged } from '../../contracts/habit-quit-start-changed.
 import { HabitCreatedEvent } from '../../domain/events';
 import { HabitQuitStartChangedEvent } from '../../domain/events';
 
+import { HabitLifecycleTransitioned } from '../../contracts/habit-lifecycle-transitioned.contract';
+import { HabitLifecycleTransitionedEvent } from '../../domain/events';
+
+import { HabitTrashed } from '../../contracts/habit-trashed.contract';
+import { HabitTrashedEvent } from '../../domain/events';
+
+import { HabitRestoredFromTrash } from '../../contracts/habit-restored-from-trash.contract';
+import { HabitRestoredFromTrashEvent } from '../../domain/events';
+
 @Injectable()
 @OutboxPublisher([
   publish({
@@ -42,6 +51,32 @@ import { HabitQuitStartChangedEvent } from '../../domain/events';
       ownerId: event.ownerId,
       startedOn: event.startedOn.value,
     }),
+  }),
+
+  publish({
+    event: HabitLifecycleTransitionedEvent,
+    as: HabitLifecycleTransitioned,
+    aggregateId: (event) => event.habitId,
+    toPayload: (event) => ({
+      habitId: event.habitId,
+      ownerId: event.ownerId,
+      action: event.action,
+      effectiveOn: event.effectiveOn.value,
+    }),
+  }),
+
+  publish({
+    event: HabitTrashedEvent,
+    as: HabitTrashed,
+    aggregateId: (event) => event.habitId,
+    toPayload: (event) => ({ habitId: event.habitId, ownerId: event.ownerId }),
+  }),
+
+  publish({
+    event: HabitRestoredFromTrashEvent,
+    as: HabitRestoredFromTrash,
+    aggregateId: (event) => event.habitId,
+    toPayload: (event) => ({ habitId: event.habitId, ownerId: event.ownerId }),
   }),
 ])
 export class HabitOutbox {}

@@ -95,6 +95,26 @@ describe('PrismaGardenLedgerWriter', () => {
     });
   });
 
+  describe('hide and show', () => {
+    // Ẩn chứ không xóa: khôi phục thì cây và sổ y như cũ (BR-GDN-SB-007).
+    it('sets and clears hidden_at on the subject', async () => {
+      gardenSubject.updateMany.mockResolvedValue({ count: 1 });
+      const at = new Date('2026-11-21T03:00:00.000Z');
+
+      await writer.hide('HABIT', 'habit-id', at);
+      await writer.show('HABIT', 'habit-id');
+
+      expect(gardenSubject.updateMany).toHaveBeenNthCalledWith(1, {
+        where: { subjectKind: 'HABIT', subjectId: 'habit-id' },
+        data: { hiddenAt: at },
+      });
+      expect(gardenSubject.updateMany).toHaveBeenNthCalledWith(2, {
+        where: { subjectKind: 'HABIT', subjectId: 'habit-id' },
+        data: { hiddenAt: null },
+      });
+    });
+  });
+
   describe('record', () => {
     it('writes the mark of a MARKED entry', async () => {
       gardenSubject.findUnique.mockResolvedValue({
