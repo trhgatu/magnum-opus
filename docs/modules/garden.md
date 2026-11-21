@@ -2,7 +2,7 @@
 
 Tài liệu kỹ thuật của bounded context Garden. Phần nghiệp vụ (vấn đề, quy tắc, lộ trình) ở [BA Garden](../../product/ba/contexts/garden/01-ba-overview.md).
 
-Đây là thiết kế đích. Hiện đã có lát G1a đến G1d: bảng `garden_subjects` và `garden_entries`, cổng `GardenLedgerWriter` cùng writer Prisma, handler gieo/nhổ cây theo `HabitCreated` / `HabitPermanentlyDeleted`, handler ghi `TENDED` / `UNTENDED` theo `HabitCheckedIn` / `HabitCheckInUndone`, handler ghi sẹo theo `HabitRelapsed` gieo lại cây theo `HabitQuitStartChanged`, ghi `RESTED` / `RESUMED` theo `HabitLifecycleTransitioned`, ẩn/hiện cây theo `HabitTrashed` / `HabitRestoredFromTrash`, và ghi `RHYTHM_SET` theo `HabitScheduleVersionStarted`. Phần chưa có được ghi _(dự kiến)_.
+Đây là thiết kế đích. Hiện đã có lát G1a đến G1e: bảng `garden_subjects` và `garden_entries`, cổng `GardenLedgerWriter` cùng writer Prisma, handler gieo/nhổ cây theo `HabitCreated` / `HabitPermanentlyDeleted`, handler ghi `TENDED` / `UNTENDED` theo `HabitCheckedIn` / `HabitCheckInUndone`, handler ghi sẹo theo `HabitRelapsed` gieo lại cây theo `HabitQuitStartChanged`, ghi `RESTED` / `RESUMED` theo `HabitLifecycleTransitioned`, ẩn/hiện cây theo `HabitTrashed` / `HabitRestoredFromTrash`, ghi `RHYTHM_SET` theo `HabitScheduleVersionStarted`, và migration nạp lịch sử cho dữ liệu có từ trước. Phần chưa có được ghi _(dự kiến)_.
 
 ## 1. Ba trục độc lập
 
@@ -100,7 +100,7 @@ CheckInHabitHandler lưu check-in + forge.habit.checked-in.v1 vào outbox (một
 → ghi garden_entries (trùng source_event_id thì bỏ qua)
 ```
 
-Check-in trùng ngày thì transaction rollback, không phát event lần hai. Rút lại check-in đi qua `HabitCheckIn.undo()` và `forge.habit.check-in-undone.v1`, thành một `UNTENDED`; chỉ lần xóa được dòng mới phát event. Habit chưa có cây (tạo trước G1a) thì dòng sổ bị bỏ qua cho tới khi nạp lịch sử (G1e). Event check-in dùng `aggregateId = habitId`, nên luôn tới sau `HabitCreated` của cùng Habit.
+Check-in trùng ngày thì transaction rollback, không phát event lần hai. Rút lại check-in đi qua `HabitCheckIn.undo()` và `forge.habit.check-in-undone.v1`, thành một `UNTENDED`; chỉ lần xóa được dòng mới phát event. Habit chưa có cây thì dòng sổ bị bỏ qua; nạp lịch sử (G1e) bù lại. Event check-in dùng `aggregateId = habitId`, nên luôn tới sau `HabitCreated` của cùng Habit.
 
 Garden lỗi thì outbox thử lại; check-in không bị ảnh hưởng.
 
@@ -126,7 +126,7 @@ Trash / Untrash Habit → forge.habit.trashed.v1 / forge.habit.restored-from-tra
 → HideTrashedHabitHandler / ShowRestoredHabitHandler → đặt / xóa hidden_at của cây
 ```
 
-Cây trong Thùng rác chỉ bị ẩn; sổ giữ nguyên (BR-GDN-SB-007). Đưa Habit đang sống vào Thùng rác phát thêm `ARCHIVED`, nên những ngày trong Thùng rác là nghỉ (BR-GDN-006). Habit lưu trữ hoặc vào Thùng rác từ trước G1d chưa có dòng `RESTED` / `RESUMED` cho lần đó, và chưa có `hidden_at`, cho tới khi nạp lịch sử (G1e); các dòng `TENDED`, `UNTENDED`, `MARKED` từ G1b–G1c vẫn có.
+Cây trong Thùng rác chỉ bị ẩn; sổ giữ nguyên (BR-GDN-SB-007). Đưa Habit đang sống vào Thùng rác phát thêm `ARCHIVED`, nên những ngày trong Thùng rác là nghỉ (BR-GDN-006). Lưu trữ và Thùng rác từ trước G1d được nạp lịch sử (G1e) bù lại.
 
 **Nhịp** (đã có, G1d-2) (Habit BUILD):
 
@@ -135,7 +135,20 @@ Tạo Habit BUILD / đổi tần suất → forge.habit.schedule-version-started
 → RecordHabitRhythmHandler (Garden) → RHYTHM_SET từ ngày hiệu lực, detail = { type, days }
 ```
 
-Lúc tạo, `HabitCreated` ghi vào outbox trước, nên cây được gieo trước khi có nhịp đầu tiên. Đổi lịch nhiều lần trong một ngày ghi nhiều `RHYTHM_SET` cùng ngày; lúc đọc (G2), dòng ghi sau thắng. Habit BUILD tạo trước G1d-2 chưa có `RHYTHM_SET` cho tới khi nạp lịch sử (G1e).
+Lúc tạo, `HabitCreated` ghi vào outbox trước, nên cây được gieo trước khi có nhịp đầu tiên. Đổi lịch nhiều lần trong một ngày ghi nhiều `RHYTHM_SET` cùng ngày; lúc đọc (G2), dòng ghi sau thắng. Lịch có từ trước G1d-2 được nạp lịch sử (G1e) bù lại.
+
+**Nạp lịch sử** (đã có, G1e): migration `20261121150000_garden_backfill`, chạy một lần khi deploy, trong một transaction.
+
+| Bước | Nguồn                         | Kết quả                                                                                  |
+| ---- | ----------------------------- | ---------------------------------------------------------------------------------------- |
+| 1    | `habits` chưa có cây          | gieo (BUILD từ `created_on`, QUIT từ `quit_started_at`), ẩn nếu đang ở Thùng rác         |
+| 2–3  | `habits`                      | QUIT dời `planted_on` về ngày bắt đầu bỏ hiện tại; `hidden_at` khớp trạng thái Thùng rác |
+| 4    | `habit_check_ins`             | `TENDED`, trừ ngày sổ đã có một lần chăm còn hiệu lực                                    |
+| 5    | `habit_relapses`              | `MARKED` / `SCAR` theo múi giờ hiện tại của tài khoản                                    |
+| 6    | `habit_lifecycle_transitions` | `RESTED` / `RESUMED`                                                                     |
+| 7    | `habit_schedule_versions`     | `RHYTHM_SET`                                                                             |
+
+Mỗi nguồn chỉ ghi phần sổ còn thiếu: ngày nào có n dòng nguồn mà sổ đã có k dòng cùng loại (cùng lịch, với `RHYTHM_SET`) thì chỉ ghi thêm n − k. Nhờ vậy Habit tạo giữa các lát G1a–G1d không bị ghi trùng những gì đã vào sổ lúc chạy thật, và chạy lại không ra dòng mới. Dòng nạp dùng `source_event_id = backfill:<nguồn>:<id>` (BR-GDN-SB-005). Giới hạn: DB không lưu múi giờ lúc tái phạm, nên sẹo nạp lại tính theo múi giờ hiện tại; tài khoản từng đổi múi giờ có thể lệch ngày ở vài sẹo cũ.
 
 **Đọc** _(dự kiến, G2)_ (người dùng mở vườn):
 
