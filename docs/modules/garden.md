@@ -65,9 +65,10 @@ apps/server/src/contexts/garden/
 │  └─ readers/prisma-garden-ledger.reader.ts, prisma-user-time-zone.reader.ts
 └─ presentation/                        GET /garden (garden.controller.ts, garden.presenter.ts)
 
-packages/garden-sim/                  * thuần TS: rng, space colonization, pipe model
-  species/   tree, thorn-bush, vine, fallback
-  versions/  v1, v2…                    không bao giờ sửa phiên bản cũ
+packages/garden-sim/                    thuần TS (G3a): grow(simVersion, { seed, species, weeks })
+  rng.ts     hash, rng                    hạt giống ổn định theo id cây
+  versions/  v1                           space colonization + pipe model; không bao giờ sửa phiên bản cũ
+  species    tree, thorn-bush             * vine, fallback (P3)
 packages/contracts/src/garden/          GardenResponse, enum dùng chung
 apps/client/features/garden/          * renderer three.js (lazy), registry giống cây
 ```
@@ -162,10 +163,10 @@ GET /garden → GetGardenHandler
 → hôm nay theo múi giờ tài khoản
 → garden-week.ts (thuần): gardenWeeks → chuỗi tuần CARED / PENDING / RESTED / SKIPPED + sẹo; weedsAfter → bậc cỏ
 → GardenResponse { today, trees: [{ id, subjectKind, subjectId, variant, name, simVersion, plantedOn, weeks: [{ start, status, scarred }], weeds }] }
-→ client _(dự kiến, G3)_: garden-sim(simVersion) dựng hình học → three.js vẽ
+→ client _(dự kiến, G3b)_: garden-sim grow(simVersion) dựng hình học → three.js vẽ
 ```
 
-Server chỉ gửi chuỗi tuần; việc mọc cây chạy ở trình duyệt. Mắt gỗ không có trong response: garden-sim suy ra từ một tuần `CARED` đi sau `RESTED`. Vị trí cây (`plot`, BR-GDN-008) chưa có. Policy được kiểm bằng 9 ví dụ của BA §8.8 (`garden-week.spec.ts`).
+Server chỉ gửi chuỗi tuần; việc mọc cây chạy ở trình duyệt. `garden-sim` v1 lấy nguyên thuật toán của bản phác "Khu vườn của Tú 3D": tuần `CARED` mọc 4 nhịp (có sẹo thì để một vòng sẹo trên thân), `RESTED` và `SKIPPED` đứng yên, `PENDING` chưa làm gì, quay lại sau nghỉ thì cành bẻ hướng và để mắt gỗ. Test của gói so dáng cây với bản phác để v1 không bao giờ đổi. Mắt gỗ không có trong response: garden-sim suy ra từ một tuần `CARED` đi sau `RESTED`. Vị trí cây (`plot`, BR-GDN-008) chưa có. Policy được kiểm bằng 9 ví dụ của BA §8.8 (`garden-week.spec.ts`).
 
 ## 6. Thêm một module mới
 
