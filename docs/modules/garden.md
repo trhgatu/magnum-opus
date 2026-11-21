@@ -2,7 +2,7 @@
 
 Tài liệu kỹ thuật của bounded context Garden. Phần nghiệp vụ (vấn đề, quy tắc, lộ trình) ở [BA Garden](../../product/ba/contexts/garden/01-ba-overview.md).
 
-Đây là thiết kế đích. Hiện đã có lát G1a đến G1e, G2a và G2b (`GET /garden`): bảng `garden_subjects` và `garden_entries`, cổng `GardenLedgerWriter` cùng writer Prisma, handler gieo/nhổ cây theo `HabitCreated` / `HabitPermanentlyDeleted`, handler ghi `TENDED` / `UNTENDED` theo `HabitCheckedIn` / `HabitCheckInUndone`, handler ghi sẹo theo `HabitRelapsed` gieo lại cây theo `HabitQuitStartChanged`, ghi `RESTED` / `RESUMED` theo `HabitLifecycleTransitioned`, ẩn/hiện cây theo `HabitTrashed` / `HabitRestoredFromTrash`, ghi `RHYTHM_SET` theo `HabitScheduleVersionStarted`, đổi tên cây theo `HabitRenamed`, và migration nạp lịch sử cho dữ liệu có từ trước. Phần chưa có được ghi _(dự kiến)_.
+Đây là thiết kế đích. Hiện đã có lát G1a đến G1e, G2a, G2b (`GET /garden`), G3a (`garden-sim`) và G3b (trang `/garden`): bảng `garden_subjects` và `garden_entries`, cổng `GardenLedgerWriter` cùng writer Prisma, handler gieo/nhổ cây theo `HabitCreated` / `HabitPermanentlyDeleted`, handler ghi `TENDED` / `UNTENDED` theo `HabitCheckedIn` / `HabitCheckInUndone`, handler ghi sẹo theo `HabitRelapsed` gieo lại cây theo `HabitQuitStartChanged`, ghi `RESTED` / `RESUMED` theo `HabitLifecycleTransitioned`, ẩn/hiện cây theo `HabitTrashed` / `HabitRestoredFromTrash`, ghi `RHYTHM_SET` theo `HabitScheduleVersionStarted`, đổi tên cây theo `HabitRenamed`, và migration nạp lịch sử cho dữ liệu có từ trước. Phần chưa có được ghi _(dự kiến)_.
 
 ## 1. Ba trục độc lập
 
@@ -70,7 +70,7 @@ packages/garden-sim/                    thuần TS (G3a): grow(simVersion, { see
   versions/  v1                           space colonization + pipe model; không bao giờ sửa phiên bản cũ
                                           giống cây (tree, thorn-bush) là hình dạng trong từng phiên bản; * vine, fallback (P3)
 packages/contracts/src/garden/          GardenResponse, enum dùng chung
-apps/client/features/garden/          * renderer three.js (lazy), registry giống cây
+apps/client/features/garden/            garden-scene.tsx: three.js (tải lazy, ssr: false); garden-story.ts: lời kể; trang app/(protected)/garden
 ```
 
 ## 4. Luật phụ thuộc (thêm vào `architecture/dependency-rules.spec.ts`)
@@ -163,7 +163,7 @@ GET /garden → GetGardenHandler
 → hôm nay theo múi giờ tài khoản
 → garden-week.ts (thuần): gardenWeeks → chuỗi tuần CARED / PENDING / RESTED / SKIPPED + sẹo; weedsAfter → bậc cỏ
 → GardenResponse { today, trees: [{ id, subjectKind, subjectId, variant, name, simVersion, plantedOn, weeks: [{ start, status, scarred }], weeds }] }
-→ client _(dự kiến, G3b)_: grow(tree.simVersion, { seed: tree.id, species: tree.variant === 'QUIT' ? 'thorn-bush' : 'tree', weeks: tree.weeks }) dựng hình học → three.js vẽ
+→ client (G3b, /garden): grow(tree.simVersion, { seed: tree.id, species: tree.variant === 'QUIT' ? 'thorn-bush' : 'tree', weeks: tree.weeks }) dựng hình học → three.js vẽ
 ```
 
 Server chỉ gửi chuỗi tuần; việc mọc cây chạy ở trình duyệt. `garden-sim` v1 lấy nguyên thuật toán của bản phác "Khu vườn của Tú 3D": tuần `CARED` mọc 4 nhịp (có sẹo thì để một vòng sẹo trên thân); tuần `RESTED` đứng yên, chăm lại sau đó thì cành bẻ hướng và để mắt gỗ; tuần `SKIPPED` (lưu trữ) và `PENDING` không làm gì, nên khôi phục là mọc tiếp từ chỗ cũ, không có dấu (BR-GDN-005). Test của gói so dấu vân tay của cây (số node, vị trí node cuối, vị trí sẹo) với bản phác để v1 không bị đổi. Mắt gỗ không có trong response: garden-sim suy ra từ một tuần `CARED` đi sau `RESTED`. Vị trí cây (`plot`, BR-GDN-008) chưa có. Policy được kiểm bằng 9 ví dụ của BA §8.8 (`garden-week.spec.ts`).
