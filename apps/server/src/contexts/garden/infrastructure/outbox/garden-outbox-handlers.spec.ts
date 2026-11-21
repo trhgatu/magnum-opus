@@ -8,6 +8,7 @@ import { HabitQuitStartChanged } from '@/contexts/forge/habit/contracts/habit-qu
 import { HabitLifecycleTransitioned } from '@/contexts/forge/habit/contracts/habit-lifecycle-transitioned.contract';
 import { HabitTrashed } from '@/contexts/forge/habit/contracts/habit-trashed.contract';
 import { HabitRestoredFromTrash } from '@/contexts/forge/habit/contracts/habit-restored-from-trash.contract';
+import { HabitScheduleVersionStarted } from '@/contexts/forge/habit/contracts/habit-schedule-version-started.contract';
 
 import type { GardenLedgerWriter } from '../../application/ports/garden-ledger-writer.port';
 
@@ -19,6 +20,7 @@ import { ReplantQuitHabitHandler } from './replant-quit-habit.handler';
 import { RecordHabitLifecycleHandler } from './record-habit-lifecycle.handler';
 import { HideTrashedHabitHandler } from './hide-trashed-habit.handler';
 import { ShowRestoredHabitHandler } from './show-restored-habit.handler';
+import { RecordHabitRhythmHandler } from './record-habit-rhythm.handler';
 import { UprootDeletedHabitHandler } from './uproot-deleted-habit.handler';
 
 const ledger = {
@@ -64,6 +66,9 @@ describe('garden outbox handlers', () => {
     expect(
       Reflect.getMetadata(OutboxHandler.KEY, ShowRestoredHabitHandler),
     ).toBe(HabitRestoredFromTrash);
+    expect(
+      Reflect.getMetadata(OutboxHandler.KEY, RecordHabitRhythmHandler),
+    ).toBe(HabitScheduleVersionStarted);
   });
 
   it.each(['BUILD', 'QUIT'] as const)(
@@ -187,6 +192,30 @@ describe('garden outbox handlers', () => {
       subjectKind: 'HABIT',
       subjectId: 'habit-id',
       kind,
+      occurredOn: new Date('2026-11-16T00:00:00.000Z'),
+      sourceEventId: 'event-id',
+    });
+  });
+
+  // Nhịp quyết định tuần nào "có kỳ vọng" (BR-GDN-002).
+  it('records a schedule version as RHYTHM_SET from its effective day', async () => {
+    await new RecordHabitRhythmHandler(ledger).handle({
+      eventId: 'event-id',
+      occurredAt: at,
+      payload: {
+        habitId: 'habit-id',
+        ownerId: 'owner-id',
+        frequencyType: 'WEEKLY',
+        frequencyDays: [1, 3, 5],
+        effectiveFrom: new Date('2026-11-16T00:00:00.000Z'),
+      },
+    });
+
+    expect(ledger.record).toHaveBeenCalledWith({
+      subjectKind: 'HABIT',
+      subjectId: 'habit-id',
+      kind: 'RHYTHM_SET',
+      detail: { type: 'WEEKLY', days: [1, 3, 5] },
       occurredOn: new Date('2026-11-16T00:00:00.000Z'),
       sourceEventId: 'event-id',
     });

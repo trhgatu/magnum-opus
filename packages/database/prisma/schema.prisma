@@ -804,6 +804,7 @@ enum GardenEntryKind {
   MARKED
   RESTED
   RESUMED
+  RHYTHM_SET
 }
 
 enum GardenMark {
@@ -816,6 +817,7 @@ model GardenEntry {
   subjectId String @map("subject_id")
   kind GardenEntryKind
   mark GardenMark?
+  detail Json?
   occurredOn DateTime @map("occurred_on") @db.Date
   sourceEventId String @unique @map("source_event_id")
   recordedAt DateTime @default(now()) @map("recorded_at")

@@ -115,6 +115,32 @@ describe('PrismaGardenLedgerWriter', () => {
     });
   });
 
+  describe('record a rhythm', () => {
+    it('writes the schedule of a RHYTHM_SET entry as its detail', async () => {
+      gardenSubject.findUnique.mockResolvedValue({
+        id: 'subject-id',
+        ownerId: 'owner-id',
+      });
+      gardenEntry.create.mockResolvedValue(undefined);
+
+      await writer.record({
+        subjectKind: 'HABIT',
+        subjectId: 'habit-id',
+        kind: 'RHYTHM_SET',
+        detail: { type: 'WEEKLY', days: [1, 3, 5] },
+        occurredOn: new Date('2026-11-16T00:00:00.000Z'),
+        sourceEventId: 'event-id',
+      });
+
+      expect(gardenEntry.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          kind: 'RHYTHM_SET',
+          detail: { type: 'WEEKLY', days: [1, 3, 5] },
+        }),
+      });
+    });
+  });
+
   describe('record', () => {
     it('writes the mark of a MARKED entry', async () => {
       gardenSubject.findUnique.mockResolvedValue({

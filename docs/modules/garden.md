@@ -2,7 +2,7 @@
 
 Tài liệu kỹ thuật của bounded context Garden. Phần nghiệp vụ (vấn đề, quy tắc, lộ trình) ở [BA Garden](../../product/ba/contexts/garden/01-ba-overview.md).
 
-Đây là thiết kế đích. Hiện đã có lát G1a, G1b, G1c và G1d-1: bảng `garden_subjects` và `garden_entries`, cổng `GardenLedgerWriter` cùng writer Prisma, handler gieo/nhổ cây theo `HabitCreated` / `HabitPermanentlyDeleted`, handler ghi `TENDED` / `UNTENDED` theo `HabitCheckedIn` / `HabitCheckInUndone`, handler ghi sẹo theo `HabitRelapsed` gieo lại cây theo `HabitQuitStartChanged`, ghi `RESTED` / `RESUMED` theo `HabitLifecycleTransitioned`, và ẩn/hiện cây theo `HabitTrashed` / `HabitRestoredFromTrash`. Phần chưa có được ghi _(dự kiến)_.
+Đây là thiết kế đích. Hiện đã có lát G1a đến G1d: bảng `garden_subjects` và `garden_entries`, cổng `GardenLedgerWriter` cùng writer Prisma, handler gieo/nhổ cây theo `HabitCreated` / `HabitPermanentlyDeleted`, handler ghi `TENDED` / `UNTENDED` theo `HabitCheckedIn` / `HabitCheckInUndone`, handler ghi sẹo theo `HabitRelapsed` gieo lại cây theo `HabitQuitStartChanged`, ghi `RESTED` / `RESUMED` theo `HabitLifecycleTransitioned`, ẩn/hiện cây theo `HabitTrashed` / `HabitRestoredFromTrash`, và ghi `RHYTHM_SET` theo `HabitScheduleVersionStarted`. Phần chưa có được ghi _(dự kiến)_.
 
 ## 1. Ba trục độc lập
 
@@ -126,7 +126,16 @@ Trash / Untrash Habit → forge.habit.trashed.v1 / forge.habit.restored-from-tra
 → HideTrashedHabitHandler / ShowRestoredHabitHandler → đặt / xóa hidden_at của cây
 ```
 
-Cây trong Thùng rác chỉ bị ẩn; sổ giữ nguyên (BR-GDN-SB-007). Đưa Habit đang sống vào Thùng rác phát thêm `ARCHIVED`, nên những ngày trong Thùng rác là nghỉ (BR-GDN-006). Habit lưu trữ hoặc vào Thùng rác từ trước G1d chưa có dòng `RESTED` / `RESUMED` cho lần đó, và chưa có `hidden_at`, cho tới khi nạp lịch sử (G1e); các dòng `TENDED`, `UNTENDED`, `MARKED` từ G1b–G1c vẫn có. Lịch Habit (`RHYTHM_SET`) là G1d-2.
+Cây trong Thùng rác chỉ bị ẩn; sổ giữ nguyên (BR-GDN-SB-007). Đưa Habit đang sống vào Thùng rác phát thêm `ARCHIVED`, nên những ngày trong Thùng rác là nghỉ (BR-GDN-006). Habit lưu trữ hoặc vào Thùng rác từ trước G1d chưa có dòng `RESTED` / `RESUMED` cho lần đó, và chưa có `hidden_at`, cho tới khi nạp lịch sử (G1e); các dòng `TENDED`, `UNTENDED`, `MARKED` từ G1b–G1c vẫn có.
+
+**Nhịp** (đã có, G1d-2) (Habit BUILD):
+
+```
+Tạo Habit BUILD / đổi tần suất → forge.habit.schedule-version-started.v1 cùng transaction
+→ RecordHabitRhythmHandler (Garden) → RHYTHM_SET từ ngày hiệu lực, detail = { type, days }
+```
+
+Lúc tạo, `HabitCreated` ghi vào outbox trước, nên cây được gieo trước khi có nhịp đầu tiên. Đổi lịch nhiều lần trong một ngày ghi nhiều `RHYTHM_SET` cùng ngày; lúc đọc (G2), dòng ghi sau thắng. Habit BUILD tạo trước G1d-2 chưa có `RHYTHM_SET` cho tới khi nạp lịch sử (G1e).
 
 **Đọc** _(dự kiến, G2)_ (người dùng mở vườn):
 
@@ -155,4 +164,4 @@ Trước khi thêm, module phải qua KD-GDN-011: việc của nó là chăm só
 
 ## 7. Dữ liệu
 
-Hiện có bốn Prisma enum: `GardenSubjectKind` (`HABIT`) và `GardenVariant` (`BUILD`, `QUIT`) cho `garden_subjects`, `GardenEntryKind` (`TENDED`, `UNTENDED`, `MARKED`, `RESTED`, `RESUMED`) và `GardenMark` (`SCAR`) cho `garden_entries`; cột `mark` chỉ có giá trị khi `kind = MARKED`. `garden_entries` thuộc về một chủ thể (`ON DELETE CASCADE`), nên nhổ cây thì sổ đi theo. `garden_subjects.hidden_at` khác null khi Habit nằm trong Thùng rác. Các loại sổ khác là dự kiến (G1d-2 trở đi). Thêm loại mới là thêm giá trị enum kèm một migration nhỏ, giống `ActivityEvent.kind`.
+Hiện có bốn Prisma enum: `GardenSubjectKind` (`HABIT`) và `GardenVariant` (`BUILD`, `QUIT`) cho `garden_subjects`, `GardenEntryKind` (`TENDED`, `UNTENDED`, `MARKED`, `RESTED`, `RESUMED`, `RHYTHM_SET`) và `GardenMark` (`SCAR`) cho `garden_entries`; cột `mark` chỉ có giá trị khi `kind = MARKED`, cột `detail` (JSONB, `{ type, days }`) chỉ có giá trị khi `kind = RHYTHM_SET`; cả hai được giữ bằng CHECK. `garden_entries` thuộc về một chủ thể (`ON DELETE CASCADE`), nên nhổ cây thì sổ đi theo. `garden_subjects.hidden_at` khác null khi Habit nằm trong Thùng rác. Các loại sổ khác là dự kiến. Thêm loại mới là thêm giá trị enum kèm một migration nhỏ, giống `ActivityEvent.kind`.

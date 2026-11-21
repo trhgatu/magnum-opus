@@ -65,6 +65,7 @@ export class PrismaGardenLedgerWriter implements GardenLedgerWriter {
           subjectId: subject.id,
           kind: entry.kind,
           mark: entry.mark,
+          detail: entry.detail,
           occurredOn: entry.occurredOn,
           sourceEventId: entry.sourceEventId,
         },

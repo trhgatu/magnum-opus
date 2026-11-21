@@ -38,7 +38,12 @@ export class PrismaHabitRepository implements HabitRepository {
 
     const outboxEvents = habit
       .getDomainEvents()
-      .filter((event) => event instanceof HabitCreatedEvent)
+      .filter(
+        (event) =>
+          event instanceof HabitCreatedEvent ||
+          event instanceof HabitScheduleVersionStartedEvent,
+      )
+
       .map((event) => this.outbox.serialize(event));
 
     const { scheduleVersions } = PrismaHabitRepository.pullHistory(habit);
@@ -66,7 +71,8 @@ export class PrismaHabitRepository implements HabitRepository {
           event instanceof HabitQuitStartChangedEvent ||
           event instanceof HabitLifecycleTransitionedEvent ||
           event instanceof HabitTrashedEvent ||
-          event instanceof HabitRestoredFromTrashEvent,
+          event instanceof HabitRestoredFromTrashEvent ||
+          event instanceof HabitScheduleVersionStartedEvent,
       )
 
       .map((event) => this.outbox.serialize(event));

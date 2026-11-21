@@ -118,6 +118,26 @@ describe('PrismaHabitRepository', () => {
         'outbox.createMany',
         'scheduleVersion.createMany',
       ]);
+      // HabitCreated đi trước để Garden gieo cây rồi mới ghi nhịp đầu tiên.
+      expect(
+        (
+          transactionClient.outboxEvent.createMany.mock.calls[0] as [
+            { data: { type: string; payload: unknown }[] },
+          ]
+        )[0].data.map(({ type, payload }) => ({ type, payload })),
+      ).toEqual([
+        expect.objectContaining({ type: 'forge.habit.created.v1' }),
+        {
+          type: 'forge.habit.schedule-version-started.v1',
+          payload: {
+            habitId: habit.id,
+            ownerId: 'owner-id',
+            frequencyType: 'WEEKLY',
+            frequencyDays: [1, 5],
+            effectiveFrom: '2026-10-09',
+          },
+        },
+      ]);
       expect(
         transactionClient.habitScheduleVersion.createMany,
       ).toHaveBeenCalledWith({
@@ -300,9 +320,26 @@ describe('PrismaHabitRepository', () => {
       expect(prisma.$transaction).toHaveBeenCalledTimes(1);
       expect(calls).toEqual([
         'habit.update',
+        'outbox.createMany',
         'scheduleVersion.close',
         'scheduleVersion.create',
       ]);
+      // Garden ghi nhịp mới từ ngày hiệu lực (RHYTHM_SET).
+      expect(transactionClient.outboxEvent.createMany).toHaveBeenCalledWith({
+        data: [
+          expect.objectContaining({
+            type: 'forge.habit.schedule-version-started.v1',
+            aggregateId: 'habit-id',
+            payload: {
+              habitId: 'habit-id',
+              ownerId: 'owner-id',
+              frequencyType: 'DAILY',
+              frequencyDays: [],
+              effectiveFrom: '2026-10-09',
+            },
+          }),
+        ],
+      });
       expect(
         transactionClient.habitScheduleVersion.updateMany,
       ).toHaveBeenCalledWith({
@@ -340,6 +377,7 @@ describe('PrismaHabitRepository', () => {
       expect(await repository.update(habit, 4)).toBe(true);
 
       expect(calls).toEqual([
+        'outbox.createMany',
         'scheduleVersion.close',
         'scheduleVersion.create',
         'scheduleVersion.close',
