@@ -126,7 +126,7 @@ Trash / Untrash Habit → forge.habit.trashed.v1 / forge.habit.restored-from-tra
 → HideTrashedHabitHandler / ShowRestoredHabitHandler → đặt / xóa hidden_at của cây
 ```
 
-Cây trong Thùng rác chỉ bị ẩn; sổ giữ nguyên (BR-GDN-SB-007). Đưa Habit đang sống vào Thùng rác phát thêm `ARCHIVED`, nên những ngày trong Thùng rác là nghỉ (BR-GDN-006). Lưu trữ và Thùng rác từ trước G1d được nạp lịch sử (G1e) bù lại.
+Cây trong Thùng rác chỉ bị ẩn; sổ giữ nguyên (BR-GDN-SB-007). Đưa Habit đang sống vào Thùng rác phát thêm `ARCHIVED`, nên những ngày trong Thùng rác là nghỉ (BR-GDN-006). Lưu trữ / khôi phục từ trước G1d được nạp lịch sử (G1e) ghi lại thành `RESTED` / `RESUMED`, kể cả lần vào Thùng rác từ trạng thái sống (Forge đã lưu nó là `ARCHIVED`). Với Thùng rác, G1e chỉ đặt `hidden_at` theo trạng thái hiện tại; các lần vào/ra Thùng rác trước đó không dựng lại được.
 
 **Nhịp** (đã có, G1d-2) (Habit BUILD):
 
@@ -148,7 +148,7 @@ Lúc tạo, `HabitCreated` ghi vào outbox trước, nên cây được gieo tr�
 | 6    | `habit_lifecycle_transitions` | `RESTED` / `RESUMED`                                                                     |
 | 7    | `habit_schedule_versions`     | `RHYTHM_SET`                                                                             |
 
-Mỗi nguồn chỉ ghi phần sổ còn thiếu: ngày nào có n dòng nguồn mà sổ đã có k dòng cùng loại (cùng lịch, với `RHYTHM_SET`) thì chỉ ghi thêm n − k. Nhờ vậy Habit tạo giữa các lát G1a–G1d không bị ghi trùng những gì đã vào sổ lúc chạy thật, và chạy lại không ra dòng mới. Dòng nạp dùng `source_event_id = backfill:<nguồn>:<id>` (BR-GDN-SB-005). Giới hạn: DB không lưu múi giờ lúc tái phạm, nên sẹo nạp lại tính theo múi giờ hiện tại; tài khoản từng đổi múi giờ có thể lệch ngày ở vài sẹo cũ.
+Mỗi nguồn chỉ ghi phần sổ còn thiếu: ngày nào có n dòng nguồn mà sổ đã có k dòng cùng loại (cùng lịch, với `RHYTHM_SET`) thì chỉ ghi thêm n − k. Nhờ vậy Habit tạo giữa các lát G1a–G1d không bị ghi trùng những gì đã vào sổ lúc chạy thật, và chạy lại không ra dòng mới. Dòng nạp dùng `source_event_id = backfill:<nguồn>:<id>` (BR-GDN-SB-005). Giới hạn: DB không lưu múi giờ lúc tái phạm, nên sẹo nạp lại tính theo múi giờ hiện tại; tài khoản từng đổi múi giờ có thể lệch ngày ở vài sẹo cũ. Múi giờ PostgreSQL không nhận ra thì dùng UTC.
 
 **Đọc** _(dự kiến, G2)_ (người dùng mở vườn):
 

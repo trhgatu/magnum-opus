@@ -45,14 +45,19 @@ WHERE (
 ON CONFLICT ("source_event_id") DO NOTHING;
 
 -- 5. Tái phạm thành SCAR, vào ngày theo múi giờ hiện tại của tài khoản.
---    Ngày đó sổ đã có n sẹo thì bỏ qua n lần tái phạm đầu.
-WITH "relapse_days" AS (
+--    Ngày đó sổ đã có n sẹo thì bỏ qua n lần tái phạm đầu. Múi giờ PostgreSQL
+--    không nhận ra (giá trị cũ/sai) thì dùng UTC, để một tài khoản không chặn
+--    cả migration.
+WITH "owner_zones" AS (
+  SELECT u."id", COALESCE(tz."name", 'UTC') AS "time_zone"
+  FROM "users" u LEFT JOIN pg_timezone_names tz ON tz."name" = u."time_zone"
+), "relapse_days" AS (
   SELECT r."id", s."id" AS "subject_id", s."owner_id",
-         (r."occurred_at" AT TIME ZONE 'UTC' AT TIME ZONE u."time_zone")::date AS "day"
+         (r."occurred_at" AT TIME ZONE 'UTC' AT TIME ZONE z."time_zone")::date AS "day"
   FROM "habit_relapses" r
   JOIN "garden_subjects" s
     ON s."subject_kind" = 'HABIT' AND s."subject_id" = r."habit_id"
-  JOIN "users" u ON u."id" = r."owner_id"
+  JOIN "owner_zones" z ON z."id" = r."owner_id"
 ), "numbered" AS (
   SELECT d.*, row_number() OVER (
     PARTITION BY d."subject_id", d."day" ORDER BY d."id"
