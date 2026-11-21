@@ -3,7 +3,10 @@ import { publish } from '@infrastructure/event-bus/outbox/outbox-publication';
 import { OutboxPublisher } from '@infrastructure/event-bus/outbox/outbox.decorators';
 
 import { HabitPermanentlyDeleted } from '../../contracts/habit-permanently-deleted.contract';
-import { HabitPermanentlyDeletedEvent } from '../../domain/events';
+import {
+  HabitPermanentlyDeletedEvent,
+  HabitRenamedEvent,
+} from '../../domain/events';
 
 import { HabitCreated } from '../../contracts/habit-created.contract';
 import { HabitQuitStartChanged } from '../../contracts/habit-quit-start-changed.contract';
@@ -22,6 +25,7 @@ import { HabitRestoredFromTrashEvent } from '../../domain/events';
 
 import { HabitScheduleVersionStarted } from '../../contracts/habit-schedule-version-started.contract';
 import { HabitScheduleVersionStartedEvent } from '../../domain/events';
+import { HabitRenamed } from '../../contracts/habit-renamed.contract';
 
 @Injectable()
 @OutboxPublisher([
@@ -92,6 +96,17 @@ import { HabitScheduleVersionStartedEvent } from '../../domain/events';
       frequencyType: event.frequency.type,
       frequencyDays: event.frequency.days,
       effectiveFrom: event.effectiveFrom.value,
+    }),
+  }),
+
+  publish({
+    event: HabitRenamedEvent,
+    as: HabitRenamed,
+    aggregateId: (event) => event.habitId,
+    toPayload: (event) => ({
+      habitId: event.habitId,
+      ownerId: event.ownerId,
+      title: event.title,
     }),
   }),
 ])

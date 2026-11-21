@@ -85,7 +85,7 @@ describe('UpdateHabitHandler', () => {
     );
 
     expect(result.getValue().revision).toBe(2);
-    expect(result.getValue().getDomainEvents()).toEqual([]);
+    expect(scheduleVersionsOf(result.getValue())).toEqual([]);
     // Không đổi tần suất thì không cần "hôm nay" — không đọc múi giờ owner.
     expect(timeZoneReader.getForUser).not.toHaveBeenCalled();
   });

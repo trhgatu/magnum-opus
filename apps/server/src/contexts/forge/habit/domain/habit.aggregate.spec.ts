@@ -6,6 +6,7 @@ import {
   HabitScheduleVersionStartedEvent,
   HabitQuitStartChangedEvent,
   HabitRestoredFromTrashEvent,
+  HabitRenamedEvent,
   HabitTrashedEvent,
 } from './events';
 import {
@@ -379,7 +380,7 @@ describe('Habit', () => {
       });
     });
 
-    it('announces nothing when only the title of a QUIT Habit changes', () => {
+    it('announces only the new name when only the title of a QUIT Habit changes', () => {
       const habit = Habit.rehydrate(
         createProps({
           type: HabitType.QUIT,
@@ -396,7 +397,15 @@ describe('Habit', () => {
       });
 
       expect(habit.title).toBe('Quit sugar');
-      expect(habit.getDomainEvents()).toEqual([]);
+      // Garden đổi tên cây theo Habit (Q-GDN-10); ngày bắt đầu bỏ không đổi.
+      const events = habit.getDomainEvents();
+      expect(events).toHaveLength(1);
+      expect(events[0]).toBeInstanceOf(HabitRenamedEvent);
+      expect(events[0]).toMatchObject({
+        habitId: habit.id,
+        ownerId: habit.ownerId,
+        title: 'Quit sugar',
+      });
     });
 
     it('normalizes a quitStartedAt with a time component to a canonical day', () => {
@@ -893,7 +902,7 @@ describe('Habit', () => {
       });
 
       expect(habit.revision).toBe(2);
-      expect(habit.getDomainEvents()).toEqual([]);
+      expect(scheduleVersions(habit)).toEqual([]);
     });
 
     it('records one version per change on the same day, leaving empty intervals', () => {
@@ -1028,7 +1037,7 @@ describe('Habit', () => {
       });
 
       expect(habit.title).toBe('Evening walk');
-      expect(habit.getDomainEvents()).toEqual([]);
+      expect(scheduleVersions(habit)).toEqual([]);
     });
 
     it('never records versions for QUIT Habits', () => {

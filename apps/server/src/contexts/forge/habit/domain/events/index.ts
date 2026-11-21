@@ -5,3 +5,4 @@ export * from './habit-created.event';
 export * from './habit-quit-start-changed.event';
 export * from './habit-trashed.event';
 export * from './habit-restored-from-trash.event';
+export * from './habit-renamed.event';

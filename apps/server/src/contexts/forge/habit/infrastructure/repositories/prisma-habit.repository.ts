@@ -11,6 +11,7 @@ import {
   HabitQuitStartChangedEvent,
   HabitTrashedEvent,
   HabitRestoredFromTrashEvent,
+  HabitRenamedEvent,
 } from '../../domain/events';
 import { Habit } from '../../domain/habit.aggregate';
 import { HabitRepository } from '../../domain/ports/habit.repository';
@@ -72,7 +73,8 @@ export class PrismaHabitRepository implements HabitRepository {
           event instanceof HabitLifecycleTransitionedEvent ||
           event instanceof HabitTrashedEvent ||
           event instanceof HabitRestoredFromTrashEvent ||
-          event instanceof HabitScheduleVersionStartedEvent,
+          event instanceof HabitScheduleVersionStartedEvent ||
+          event instanceof HabitRenamedEvent,
       )
 
       .map((event) => this.outbox.serialize(event));

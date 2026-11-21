@@ -120,6 +120,7 @@ Không góp: `iam`, `audit`, `menu`, `notifications`, `storage`, `analytics`. Đ
 | Hủy check-in trong ngày    | rút lần chăm                                       | `HabitCheckInUndone`                                        | **Cần thêm** |
 | Tái phạm (QUIT)            | sẹo                                                | `HabitRelapsed`                                             | **Cần thêm** |
 | Sửa ngày bắt đầu bỏ (QUIT) | gieo lại từ ngày mới (BR-GDN-007)                  | `HabitQuitStartChanged`                                     | **Cần thêm** |
+| Đổi tên Habit              | cây đổi tên (Q-GDN-10)                             | `HabitRenamed`                                              | **Cần thêm** |
 | Đổi lịch (BUILD)           | đổi nhịp từ ngày hiệu lực                          | `HabitScheduleVersionStarted`                               | Có           |
 | Lưu trữ / khôi phục        | ngủ đông / mọc tiếp                                | `HabitLifecycleTransitioned`                                | Có           |
 | Vào / ra Thùng rác         | cây ẩn / hiện lại                                  | `HabitTrashed`, `HabitRestoredFromTrash`                    | **Habit V4** |
@@ -185,7 +186,8 @@ garden_subjects            — mỗi chủ thể đã gieo
   subject_kind      enum   HABIT | PROJECT | …
   subject_id               định danh bên module gốc; UNIQUE (subject_kind, subject_id)
   variant           enum   BUILD | QUIT | VINE | …   (giống cây)
-  name_at_planting         tên lúc gieo, chỉ dùng khi module gốc không còn
+  name                     tên hiện tại, đổi theo module gốc qua sự kiện đổi tên (Q-GDN-10)
+  name_at_planting         tên lúc gieo, không bao giờ đổi; dùng cho câu chuyện của cây
   sim_version       int    phiên bản thuật toán mọc lúc gieo; cây giữ dáng mãi
   plot                     vị trí trong vườn, chốt lúc gieo, không bao giờ dời
   planted_on        date
@@ -205,7 +207,7 @@ garden_entries             — sổ
 garden_links (P5)          — rễ, do người dùng tạo
 ```
 
-Tên hiển thị là `name_at_planting`: Garden không đọc module gốc (KD-GDN-012). Cây có đổi tên theo module gốc hay không còn để mở (Q-GDN-10).
+Tên hiển thị là `name`, đổi theo module gốc qua sự kiện đổi tên (Q-GDN-10); Garden vẫn không đọc module gốc (KD-GDN-012). `name_at_planting` giữ tên lúc gieo cho câu chuyện của cây (BR-GDN-009).
 
 ### 6.3 Quy tắc của sổ
 
@@ -323,24 +325,24 @@ P0 và phần ghi sổ của P1 đi chung, theo từng lát. Mỗi lát gồm ev
 | P4  | Chronicle: vòng năm, tua thời gian (`?at=`); khí hậu: mùa của đời sống, bầu trời, Mood |
 | P5  | Rễ do người dùng nối; hình ảnh: phông nền giờ thật, thời tiết thật (người dùng tự bật) |
 
-## 11. Quyết định đã chốt (2026-11-13)
+## 11. Quyết định đã chốt (2026-11-13, Q-GDN-10 ngày 2026-11-21)
 
-| Mã      | Câu hỏi                                        | Chốt                                                          |
-| ------- | ---------------------------------------------- | ------------------------------------------------------------- |
-| Q-GDN-1 | Check-in ngày không đến lịch có tính là chăm?  | Có (BR-GDN-003)                                               |
-| Q-GDN-2 | Nhiều lần tái phạm trong một tuần thì mấy sẹo? | Một (BR-GDN-004)                                              |
-| Q-GDN-3 | Habit tạo thử có thành cây?                    | Có; người dùng xóa ở Forge (Habit V4), Garden không có nút ẩn |
-| Q-GDN-4 | Sửa `quitStartedAt` thì cây gieo lại?          | Có (BR-GDN-007)                                               |
-| Q-GDN-5 | Ngưỡng mọc cỏ?                                 | 3 tuần, chỉnh sau khi có dữ liệu thật                         |
-| —       | Garden đọc DB module khác hay tự đủ?           | Tự đủ ở mức tối thiểu (KD-GDN-012)                            |
-| —       | Dữ liệu nguồn bị xóa vĩnh viễn?                | Xóa theo (BR-GDN-SB-006)                                      |
+| Mã       | Câu hỏi                                        | Chốt                                                                                            |
+| -------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Q-GDN-1  | Check-in ngày không đến lịch có tính là chăm?  | Có (BR-GDN-003)                                                                                 |
+| Q-GDN-2  | Nhiều lần tái phạm trong một tuần thì mấy sẹo? | Một (BR-GDN-004)                                                                                |
+| Q-GDN-3  | Habit tạo thử có thành cây?                    | Có; người dùng xóa ở Forge (Habit V4), Garden không có nút ẩn                                   |
+| Q-GDN-4  | Sửa `quitStartedAt` thì cây gieo lại?          | Có (BR-GDN-007)                                                                                 |
+| Q-GDN-5  | Ngưỡng mọc cỏ?                                 | 3 tuần, chỉnh sau khi có dữ liệu thật                                                           |
+| —        | Garden đọc DB module khác hay tự đủ?           | Tự đủ ở mức tối thiểu (KD-GDN-012)                                                              |
+| —        | Dữ liệu nguồn bị xóa vĩnh viễn?                | Xóa theo (BR-GDN-SB-006)                                                                        |
+| Q-GDN-10 | Đổi tên Habit thì cây đổi tên theo?            | Có (2026-11-21): Forge phát `HabitRenamed`, Garden giữ cả `name` hiện tại và `name_at_planting` |
 
 ## 12. Câu hỏi mở
 
-| Mã       | Câu hỏi                                                                                                                                                      | Chốt ở                |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------- |
-| Q-GDN-6  | Dây leo Project "có chăm" khi nào: có activity (commit, coding time), đang trong cycle, hay kết hợp? Nghiêng về kết hợp.                                     | P3                    |
-| Q-GDN-7  | Vườn đông dần qua nhiều năm thì hiển thị thế nào?                                                                                                            | P5                    |
-| Q-GDN-8  | Công thức mùa của đời sống                                                                                                                                   | P4, trên dữ liệu thật |
-| Q-GDN-9  | Gió, mưa động có trái nguyên tắc "chuyển động chỉ giải thích thay đổi trạng thái" của `product/vision.md` không? Bỏ, hay ghi Garden là ngoại lệ có chủ đích. | P5                    |
-| Q-GDN-10 | Người dùng đổi tên Habit thì cây đổi tên theo không? Nếu có, Forge phát thêm sự kiện đổi tên.                                                                | G2                    |
+| Mã      | Câu hỏi                                                                                                                                                      | Chốt ở                |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------- |
+| Q-GDN-6 | Dây leo Project "có chăm" khi nào: có activity (commit, coding time), đang trong cycle, hay kết hợp? Nghiêng về kết hợp.                                     | P3                    |
+| Q-GDN-7 | Vườn đông dần qua nhiều năm thì hiển thị thế nào?                                                                                                            | P5                    |
+| Q-GDN-8 | Công thức mùa của đời sống                                                                                                                                   | P4, trên dữ liệu thật |
+| Q-GDN-9 | Gió, mưa động có trái nguyên tắc "chuyển động chỉ giải thích thay đổi trạng thái" của `product/vision.md` không? Bỏ, hay ghi Garden là ngoại lệ có chủ đích. | P5                    |

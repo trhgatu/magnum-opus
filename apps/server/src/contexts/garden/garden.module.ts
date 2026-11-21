@@ -12,6 +12,7 @@ import { ShowRestoredHabitHandler } from './infrastructure/outbox/show-restored-
 import { RecordHabitLifecycleHandler } from './infrastructure/outbox/record-habit-lifecycle.handler';
 import { RecordHabitRhythmHandler } from './infrastructure/outbox/record-habit-rhythm.handler';
 import { PrismaGardenLedgerWriter } from './infrastructure/writers/prisma-garden-ledger.writer';
+import { RenameHabitTreeHandler } from './infrastructure/outbox/rename-habit-tree.handler';
 
 @Module({
   providers: [
@@ -25,6 +26,7 @@ import { PrismaGardenLedgerWriter } from './infrastructure/writers/prisma-garden
     ShowRestoredHabitHandler,
     RecordHabitRhythmHandler,
     RecordHabitLifecycleHandler,
+    RenameHabitTreeHandler,
     { provide: GARDEN_LEDGER_WRITER, useClass: PrismaGardenLedgerWriter },
   ],
 })

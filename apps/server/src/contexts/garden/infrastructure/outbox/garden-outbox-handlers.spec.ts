@@ -9,6 +9,7 @@ import { HabitLifecycleTransitioned } from '@/contexts/forge/habit/contracts/hab
 import { HabitTrashed } from '@/contexts/forge/habit/contracts/habit-trashed.contract';
 import { HabitRestoredFromTrash } from '@/contexts/forge/habit/contracts/habit-restored-from-trash.contract';
 import { HabitScheduleVersionStarted } from '@/contexts/forge/habit/contracts/habit-schedule-version-started.contract';
+import { HabitRenamed } from '@/contexts/forge/habit/contracts/habit-renamed.contract';
 
 import type { GardenLedgerWriter } from '../../application/ports/garden-ledger-writer.port';
 
@@ -21,6 +22,7 @@ import { RecordHabitLifecycleHandler } from './record-habit-lifecycle.handler';
 import { HideTrashedHabitHandler } from './hide-trashed-habit.handler';
 import { ShowRestoredHabitHandler } from './show-restored-habit.handler';
 import { RecordHabitRhythmHandler } from './record-habit-rhythm.handler';
+import { RenameHabitTreeHandler } from './rename-habit-tree.handler';
 import { UprootDeletedHabitHandler } from './uproot-deleted-habit.handler';
 
 const ledger = {
@@ -30,6 +32,7 @@ const ledger = {
   replant: jest.fn().mockResolvedValue(undefined),
   hide: jest.fn().mockResolvedValue(undefined),
   show: jest.fn().mockResolvedValue(undefined),
+  rename: jest.fn().mockResolvedValue(undefined),
 } as unknown as jest.Mocked<GardenLedgerWriter>;
 const at = new Date('2026-11-18T03:00:00.000Z');
 
@@ -69,6 +72,9 @@ describe('garden outbox handlers', () => {
     expect(
       Reflect.getMetadata(OutboxHandler.KEY, RecordHabitRhythmHandler),
     ).toBe(HabitScheduleVersionStarted);
+    expect(Reflect.getMetadata(OutboxHandler.KEY, RenameHabitTreeHandler)).toBe(
+      HabitRenamed,
+    );
   });
 
   it.each(['BUILD', 'QUIT'] as const)(
@@ -219,6 +225,25 @@ describe('garden outbox handlers', () => {
       occurredOn: new Date('2026-11-16T00:00:00.000Z'),
       sourceEventId: 'event-id',
     });
+  });
+
+  // Cây đổi tên theo Habit (Q-GDN-10).
+  it('renames the tree of a renamed Habit', async () => {
+    await new RenameHabitTreeHandler(ledger).handle({
+      eventId: 'event-id',
+      occurredAt: at,
+      payload: {
+        habitId: 'habit-id',
+        ownerId: 'owner-id',
+        title: 'Evening walk',
+      },
+    });
+
+    expect(ledger.rename).toHaveBeenCalledWith(
+      'HABIT',
+      'habit-id',
+      'Evening walk',
+    );
   });
 
   it('hides the tree of a trashed Habit and shows it again on restore', async () => {

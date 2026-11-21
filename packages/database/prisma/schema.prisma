@@ -786,6 +786,7 @@ model GardenSubject {
   subjectId String @map("subject_id")
   variant GardenVariant
   nameAtPlanting String @map("name_at_planting")
+  name String?
   simVersion     Int               @map("sim_version")
   entries GardenEntry[]
   plantedOn      DateTime          @map("planted_on") @db.Date
