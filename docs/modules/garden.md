@@ -68,7 +68,7 @@ apps/server/src/contexts/garden/
 packages/garden-sim/                    thuần TS (G3a): grow(simVersion, { seed, species, weeks })
   rng.ts     hash, rng                    hạt giống ổn định theo id cây
   versions/  v1                           space colonization + pipe model; không bao giờ sửa phiên bản cũ
-  species    tree, thorn-bush             * vine, fallback (P3)
+                                          giống cây (tree, thorn-bush) là hình dạng trong từng phiên bản; * vine, fallback (P3)
 packages/contracts/src/garden/          GardenResponse, enum dùng chung
 apps/client/features/garden/          * renderer three.js (lazy), registry giống cây
 ```
@@ -163,22 +163,22 @@ GET /garden → GetGardenHandler
 → hôm nay theo múi giờ tài khoản
 → garden-week.ts (thuần): gardenWeeks → chuỗi tuần CARED / PENDING / RESTED / SKIPPED + sẹo; weedsAfter → bậc cỏ
 → GardenResponse { today, trees: [{ id, subjectKind, subjectId, variant, name, simVersion, plantedOn, weeks: [{ start, status, scarred }], weeds }] }
-→ client _(dự kiến, G3b)_: garden-sim grow(simVersion) dựng hình học → three.js vẽ
+→ client _(dự kiến, G3b)_: grow(tree.simVersion, { seed: tree.id, species: tree.variant === 'QUIT' ? 'thorn-bush' : 'tree', weeks: tree.weeks }) dựng hình học → three.js vẽ
 ```
 
-Server chỉ gửi chuỗi tuần; việc mọc cây chạy ở trình duyệt. `garden-sim` v1 lấy nguyên thuật toán của bản phác "Khu vườn của Tú 3D": tuần `CARED` mọc 4 nhịp (có sẹo thì để một vòng sẹo trên thân), `RESTED` và `SKIPPED` đứng yên, `PENDING` chưa làm gì, quay lại sau nghỉ thì cành bẻ hướng và để mắt gỗ. Test của gói so dáng cây với bản phác để v1 không bao giờ đổi. Mắt gỗ không có trong response: garden-sim suy ra từ một tuần `CARED` đi sau `RESTED`. Vị trí cây (`plot`, BR-GDN-008) chưa có. Policy được kiểm bằng 9 ví dụ của BA §8.8 (`garden-week.spec.ts`).
+Server chỉ gửi chuỗi tuần; việc mọc cây chạy ở trình duyệt. `garden-sim` v1 lấy nguyên thuật toán của bản phác "Khu vườn của Tú 3D": tuần `CARED` mọc 4 nhịp (có sẹo thì để một vòng sẹo trên thân); tuần `RESTED` đứng yên, chăm lại sau đó thì cành bẻ hướng và để mắt gỗ; tuần `SKIPPED` (lưu trữ) và `PENDING` không làm gì, nên khôi phục là mọc tiếp từ chỗ cũ, không có dấu (BR-GDN-005). Test của gói so dấu vân tay của cây (số node, vị trí node cuối, vị trí sẹo) với bản phác để v1 không bị đổi. Mắt gỗ không có trong response: garden-sim suy ra từ một tuần `CARED` đi sau `RESTED`. Vị trí cây (`plot`, BR-GDN-008) chưa có. Policy được kiểm bằng 9 ví dụ của BA §8.8 (`garden-week.spec.ts`).
 
 ## 6. Thêm một module mới
 
-| Việc                                                       | Ở đâu                                   | Đụng lõi?     |
-| ---------------------------------------------------------- | --------------------------------------- | ------------- |
-| Module phát sự kiện                                        | context của module                      | không         |
-| Viết nguồn: handler dịch contract + nạp lịch sử            | `garden/infrastructure/outbox/`         | không         |
-| Viết nhịp, nếu là loại cây                                 | `garden/domain/rhythm/`                 | không         |
-| Đăng ký handler vào `providers`, nhịp vào `GARDEN_RHYTHMS` | `garden.module.ts`                      | vài dòng      |
-| Giá trị enum mới, nếu cần                                  | Prisma + contracts                      | một migration |
-| Giống cây mới, nếu cần; thiếu thì dùng `fallback`          | `garden-sim/species/` + registry client | không         |
-| Chạy nạp lịch sử một lần                                   | lệnh                                    | không         |
+| Việc                                                       | Ở đâu                                                    | Đụng lõi?     |
+| ---------------------------------------------------------- | -------------------------------------------------------- | ------------- |
+| Module phát sự kiện                                        | context của module                                       | không         |
+| Viết nguồn: handler dịch contract + nạp lịch sử            | `garden/infrastructure/outbox/`                          | không         |
+| Viết nhịp, nếu là loại cây                                 | `garden/domain/rhythm/`                                  | không         |
+| Đăng ký handler vào `providers`, nhịp vào `GARDEN_RHYTHMS` | `garden.module.ts`                                       | vài dòng      |
+| Giá trị enum mới, nếu cần                                  | Prisma + contracts                                       | một migration |
+| Giống cây mới, nếu cần; thiếu thì dùng `fallback`          | `garden-sim/versions/` (phiên bản mới) + registry client | không         |
+| Chạy nạp lịch sử một lần                                   | lệnh                                                     | không         |
 
 Trước khi thêm, module phải qua KD-GDN-011: việc của nó là chăm sóc hoặc nhìn lại, không phải đo đếm.
 

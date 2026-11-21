@@ -12,7 +12,7 @@ const rested = (n: number): WeekInput[] =>
   }));
 
 describe('stepsOf', () => {
-  it('grows on cared weeks, rests otherwise, and waits on the pending week', () => {
+  it('grows on cared weeks, rests on neglected ones, and skips the rest', () => {
     expect(
       stepsOf([
         { status: 'CARED', scarred: false },
@@ -21,7 +21,7 @@ describe('stepsOf', () => {
         { status: 'SKIPPED', scarred: false },
         { status: 'PENDING', scarred: false },
       ]),
-    ).toEqual(['grow', 'scar', 'rest', 'rest']);
+    ).toEqual(['grow', 'scar', 'rest']);
   });
 });
 
@@ -110,7 +110,34 @@ describe('grow v1', () => {
     const height = (species: 'tree' | 'thorn-bush') =>
       Math.max(...grow(1, { seed: 'h', species, weeks }).nodes.map((n) => n.y));
 
+    const width = (species: 'tree' | 'thorn-bush') =>
+      Math.max(
+        ...grow(1, { seed: 'h', species, weeks }).nodes.map((n) =>
+          Math.hypot(n.x, n.z),
+        ),
+      );
+
     expect(height('thorn-bush')).toBeLessThan(height('tree'));
+    expect(width('thorn-bush')).toBeGreaterThan(width('tree'));
+  });
+
+  // Lưu trữ rồi khôi phục là mọc tiếp từ chỗ cũ, không để dấu (BR-GDN-005).
+  it('grows on after an archive without a knot', () => {
+    const skipped = (n: number): WeekInput[] =>
+      Array.from({ length: n }, () => ({
+        status: 'SKIPPED' as const,
+        scarred: false,
+      }));
+    const archived = grow(1, {
+      seed: 's',
+      species: 'tree',
+      weeks: [...cared(5), ...skipped(3), ...cared(3)],
+    });
+
+    expect(archived.knots).toEqual([]);
+    expect(archived).toEqual(
+      grow(1, { seed: 's', species: 'tree', weeks: cared(8) }),
+    );
   });
 
   it('marks tips and thickens branches that carry more leaves', () => {
@@ -118,8 +145,22 @@ describe('grow v1', () => {
 
     expect(tree.nodes[0]!.tip).toBe(false);
     expect(tree.nodes.some((node) => node.tip)).toBe(true);
+    // Pipe model: cành cha không bao giờ mảnh hơn cành con nó nuôi.
+    for (const node of tree.nodes.slice(1)) {
+      expect(tree.nodes[node.parent]!.radius).toBeGreaterThanOrEqual(
+        node.radius,
+      );
+    }
     expect(tree.nodes[0]!.radius).toBeGreaterThan(
       Math.min(...tree.nodes.map((node) => node.radius)),
+    );
+  });
+
+  it('tells emoji seeds apart', () => {
+    const weeks = cared(4);
+
+    expect(grow(1, { seed: '🌱 run', species: 'tree', weeks })).not.toEqual(
+      grow(1, { seed: '🌳 run', species: 'tree', weeks }),
     );
   });
 

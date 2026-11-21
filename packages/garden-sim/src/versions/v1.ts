@@ -56,14 +56,15 @@ const normalize = ([x, y, z]: Vec): Vec => {
 };
 
 /**
- * Tuần → bước mọc. Tuần hiện tại chưa chăm (PENDING) chưa làm gì: chưa mọc,
- * cũng chưa tính là nghỉ. Nghỉ có chủ đích và bỏ quên đều đứng yên; chỉ cỏ
- * (do server tính) phân biệt hai thứ đó.
+ * Tuần → bước mọc. Chỉ tuần RESTED (có kỳ vọng mà không chăm) là nghỉ: chăm
+ * lại sau đó để mắt gỗ (BA §7.1). Tuần SKIPPED (lưu trữ, không có lịch) và
+ * tuần hiện tại chưa chăm (PENDING) không làm gì: cây ngủ rồi mọc tiếp từ chỗ
+ * cũ, không có dấu (BR-GDN-005).
  */
 export function stepsOf(weeks: readonly WeekInput[]): Step[] {
   return weeks.flatMap((week): Step[] => {
-    if (week.status === 'PENDING') return [];
-    if (week.status !== 'CARED') return ['rest'];
+    if (week.status === 'RESTED') return ['rest'];
+    if (week.status !== 'CARED') return [];
     return [week.scarred ? 'scar' : 'grow'];
   });
 }

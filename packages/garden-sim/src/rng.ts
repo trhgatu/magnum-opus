@@ -1,8 +1,11 @@
-/** FNV-1a: chuỗi → hạt giống 32 bit. Cùng chuỗi luôn ra cùng hạt. */
+/**
+ * FNV-1a trên từng đơn vị UTF-16: chuỗi → hạt giống 32 bit. Cùng chuỗi luôn
+ * ra cùng hạt; ký tự ngoài BMP (emoji) góp cả hai nửa của nó.
+ */
 export function hash(text: string): number {
   let h = 2166136261;
-  for (const ch of text) {
-    h ^= ch.charCodeAt(0);
+  for (let i = 0; i < text.length; i += 1) {
+    h ^= text.charCodeAt(i);
     h = Math.imul(h, 16777619);
   }
   return h >>> 0;
