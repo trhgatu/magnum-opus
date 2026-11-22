@@ -14,6 +14,7 @@ describe('GetGardenHandler', () => {
     subjectId: 'habit-id',
     variant: 'QUIT',
     name: 'Quit sugar',
+    nameAtPlanting: 'Quit sweets',
     simVersion: 1,
     plantedOn: '2026-11-02',
     entries: [
@@ -43,6 +44,7 @@ describe('GetGardenHandler', () => {
         subjectId: 'habit-id',
         variant: 'QUIT',
         name: 'Quit sugar',
+        nameAtPlanting: 'Quit sweets',
         simVersion: 1,
         plantedOn: '2026-11-02',
         weeks: [

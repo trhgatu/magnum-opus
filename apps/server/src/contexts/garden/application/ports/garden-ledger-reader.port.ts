@@ -15,6 +15,8 @@ export interface GardenSubjectLedger {
   subjectId: string;
   variant: GardenVariant;
   name: string;
+  /** Tên lúc gieo, không bao giờ đổi; dùng cho câu chuyện của cây. */
+  nameAtPlanting: string;
   simVersion: number;
   plantedOn: CalendarDay;
   entries: GardenLedgerRow[];

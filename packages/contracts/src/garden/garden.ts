@@ -15,6 +15,8 @@ export interface GardenTreeResponse {
   subjectId: string;
   variant: GardenVariant;
   name: string;
+  /** Tên lúc gieo; khác `name` khi Habit đã đổi tên (Q-GDN-10). */
+  nameAtPlanting: string;
   simVersion: number;
   plantedOn: string;
   weeks: GardenWeekResponse[];

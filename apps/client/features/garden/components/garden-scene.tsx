@@ -287,6 +287,9 @@ export default function GardenScene({
       group.position.copy(position);
       scene.add(group);
 
+      // shortcut: mọi cây mọc lại trên main thread mỗi lần mở trang; ổn với vài
+      // chục cây trong một hai năm. Chuyển sang Web Worker hoặc cache theo
+      // (id, số tuần) khi vườn đủ lớn để thấy giật.
       const grown = grow(tree.simVersion, {
         seed: tree.id,
         species: tree.variant === "QUIT" ? "thorn-bush" : "tree",
@@ -342,6 +345,8 @@ export default function GardenScene({
       hits.push(hit);
 
       const element = document.createElement("span");
+      // Tên cây đã có trong danh sách bên dưới cảnh: không đọc lặp lại.
+      element.setAttribute("aria-hidden", "true");
       element.className =
         "pointer-events-none absolute left-0 top-0 whitespace-nowrap rounded border bg-background px-1.5 text-xs text-foreground";
       element.textContent = tree.name;
@@ -353,7 +358,18 @@ export default function GardenScene({
       });
     });
 
-    let dirty = true;
+    // Chỉ vẽ khi có thay đổi: kéo, cuộn, đổi cỡ, đổi theme, chọn cây. Damping
+    // của OrbitControls tự phát "change" cho tới khi dừng hẳn.
+    let frame = 0;
+    const requestRender = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        controls.update();
+        renderer.render(scene, camera);
+        placeTags();
+      });
+    };
     const isDark = () => document.documentElement.classList.contains("dark");
     const applyTheme = () => {
       const palette = isDark() ? PALETTE.dark : PALETTE.light;
@@ -361,12 +377,12 @@ export default function GardenScene({
         materials[tone].color.set(palette[tone]);
       }
       ringMaterial.color.set(palette.ember);
-      dirty = true;
+      requestRender();
     };
     highlightRef.current = (id) => {
       selected = id;
       for (const [ringId, ring] of rings) ring.visible = ringId === id;
-      dirty = true;
+      requestRender();
     };
     highlightRef.current(selectedId);
 
@@ -374,7 +390,7 @@ export default function GardenScene({
       camera.position.set(-150, 620, 1350);
       controls.target.set(40, 60, 0);
       controls.update();
-      dirty = true;
+      requestRender();
     };
     const resize = () => {
       const width = canvas.clientWidth;
@@ -383,7 +399,7 @@ export default function GardenScene({
       renderer.setSize(width, height, false);
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
-      dirty = true;
+      requestRender();
     };
     const projected = new THREE.Vector3();
     const placeTags = () => {
@@ -396,18 +412,7 @@ export default function GardenScene({
       }
     };
 
-    controls.addEventListener("change", () => {
-      dirty = true;
-    });
-    let frame = 0;
-    const loop = () => {
-      frame = requestAnimationFrame(loop);
-      controls.update();
-      if (!dirty) return;
-      renderer.render(scene, camera);
-      placeTags();
-      dirty = false;
-    };
+    controls.addEventListener("change", requestRender);
 
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
@@ -446,7 +451,6 @@ export default function GardenScene({
     applyTheme();
     resize();
     home();
-    loop();
 
     return () => {
       cancelAnimationFrame(frame);

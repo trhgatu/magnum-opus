@@ -6,6 +6,10 @@ import type { GardenTreeResponse } from "@repo/contracts";
  */
 export function gardenStory(tree: GardenTreeResponse): string {
   const lines = [plantedLine(tree)];
+  // Tên lúc gieo thuộc về câu chuyện của cây; tên hiện tại theo Habit (Q-GDN-10).
+  if (tree.nameAtPlanting !== tree.name) {
+    lines.push(`Lúc gieo, nó mang tên ${tree.nameAtPlanting}.`);
+  }
   const settled = tree.weeks.filter((week) => week.status !== "PENDING");
   const statuses = settled.map((week) => week.status);
 

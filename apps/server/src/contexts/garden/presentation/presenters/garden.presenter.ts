@@ -12,6 +12,7 @@ export class GardenPresenter {
         subjectId: tree.subjectId,
         variant: tree.variant,
         name: tree.name,
+        nameAtPlanting: tree.nameAtPlanting,
         simVersion: tree.simVersion,
         plantedOn: tree.plantedOn,
         weeks: tree.weeks.map((week) => ({

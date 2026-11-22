@@ -23,6 +23,7 @@ export class PrismaGardenLedgerReader implements GardenLedgerReader {
         subjectId: true,
         variant: true,
         name: true,
+        nameAtPlanting: true,
         simVersion: true,
         plantedOn: true,
         // Thứ tự ghi: cùng ngày thì dòng ghi sau thắng (vd đổi lịch hai lần).

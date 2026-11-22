@@ -70,7 +70,12 @@ packages/garden-sim/                    thuần TS (G3a): grow(simVersion, { see
   versions/  v1                           space colonization + pipe model; không bao giờ sửa phiên bản cũ
                                           giống cây (tree, thorn-bush) là hình dạng trong từng phiên bản; * vine, fallback (P3)
 packages/contracts/src/garden/          GardenResponse, enum dùng chung
-apps/client/features/garden/            garden-scene.tsx: three.js (tải lazy, ssr: false); garden-story.ts: lời kể; trang app/(protected)/garden
+apps/client/features/garden/            (G3b)
+  components/garden-view.tsx             khung trang: tải scene (next/dynamic, ssr: false), lời kể, danh sách cây
+  components/garden-scene.tsx            three.js: cây, bụi gai, mắt gỗ, sẹo, cỏ, lối đá; chỉ vẽ khi có thay đổi
+  lib/garden-story.ts                    lời kể không con số, nhắc tên lúc gieo nếu đã đổi tên
+  api/garden.ts                          GET /garden (server-only)
+apps/client/app/(protected)/garden/     page.tsx, loading.tsx, error.tsx
 ```
 
 ## 4. Luật phụ thuộc (thêm vào `architecture/dependency-rules.spec.ts`)
@@ -162,7 +167,7 @@ GET /garden → GetGardenHandler
 → PrismaGardenLedgerReader: garden_subjects không ẩn + garden_entries theo thứ tự ghi
 → hôm nay theo múi giờ tài khoản
 → garden-week.ts (thuần): gardenWeeks → chuỗi tuần CARED / PENDING / RESTED / SKIPPED + sẹo; weedsAfter → bậc cỏ
-→ GardenResponse { today, trees: [{ id, subjectKind, subjectId, variant, name, simVersion, plantedOn, weeks: [{ start, status, scarred }], weeds }] }
+→ GardenResponse { today, trees: [{ id, subjectKind, subjectId, variant, name, nameAtPlanting, simVersion, plantedOn, weeks: [{ start, status, scarred }], weeds }] }
 → client (G3b, /garden): grow(tree.simVersion, { seed: tree.id, species: tree.variant === 'QUIT' ? 'thorn-bush' : 'tree', weeks: tree.weeks }) dựng hình học → three.js vẽ
 ```
 

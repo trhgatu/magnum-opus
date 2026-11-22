@@ -58,6 +58,9 @@ const routeBudgets = new Map([
   // +0.7 KiB: error.tsx mới thêm cho /today (đồng bộ boundary với các route
   // protected khác).
   ["/today", 571 * KIBIBYTE],
+  // three.js và garden-sim tải riêng (next/dynamic, ssr: false), không nằm
+  // trong first-load: đo được 523.4 KiB khi thêm trang.
+  ["/garden", 527 * KIBIBYTE],
 ]);
 
 const diagnosticsPath = resolve(

@@ -19,6 +19,7 @@ const tree = (
   subjectId: "habit-id",
   variant: "BUILD",
   name: "Đọc sách",
+  nameAtPlanting: "Đọc sách",
   simVersion: 1,
   plantedOn: "2026-09-07",
   weeks: [week("CARED"), week("CARED")],
@@ -30,6 +31,12 @@ describe("gardenStory", () => {
   it("tells when a tree was planted and that it is cared for", () => {
     expect(gardenStory(tree())).toBe(
       "Cây Đọc sách, gieo tháng 9/2026. Được chăm đều từ ngày gieo.",
+    );
+  });
+
+  it("keeps the name the tree was planted with in its story", () => {
+    expect(gardenStory(tree({ nameAtPlanting: "Đọc truyện" }))).toBe(
+      "Cây Đọc sách, gieo tháng 9/2026. Lúc gieo, nó mang tên Đọc truyện. Được chăm đều từ ngày gieo.",
     );
   });
 
