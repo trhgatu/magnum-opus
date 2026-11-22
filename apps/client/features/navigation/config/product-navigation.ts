@@ -9,6 +9,7 @@ import {
   Repeat2,
   ScrollText,
   Sparkles,
+  Sprout,
 } from "lucide-react";
 import type { ProductSpace } from "@/features/navigation/types/navigation.types";
 
@@ -79,6 +80,21 @@ export const productNavigation = [
         label: "Nhìn lại tháng",
         href: "/chronicle",
         icon: ScrollText,
+      },
+    ],
+  },
+  {
+    id: "garden",
+    label: "Khu vườn",
+    description: "Nhìn những gì đã chăm lớn lên, không điểm số.",
+    icon: Sprout,
+    status: "available",
+    items: [
+      {
+        id: "garden",
+        label: "Khu vườn",
+        href: "/garden",
+        icon: Sprout,
       },
     ],
   },

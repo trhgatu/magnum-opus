@@ -29,6 +29,7 @@ export interface GardenTree {
   subjectId: string;
   variant: GardenVariant;
   name: string;
+  nameAtPlanting: string;
   simVersion: number;
   plantedOn: CalendarDay;
   weeks: GardenWeek[];

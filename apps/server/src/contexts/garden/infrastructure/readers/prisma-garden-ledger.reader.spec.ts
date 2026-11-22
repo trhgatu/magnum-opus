@@ -12,6 +12,7 @@ describe('PrismaGardenLedgerReader', () => {
         subjectId: 'habit-id',
         variant: 'BUILD',
         name: 'Gym',
+        nameAtPlanting: 'Gym',
         simVersion: 1,
         plantedOn: new Date('2026-11-02T00:00:00.000Z'),
         entries: [
@@ -51,6 +52,7 @@ describe('PrismaGardenLedgerReader', () => {
         subjectId: 'habit-id',
         variant: 'BUILD',
         name: 'Gym',
+        nameAtPlanting: 'Gym',
         simVersion: 1,
         plantedOn: '2026-11-02',
         entries: [

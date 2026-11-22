@@ -11,6 +11,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY apps/client/package.json apps/client/
 COPY packages/contracts/package.json packages/contracts/
 COPY packages/types/package.json packages/types/
+COPY packages/garden-sim/package.json packages/garden-sim/
 
 FROM base AS builder
 RUN pnpm install --frozen-lockfile
