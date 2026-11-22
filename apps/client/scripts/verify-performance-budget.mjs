@@ -43,14 +43,17 @@ const routeBudgets = new Map([
   // +2 KiB: Next.js 16.4.2 → 16.4.6 (bản vá bảo mật). Runtime tăng đều
   // ~1.2–2 KiB trên mọi route (vd /login 496.6 → 497.8, /habits/[id]
   // 582.5 → 584.4), không có code ứng dụng nào đổi.
-  ["/habits/[id]", 585 * KIBIBYTE],
+  // +1 KiB trên /habits/[id] và /routines/[id]: mục "Khu vườn" (icon Sprout)
+  // trong sidebar dùng chung làm mọi route protected nặng thêm ~0.5 KiB (vd
+  // /routines/[id] 659.7 → 660.2). three.js của /garden nằm chunk riêng.
+  ["/habits/[id]", 586 * KIBIBYTE],
   ["/habits/[id]/edit", 720 * KIBIBYTE],
   ["/routines", 568 * KIBIBYTE],
   // Cùng ConflictAlert/reload-on-conflict trên routine-editor: +2 KiB trên
   // /routines/new và /routines/[id]/edit.
   ["/routines/new", 575 * KIBIBYTE],
   // Routine detail includes the isolated shadcn Select used for membership.
-  ["/routines/[id]", 660 * KIBIBYTE],
+  ["/routines/[id]", 661 * KIBIBYTE],
   ["/routines/[id]/edit", 575 * KIBIBYTE],
   // +0.7 KiB: error.tsx mới thêm cho /today (đồng bộ boundary với các route
   // protected khác).
