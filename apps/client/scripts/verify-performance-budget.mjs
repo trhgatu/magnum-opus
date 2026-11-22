@@ -40,7 +40,10 @@ const routeBudgets = new Map([
   // (Habit V4) cùng tham chiếu server action trashHabit và isRedirectError.
   // Danh sách Thùng rác thì tách chunk riêng nên /habits không tăng.
   ["/habits/new", 720 * KIBIBYTE],
-  ["/habits/[id]", 583 * KIBIBYTE],
+  // +2 KiB: Next.js 16.4.2 → 16.4.6 (bản vá bảo mật). Runtime tăng đều
+  // ~1.2–2 KiB trên mọi route (vd /login 496.6 → 497.8, /habits/[id]
+  // 582.5 → 584.4), không có code ứng dụng nào đổi.
+  ["/habits/[id]", 585 * KIBIBYTE],
   ["/habits/[id]/edit", 720 * KIBIBYTE],
   ["/routines", 568 * KIBIBYTE],
   // Cùng ConflictAlert/reload-on-conflict trên routine-editor: +2 KiB trên
