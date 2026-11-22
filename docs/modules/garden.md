@@ -73,7 +73,7 @@ packages/contracts/src/garden/          GardenResponse, enum dùng chung
 apps/client/features/garden/            (G3b)
   components/garden-view.tsx             khung trang: tải scene (next/dynamic, ssr: false), lời kể, danh sách cây
   components/garden-scene.tsx            three.js: cây, bụi gai, mắt gỗ, sẹo, cỏ, lối đá; chỉ vẽ khi có thay đổi
-  lib/garden-story.ts                    lời kể không con số, nhắc tên lúc gieo nếu đã đổi tên
+  lib/garden-story.ts                    lời kể không điểm số hay đếm tuần (KD-GDN-002), chỉ có tháng gieo; nhắc tên lúc gieo nếu đã đổi tên
   api/garden.ts                          GET /garden (server-only)
 apps/client/app/(protected)/garden/     page.tsx, loading.tsx, error.tsx
 ```
