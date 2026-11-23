@@ -15,6 +15,7 @@ describe('GetGardenHandler', () => {
     variant: 'QUIT',
     name: 'Quit sugar',
     nameAtPlanting: 'Quit sweets',
+    bed: null,
     simVersion: 1,
     plantedOn: '2026-11-02',
     entries: [
@@ -45,6 +46,7 @@ describe('GetGardenHandler', () => {
         variant: 'QUIT',
         name: 'Quit sugar',
         nameAtPlanting: 'Quit sweets',
+        bed: null,
         simVersion: 1,
         plantedOn: '2026-11-02',
         weeks: [

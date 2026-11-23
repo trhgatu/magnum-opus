@@ -197,6 +197,7 @@ export class Routine extends AggregateRoot {
         this.props.ownerId,
         normalizedHabitId,
         this.nextMembershipDate(normalizedHabitId, today),
+        this.props.title,
       ),
     );
   }

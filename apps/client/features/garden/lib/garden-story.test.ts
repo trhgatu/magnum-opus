@@ -20,6 +20,7 @@ const tree = (
   variant: "BUILD",
   name: "Đọc sách",
   nameAtPlanting: "Đọc sách",
+  bed: null,
   simVersion: 1,
   plantedOn: "2026-09-07",
   weeks: [week("CARED"), week("CARED")],

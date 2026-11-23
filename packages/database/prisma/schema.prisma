@@ -791,6 +791,8 @@ model GardenSubject {
   entries GardenEntry[]
   plantedOn      DateTime          @map("planted_on") @db.Date
   hiddenAt DateTime? @map("hidden_at")
+  bedId String? @map("bed_id")
+  bedName String? @map("bed_name")
   createdAt DateTime @default(now()) @map("created_at")
   owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   @@unique([subjectKind, subjectId])

@@ -13,6 +13,7 @@ import { ShowRestoredHabitHandler } from './infrastructure/outbox/show-restored-
 import { RecordHabitLifecycleHandler } from './infrastructure/outbox/record-habit-lifecycle.handler';
 import { RecordHabitRhythmHandler } from './infrastructure/outbox/record-habit-rhythm.handler';
 import { PrismaGardenLedgerWriter } from './infrastructure/writers/prisma-garden-ledger.writer';
+import { AssignHabitBedHandler } from './infrastructure/outbox/assign-habit-bed.handler';
 import { RenameHabitTreeHandler } from './infrastructure/outbox/rename-habit-tree.handler';
 import { CLOCK } from './application/ports/clock.port';
 import { GARDEN_LEDGER_READER } from './application/ports/garden-ledger-reader.port';
@@ -42,6 +43,7 @@ import { GardenController } from './presentation/controllers/garden.controller';
     RecordHabitRhythmHandler,
     RecordHabitLifecycleHandler,
     RenameHabitTreeHandler,
+    AssignHabitBedHandler,
     { provide: GARDEN_LEDGER_WRITER, useClass: PrismaGardenLedgerWriter },
   ],
 })

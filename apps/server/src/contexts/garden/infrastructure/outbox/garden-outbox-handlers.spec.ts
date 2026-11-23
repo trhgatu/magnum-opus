@@ -9,6 +9,7 @@ import { HabitLifecycleTransitioned } from '@/contexts/forge/habit/contracts/hab
 import { HabitTrashed } from '@/contexts/forge/habit/contracts/habit-trashed.contract';
 import { HabitRestoredFromTrash } from '@/contexts/forge/habit/contracts/habit-restored-from-trash.contract';
 import { HabitScheduleVersionStarted } from '@/contexts/forge/habit/contracts/habit-schedule-version-started.contract';
+import { RoutineHabitAdded } from '@/contexts/forge/routine/contracts/routine-habit-added.contract';
 import { HabitRenamed } from '@/contexts/forge/habit/contracts/habit-renamed.contract';
 
 import type { GardenLedgerWriter } from '../../application/ports/garden-ledger-writer.port';
@@ -23,6 +24,7 @@ import { HideTrashedHabitHandler } from './hide-trashed-habit.handler';
 import { ShowRestoredHabitHandler } from './show-restored-habit.handler';
 import { RecordHabitRhythmHandler } from './record-habit-rhythm.handler';
 import { RenameHabitTreeHandler } from './rename-habit-tree.handler';
+import { AssignHabitBedHandler } from './assign-habit-bed.handler';
 import { UprootDeletedHabitHandler } from './uproot-deleted-habit.handler';
 
 const ledger = {
@@ -33,6 +35,7 @@ const ledger = {
   hide: jest.fn().mockResolvedValue(undefined),
   show: jest.fn().mockResolvedValue(undefined),
   rename: jest.fn().mockResolvedValue(undefined),
+  assignBed: jest.fn().mockResolvedValue(undefined),
 } as unknown as jest.Mocked<GardenLedgerWriter>;
 const at = new Date('2026-11-18T03:00:00.000Z');
 
@@ -74,6 +77,9 @@ describe('garden outbox handlers', () => {
     ).toBe(HabitScheduleVersionStarted);
     expect(Reflect.getMetadata(OutboxHandler.KEY, RenameHabitTreeHandler)).toBe(
       HabitRenamed,
+    );
+    expect(Reflect.getMetadata(OutboxHandler.KEY, AssignHabitBedHandler)).toBe(
+      RoutineHabitAdded,
     );
   });
 
@@ -244,6 +250,24 @@ describe('garden outbox handlers', () => {
       'habit-id',
       'Evening walk',
     );
+  });
+
+  it('puts a tree in the bed of the Routine its Habit joined', async () => {
+    await new AssignHabitBedHandler(ledger).handle({
+      eventId: 'event-id',
+      occurredAt: at,
+      payload: {
+        routineId: 'routine-id',
+        habitId: 'habit-id',
+        ownerId: 'owner-id',
+        routineTitle: 'Morning',
+      },
+    });
+
+    expect(ledger.assignBed).toHaveBeenCalledWith('HABIT', 'habit-id', {
+      id: 'routine-id',
+      name: 'Morning',
+    });
   });
 
   it('hides the tree of a trashed Habit and shows it again on restore', async () => {

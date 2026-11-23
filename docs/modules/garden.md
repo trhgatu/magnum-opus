@@ -160,6 +160,8 @@ Lúc tạo, `HabitCreated` ghi vào outbox trước, nên cây được gieo tr�
 
 Mỗi nguồn chỉ ghi phần sổ còn thiếu: ngày nào có n dòng nguồn mà sổ đã có k dòng cùng loại (cùng lịch, với `RHYTHM_SET`) thì chỉ ghi thêm n − k. Nhờ vậy Habit tạo giữa các lát G1a–G1d không bị ghi trùng những gì đã vào sổ lúc chạy thật, và chạy lại không ra dòng mới. Dòng nạp dùng `source_event_id = backfill:<nguồn>:<id>` (BR-GDN-SB-005). Giới hạn: DB không lưu múi giờ lúc tái phạm, nên sẹo nạp lại tính theo múi giờ hiện tại; tài khoản từng đổi múi giờ có thể lệch ngày ở vài sẹo cũ. Múi giờ PostgreSQL không nhận ra thì dùng UTC.
 
+**Luống** (đã có, G4): thêm Habit vào Routine phát `forge.routine.habit-added.v1` (cùng transaction, `aggregateId = habitId` nên luôn tới sau `HabitCreated`, kèm tên Routine). `AssignHabitBedHandler` đặt `bed_id` / `bed_name` chỉ khi cây chưa có luống: luống chốt ở lần đầu Habit vào một Routine, rời Routine hay vào Routine khác sau đó không dời cây (BR-GDN-008). Migration `20261122090000_garden_beds` nạp luống từ lịch sử thành viên. Đổi tên Routine sau đó không đổi tên luống. Client xếp mỗi luống thành một cụm trên nền đất riêng, cây không có luống đứng dọc lối đá (`lib/garden-layout.ts`).
+
 **Đọc** (đã có, G2b) (người dùng mở vườn):
 
 ```
@@ -167,11 +169,11 @@ GET /garden → GetGardenHandler
 → PrismaGardenLedgerReader: garden_subjects không ẩn + garden_entries theo thứ tự ghi
 → hôm nay theo múi giờ tài khoản
 → garden-week.ts (thuần): gardenWeeks → chuỗi tuần CARED / PENDING / RESTED / SKIPPED + sẹo; weedsAfter → bậc cỏ
-→ GardenResponse { today, trees: [{ id, subjectKind, subjectId, variant, name, nameAtPlanting, simVersion, plantedOn, weeks: [{ start, status, scarred }], weeds }] }
+→ GardenResponse { today, trees: [{ id, subjectKind, subjectId, variant, name, nameAtPlanting, bed, simVersion, plantedOn, weeks: [{ start, status, scarred }], weeds }] }
 → client (G3b, /garden): grow(tree.simVersion, { seed: tree.id, species: tree.variant === 'QUIT' ? 'thorn-bush' : 'tree', weeks: tree.weeks }) dựng hình học → three.js vẽ
 ```
 
-Server chỉ gửi chuỗi tuần; việc mọc cây chạy ở trình duyệt. `garden-sim` v1 lấy nguyên thuật toán của bản phác "Khu vườn của Tú 3D": tuần `CARED` mọc 4 nhịp (có sẹo thì để một vòng sẹo trên thân); tuần `RESTED` đứng yên, chăm lại sau đó thì cành bẻ hướng và để mắt gỗ; tuần `SKIPPED` (lưu trữ) và `PENDING` không làm gì, nên khôi phục là mọc tiếp từ chỗ cũ, không có dấu (BR-GDN-005). Test của gói so dấu vân tay của cây (số node, vị trí node cuối, vị trí sẹo) với bản phác để v1 không bị đổi. Mắt gỗ không có trong response: garden-sim suy ra từ một tuần `CARED` đi sau `RESTED`. Vị trí cây (`plot`, BR-GDN-008) chưa có. Policy được kiểm bằng 9 ví dụ của BA §8.8 (`garden-week.spec.ts`).
+Server chỉ gửi chuỗi tuần; việc mọc cây chạy ở trình duyệt. `garden-sim` v1 lấy nguyên thuật toán của bản phác "Khu vườn của Tú 3D": tuần `CARED` mọc 4 nhịp (có sẹo thì để một vòng sẹo trên thân); tuần `RESTED` đứng yên, chăm lại sau đó thì cành bẻ hướng và để mắt gỗ; tuần `SKIPPED` (lưu trữ) và `PENDING` không làm gì, nên khôi phục là mọc tiếp từ chỗ cũ, không có dấu (BR-GDN-005). Test của gói so dấu vân tay của cây (số node, vị trí node cuối, vị trí sẹo) với bản phác để v1 không bị đổi. Mắt gỗ không có trong response: garden-sim suy ra từ một tuần `CARED` đi sau `RESTED`. Policy được kiểm bằng 9 ví dụ của BA §8.8 (`garden-week.spec.ts`).
 
 ## 6. Thêm một module mới
 

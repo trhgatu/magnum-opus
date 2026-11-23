@@ -360,6 +360,35 @@ describe('Garden ledger (E2E)', () => {
     });
   });
 
+  // BR-GDN-008: cây vào luống ở lần đầu Habit vào một Routine rồi ở yên đó.
+  it('puts a tree in the bed of the first Routine its Habit joins', async () => {
+    const habitId = await createPlantedBuildHabit('Stretch');
+    const routine = async (title: string) =>
+      (
+        await request(app.getHttpServer())
+          .post('/routines')
+          .set('Authorization', `Bearer ${token}`)
+          .send({ title })
+          .expect(HttpStatus.CREATED)
+      ).body.id as string;
+    const first = await routine('Buổi sáng');
+    const second = await routine('Buổi tối');
+
+    for (const routineId of [first, second]) {
+      await request(app.getHttpServer())
+        .post(`/routines/${routineId}/habits`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ habitId, expectedRevision: 1 })
+        .expect(HttpStatus.CREATED);
+    }
+
+    const subject = await eventually(
+      () => subjectOf(habitId),
+      (row) => row?.bedId != null,
+    );
+    expect(subject).toMatchObject({ bedId: first, bedName: 'Buổi sáng' });
+  });
+
   it('serves the garden as weekly series and leaves trashed trees out', async () => {
     const tendedId = await createPlantedBuildHabit('Read a page');
     const checkIn = await request(app.getHttpServer())

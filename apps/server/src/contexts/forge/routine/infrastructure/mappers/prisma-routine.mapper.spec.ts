@@ -282,6 +282,7 @@ describe('PrismaRoutineMapper', () => {
         'owner-id',
         'habit-first',
         TODAY,
+        'Morning',
       );
 
       expect(PrismaRoutineMapper.membershipOpeningToPersistence(event)).toEqual(

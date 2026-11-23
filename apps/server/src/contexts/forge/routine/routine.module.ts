@@ -28,6 +28,7 @@ import { PrismaRoutineReader } from './infrastructure/readers/prisma-routine.rea
 import { PrismaUserTimeZoneReader } from './infrastructure/readers/prisma-user-time-zone.reader';
 import { PrismaRoutineRepository } from './infrastructure/repositories/prisma-routine.repository';
 import { RoutineController } from './presentation/controllers/routine.controller';
+import { RoutineOutbox } from './infrastructure/outbox/routine.outbox';
 
 const commandHandlers = [
   AddRoutineHabitHandler,
@@ -51,6 +52,7 @@ const queryHandlers = [
   imports: [CqrsModule],
   controllers: [RoutineController],
   providers: [
+    RoutineOutbox,
     { provide: CLOCK, useClass: SystemClock },
     { provide: USER_TIME_ZONE_READER, useClass: PrismaUserTimeZoneReader },
     {

@@ -31,19 +31,24 @@ export class PrismaGardenLedgerReader implements GardenLedgerReader {
           orderBy: { sequence: 'asc' },
           select: { kind: true, occurredOn: true, mark: true, detail: true },
         },
+        bedId: true,
+        bedName: true,
       },
     });
 
-    return subjects.map(({ plantedOn, entries, ...subject }) => ({
-      ...subject,
-      plantedOn: calendarDayOf(plantedOn),
-      entries: entries.map((entry) => ({
-        kind: entry.kind,
-        occurredOn: calendarDayOf(entry.occurredOn),
-        mark: entry.mark,
-        // CHECK của DB chỉ cho detail trên dòng RHYTHM_SET, đúng dạng writer ghi.
-        detail: entry.detail as GardenSchedule | null,
-      })),
-    }));
+    return subjects.map(
+      ({ plantedOn, entries, bedId, bedName, ...subject }) => ({
+        ...subject,
+        plantedOn: calendarDayOf(plantedOn),
+        bed: bedId && bedName ? { id: bedId, name: bedName } : null,
+        entries: entries.map((entry) => ({
+          kind: entry.kind,
+          occurredOn: calendarDayOf(entry.occurredOn),
+          mark: entry.mark,
+          // CHECK của DB chỉ cho detail trên dòng RHYTHM_SET, đúng dạng writer ghi.
+          detail: entry.detail as GardenSchedule | null,
+        })),
+      }),
+    );
   }
 }
