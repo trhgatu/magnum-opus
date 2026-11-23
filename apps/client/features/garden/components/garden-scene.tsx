@@ -57,8 +57,25 @@ const PALETTE = {
 
 type Tone = keyof (typeof PALETTE)["light"];
 
-/** Màu sương: gần màu nền trang, để sương hoà vào trang thay vì phủ xám. */
+/** Màu sương dự phòng khi không đọc được --background của trang. */
 const MIST = { light: "#f6f1e7", dark: "#1d1a16" } as const;
+
+/**
+ * Màu nền thật của trang (token --background, dạng oklch) đổi sang RGB qua
+ * canvas 2D, vì three.js không đọc được oklch. Sương mang đúng màu này để hoà
+ * vào trang thay vì phủ một lớp xám.
+ */
+function pageBackground(fallback: string): THREE.Color {
+  const value = getComputedStyle(document.documentElement)
+    .getPropertyValue("--background")
+    .trim();
+  const context = document.createElement("canvas").getContext("2d");
+  if (!value || !context) return new THREE.Color(fallback);
+  context.fillStyle = value;
+  context.fillRect(0, 0, 1, 1);
+  const [r, g, b] = context.getImageData(0, 0, 1, 1).data;
+  return new THREE.Color(`rgb(${r}, ${g}, ${b})`);
+}
 
 /** Lối đá trước-trái ra sau-phải; cây đứng hai bên theo thứ tự gieo. */
 const PATH = [
@@ -430,7 +447,7 @@ export default function GardenScene({
         light >= 0.99
           ? null
           : new THREE.Fog(
-              isDark() ? MIST.dark : MIST.light,
+              pageBackground(isDark() ? MIST.dark : MIST.light),
               900 + light * 1800,
               3200 + light * 3000,
             );
@@ -465,7 +482,11 @@ export default function GardenScene({
       for (const tag of tags) {
         projected.copy(tag.point).project(camera);
         tag.element.hidden =
-          projected.z > 1 || (!tag.always && tag.id !== selected);
+          projected.z > 1 ||
+          // Ngoài khung hình thì ẩn, để nhãn không tràn ra khỏi cảnh.
+          Math.abs(projected.x) > 1 ||
+          Math.abs(projected.y) > 1 ||
+          (!tag.always && tag.id !== selected);
         tag.element.style.transform = `translate(${(projected.x * 0.5 + 0.5) * width}px,${(-projected.y * 0.5 + 0.5) * height}px) translate(-50%,0)`;
       }
     };

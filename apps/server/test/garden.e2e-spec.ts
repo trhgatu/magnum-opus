@@ -4,10 +4,12 @@ import cookieParser from 'cookie-parser';
 import request from 'supertest';
 
 import { AppModule } from '../src/app.module';
+import { gardenLight } from '../src/contexts/garden/domain/garden-light';
 import { weekStartOf } from '../src/contexts/garden/domain/garden-week';
 import { PrismaService } from '../src/infrastructure/database/prisma.service';
 import {
   calendarDayAt,
+  calendarDayOf,
   calendarDayToDate,
 } from '../src/shared/domain/calendar-day';
 import { DomainExceptionFilter } from '../src/presentation/filters/domain-exception.filter';
@@ -415,7 +417,15 @@ describe('Garden ledger (E2E)', () => {
       .get('/garden')
       .set('Authorization', `Bearer ${token}`)
       .expect(HttpStatus.OK);
-    expect(garden.body.light).toBe(1);
+    // Tính từ ngày đã ghi và hôm nay trong response: niêm phong sát nửa đêm
+    // thì hai mốc có thể khác ngày.
+    expect(garden.body.light).toBe(
+      gardenLight(
+        calendarDayOf(reflected!.occurredOn),
+        garden.body.today as string,
+      ),
+    );
+    expect(garden.body.light).toBeGreaterThan(0.9);
   });
 
   it('serves the garden as weekly series and leaves trashed trees out', async () => {

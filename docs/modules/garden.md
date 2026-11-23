@@ -171,7 +171,7 @@ GET /garden → GetGardenHandler
 → PrismaGardenLedgerReader: garden_subjects không ẩn + garden_entries theo thứ tự ghi
 → hôm nay theo múi giờ tài khoản
 → garden-week.ts (thuần): gardenWeeks → chuỗi tuần CARED / PENDING / RESTED / SKIPPED + sẹo; weedsAfter → bậc cỏ
-→ GardenResponse { today, trees: [{ id, subjectKind, subjectId, variant, name, nameAtPlanting, bed, simVersion, plantedOn, weeks: [{ start, status, scarred }], weeds }] }
+→ GardenResponse { today, light, trees: [{ id, subjectKind, subjectId, variant, name, nameAtPlanting, bed, simVersion, plantedOn, weeks: [{ start, status, scarred }], weeds }] }
 → client (G3b, /garden): grow(tree.simVersion, { seed: tree.id, species: tree.variant === 'QUIT' ? 'thorn-bush' : 'tree', weeks: tree.weeks }) dựng hình học → three.js vẽ
 ```
 

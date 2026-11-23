@@ -60,16 +60,20 @@ export class GetGardenHandler implements IQueryHandler<
   ) {}
 
   public async execute(query: GetGardenQuery): Promise<GardenResult> {
-    const [subjects, timeZone] = await Promise.all([
+    // Mọi lần đọc chung một Promise.all: một lần lỗi không để lần khác bị bỏ
+    // rơi (unhandled rejection làm sập process).
+    const now = this.clock.now();
+    const timeZonePromise = this.timeZoneReader.getForUser(query.ownerId);
+    const [subjects, today, lastReflectedOn] = await Promise.all([
       this.ledger.visibleSubjectsOf(query.ownerId),
-      this.timeZoneReader.getForUser(query.ownerId),
+      timeZonePromise.then((timeZone) => calendarDayAt(now, timeZone)),
+      timeZonePromise.then((timeZone) =>
+        this.ledger.lastReflectedOn(
+          query.ownerId,
+          calendarDayAt(now, timeZone),
+        ),
+      ),
     ]);
-    const today = calendarDayAt(this.clock.now(), timeZone);
-
-    const lastReflectedOn = await this.ledger.lastReflectedOn(
-      query.ownerId,
-      today,
-    );
 
     return {
       today,
