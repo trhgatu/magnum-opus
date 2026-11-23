@@ -4,10 +4,12 @@ import cookieParser from 'cookie-parser';
 import request from 'supertest';
 
 import { AppModule } from '../src/app.module';
+import { gardenLight } from '../src/contexts/garden/domain/garden-light';
 import { weekStartOf } from '../src/contexts/garden/domain/garden-week';
 import { PrismaService } from '../src/infrastructure/database/prisma.service';
 import {
   calendarDayAt,
+  calendarDayOf,
   calendarDayToDate,
 } from '../src/shared/domain/calendar-day';
 import { DomainExceptionFilter } from '../src/presentation/filters/domain-exception.filter';
@@ -387,6 +389,43 @@ describe('Garden ledger (E2E)', () => {
       (row) => row?.bedId != null,
     );
     expect(subject).toMatchObject({ bedId: first, bedName: 'Buổi sáng' });
+  });
+
+  // BA §7.4: niêm phong một trang là một lần nhìn lại; vườn sáng tỏ nhất hôm đó.
+  it('lights the garden when a journal entry is sealed', async () => {
+    const entry = await request(app.getHttpServer())
+      .post('/journal/entries')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ title: 'Hôm nay', content: 'Một ngày đáng nhớ.' })
+      .expect(HttpStatus.CREATED);
+    await request(app.getHttpServer())
+      .patch(`/journal/entries/${entry.body.id as string}/seal`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ expectedRevision: 1 })
+      .expect(HttpStatus.OK);
+
+    const reflected = await eventually(
+      () =>
+        prisma.gardenEntry.findFirst({
+          where: { kind: 'REFLECTED', sourceRef: entry.body.id as string },
+        }),
+      (row) => row !== null,
+    );
+    expect(reflected).toMatchObject({ subjectId: null });
+
+    const garden = await request(app.getHttpServer())
+      .get('/garden')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(HttpStatus.OK);
+    // Tính từ ngày đã ghi và hôm nay trong response: niêm phong sát nửa đêm
+    // thì hai mốc có thể khác ngày.
+    expect(garden.body.light).toBe(
+      gardenLight(
+        calendarDayOf(reflected!.occurredOn),
+        garden.body.today as string,
+      ),
+    );
+    expect(garden.body.light).toBeGreaterThan(0.9);
   });
 
   it('serves the garden as weekly series and leaves trashed trees out', async () => {

@@ -12,6 +12,7 @@ import {
   gardenWeeks,
   weedsAfter,
 } from '../../../domain/garden-week';
+import { gardenLight } from '../../../domain/garden-light';
 import { CLOCK, type Clock } from '../../ports/clock.port';
 import {
   GARDEN_LEDGER_READER,
@@ -40,6 +41,7 @@ export interface GardenTree {
 export interface GardenResult {
   today: CalendarDay;
   trees: GardenTree[];
+  light: number;
 }
 
 /** Vườn của owner: mỗi cây là chuỗi tuần tính lại từ sổ (BA §7). */
@@ -58,14 +60,24 @@ export class GetGardenHandler implements IQueryHandler<
   ) {}
 
   public async execute(query: GetGardenQuery): Promise<GardenResult> {
-    const [subjects, timeZone] = await Promise.all([
+    // Mọi lần đọc chung một Promise.all: một lần lỗi không để lần khác bị bỏ
+    // rơi (unhandled rejection làm sập process).
+    const now = this.clock.now();
+    const timeZonePromise = this.timeZoneReader.getForUser(query.ownerId);
+    const [subjects, today, lastReflectedOn] = await Promise.all([
       this.ledger.visibleSubjectsOf(query.ownerId),
-      this.timeZoneReader.getForUser(query.ownerId),
+      timeZonePromise.then((timeZone) => calendarDayAt(now, timeZone)),
+      timeZonePromise.then((timeZone) =>
+        this.ledger.lastReflectedOn(
+          query.ownerId,
+          calendarDayAt(now, timeZone),
+        ),
+      ),
     ]);
-    const today = calendarDayAt(this.clock.now(), timeZone);
 
     return {
       today,
+      light: gardenLight(lastReflectedOn, today),
       trees: subjects.map(({ entries, ...subject }) => {
         const weeks = gardenWeeks({
           variant: subject.variant,

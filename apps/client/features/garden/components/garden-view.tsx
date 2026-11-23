@@ -19,9 +19,10 @@ const GardenScene = dynamic(() => import("./garden-scene"), {
 
 interface GardenViewProps {
   trees: readonly GardenTreeResponse[];
+  light: number;
 }
 
-export function GardenView({ trees }: GardenViewProps) {
+export function GardenView({ trees, light }: GardenViewProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = trees.find((tree) => tree.id === selectedId) ?? null;
 
@@ -30,6 +31,7 @@ export function GardenView({ trees }: GardenViewProps) {
       <div className="overflow-hidden border-y">
         <GardenScene
           trees={trees}
+          light={light}
           selectedId={selectedId}
           onSelect={setSelectedId}
         />

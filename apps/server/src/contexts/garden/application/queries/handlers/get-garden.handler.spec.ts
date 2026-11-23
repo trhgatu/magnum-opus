@@ -3,7 +3,7 @@ import { GetGardenQuery } from '../get-garden.query';
 import { GetGardenHandler } from './get-garden.handler';
 
 describe('GetGardenHandler', () => {
-  const ledger = { visibleSubjectsOf: jest.fn() };
+  const ledger = { visibleSubjectsOf: jest.fn(), lastReflectedOn: jest.fn() };
   const timeZoneReader = { getForUser: jest.fn() };
   const clock = { now: jest.fn() };
   const handler = new GetGardenHandler(ledger, timeZoneReader, clock);
@@ -27,6 +27,7 @@ describe('GetGardenHandler', () => {
     jest.clearAllMocks();
     ledger.visibleSubjectsOf.mockResolvedValue([quitTree]);
     timeZoneReader.getForUser.mockResolvedValue('Asia/Ho_Chi_Minh');
+    ledger.lastReflectedOn.mockResolvedValue(null);
   });
 
   // 17:30Z Chủ nhật 15/11 đã là thứ Hai 16/11 ở Việt Nam: sang tuần mới.
@@ -38,6 +39,7 @@ describe('GetGardenHandler', () => {
     expect(ledger.visibleSubjectsOf).toHaveBeenCalledWith('owner-id');
     expect(timeZoneReader.getForUser).toHaveBeenCalledWith('owner-id');
     expect(garden.today).toBe('2026-11-16');
+    expect(garden.light).toBe(0);
     expect(garden.trees).toEqual([
       {
         id: 'subject-id',
@@ -65,6 +67,21 @@ describe('GetGardenHandler', () => {
 
     await expect(
       handler.execute(new GetGardenQuery('owner-id')),
-    ).resolves.toEqual({ today: '2026-11-16', trees: [] });
+    ).resolves.toEqual({ today: '2026-11-16', light: 0, trees: [] });
+  });
+
+  // Sáng tỏ theo độ gần của lần nhìn lại gần nhất, tính theo hôm nay của owner.
+  it('lights the garden from the latest reflection up to today', async () => {
+    ledger.visibleSubjectsOf.mockResolvedValue([]);
+    ledger.lastReflectedOn.mockResolvedValue('2026-11-09');
+    clock.now.mockReturnValue(new Date('2026-11-15T17:30:00.000Z'));
+
+    const garden = await handler.execute(new GetGardenQuery('owner-id'));
+
+    expect(ledger.lastReflectedOn).toHaveBeenCalledWith(
+      'owner-id',
+      '2026-11-16',
+    );
+    expect(garden.light).toBe(0.75);
   });
 });

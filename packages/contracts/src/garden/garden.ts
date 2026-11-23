@@ -29,4 +29,5 @@ export interface GardenResponse {
   /** Hôm nay theo múi giờ tài khoản. */
   today: string;
   trees: GardenTreeResponse[];
+  light: number;
 }

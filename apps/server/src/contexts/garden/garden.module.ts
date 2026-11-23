@@ -23,6 +23,7 @@ import { SystemClock } from './infrastructure/clock/system-clock';
 import { PrismaGardenLedgerReader } from './infrastructure/readers/prisma-garden-ledger.reader';
 import { PrismaUserTimeZoneReader } from './infrastructure/readers/prisma-user-time-zone.reader';
 import { GardenController } from './presentation/controllers/garden.controller';
+import { RecordJournalSealedHandler } from './infrastructure/outbox/record-journal-sealed.handler';
 
 @Module({
   imports: [CqrsModule],
@@ -44,6 +45,7 @@ import { GardenController } from './presentation/controllers/garden.controller';
     RecordHabitLifecycleHandler,
     RenameHabitTreeHandler,
     AssignHabitBedHandler,
+    RecordJournalSealedHandler,
     { provide: GARDEN_LEDGER_WRITER, useClass: PrismaGardenLedgerWriter },
   ],
 })

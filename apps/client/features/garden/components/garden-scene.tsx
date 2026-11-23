@@ -16,6 +16,8 @@ import { gardenLayout, HIT_RADIUS } from "@/features/garden/lib/garden-layout";
 
 interface GardenSceneProps {
   trees: readonly GardenTreeResponse[];
+  /** Sáng tỏ 0..1 (BA §7.4): chỉ đổi sương và nắng, không đổi cây. */
+  light: number;
   selectedId: string | null;
   onSelect: (id: string) => void;
 }
@@ -55,6 +57,26 @@ const PALETTE = {
 
 type Tone = keyof (typeof PALETTE)["light"];
 
+/** Màu sương dự phòng khi không đọc được --background của trang. */
+const MIST = { light: "#f6f1e7", dark: "#1d1a16" } as const;
+
+/**
+ * Màu nền thật của trang (token --background, dạng oklch) đổi sang RGB qua
+ * canvas 2D, vì three.js không đọc được oklch. Sương mang đúng màu này để hoà
+ * vào trang thay vì phủ một lớp xám.
+ */
+function pageBackground(fallback: string): THREE.Color {
+  const value = getComputedStyle(document.documentElement)
+    .getPropertyValue("--background")
+    .trim();
+  const context = document.createElement("canvas").getContext("2d");
+  if (!value || !context) return new THREE.Color(fallback);
+  context.fillStyle = value;
+  context.fillRect(0, 0, 1, 1);
+  const [r, g, b] = context.getImageData(0, 0, 1, 1).data;
+  return new THREE.Color(`rgb(${r}, ${g}, ${b})`);
+}
+
 /** Lối đá trước-trái ra sau-phải; cây đứng hai bên theo thứ tự gieo. */
 const PATH = [
   [-620, 0, 420],
@@ -68,6 +90,7 @@ const PATH = [
 
 export default function GardenScene({
   trees,
+  light,
   selectedId,
   onSelect,
 }: GardenSceneProps) {
@@ -115,8 +138,10 @@ export default function GardenScene({
       ]),
     ) as Record<Tone, THREE.MeshLambertMaterial>;
 
-    scene.add(new THREE.HemisphereLight(0xffffff, 0x888070, 0.65));
-    const sun = new THREE.DirectionalLight(0xffffff, 0.85);
+    // Sáng tỏ thấp: nắng mềm hơn và sương sớm nhẹ mang màu nền trang, để
+    // vườn vẫn đủ màu, yên tĩnh, không u ám (BR-GDN-LT-002).
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x888070, 0.6 + 0.1 * light));
+    const sun = new THREE.DirectionalLight(0xffffff, 0.6 + 0.3 * light);
     sun.position.set(-900, 700, -500);
     scene.add(sun);
 
@@ -418,6 +443,14 @@ export default function GardenScene({
         materials[tone].color.set(palette[tone]);
       }
       ringMaterial.color.set(palette.ember);
+      scene.fog =
+        light >= 0.99
+          ? null
+          : new THREE.Fog(
+              pageBackground(isDark() ? MIST.dark : MIST.light),
+              900 + light * 1800,
+              3200 + light * 3000,
+            );
       requestRender();
     };
     highlightRef.current = (id) => {
@@ -449,7 +482,11 @@ export default function GardenScene({
       for (const tag of tags) {
         projected.copy(tag.point).project(camera);
         tag.element.hidden =
-          projected.z > 1 || (!tag.always && tag.id !== selected);
+          projected.z > 1 ||
+          // Ngoài khung hình thì ẩn, để nhãn không tràn ra khỏi cảnh.
+          Math.abs(projected.x) > 1 ||
+          Math.abs(projected.y) > 1 ||
+          (!tag.always && tag.id !== selected);
         tag.element.style.transform = `translate(${(projected.x * 0.5 + 0.5) * width}px,${(-projected.y * 0.5 + 0.5) * height}px) translate(-50%,0)`;
       }
     };
@@ -509,7 +546,7 @@ export default function GardenScene({
     };
     // Dựng lại cảnh khi dữ liệu vườn đổi; chọn cây chỉ đổi vòng sáng.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trees]);
+  }, [trees, light]);
 
   return (
     <div ref={stageRef} className="relative overflow-hidden">

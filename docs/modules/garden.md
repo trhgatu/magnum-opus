@@ -162,6 +162,8 @@ Mỗi nguồn chỉ ghi phần sổ còn thiếu: ngày nào có n dòng nguồn
 
 **Luống** (đã có, G4): thêm Habit vào Routine phát `forge.routine.habit-added.v1` (cùng transaction, `aggregateId = habitId` nên luôn tới sau `HabitCreated`, kèm tên Routine). `AssignHabitBedHandler` đặt `bed_id` / `bed_name` chỉ khi cây chưa có luống: luống chốt ở lần đầu Habit vào một Routine, rời Routine hay vào Routine khác sau đó không dời cây (BR-GDN-008). Migration `20261122090000_garden_beds` nạp luống từ lịch sử thành viên. Với dữ liệu cũ đây là ước lượng tốt nhất: bảng lịch sử thành viên được dựng từ thành viên hiện tại, không giữ các lần rời Routine trước đó và ngày vào là ngày suy ra, nên "Routine đầu tiên" của Habit cũ có thể là một Routine vào sau. CHECK `garden_subjects_bed_complete` giữ `bed_id` và `bed_name` luôn cùng có hoặc cùng không. Đổi tên Routine sau đó không đổi tên luống. Client xếp mỗi luống thành một cụm trên nền đất riêng, cây không có luống đứng dọc lối đá (`lib/garden-layout.ts`).
 
+**Ánh sáng** (đã có, P2a): niêm phong một trang nhật ký (`reflection.journal-entry.sealed.v1`) thành một dòng `REFLECTED` không thuộc cây nào (`subject_id` null, `source_ref` = id trang), vào ngày theo múi giờ tài khoản lúc niêm phong. Garden và Timeline cùng nghe event này. CHECK `garden_entries_subject_matches_kind` giữ chỉ dòng `REFLECTED` mới không có cây. Migration nạp lịch sử lấy các lần niêm phong cũ từ `reflection_timeline_entries`. `GET /garden` trả `light` 0..1 = `gardenLight(lần nhìn lại gần nhất, hôm nay)`: 1 trong ngày nhìn lại, nhạt đều về 0 sau 28 ngày (BA §7.4). Client đổi nắng và sương theo `light`; sương mang màu nền trang để vườn vẫn đủ màu. Đọc tổng kết tháng và "Ngày này năm xưa" sẽ thêm vào cùng loại `REFLECTED` ở lát sau.
+
 **Đọc** (đã có, G2b) (người dùng mở vườn):
 
 ```
@@ -169,7 +171,7 @@ GET /garden → GetGardenHandler
 → PrismaGardenLedgerReader: garden_subjects không ẩn + garden_entries theo thứ tự ghi
 → hôm nay theo múi giờ tài khoản
 → garden-week.ts (thuần): gardenWeeks → chuỗi tuần CARED / PENDING / RESTED / SKIPPED + sẹo; weedsAfter → bậc cỏ
-→ GardenResponse { today, trees: [{ id, subjectKind, subjectId, variant, name, nameAtPlanting, bed, simVersion, plantedOn, weeks: [{ start, status, scarred }], weeds }] }
+→ GardenResponse { today, light, trees: [{ id, subjectKind, subjectId, variant, name, nameAtPlanting, bed, simVersion, plantedOn, weeks: [{ start, status, scarred }], weeds }] }
 → client (G3b, /garden): grow(tree.simVersion, { seed: tree.id, species: tree.variant === 'QUIT' ? 'thorn-bush' : 'tree', weeks: tree.weeks }) dựng hình học → three.js vẽ
 ```
 

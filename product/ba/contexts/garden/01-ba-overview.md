@@ -63,7 +63,7 @@ Garden đi qua bốn tầng. Phạm vi P1 chỉ là tầng 1, nhưng thiết k�
 | **Khoảnh khắc**      | Một việc xảy ra một lần, không mọc (một sự kiện đời sống). Nằm trên lối đá.                                                                            |
 | **Đèn lồng**         | Một ký ức, đặt dọc lối đá đúng ngày nó xảy ra. Đọc lại thì đèn sáng lên.                                                                               |
 | **Lối đá**           | Trục thời gian của vườn.                                                                                                                               |
-| **Ánh sáng**         | Mức người dùng dừng lại nhìn lại chính mình gần đây.                                                                                                   |
+| **Ánh sáng**         | Sự sáng tỏ: mức người dùng dừng lại nhìn lại chính mình gần đây. Không làm cây lớn hay nhỏ đi; chỉ đổi việc vườn hiện ra rõ hay mờ (§7.4).             |
 | **Bầu trời**         | Trạng thái gần đây của người dùng (giai đoạn sau: thêm cảm xúc từ Mood).                                                                               |
 | **Mùa của đời sống** | Giai đoạn sống suy ra từ nhịp của mọi hoạt động trong vài tháng: Xuân gieo, Hạ chăm, Thu gặt và nhìn lại, Đông nghỉ.                                   |
 | **Phông nền**        | Giờ trong ngày và thời tiết thật. Chỉ là không khí.                                                                                                    |
@@ -86,24 +86,24 @@ Phông nền            giờ, thời tiết thật  ← không qua sổ, không
 
 ### 4.2 Ba loại đóng góp
 
-| Loại            | Ví dụ                               | Mọc theo nhịp?         |
-| --------------- | ----------------------------------- | ---------------------- |
-| **Cây**         | Habit, Project                      | có                     |
-| **Ánh sáng**    | Journal, Memory, "Ngày này năm xưa" | không, góp vào khí hậu |
-| **Khoảnh khắc** | sự kiện đời sống (tương lai)        | không, nằm trên lối đá |
+| Loại            | Ví dụ                                           | Mọc theo nhịp?         |
+| --------------- | ----------------------------------------------- | ---------------------- |
+| **Cây**         | Habit, Project                                  | có                     |
+| **Ánh sáng**    | Journal, "Ngày này năm xưa", tổng kết Chronicle | không, góp vào khí hậu |
+| **Khoảnh khắc** | sự kiện đời sống (tương lai)                    | không, nằm trên lối đá |
 
 ### 4.3 Sáu vai của một sự kiện
 
 Mỗi nguồn gán cho từng sự kiện của mình đúng một vai. Garden chỉ hiểu sáu vai này:
 
-| Vai             | Habit               | Project                     | Journal           | Memory         |
-| --------------- | ------------------- | --------------------------- | ----------------- | -------------- |
-| **Gieo**        | tạo Habit           | Start (tạo = hạt trong túi) |                   |                |
-| **Chăm**        | check-in            | Q-GDN-6                     |                   |                |
-| **Dấu**         | tái phạm → sẹo      | cycle đóng → hoa            |                   |                |
-| **Nghỉ / tiếp** | lưu trữ / khôi phục | pause / resume              |                   |                |
-| **Kết thúc**    | không có            | complete → trái, stop       |                   |                |
-| **Ánh sáng**    |                     |                             | niêm phong → nắng | tạo → đèn lồng |
+| Vai             | Habit               | Project                     | Journal              | Memory                               |
+| --------------- | ------------------- | --------------------------- | -------------------- | ------------------------------------ |
+| **Gieo**        | tạo Habit           | Start (tạo = hạt trong túi) |                      |                                      |
+| **Chăm**        | check-in            | Q-GDN-6                     |                      |                                      |
+| **Dấu**         | tái phạm → sẹo      | cycle đóng → hoa            |                      |                                      |
+| **Nghỉ / tiếp** | lưu trữ / khôi phục | pause / resume              |                      |                                      |
+| **Kết thúc**    | không có            | complete → trái, stop       |                      |                                      |
+| **Ánh sáng**    |                     |                             | niêm phong → sáng tỏ | (tạo là đèn lồng, không là ánh sáng) |
 
 Habit không bao giờ "kết thúc": lưu trữ chỉ là tạm ngưng, đảo ngược được (`BR-HAB2-009`). Cây Habit lưu trữ là cây ngủ đông.
 
@@ -242,13 +242,25 @@ Cỏ mọc quanh một chủ thể **đang hoạt động** khi cuối chuỗi c
 
 ### 7.3 Khí hậu (P2, P4)
 
-| Yếu tố           | Cửa sổ                    | Từ đâu                                                                                                                |
-| ---------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| Ánh sáng         | 4 tuần gần nhất, đổi chậm | số `REFLECTED`                                                                                                        |
-| Bầu trời         | 2–4 tuần                  | ánh sáng, mức bỏ quên, sau này thêm Mood                                                                              |
-| Mùa của đời sống | khoảng 12 tuần            | tỉ lệ gieo (Xuân), `TENDED` đều (Hạ), `BLOSSOM`/`FRUIT`/`CONCLUDED`/`REFLECTED` (Thu), độ thưa của mọi sự kiện (Đông) |
+| Yếu tố           | Cửa sổ                  | Từ đâu                                                                                                                |
+| ---------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Ánh sáng         | khoảng 4 tuần, đổi chậm | độ gần của các lần `REFLECTED` (§7.4)                                                                                 |
+| Bầu trời         | 2–4 tuần                | ánh sáng, mức bỏ quên, sau này thêm Mood                                                                              |
+| Mùa của đời sống | khoảng 12 tuần          | tỉ lệ gieo (Xuân), `TENDED` đều (Hạ), `BLOSSOM`/`FRUIT`/`CONCLUDED`/`REFLECTED` (Thu), độ thưa của mọi sự kiện (Đông) |
 
 Công thức cụ thể chốt sau khi có dữ liệu thật (Q-GDN-8).
+
+### 7.4 Ánh sáng là sự sáng tỏ (chốt 2026-11-23)
+
+Ba tầng trả lời ba câu hỏi khác nhau: **cây** là thứ người dùng chăm ("mình chăm thứ này thế nào"); **khí hậu** là trạng thái chung của đời sống gần đây; **phông nền** (giờ, thời tiết thật) chỉ là không khí của thế giới bên ngoài, không mang ý nghĩa (KD-GDN-008). Ánh sáng thuộc khí hậu, nên nó không phải phần thưởng cho một việc cụ thể.
+
+Theo ẩn dụ của James Allen (vườn là tâm trí), ánh sáng là **sự sáng tỏ**: người hay dừng lại nhìn chính mình thì thấy vườn của mình rõ ràng.
+
+- **BR-GDN-LT-001 — Không đổi cây:** ánh sáng không làm cây lớn, nhỏ hay kém đi. Ít nhìn lại thì vườn vẫn y nguyên, chỉ hiện ra kém rõ, như có lớp sương sớm.
+- **BR-GDN-LT-002 — Sương là mô tả, không là trách:** lúc sáng tỏ thấp nhất, vườn vẫn đẹp và đủ màu; sương nhẹ, yên tĩnh, không u ám (KD-GDN-007). Người chưa từng nhìn lại ở mức đó.
+- **BR-GDN-LT-003 — Nguồn:** chỉ những lần người dùng thật sự dừng lại nhìn chính mình: niêm phong trang nhật ký; đọc tổng kết tháng của Chronicle; mở một ký ức từ "Ngày này năm xưa". Không lấy việc làm (đó là cây), Mood (đó là bầu trời), tạo ký ức (đó là đèn lồng) hay lượt xem trang. Mỗi hành động chỉ một vai (§4.3).
+- **BR-GDN-LT-004 — Độ gần, không đếm:** sáng tỏ nhất ngay sau một lần nhìn lại, nhạt dần trong khoảng 4 tuần. Không đếm số lần hay số tuần, không có tuần chốt hay chuỗi để lỡ. Thời gian nhạt chỉnh lại sau khi có dữ liệu thật.
+- **BR-GDN-LT-005 — Của cả vườn:** ánh sáng chung cho mọi cây, không gắn với cây nào. Sổ ghi một loại `REFLECTED` cho mọi nguồn, phân biệt bằng `source_ref`.
 
 ## 8. P1: Habit
 
@@ -325,7 +337,7 @@ P0 và phần ghi sổ của P1 đi chung, theo từng lát. Mỗi lát gồm ev
 | P4  | Chronicle: vòng năm, tua thời gian (`?at=`); khí hậu: mùa của đời sống, bầu trời, Mood |
 | P5  | Rễ do người dùng nối; hình ảnh: phông nền giờ thật, thời tiết thật (người dùng tự bật) |
 
-## 11. Quyết định đã chốt (2026-11-13, Q-GDN-10 ngày 2026-11-21)
+## 11. Quyết định đã chốt (2026-11-13; Q-GDN-10 ngày 2026-11-21; Q-GDN-11 ngày 2026-11-23)
 
 | Mã       | Câu hỏi                                        | Chốt                                                                                                                            |
 | -------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
@@ -336,6 +348,7 @@ P0 và phần ghi sổ của P1 đi chung, theo từng lát. Mỗi lát gồm ev
 | Q-GDN-5  | Ngưỡng mọc cỏ?                                 | 3 tuần RESTED liên tiếp; tối đa 5 bậc; mỗi tuần CARED gọn 1 bậc (trần và độ gọn chốt 2026-11-21). Chỉnh sau khi có dữ liệu thật |
 | —        | Garden đọc DB module khác hay tự đủ?           | Tự đủ ở mức tối thiểu (KD-GDN-012)                                                                                              |
 | —        | Dữ liệu nguồn bị xóa vĩnh viễn?                | Xóa theo (BR-GDN-SB-006)                                                                                                        |
+| Q-GDN-11 | Ánh sáng nghĩa là gì, lấy từ đâu, đo thế nào?  | Sự sáng tỏ (2026-11-23): từ những lần thật sự nhìn lại, đo theo độ gần, nhạt dần khoảng 4 tuần (§7.4)                           |
 | Q-GDN-10 | Đổi tên Habit thì cây đổi tên theo?            | Có (2026-11-21): Forge phát `HabitRenamed`, Garden giữ cả `name` hiện tại và `name_at_planting`                                 |
 
 ## 12. Câu hỏi mở

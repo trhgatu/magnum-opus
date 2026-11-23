@@ -100,6 +100,48 @@ describe('PrismaGardenLedgerWriter', () => {
     });
   });
 
+  describe('recordReflection', () => {
+    // Nhìn lại thuộc cả vườn: không gắn với cây nào (BR-GDN-LT-005).
+    it('writes a REFLECTED entry without a tree', async () => {
+      gardenEntry.create.mockResolvedValue(undefined);
+
+      await writer.recordReflection({
+        ownerId: 'owner-id',
+        sourceRef: 'journal-id',
+        occurredOn: new Date('2026-11-23T00:00:00.000Z'),
+        sourceEventId: 'event-id',
+      });
+
+      expect(gardenEntry.create).toHaveBeenCalledWith({
+        data: {
+          ownerId: 'owner-id',
+          sourceRef: 'journal-id',
+          occurredOn: new Date('2026-11-23T00:00:00.000Z'),
+          sourceEventId: 'event-id',
+          kind: 'REFLECTED',
+        },
+      });
+    });
+
+    it('treats an already recorded reflection as done', async () => {
+      gardenEntry.create.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('dup', {
+          code: 'P2002',
+          clientVersion: 'test',
+        }),
+      );
+
+      await expect(
+        writer.recordReflection({
+          ownerId: 'owner-id',
+          sourceRef: 'journal-id',
+          occurredOn: new Date('2026-11-23T00:00:00.000Z'),
+          sourceEventId: 'event-id',
+        }),
+      ).resolves.toBeUndefined();
+    });
+  });
+
   describe('assignBed', () => {
     // Luống chốt ở lần đầu vào Routine: cây đã có luống thì không dời.
     it('sets the bed only on a tree that has none', async () => {

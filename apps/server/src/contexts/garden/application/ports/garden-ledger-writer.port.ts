@@ -26,7 +26,7 @@ export type LedgerEntry = {
   sourceEventId: string;
 } & (
   | {
-      kind: Exclude<GardenEntryKind, 'MARKED' | 'RHYTHM_SET'>;
+      kind: Exclude<GardenEntryKind, 'MARKED' | 'RHYTHM_SET' | 'REFLECTED'>;
       mark?: never;
       detail?: never;
     }
@@ -59,4 +59,10 @@ export interface GardenLedgerWriter {
     subjectId: string,
     bed: { id: string; name: string },
   ): Promise<void>;
+  recordReflection(entry: {
+    ownerId: string;
+    sourceRef: string;
+    occurredOn: Date;
+    sourceEventId: string;
+  }): Promise<void>;
 }

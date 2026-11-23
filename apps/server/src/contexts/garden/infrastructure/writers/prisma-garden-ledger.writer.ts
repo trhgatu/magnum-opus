@@ -138,4 +138,25 @@ export class PrismaGardenLedgerWriter implements GardenLedgerWriter {
       data: { bedId: bed.id, bedName: bed.name },
     });
   }
+
+  async recordReflection(entry: {
+    ownerId: string;
+    sourceRef: string;
+    occurredOn: Date;
+    sourceEventId: string;
+  }): Promise<void> {
+    try {
+      await this.prisma.gardenEntry.create({
+        data: { ...entry, kind: 'REFLECTED' },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        return;
+      }
+      throw error;
+    }
+  }
 }
