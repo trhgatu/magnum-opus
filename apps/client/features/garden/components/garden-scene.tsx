@@ -6,7 +6,7 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
-import { gardenLayout } from "@/features/garden/lib/garden-layout";
+import { gardenLayout, HIT_RADIUS } from "@/features/garden/lib/garden-layout";
 
 /**
  * Cảnh 3D của vườn, theo bản phác "Khu vườn của Tú 3D", chỉ phần P1: cây, bụi
@@ -379,8 +379,8 @@ export default function GardenScene({
       const hit = new THREE.Mesh(
         keep(
           new THREE.CylinderGeometry(
-            grown.nodes.length > 1 ? 110 : 40,
-            grown.nodes.length > 1 ? 110 : 40,
+            grown.nodes.length > 1 ? HIT_RADIUS : 40,
+            grown.nodes.length > 1 ? HIT_RADIUS : 40,
             hitHeight,
             8,
           ),

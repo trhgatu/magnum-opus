@@ -1,7 +1,12 @@
 import type { GardenTreeResponse } from "@repo/contracts";
 
-/** Khoảng cách giữa hai cây trong cùng luống (đơn vị của cảnh 3D). */
-export const BED_SPACING = 110;
+/**
+ * Khoảng cách giữa hai cây trong cùng luống (đơn vị của cảnh 3D): rộng hơn
+ * đường kính vùng chạm của một cây (HIT_RADIUS) để chạm đúng cây.
+ */
+export const BED_SPACING = 160;
+/** Bán kính vùng chạm quanh gốc một cây đã mọc. */
+export const HIT_RADIUS = 70;
 
 export interface GardenSlot {
   /** Vị trí dọc lối đá, 0 là đầu lối, 1 là cuối lối. */
@@ -25,7 +30,9 @@ export function gardenLayout(
   const groups = new Map<string, GardenTreeResponse[]>();
   for (const tree of trees) {
     const key = tree.bed ? `bed:${tree.bed.id}` : `tree:${tree.id}`;
-    groups.set(key, [...(groups.get(key) ?? []), tree]);
+    const members = groups.get(key);
+    if (members) members.push(tree);
+    else groups.set(key, [tree]);
   }
 
   const units = [...groups.values()].sort((a, b) =>

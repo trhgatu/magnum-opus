@@ -41,6 +41,8 @@ describe('PrismaGardenLedgerReader', () => {
       expect.objectContaining({
         where: { ownerId: 'owner-id', hiddenAt: null },
         select: expect.objectContaining({
+          bedId: true,
+          bedName: true,
           entries: expect.objectContaining({
             orderBy: { sequence: 'asc' },
           }),

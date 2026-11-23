@@ -1,7 +1,7 @@
 import type { GardenTreeResponse } from "@repo/contracts";
 import { describe, expect, it } from "vitest";
 
-import { BED_SPACING, gardenLayout } from "./garden-layout";
+import { BED_SPACING, gardenLayout, HIT_RADIUS } from "./garden-layout";
 
 const tree = (
   id: string,
@@ -46,6 +46,10 @@ describe("gardenLayout", () => {
     expect(slots.map((slot) => slot.t)).toEqual([0, 1]);
     expect(slots[0]!.bed).toEqual(morning);
     expect(slots.map((slot) => slot.side)).toEqual([-1, 1]);
+  });
+
+  it("keeps trees in a bed farther apart than their tap areas", () => {
+    expect(BED_SPACING).toBeGreaterThan(HIT_RADIUS * 2);
   });
 
   it("puts a single slot in the middle of the path", () => {

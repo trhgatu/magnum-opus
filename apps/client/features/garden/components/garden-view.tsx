@@ -82,6 +82,9 @@ export function GardenView({ trees }: GardenViewProps) {
                 )}
               >
                 {tree.name}
+                {tree.bed ? (
+                  <span className="opacity-70"> · {tree.bed.name}</span>
+                ) : null}
               </button>
             </li>
           ))}
