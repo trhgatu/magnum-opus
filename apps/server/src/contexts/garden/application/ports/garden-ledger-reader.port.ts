@@ -29,4 +29,8 @@ export interface GardenSubjectLedger {
 export interface GardenLedgerReader {
   /** Cây của owner, trừ cây đang ẩn (nguồn ở Thùng rác). */
   visibleSubjectsOf(ownerId: string): Promise<GardenSubjectLedger[]>;
+  lastReflectedOn(
+    ownerId: string,
+    today: CalendarDay,
+  ): Promise<CalendarDay | null>;
 }

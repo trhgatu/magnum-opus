@@ -29,7 +29,7 @@ export default async function GardenPage() {
       />
 
       {garden.trees.length > 0 ? (
-        <GardenView trees={garden.trees} />
+        <GardenView trees={garden.trees} light={garden.light} />
       ) : (
         <EmptyState
           title="Vườn còn trống"

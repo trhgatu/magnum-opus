@@ -6,6 +6,7 @@ export class GardenPresenter {
   static toResponse(result: GardenResult): GardenResponse {
     return {
       today: result.today,
+      light: result.light,
       trees: result.trees.map((tree) => ({
         id: tree.id,
         subjectKind: tree.subjectKind,

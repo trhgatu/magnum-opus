@@ -2,7 +2,38 @@ import { PrismaGardenLedgerReader } from './prisma-garden-ledger.reader';
 
 describe('PrismaGardenLedgerReader', () => {
   const gardenSubject = { findMany: jest.fn() };
-  const reader = new PrismaGardenLedgerReader({ gardenSubject } as never);
+  const gardenEntry = { findFirst: jest.fn() };
+  const reader = new PrismaGardenLedgerReader({
+    gardenSubject,
+    gardenEntry,
+  } as never);
+
+  it("reads the owner's latest reflection up to today", async () => {
+    gardenEntry.findFirst.mockResolvedValue({
+      occurredOn: new Date('2026-11-20T00:00:00.000Z'),
+    });
+
+    await expect(
+      reader.lastReflectedOn('owner-id', '2026-11-23'),
+    ).resolves.toBe('2026-11-20');
+    expect(gardenEntry.findFirst).toHaveBeenCalledWith({
+      where: {
+        ownerId: 'owner-id',
+        kind: 'REFLECTED',
+        occurredOn: { lte: new Date('2026-11-23T00:00:00.000Z') },
+      },
+      orderBy: { occurredOn: 'desc' },
+      select: { occurredOn: true },
+    });
+  });
+
+  it('returns null for an owner who never reflected', async () => {
+    gardenEntry.findFirst.mockResolvedValue(null);
+
+    await expect(
+      reader.lastReflectedOn('owner-id', '2026-11-23'),
+    ).resolves.toBeNull();
+  });
 
   it("reads the owner's visible trees with their ledger in recorded order", async () => {
     gardenSubject.findMany.mockResolvedValue([

@@ -389,6 +389,35 @@ describe('Garden ledger (E2E)', () => {
     expect(subject).toMatchObject({ bedId: first, bedName: 'Buổi sáng' });
   });
 
+  // BA §7.4: niêm phong một trang là một lần nhìn lại; vườn sáng tỏ nhất hôm đó.
+  it('lights the garden when a journal entry is sealed', async () => {
+    const entry = await request(app.getHttpServer())
+      .post('/journal/entries')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ title: 'Hôm nay', content: 'Một ngày đáng nhớ.' })
+      .expect(HttpStatus.CREATED);
+    await request(app.getHttpServer())
+      .patch(`/journal/entries/${entry.body.id as string}/seal`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ expectedRevision: 1 })
+      .expect(HttpStatus.OK);
+
+    const reflected = await eventually(
+      () =>
+        prisma.gardenEntry.findFirst({
+          where: { kind: 'REFLECTED', sourceRef: entry.body.id as string },
+        }),
+      (row) => row !== null,
+    );
+    expect(reflected).toMatchObject({ subjectId: null });
+
+    const garden = await request(app.getHttpServer())
+      .get('/garden')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(HttpStatus.OK);
+    expect(garden.body.light).toBe(1);
+  });
+
   it('serves the garden as weekly series and leaves trashed trees out', async () => {
     const tendedId = await createPlantedBuildHabit('Read a page');
     const checkIn = await request(app.getHttpServer())

@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 
 import { PrismaService } from '@infrastructure/database/prisma.service';
-import { calendarDayOf } from '@shared/domain/calendar-day';
+import { CalendarDay, calendarDayOf } from '@shared/domain/calendar-day';
+import { calendarDayToDate } from '@shared/domain/calendar-day';
 
 import type {
   GardenLedgerReader,
@@ -50,5 +51,23 @@ export class PrismaGardenLedgerReader implements GardenLedgerReader {
         })),
       }),
     );
+  }
+
+  async lastReflectedOn(
+    ownerId: string,
+    today: CalendarDay,
+  ): Promise<CalendarDay | null> {
+    const row = await this.prisma.gardenEntry.findFirst({
+      where: {
+        ownerId,
+        kind: 'REFLECTED',
+        occurredOn: {
+          lte: calendarDayToDate(today),
+        },
+      },
+      orderBy: { occurredOn: 'desc' },
+      select: { occurredOn: true },
+    });
+    return row ? calendarDayOf(row.occurredOn) : null;
   }
 }

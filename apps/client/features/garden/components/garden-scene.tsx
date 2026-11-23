@@ -16,6 +16,8 @@ import { gardenLayout, HIT_RADIUS } from "@/features/garden/lib/garden-layout";
 
 interface GardenSceneProps {
   trees: readonly GardenTreeResponse[];
+  /** Sáng tỏ 0..1 (BA §7.4): chỉ đổi sương và nắng, không đổi cây. */
+  light: number;
   selectedId: string | null;
   onSelect: (id: string) => void;
 }
@@ -55,6 +57,9 @@ const PALETTE = {
 
 type Tone = keyof (typeof PALETTE)["light"];
 
+/** Màu sương: gần màu nền trang, để sương hoà vào trang thay vì phủ xám. */
+const MIST = { light: "#f6f1e7", dark: "#1d1a16" } as const;
+
 /** Lối đá trước-trái ra sau-phải; cây đứng hai bên theo thứ tự gieo. */
 const PATH = [
   [-620, 0, 420],
@@ -68,6 +73,7 @@ const PATH = [
 
 export default function GardenScene({
   trees,
+  light,
   selectedId,
   onSelect,
 }: GardenSceneProps) {
@@ -115,8 +121,10 @@ export default function GardenScene({
       ]),
     ) as Record<Tone, THREE.MeshLambertMaterial>;
 
-    scene.add(new THREE.HemisphereLight(0xffffff, 0x888070, 0.65));
-    const sun = new THREE.DirectionalLight(0xffffff, 0.85);
+    // Sáng tỏ thấp: nắng mềm hơn và sương sớm nhẹ mang màu nền trang, để
+    // vườn vẫn đủ màu, yên tĩnh, không u ám (BR-GDN-LT-002).
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x888070, 0.6 + 0.1 * light));
+    const sun = new THREE.DirectionalLight(0xffffff, 0.6 + 0.3 * light);
     sun.position.set(-900, 700, -500);
     scene.add(sun);
 
@@ -418,6 +426,14 @@ export default function GardenScene({
         materials[tone].color.set(palette[tone]);
       }
       ringMaterial.color.set(palette.ember);
+      scene.fog =
+        light >= 0.99
+          ? null
+          : new THREE.Fog(
+              isDark() ? MIST.dark : MIST.light,
+              900 + light * 1800,
+              3200 + light * 3000,
+            );
       requestRender();
     };
     highlightRef.current = (id) => {
@@ -509,7 +525,7 @@ export default function GardenScene({
     };
     // Dựng lại cảnh khi dữ liệu vườn đổi; chọn cây chỉ đổi vòng sáng.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trees]);
+  }, [trees, light]);
 
   return (
     <div ref={stageRef} className="relative overflow-hidden">

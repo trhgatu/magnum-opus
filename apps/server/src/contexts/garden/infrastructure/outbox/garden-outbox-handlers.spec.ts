@@ -9,6 +9,7 @@ import { HabitLifecycleTransitioned } from '@/contexts/forge/habit/contracts/hab
 import { HabitTrashed } from '@/contexts/forge/habit/contracts/habit-trashed.contract';
 import { HabitRestoredFromTrash } from '@/contexts/forge/habit/contracts/habit-restored-from-trash.contract';
 import { HabitScheduleVersionStarted } from '@/contexts/forge/habit/contracts/habit-schedule-version-started.contract';
+import { JournalEntrySealed } from '@/contexts/reflection/journal/contracts/journal-entry-sealed.contract';
 import { RoutineHabitAdded } from '@/contexts/forge/routine/contracts/routine-habit-added.contract';
 import { HabitRenamed } from '@/contexts/forge/habit/contracts/habit-renamed.contract';
 
@@ -25,6 +26,7 @@ import { ShowRestoredHabitHandler } from './show-restored-habit.handler';
 import { RecordHabitRhythmHandler } from './record-habit-rhythm.handler';
 import { RenameHabitTreeHandler } from './rename-habit-tree.handler';
 import { AssignHabitBedHandler } from './assign-habit-bed.handler';
+import { RecordJournalSealedHandler } from './record-journal-sealed.handler';
 import { UprootDeletedHabitHandler } from './uproot-deleted-habit.handler';
 
 const ledger = {
@@ -36,6 +38,7 @@ const ledger = {
   show: jest.fn().mockResolvedValue(undefined),
   rename: jest.fn().mockResolvedValue(undefined),
   assignBed: jest.fn().mockResolvedValue(undefined),
+  recordReflection: jest.fn().mockResolvedValue(undefined),
 } as unknown as jest.Mocked<GardenLedgerWriter>;
 const at = new Date('2026-11-18T03:00:00.000Z');
 
@@ -250,6 +253,35 @@ describe('garden outbox handlers', () => {
       'habit-id',
       'Evening walk',
     );
+  });
+
+  // Ngày niêm phong theo múi giờ tài khoản lúc niêm phong (BR-GDN-SB-002).
+  it("records a sealed journal entry as REFLECTED on the owner's day", async () => {
+    const timeZoneReader = {
+      getForUser: jest.fn().mockResolvedValue('Asia/Ho_Chi_Minh'),
+    };
+    expect(
+      Reflect.getMetadata(OutboxHandler.KEY, RecordJournalSealedHandler),
+    ).toBe(JournalEntrySealed);
+
+    await new RecordJournalSealedHandler(ledger, timeZoneReader).handle({
+      eventId: 'event-id',
+      occurredAt: at,
+      payload: {
+        journalEntryId: 'journal-id',
+        ownerId: 'owner-id',
+        // 17:30Z ngày 22 đã là ngày 23 ở Việt Nam.
+        sealedAt: new Date('2026-11-22T17:30:00.000Z'),
+      },
+    });
+
+    expect(timeZoneReader.getForUser).toHaveBeenCalledWith('owner-id');
+    expect(ledger.recordReflection).toHaveBeenCalledWith({
+      ownerId: 'owner-id',
+      sourceRef: 'journal-id',
+      occurredOn: new Date('2026-11-23T00:00:00.000Z'),
+      sourceEventId: 'event-id',
+    });
   });
 
   it('puts a tree in the bed of the Routine its Habit joined', async () => {

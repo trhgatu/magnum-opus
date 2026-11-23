@@ -12,6 +12,7 @@ import {
   gardenWeeks,
   weedsAfter,
 } from '../../../domain/garden-week';
+import { gardenLight } from '../../../domain/garden-light';
 import { CLOCK, type Clock } from '../../ports/clock.port';
 import {
   GARDEN_LEDGER_READER,
@@ -40,6 +41,7 @@ export interface GardenTree {
 export interface GardenResult {
   today: CalendarDay;
   trees: GardenTree[];
+  light: number;
 }
 
 /** Vườn của owner: mỗi cây là chuỗi tuần tính lại từ sổ (BA §7). */
@@ -64,8 +66,14 @@ export class GetGardenHandler implements IQueryHandler<
     ]);
     const today = calendarDayAt(this.clock.now(), timeZone);
 
+    const lastReflectedOn = await this.ledger.lastReflectedOn(
+      query.ownerId,
+      today,
+    );
+
     return {
       today,
+      light: gardenLight(lastReflectedOn, today),
       trees: subjects.map(({ entries, ...subject }) => {
         const weeks = gardenWeeks({
           variant: subject.variant,

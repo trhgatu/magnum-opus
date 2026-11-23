@@ -808,6 +808,7 @@ enum GardenEntryKind {
   RESTED
   RESUMED
   RHYTHM_SET
+  REFLECTED
 }
 
 enum GardenMark {
@@ -817,17 +818,18 @@ enum GardenMark {
 model GardenEntry {
   id String @id @default(uuid())
   ownerId String @map("owner_id")
-  subjectId String @map("subject_id")
+  subjectId String? @map("subject_id")
   kind GardenEntryKind
   mark GardenMark?
   detail Json?
   occurredOn DateTime @map("occurred_on") @db.Date
   sourceEventId String @unique @map("source_event_id")
+  sourceRef String? @map("source_ref")
   recordedAt DateTime @default(now()) @map("recorded_at")
   sequence BigInt @default(autoincrement())
 
   owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade )
-  subject GardenSubject @relation(fields: [subjectId, ownerId], references: [id, ownerId], onDelete: Cascade)
+  subject GardenSubject? @relation(fields: [subjectId, ownerId], references: [id, ownerId], onDelete: Cascade)
 
   @@index([ownerId, occurredOn])
   @@index([subjectId, occurredOn])
