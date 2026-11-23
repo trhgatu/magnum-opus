@@ -20,6 +20,10 @@ export interface GardenSubjectLedger {
   simVersion: number;
   plantedOn: CalendarDay;
   entries: GardenLedgerRow[];
+  bed: {
+    id: string;
+    name: string;
+  } | null;
 }
 
 export interface GardenLedgerReader {

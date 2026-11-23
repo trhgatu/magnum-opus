@@ -6,6 +6,8 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
+import { gardenLayout, HIT_RADIUS } from "@/features/garden/lib/garden-layout";
+
 /**
  * Cảnh 3D của vườn, theo bản phác "Khu vườn của Tú 3D", chỉ phần P1: cây, bụi
  * gai, mắt gỗ, sẹo, cỏ, lối đá. Màu phẳng, không đổ bóng; nền trong suốt để
@@ -269,20 +271,66 @@ export default function GardenScene({
       id: string;
       element: HTMLSpanElement;
       point: THREE.Vector3;
+      /** Tên luống luôn hiện; tên cây chỉ hiện khi được chọn. */
+      always?: boolean;
     }[] = [];
+    const addTag = (
+      id: string,
+      text: string,
+      point: THREE.Vector3,
+      always = false,
+    ) => {
+      const element = document.createElement("span");
+      // Tên đã có trong danh sách bên dưới cảnh: không đọc lặp lại.
+      element.setAttribute("aria-hidden", "true");
+      element.className = always
+        ? "pointer-events-none absolute left-0 top-0 whitespace-nowrap text-xs font-semibold uppercase tracking-[0.14em] text-foreground"
+        : "pointer-events-none absolute left-0 top-0 whitespace-nowrap rounded border bg-background px-1.5 text-xs text-foreground";
+      element.textContent = text;
+      stage.appendChild(element);
+      tags.push({ id, element, point, always });
+    };
+    const bedGeometry = keep(new THREE.BoxGeometry(1, 2, 1));
     let selected: string | null = null;
 
-    trees.forEach((tree, index) => {
-      const t = trees.length === 1 ? 0.5 : index / (trees.length - 1);
-      const point = curve.getPointAt(t);
-      const tangent = curve.getTangentAt(t);
-      const side = index % 2 ? 1 : -1;
-      const position = point
+    // Luống (BR-GDN-008): cây cùng Routine đứng chung một cụm trên nền đất
+    // riêng; cây chưa vào Routine nào đứng dọc lối đá.
+    const placed: { tree: GardenTreeResponse; position: THREE.Vector3 }[] = [];
+    for (const slot of gardenLayout(trees)) {
+      const point = curve.getPointAt(slot.t);
+      const tangent = curve.getTangentAt(slot.t);
+      const extent = Math.max(
+        0,
+        ...slot.trees.map(({ dx, dz }) => Math.max(Math.abs(dx), Math.abs(dz))),
+      );
+      const center = point
         .clone()
         .add(
-          new THREE.Vector3(-tangent.z, 0, tangent.x).multiplyScalar(side * 95),
+          new THREE.Vector3(-tangent.z, 0, tangent.x).multiplyScalar(
+            slot.side * (95 + (slot.bed ? extent + 40 : 0)),
+          ),
         );
+      if (slot.bed) {
+        const bed = new THREE.Mesh(bedGeometry, materials.soil);
+        bed.position.set(center.x, 0.5, center.z);
+        bed.scale.set(extent * 2 + 120, 1, extent * 2 + 120);
+        scene.add(bed);
+        addTag(
+          `bed:${slot.bed.id}`,
+          slot.bed.name,
+          new THREE.Vector3(center.x, -14, center.z + extent + 75),
+          true,
+        );
+      }
+      for (const { tree, dx, dz } of slot.trees) {
+        placed.push({
+          tree,
+          position: center.clone().add(new THREE.Vector3(dx, 0, dz)),
+        });
+      }
+    }
 
+    placed.forEach(({ tree, position }) => {
       const group = new THREE.Group();
       group.position.copy(position);
       scene.add(group);
@@ -331,8 +379,8 @@ export default function GardenScene({
       const hit = new THREE.Mesh(
         keep(
           new THREE.CylinderGeometry(
-            grown.nodes.length > 1 ? 110 : 40,
-            grown.nodes.length > 1 ? 110 : 40,
+            grown.nodes.length > 1 ? HIT_RADIUS : 40,
+            grown.nodes.length > 1 ? HIT_RADIUS : 40,
             hitHeight,
             8,
           ),
@@ -344,18 +392,11 @@ export default function GardenScene({
       scene.add(hit);
       hits.push(hit);
 
-      const element = document.createElement("span");
-      // Tên cây đã có trong danh sách bên dưới cảnh: không đọc lặp lại.
-      element.setAttribute("aria-hidden", "true");
-      element.className =
-        "pointer-events-none absolute left-0 top-0 whitespace-nowrap rounded border bg-background px-1.5 text-xs text-foreground";
-      element.textContent = tree.name;
-      stage.appendChild(element);
-      tags.push({
-        id: tree.id,
-        element,
-        point: new THREE.Vector3(position.x, -14, position.z + 30),
-      });
+      addTag(
+        tree.id,
+        tree.name,
+        new THREE.Vector3(position.x, -14, position.z + 30),
+      );
     });
 
     // Chỉ vẽ khi có thay đổi: kéo, cuộn, đổi cỡ, đổi theme, chọn cây. Damping
@@ -407,7 +448,8 @@ export default function GardenScene({
       const height = canvas.clientHeight;
       for (const tag of tags) {
         projected.copy(tag.point).project(camera);
-        tag.element.hidden = projected.z > 1 || tag.id !== selected;
+        tag.element.hidden =
+          projected.z > 1 || (!tag.always && tag.id !== selected);
         tag.element.style.transform = `translate(${(projected.x * 0.5 + 0.5) * width}px,${(-projected.y * 0.5 + 0.5) * height}px) translate(-50%,0)`;
       }
     };

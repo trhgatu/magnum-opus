@@ -1,3 +1,4 @@
+import { outboxSerializerFor } from '@infrastructure/event-bus/outbox/testing/outbox-serializer.testing';
 import {
   Routine as PrismaRoutine,
   RoutineHabit as PrismaRoutineHabit,
@@ -6,6 +7,7 @@ import {
 import { Routine } from '../../domain/routine.aggregate';
 import { RoutineCalendarDate, RoutineId } from '../../domain/value-objects';
 import { PrismaRoutineWithHabits } from '../mappers/prisma-routine.mapper';
+import { RoutineOutbox } from '../outbox/routine.outbox';
 import { PrismaRoutineRepository } from './prisma-routine.repository';
 
 const TODAY = RoutineCalendarDate.fromPersistenceDate(
@@ -29,6 +31,9 @@ describe('PrismaRoutineRepository', () => {
       create: jest.fn(),
       updateMany: jest.fn(),
     },
+    outboxEvent: {
+      createMany: jest.fn(),
+    },
   };
 
   const routineModel = {
@@ -46,7 +51,10 @@ describe('PrismaRoutineRepository', () => {
     ),
   };
 
-  const repository = new PrismaRoutineRepository(prisma as never);
+  const repository = new PrismaRoutineRepository(
+    prisma as never,
+    outboxSerializerFor(RoutineOutbox),
+  );
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -204,6 +212,39 @@ describe('PrismaRoutineRepository', () => {
         transactionClient.routineHabitMembership.updateMany,
       ).not.toHaveBeenCalled();
       expect(routine.getDomainEvents()).toEqual([]);
+    });
+
+    // Garden đưa cây vào luống ở lần đầu Habit vào một Routine (BR-GDN-008).
+    it('writes RoutineHabitAdded to the outbox, keyed by the Habit', async () => {
+      transactionClient.routine.updateMany.mockResolvedValue({ count: 1 });
+      const routine = createDomainRoutine();
+      routine.addHabit('habit-third', TODAY);
+
+      await repository.update(routine, 4);
+
+      expect(transactionClient.outboxEvent.createMany).toHaveBeenCalledWith({
+        data: [
+          expect.objectContaining({
+            type: 'forge.routine.habit-added.v1',
+            aggregateId: 'habit-third',
+            payload: {
+              routineId: 'routine-id',
+              habitId: 'habit-third',
+              ownerId: 'owner-id',
+              routineTitle: 'Morning ritual',
+            },
+          }),
+        ],
+      });
+    });
+
+    it('writes no outbox row when the revision is stale', async () => {
+      transactionClient.routine.updateMany.mockResolvedValue({ count: 0 });
+      const routine = createDomainRoutine();
+      routine.addHabit('habit-third', TODAY);
+
+      await expect(repository.update(routine, 4)).resolves.toBe(false);
+      expect(transactionClient.outboxEvent.createMany).not.toHaveBeenCalled();
     });
 
     it('closes only the open membership row of a removed Habit', async () => {

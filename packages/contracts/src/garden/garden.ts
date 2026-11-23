@@ -17,6 +17,7 @@ export interface GardenTreeResponse {
   name: string;
   /** Tên lúc gieo; khác `name` khi Habit đã đổi tên (Q-GDN-10). */
   nameAtPlanting: string;
+  bed: { id: string; name: string } | null;
   simVersion: number;
   plantedOn: string;
   weeks: GardenWeekResponse[];

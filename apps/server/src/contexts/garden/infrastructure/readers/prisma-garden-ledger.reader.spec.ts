@@ -13,6 +13,8 @@ describe('PrismaGardenLedgerReader', () => {
         variant: 'BUILD',
         name: 'Gym',
         nameAtPlanting: 'Gym',
+        bedId: 'routine-id',
+        bedName: 'Morning',
         simVersion: 1,
         plantedOn: new Date('2026-11-02T00:00:00.000Z'),
         entries: [
@@ -39,6 +41,8 @@ describe('PrismaGardenLedgerReader', () => {
       expect.objectContaining({
         where: { ownerId: 'owner-id', hiddenAt: null },
         select: expect.objectContaining({
+          bedId: true,
+          bedName: true,
           entries: expect.objectContaining({
             orderBy: { sequence: 'asc' },
           }),
@@ -53,6 +57,7 @@ describe('PrismaGardenLedgerReader', () => {
         variant: 'BUILD',
         name: 'Gym',
         nameAtPlanting: 'Gym',
+        bed: { id: 'routine-id', name: 'Morning' },
         simVersion: 1,
         plantedOn: '2026-11-02',
         entries: [

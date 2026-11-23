@@ -8,6 +8,7 @@ export class RoutineHabitAddedEvent extends DomainEvent {
     public readonly ownerId: string,
     public readonly habitId: string,
     public readonly addedOn: RoutineCalendarDate,
+    public readonly routineTitle: string,
   ) {
     super();
   }

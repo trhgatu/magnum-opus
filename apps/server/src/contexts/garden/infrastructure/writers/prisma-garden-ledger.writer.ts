@@ -127,4 +127,15 @@ export class PrismaGardenLedgerWriter implements GardenLedgerWriter {
       data: { name },
     });
   }
+
+  async assignBed(
+    subjectKind: GardenSubjectKind,
+    subjectId: string,
+    bed: { id: string; name: string },
+  ): Promise<void> {
+    await this.prisma.gardenSubject.updateMany({
+      where: { subjectKind, subjectId, bedId: null },
+      data: { bedId: bed.id, bedName: bed.name },
+    });
+  }
 }

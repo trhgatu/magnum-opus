@@ -13,6 +13,7 @@ export class GardenPresenter {
         variant: tree.variant,
         name: tree.name,
         nameAtPlanting: tree.nameAtPlanting,
+        bed: tree.bed,
         simVersion: tree.simVersion,
         plantedOn: tree.plantedOn,
         weeks: tree.weeks.map((week) => ({

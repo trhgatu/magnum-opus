@@ -282,7 +282,7 @@ Sửa `quitStartedAt` thì cây phát lại từ ngày mới. Các dòng sổ tr
 
 ### BR-GDN-008 — Routine
 
-Các cây thuộc cùng Routine đứng chung một luống. Habit thuộc nhiều Routine thì đứng ở luống của Routine được gán sớm nhất. Habit không thuộc Routine nào thì đứng riêng dọc lối đá. Vị trí chốt lúc gieo (`plot`); đổi Routine sau đó không dời cây.
+Các cây thuộc cùng Routine đứng chung một luống. Habit thuộc nhiều Routine thì đứng ở luống của Routine được gán sớm nhất. Habit không thuộc Routine nào thì đứng riêng dọc lối đá. Luống chốt ở **lần đầu** Habit vào một Routine (Habit thường được thêm vào Routine sau khi tạo); trước đó cây đứng dọc lối đá. Rời Routine hay vào Routine khác sau đó không dời cây (chốt 2026-11-22).
 
 ### BR-GDN-009 — Câu chuyện của cây
 

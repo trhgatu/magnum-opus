@@ -100,6 +100,23 @@ describe('PrismaGardenLedgerWriter', () => {
     });
   });
 
+  describe('assignBed', () => {
+    // Luống chốt ở lần đầu vào Routine: cây đã có luống thì không dời.
+    it('sets the bed only on a tree that has none', async () => {
+      gardenSubject.updateMany.mockResolvedValue({ count: 1 });
+
+      await writer.assignBed('HABIT', 'habit-id', {
+        id: 'routine-id',
+        name: 'Morning',
+      });
+
+      expect(gardenSubject.updateMany).toHaveBeenCalledWith({
+        where: { subjectKind: 'HABIT', subjectId: 'habit-id', bedId: null },
+        data: { bedId: 'routine-id', bedName: 'Morning' },
+      });
+    });
+  });
+
   describe('rename', () => {
     // Chỉ đổi tên hiện tại; name_at_planting giữ cho câu chuyện của cây.
     it('updates the current name of the subject', async () => {

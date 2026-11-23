@@ -54,4 +54,9 @@ export interface GardenLedgerWriter {
     subjectId: string,
     name: string,
   ): Promise<void>;
+  assignBed(
+    subjectKind: GardenSubjectKind,
+    subjectId: string,
+    bed: { id: string; name: string },
+  ): Promise<void>;
 }

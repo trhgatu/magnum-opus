@@ -11,9 +11,14 @@ import { Routine } from '../../domain/routine.aggregate';
 import { RoutineRepository } from '../../domain/ports/routine.repository';
 import { PrismaRoutineMapper } from '../mappers/prisma-routine.mapper';
 
+import { OutboxSerializer } from '@infrastructure/event-bus/outbox/outbox-publication';
+
 @Injectable()
 export class PrismaRoutineRepository implements RoutineRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly outbox: OutboxSerializer,
+  ) {}
 
   public async create(routine: Routine): Promise<void> {
     const raw = PrismaRoutineMapper.toPersistence(routine);
@@ -50,6 +55,9 @@ export class PrismaRoutineRepository implements RoutineRepository {
         event instanceof RoutineHabitAddedEvent ||
         event instanceof RoutineHabitRemovedEvent,
     );
+    const outboxEvents = events
+      .filter((event) => event instanceof RoutineHabitAddedEvent)
+      .map((event) => this.outbox.serialize(event));
 
     // Lịch sử lifecycle và thành viên ghi cùng transaction với optimistic
     // update: revision lệch thì không có dòng lịch sử nào được ghi
@@ -71,6 +79,12 @@ export class PrismaRoutineRepository implements RoutineRepository {
 
       if (result.count !== 1) {
         return false;
+      }
+
+      if (outboxEvents.length > 0) {
+        await transaction.outboxEvent.createMany({
+          data: outboxEvents,
+        });
       }
 
       await transaction.routineHabit.deleteMany({
