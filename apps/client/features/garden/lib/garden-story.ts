@@ -71,3 +71,26 @@ export function lanternStory(lantern: GardenLanternResponse): string {
     ? `Một ký ức ngày ${date}, treo bên lối đá.`
     : `Một ký ức ${date.toLowerCase()}, treo bên lối đá.`;
 }
+
+/**
+ * Nhãn của từng đèn trong danh sách: ngày, kèm số thứ tự khi nhiều ký ức
+ * trùng ngày (hay cùng chưa rõ ngày), để mỗi nút chỉ đúng một ký ức. Garden
+ * không giữ tiêu đề ký ức (KD-GDN-012).
+ */
+export function lanternLabels(
+  lanterns: readonly GardenLanternResponse[],
+): Map<string, string> {
+  const dates = lanterns.map(lanternDate);
+  const totals = new Map<string, number>();
+  for (const date of dates) totals.set(date, (totals.get(date) ?? 0) + 1);
+  const seen = new Map<string, number>();
+  return new Map(
+    lanterns.map((lantern, i) => {
+      const date = dates[i]!;
+      if (totals.get(date) === 1) return [lantern.id, date];
+      const n = (seen.get(date) ?? 0) + 1;
+      seen.set(date, n);
+      return [lantern.id, `${date} · ${n}`];
+    }),
+  );
+}

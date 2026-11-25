@@ -4,7 +4,12 @@ import type {
 } from "@repo/contracts";
 import { describe, expect, it } from "vitest";
 
-import { gardenStory, lanternDate, lanternStory } from "./garden-story";
+import {
+  gardenStory,
+  lanternDate,
+  lanternLabels,
+  lanternStory,
+} from "./garden-story";
 
 type Week = GardenTreeResponse["weeks"][number];
 
@@ -109,6 +114,27 @@ describe("lanternStory", () => {
     expect(lanternDate(lantern("2018-08-11", "DAY"))).toBe("11/8/2018");
     expect(lanternDate(lantern("2018-08-01", "MONTH"))).toBe("Tháng 8/2018");
     expect(lanternDate(lantern("2018-01-01", "YEAR"))).toBe("Năm 2018");
+    expect(lanternDate(lantern(null, "UNKNOWN"))).toBe("Chưa rõ ngày");
+  });
+
+  it("tells a memory of a known day by that day", () => {
+    expect(lanternStory(lantern("2018-08-11", "DAY"))).toBe(
+      "Một ký ức ngày 11/8/2018, treo bên lối đá.",
+    );
+  });
+
+  it("numbers lanterns that share a date so each label names one memory", () => {
+    const labels = lanternLabels([
+      { ...lantern(null, "UNKNOWN"), id: "a" },
+      { ...lantern("2018-08-11", "DAY"), id: "b" },
+      { ...lantern(null, "UNKNOWN"), id: "c" },
+    ]);
+
+    expect([...labels.values()]).toEqual([
+      "Chưa rõ ngày · 1",
+      "11/8/2018",
+      "Chưa rõ ngày · 2",
+    ]);
   });
 
   it("tells an undated memory where it waits", () => {

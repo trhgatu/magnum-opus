@@ -11,7 +11,7 @@ import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   gardenStory,
-  lanternDate,
+  lanternLabels,
   lanternStory,
 } from "@/features/garden/lib/garden-story";
 import { cn } from "@/lib/utils";
@@ -37,6 +37,7 @@ const chipOn = "border-primary bg-primary text-primary-foreground";
 export function GardenView({ trees, lanterns, light }: GardenViewProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = trees.find((tree) => tree.id === selectedId) ?? null;
+  const labels = lanternLabels(lanterns);
   const selectedLantern =
     lanterns.find((lantern) => lantern.id === selectedId) ?? null;
 
@@ -86,35 +87,37 @@ export function GardenView({ trees, lanterns, light }: GardenViewProps) {
       </div>
 
       {/* Danh sách cây: cách chọn cây bằng bàn phím và trình đọc màn hình. */}
-      <section
-        aria-labelledby="garden-trees-heading"
-        className="flex flex-col gap-3"
-      >
-        <h2
-          id="garden-trees-heading"
-          className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground"
+      {trees.length ? (
+        <section
+          aria-labelledby="garden-trees-heading"
+          className="flex flex-col gap-3"
         >
-          Các cây trong vườn
-        </h2>
-        <ul className="flex flex-wrap gap-2">
-          {trees.map((tree) => (
-            <li key={tree.id}>
-              <button
-                type="button"
-                aria-pressed={tree.id === selectedId}
-                onClick={() => setSelectedId(tree.id)}
-                className={cn(
-                  chip,
-                  tree.id === selectedId ? chipOn : "hover:bg-muted",
-                )}
-              >
-                {tree.name}
-                {tree.bed ? <span> · {tree.bed.name}</span> : null}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </section>
+          <h2
+            id="garden-trees-heading"
+            className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground"
+          >
+            Các cây trong vườn
+          </h2>
+          <ul className="flex flex-wrap gap-2">
+            {trees.map((tree) => (
+              <li key={tree.id}>
+                <button
+                  type="button"
+                  aria-pressed={tree.id === selectedId}
+                  onClick={() => setSelectedId(tree.id)}
+                  className={cn(
+                    chip,
+                    tree.id === selectedId ? chipOn : "hover:bg-muted",
+                  )}
+                >
+                  {tree.name}
+                  {tree.bed ? <span> · {tree.bed.name}</span> : null}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       {lanterns.length ? (
         <section
@@ -139,7 +142,7 @@ export function GardenView({ trees, lanterns, light }: GardenViewProps) {
                     lantern.id === selectedId ? chipOn : "hover:bg-muted",
                   )}
                 >
-                  {lanternDate(lantern)}
+                  {labels.get(lantern.id)}
                 </button>
               </li>
             ))}
