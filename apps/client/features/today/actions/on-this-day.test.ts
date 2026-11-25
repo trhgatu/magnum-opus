@@ -39,5 +39,9 @@ describe("openOnThisDayItem", () => {
     apiFetch.mockRejectedValue(new Error("down"));
 
     await expect(openOnThisDayItem("JOURNAL", id)).resolves.toBeUndefined();
+    expect(apiFetch).toHaveBeenCalledWith("/reflection/on-this-day/opened", {
+      method: "POST",
+      body: JSON.stringify({ kind: "JOURNAL", id }),
+    });
   });
 });

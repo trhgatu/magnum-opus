@@ -96,14 +96,14 @@ Phông nền            giờ, thời tiết thật  ← không qua sổ, không
 
 Mỗi nguồn gán cho từng sự kiện của mình đúng một vai. Garden chỉ hiểu sáu vai này:
 
-| Vai             | Habit               | Project                     | Journal              | Memory                               |
-| --------------- | ------------------- | --------------------------- | -------------------- | ------------------------------------ |
-| **Gieo**        | tạo Habit           | Start (tạo = hạt trong túi) |                      |                                      |
-| **Chăm**        | check-in            | Q-GDN-6                     |                      |                                      |
-| **Dấu**         | tái phạm → sẹo      | cycle đóng → hoa            |                      |                                      |
-| **Nghỉ / tiếp** | lưu trữ / khôi phục | pause / resume              |                      |                                      |
-| **Kết thúc**    | không có            | complete → trái, stop       |                      |                                      |
-| **Ánh sáng**    |                     |                             | niêm phong → sáng tỏ | (tạo là đèn lồng, không là ánh sáng) |
+| Vai             | Habit               | Project                     | Journal                                           | Memory                                                            |
+| --------------- | ------------------- | --------------------------- | ------------------------------------------------- | ----------------------------------------------------------------- |
+| **Gieo**        | tạo Habit           | Start (tạo = hạt trong túi) |                                                   |                                                                   |
+| **Chăm**        | check-in            | Q-GDN-6                     |                                                   |                                                                   |
+| **Dấu**         | tái phạm → sẹo      | cycle đóng → hoa            |                                                   |                                                                   |
+| **Nghỉ / tiếp** | lưu trữ / khôi phục | pause / resume              |                                                   |                                                                   |
+| **Kết thúc**    | không có            | complete → trái, stop       |                                                   |                                                                   |
+| **Ánh sáng**    |                     |                             | niêm phong; mở lại trang cũ từ "Ngày này năm xưa" | mở lại từ "Ngày này năm xưa" (tạo là đèn lồng, không là ánh sáng) |
 
 Habit không bao giờ "kết thúc": lưu trữ chỉ là tạm ngưng, đảo ngược được (`BR-HAB2-009`). Cây Habit lưu trữ là cây ngủ đông.
 
@@ -147,7 +147,7 @@ Không góp: `iam`, `audit`, `menu`, `notifications`, `storage`, `analytics`. Đ
 | Niêm phong trang nhật ký         | ánh sáng                                          | `JournalEntrySealed`              | Có           |
 | Tạo ký ức                        | đèn lồng tại `occurredOn` (§7.5)                  | `MemoryCreated`                   | Có           |
 | Sửa ngày ký ức                   | đèn dời chỗ                                       | `MemoryRedated`                   | Có           |
-| Mở một mục từ "Ngày này năm xưa" | ánh sáng; mục là ký ức thì đèn đó sáng lên (§7.4) | `OnThisDayItemOpened`             | **Cần thêm** |
+| Mở một mục từ "Ngày này năm xưa" | ánh sáng; mục là ký ức thì đèn đó sáng lên (§7.5) | `OnThisDayItemOpened`             | Có           |
 | Mood của trang                   | bầu trời (P4)                                     | đi kèm trang nhật ký              | Có dữ liệu   |
 | Ký ức vào / ra Thùng rác         | đèn lồng ẩn / hiện lại                            | `MemoryTrashed`, `MemoryRestored` | Có           |
 | Xóa vĩnh viễn ký ức              | đèn lồng bị gỡ (§6.3)                             | `MemoryPermanentlyDeleted`        | Có           |
@@ -282,7 +282,7 @@ Ký ức là một khoảnh khắc đã xảy ra: không lớn, không cần ch�
 - **BR-GDN-LN-004 — Đèn dời theo ngày:** sửa ngày ký ức thì đèn dời theo. Đây là ngoại lệ với "plot chốt lúc gieo": cây có chỗ vì đã gieo ở đó, đèn có chỗ vì ngày của ký ức.
 - **BR-GDN-LN-005 — Vòng đời:** ký ức vào Thùng rác thì đèn ẩn, khôi phục thì hiện lại (BR-GDN-SB-007); xóa vĩnh viễn thì đèn bị gỡ (BR-GDN-SB-006).
 - **BR-GDN-LN-006 — Không là ánh sáng:** tạo ký ức không thắp sáng vườn (BR-GDN-LT-003). Chỉ mở lại ký ức từ "Ngày này năm xưa" mới là ánh sáng, và đèn đó sáng lên.
-- **BR-GDN-LN-007 — Đèn được thắp:** đèn sáng lên khi ký ức của nó được mở lại từ "Ngày này năm xưa", rồi nhạt dần như ánh sáng của vườn (BR-GDN-LT-004). Đèn sáng hơn chỉ ở màu giấy, không phát sáng (KD-GDN-007). Mở lại nhiều lần trong một ngày vẫn là một lần nhìn lại.
+- **BR-GDN-LN-007 — Đèn được thắp:** đèn sáng lên khi ký ức của nó được mở lại từ "Ngày này năm xưa", rồi nhạt dần như ánh sáng của vườn (BR-GDN-LT-004). Đèn sáng hơn chỉ ở màu giấy, không phát sáng. Mở lại nhiều lần trong một ngày vẫn là một lần nhìn lại.
 - **BR-GDN-LN-008 — Chỉ khi thật sự mở:** chỉ tính khi người dùng chọn mục đó trong "Ngày này năm xưa" và mục đó đúng là của ngày này năm xưa hôm nay; mở ký ức từ nơi khác, hay trình duyệt tải trước trang, không tính.
 
 ## 8. P1: Habit

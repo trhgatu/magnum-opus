@@ -323,6 +323,7 @@ describe('garden outbox handlers', () => {
       },
     });
 
+    expect(timeZoneReader.getForUser).toHaveBeenCalledWith('owner-id');
     expect(ledger.recordReflection).toHaveBeenCalledWith({
       ownerId: 'owner-id',
       sourceRef: 'memory-id',

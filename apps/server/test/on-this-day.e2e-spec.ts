@@ -185,8 +185,9 @@ describe('On this day (E2E)', () => {
       data: { timeZone: TIME_ZONE },
     });
     const today = todayInVietnam();
-    if (today.slice(5) === '02-29') return;
-    const past = `${Number(today.slice(0, 4)) - 3}-${today.slice(5)}`;
+    // 29/2 chỉ có ở năm nhuận: lùi bốn năm thì ngày đó vẫn có.
+    const yearsBack = today.slice(5) === '02-29' ? 4 : 3;
+    const past = `${Number(today.slice(0, 4)) - yearsBack}-${today.slice(5)}`;
     const listed = await prisma.memory.create({
       data: {
         ownerId: owner.id,
