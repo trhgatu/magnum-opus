@@ -175,11 +175,13 @@ export default async function ProjectsPage({
           >
             Project
           </h1>
-          <p className="text-base text-muted-foreground sm:text-[17px]">
+          {/* div, không phải p: skeleton là <div>, nằm trong <p> thì HTML
+              không hợp lệ, trình duyệt tách ra và hydrate lệch. */}
+          <div className="text-base text-muted-foreground sm:text-[17px]">
             <Suspense fallback={<ProjectMetaSkeleton />}>
               <Summary runningPromise={runningPromise} />
             </Suspense>
-          </p>
+          </div>
         </div>
         <Link href="/projects/new" className={buttonVariants({ size: "lg" })}>
           <Plus aria-hidden="true" /> Tạo Project
