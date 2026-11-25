@@ -1,4 +1,7 @@
-import type { GardenTreeResponse } from "@repo/contracts";
+import type {
+  GardenLanternResponse,
+  GardenTreeResponse,
+} from "@repo/contracts";
 
 /**
  * Lời kể của một cây (BR-GDN-009): vài câu bằng chữ, không điểm số hay đếm
@@ -47,4 +50,47 @@ function plantedLine(tree: GardenTreeResponse): string {
   const [year, month] = tree.plantedOn.split("-");
   const kind = tree.variant === "QUIT" ? "Bụi gai" : "Cây";
   return `${kind} ${tree.name}, gieo tháng ${Number(month)}/${year}.`;
+}
+
+/** Ngày của một ký ức, đúng độ chính xác người dùng đã ghi. */
+export function lanternDate(lantern: GardenLanternResponse): string {
+  if (!lantern.occurredOn) return "Chưa rõ ngày";
+  const [year, month, day] = lantern.occurredOn.split("-").map(Number);
+  if (lantern.precision === "YEAR") return `Năm ${year}`;
+  if (lantern.precision === "MONTH") return `Tháng ${month}/${year}`;
+  return `${day}/${month}/${year}`;
+}
+
+/** Lời kể của một đèn lồng (BA §7.5). */
+export function lanternStory(lantern: GardenLanternResponse): string {
+  if (!lantern.occurredOn) {
+    return "Một ký ức chưa rõ ngày, treo cùng chùm đèn ở đầu lối. Điền ngày thì đèn về đúng chỗ.";
+  }
+  const date = lanternDate(lantern);
+  return lantern.precision === "DAY"
+    ? `Một ký ức ngày ${date}, treo bên lối đá.`
+    : `Một ký ức ${date.toLowerCase()}, treo bên lối đá.`;
+}
+
+/**
+ * Nhãn của từng đèn trong danh sách: ngày, kèm số thứ tự khi nhiều ký ức
+ * trùng ngày (hay cùng chưa rõ ngày), để mỗi nút chỉ đúng một ký ức. Garden
+ * không giữ tiêu đề ký ức (KD-GDN-012).
+ */
+export function lanternLabels(
+  lanterns: readonly GardenLanternResponse[],
+): Map<string, string> {
+  const dates = lanterns.map(lanternDate);
+  const totals = new Map<string, number>();
+  for (const date of dates) totals.set(date, (totals.get(date) ?? 0) + 1);
+  const seen = new Map<string, number>();
+  return new Map(
+    lanterns.map((lantern, i) => {
+      const date = dates[i]!;
+      if (totals.get(date) === 1) return [lantern.id, date];
+      const n = (seen.get(date) ?? 0) + 1;
+      seen.set(date, n);
+      return [lantern.id, `${date} · ${n}`];
+    }),
+  );
 }

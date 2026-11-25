@@ -1,21 +1,27 @@
 "use client";
 
 import { grow, type GrownTree } from "@repo/garden-sim";
-import type { GardenTreeResponse } from "@repo/contracts";
+import type {
+  GardenLanternResponse,
+  GardenTreeResponse,
+} from "@repo/contracts";
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
-import { gardenLayout, HIT_RADIUS } from "@/features/garden/lib/garden-layout";
+import { gardenPath, HIT_RADIUS } from "@/features/garden/lib/garden-layout";
+import { lanternDate } from "@/features/garden/lib/garden-story";
 
 /**
  * Cảnh 3D của vườn, theo bản phác "Khu vườn của Tú 3D", chỉ phần P1: cây, bụi
- * gai, mắt gỗ, sẹo, cỏ, lối đá. Màu phẳng, không đổ bóng; nền trong suốt để
- * lấy màu nền của trang. Mùa, ánh sáng, giờ, thời tiết, đèn lồng là P2+.
+ * gai, mắt gỗ, sẹo, cỏ, lối đá, đèn lồng. Màu phẳng, không đổ bóng; nền trong
+ * suốt để lấy màu nền của trang. Mùa, giờ, thời tiết là P2+.
  */
 
 interface GardenSceneProps {
   trees: readonly GardenTreeResponse[];
+  /** Mỗi ký ức một đèn bên lối đá (BA §7.5). */
+  lanterns: readonly GardenLanternResponse[];
   /** Sáng tỏ 0..1 (BA §7.4): chỉ đổi sương và nắng, không đổi cây. */
   light: number;
   selectedId: string | null;
@@ -37,6 +43,8 @@ const PALETTE = {
     fade: "#b8b19f",
     leaf: "#c08a3a",
     leaf2: "#9c4f2b",
+    paper: "#e6b866",
+    halo: "#e3d9bf",
   },
   dark: {
     ground: "#34302a",
@@ -52,6 +60,8 @@ const PALETTE = {
     fade: "#5d584d",
     leaf: "#c08a3a",
     leaf2: "#9c4f2b",
+    paper: "#d9a24f",
+    halo: "#3d372e",
   },
 } as const;
 
@@ -90,6 +100,7 @@ const PATH = [
 
 export default function GardenScene({
   trees,
+  lanterns,
   light,
   selectedId,
   onSelect,
@@ -321,7 +332,8 @@ export default function GardenScene({
     // Luống (BR-GDN-008): cây cùng Routine đứng chung một cụm trên nền đất
     // riêng; cây chưa vào Routine nào đứng dọc lối đá.
     const placed: { tree: GardenTreeResponse; position: THREE.Vector3 }[] = [];
-    for (const slot of gardenLayout(trees)) {
+    const path = gardenPath(trees, lanterns);
+    for (const slot of path.slots) {
       const point = curve.getPointAt(slot.t);
       const tangent = curve.getTangentAt(slot.t);
       const extent = Math.max(
@@ -423,6 +435,69 @@ export default function GardenScene({
         new THREE.Vector3(position.x, -14, position.z + 30),
       );
     });
+
+    // Đèn lồng (BA §7.5): cột gỗ, thân giấy, mái nhỏ, đứng sát lối đá. Ngày
+    // ước chừng (tháng, năm) thì có quầng đất nhạt rộng dưới chân, không phát
+    // sáng: vườn không dùng glow.
+    const postGeometry = keep(new THREE.BoxGeometry(3, 62, 3));
+    postGeometry.translate(0, 31, 0);
+    const paperGeometry = keep(new THREE.BoxGeometry(14, 18, 14));
+    const capGeometry = keep(new THREE.ConeGeometry(12, 8, 4));
+    const haloGeometry = keep(new THREE.CircleGeometry(1, 20));
+    haloGeometry.rotateX(-Math.PI / 2);
+    const lanternHitGeometry = keep(new THREE.CylinderGeometry(24, 24, 96, 8));
+    const lanternRingGeometry = keep(new THREE.RingGeometry(30, 35, 32));
+    lanternRingGeometry.rotateX(-Math.PI / 2);
+    for (const spot of path.lanterns) {
+      const point = curve.getPointAt(spot.t);
+      const tangent = curve.getTangentAt(spot.t);
+      const center = point
+        .clone()
+        .add(
+          new THREE.Vector3(-tangent.z, 0, tangent.x).multiplyScalar(
+            spot.side * (spot.lanterns.length > 1 ? 70 : 40),
+          ),
+        );
+      for (const { lantern, dx, dz } of spot.lanterns) {
+        const position = center.clone().add(new THREE.Vector3(dx, 0, dz));
+        const group = new THREE.Group();
+        group.position.copy(position);
+        group.add(new THREE.Mesh(postGeometry, materials.bark));
+        const paper = new THREE.Mesh(paperGeometry, materials.paper);
+        paper.position.y = 56;
+        group.add(paper);
+        const cap = new THREE.Mesh(capGeometry, materials.ink);
+        cap.position.y = 69;
+        cap.rotation.y = Math.PI / 4;
+        group.add(cap);
+        if (lantern.precision === "MONTH" || lantern.precision === "YEAR") {
+          const halo = new THREE.Mesh(haloGeometry, materials.halo);
+          const radius = lantern.precision === "YEAR" ? 52 : 34;
+          halo.scale.set(radius, 1, radius);
+          halo.position.y = 0.8;
+          group.add(halo);
+        }
+        scene.add(group);
+
+        const ring = new THREE.Mesh(lanternRingGeometry, ringMaterial);
+        ring.position.set(position.x, 1.5, position.z);
+        ring.visible = false;
+        scene.add(ring);
+        rings.set(lantern.id, ring);
+
+        const hit = new THREE.Mesh(lanternHitGeometry, hitMaterial);
+        hit.position.set(position.x, 48, position.z);
+        hit.userData.id = lantern.id;
+        scene.add(hit);
+        hits.push(hit);
+
+        addTag(
+          lantern.id,
+          lanternDate(lantern),
+          new THREE.Vector3(position.x, -14, position.z + 24),
+        );
+      }
+    }
 
     // Chỉ vẽ khi có thay đổi: kéo, cuộn, đổi cỡ, đổi theme, chọn cây. Damping
     // của OrbitControls tự phát "change" cho tới khi dừng hẳn.
@@ -546,7 +621,7 @@ export default function GardenScene({
     };
     // Dựng lại cảnh khi dữ liệu vườn đổi; chọn cây chỉ đổi vòng sáng.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trees, light]);
+  }, [trees, lanterns, light]);
 
   return (
     <div ref={stageRef} className="relative overflow-hidden">
