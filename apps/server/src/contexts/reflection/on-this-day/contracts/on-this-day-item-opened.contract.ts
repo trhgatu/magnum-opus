@@ -1,9 +1,12 @@
-import { ON_THIS_DAY_KINDS, type OnThisDayKind } from '@repo/contracts';
 import {
   defineIntegrationEvent,
   requireDate,
   requireString,
 } from '@shared/application/integration-event';
+
+// Contract của event không import gì ngoài helper chung (dependency-rules).
+const ON_THIS_DAY_KINDS = ['MEMORY', 'JOURNAL'] as const;
+type OnThisDayKind = (typeof ON_THIS_DAY_KINDS)[number];
 
 const isOnThisDayKind = (value: string): value is OnThisDayKind =>
   (ON_THIS_DAY_KINDS as readonly string[]).includes(value);
