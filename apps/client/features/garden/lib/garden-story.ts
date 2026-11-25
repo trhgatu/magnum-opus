@@ -1,4 +1,7 @@
-import type { GardenTreeResponse } from "@repo/contracts";
+import type {
+  GardenLanternResponse,
+  GardenTreeResponse,
+} from "@repo/contracts";
 
 /**
  * Lời kể của một cây (BR-GDN-009): vài câu bằng chữ, không điểm số hay đếm
@@ -47,4 +50,24 @@ function plantedLine(tree: GardenTreeResponse): string {
   const [year, month] = tree.plantedOn.split("-");
   const kind = tree.variant === "QUIT" ? "Bụi gai" : "Cây";
   return `${kind} ${tree.name}, gieo tháng ${Number(month)}/${year}.`;
+}
+
+/** Ngày của một ký ức, đúng độ chính xác người dùng đã ghi. */
+export function lanternDate(lantern: GardenLanternResponse): string {
+  if (!lantern.occurredOn) return "Chưa rõ ngày";
+  const [year, month, day] = lantern.occurredOn.split("-").map(Number);
+  if (lantern.precision === "YEAR") return `Năm ${year}`;
+  if (lantern.precision === "MONTH") return `Tháng ${month}/${year}`;
+  return `${day}/${month}/${year}`;
+}
+
+/** Lời kể của một đèn lồng (BA §7.5). */
+export function lanternStory(lantern: GardenLanternResponse): string {
+  if (!lantern.occurredOn) {
+    return "Một ký ức chưa rõ ngày, treo cùng chùm đèn ở đầu lối. Điền ngày thì đèn về đúng chỗ.";
+  }
+  const date = lanternDate(lantern);
+  return lantern.precision === "DAY"
+    ? `Một ký ức ngày ${date}, treo bên lối đá.`
+    : `Một ký ức ${date.toLowerCase()}, treo bên lối đá.`;
 }

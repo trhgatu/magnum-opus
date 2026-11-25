@@ -28,8 +28,12 @@ export default async function GardenPage() {
         description="Mỗi thói quen là một cây, mọc lên từ những tuần đã chăm. Nghỉ thì đứng yên, quay lại thì mọc tiếp."
       />
 
-      {garden.trees.length > 0 ? (
-        <GardenView trees={garden.trees} light={garden.light} />
+      {garden.trees.length > 0 || garden.lanterns.length > 0 ? (
+        <GardenView
+          trees={garden.trees}
+          lanterns={garden.lanterns}
+          light={garden.light}
+        />
       ) : (
         <EmptyState
           title="Vườn còn trống"

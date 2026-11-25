@@ -1,7 +1,15 @@
-import type { GardenTreeResponse } from "@repo/contracts";
+import type {
+  GardenLanternResponse,
+  GardenTreeResponse,
+} from "@repo/contracts";
 import { describe, expect, it } from "vitest";
 
-import { BED_SPACING, gardenLayout, HIT_RADIUS } from "./garden-layout";
+import {
+  BED_SPACING,
+  gardenLayout,
+  gardenPath,
+  HIT_RADIUS,
+} from "./garden-layout";
 
 const tree = (
   id: string,
@@ -68,5 +76,57 @@ describe("gardenLayout", () => {
       dx: -BED_SPACING,
       dz: -BED_SPACING / 2,
     });
+  });
+});
+
+const lantern = (
+  id: string,
+  placedOn: string | null,
+): GardenLanternResponse => ({
+  id,
+  memoryId: `memory-${id}`,
+  occurredOn: placedOn,
+  precision: placedOn ? "DAY" : "UNKNOWN",
+  placedOn,
+});
+
+describe("gardenPath", () => {
+  it("puts lanterns among trees in date order, undated ones first", () => {
+    const path = gardenPath(
+      [tree("a", "2026-09-01")],
+      [
+        lantern("old", "2018-08-15"),
+        lantern("later", "2026-10-01"),
+        lantern("x", null),
+        lantern("y", null),
+      ],
+    );
+
+    expect(path.lanterns.map((spot) => spot.t)).toEqual([0, 1 / 3, 1]);
+    expect(path.lanterns[0]!.lanterns.map((l) => l.lantern.id)).toEqual([
+      "x",
+      "y",
+    ]);
+    expect(path.slots.map((slot) => slot.t)).toEqual([2 / 3]);
+  });
+
+  it("puts a lantern before a tree planted on the same day", () => {
+    const path = gardenPath(
+      [tree("a", "2026-09-01")],
+      [lantern("l", "2026-09-01")],
+    );
+
+    expect(path.lanterns[0]!.t).toBe(0);
+    expect(path.slots[0]!.t).toBe(1);
+  });
+
+  it("never stacks two lanterns of the undated cluster", () => {
+    const [spot] = gardenPath(
+      [],
+      ["a", "b", "c"].map((id) => lantern(id, null)),
+    ).lanterns;
+
+    const offsets = spot!.lanterns.map(({ dx, dz }) => `${dx},${dz}`);
+    expect(new Set(offsets).size).toBe(3);
   });
 });
