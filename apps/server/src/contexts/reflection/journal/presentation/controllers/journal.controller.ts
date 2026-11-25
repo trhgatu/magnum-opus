@@ -14,7 +14,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CommandBus, type ICommand, QueryBus } from '@nestjs/cqrs';
-import type { JournalEntryResponse } from '@repo/contracts';
+import type {
+  JournalEntryListItemResponse,
+  JournalEntryResponse,
+} from '@repo/contracts';
+import type { JournalEntryExtras } from '../../application/ports/journal-list-reader.port';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -93,13 +97,18 @@ export class JournalController {
         query.sortOrder,
       ),
     );
-    const { entries, total } = result.unwrap() as {
+    const { entries, total, extras } = result.unwrap() as {
       entries: JournalEntry[];
       total: number;
+      extras: Map<string, JournalEntryExtras>;
     };
 
     return PaginatedResponsePresenter.toResponse(
-      entries.map((entry) => JournalEntryPresenter.toResponse(entry)),
+      entries.map((entry): JournalEntryListItemResponse => ({
+        ...JournalEntryPresenter.toResponse(entry),
+        mood: extras.get(entry.id)?.mood ?? null,
+        memoryCount: extras.get(entry.id)?.memoryCount ?? 0,
+      })),
       total,
       query.page,
       query.limit,

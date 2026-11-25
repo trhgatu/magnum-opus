@@ -18,7 +18,7 @@ describe("JournalStateFilter", () => {
     expect(
       within(navigation)
         .getByRole("link", {
-          name: "Đang lưu giữ",
+          name: "Tất cả",
         })
         .getAttribute("aria-current"),
     ).toBe("page");
@@ -33,12 +33,12 @@ describe("JournalStateFilter", () => {
   });
 
   it("preserves search while changing state", () => {
-    render(<JournalStateFilter search="summer light" state="TRASHED" />);
+    render(<JournalStateFilter search="summer light" state="DRAFT" />);
 
     expect(
       screen
         .getByRole("link", {
-          name: "Thùng rác",
+          name: "Nháp",
         })
         .getAttribute("aria-current"),
     ).toBe("page");
