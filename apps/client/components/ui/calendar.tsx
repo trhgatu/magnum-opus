@@ -36,6 +36,8 @@ function Calendar({
       showOutsideDays={showOutsideDays}
       className={cn(
         "group/calendar bg-background p-2 [--cell-radius:var(--radius-md)] [--cell-size:--spacing(7)] in-data-[slot=card-content]:bg-transparent in-data-[slot=popover-content]:bg-transparent",
+        // Dropdown tháng/năm cần chỗ: ô lớn hơn để hai nhãn không chen vào nút qua lại.
+        captionLayout !== "label" && "[--cell-size:--spacing(9)]",
         String.raw`rtl:**:[.rdp-button\_next>svg]:rotate-180`,
         String.raw`rtl:**:[.rdp-button\_previous>svg]:rotate-180`,
         className,
@@ -43,8 +45,10 @@ function Calendar({
       captionLayout={captionLayout}
       locale={locale}
       formatters={{
-        formatMonthDropdown: (date) =>
-          date.toLocaleString(locale?.code, { month: "short" }),
+        formatMonthDropdown: (date) => {
+          const month = date.toLocaleString(locale?.code, { month: "long" });
+          return month.charAt(0).toUpperCase() + month.slice(1);
+        },
         ...formatters,
       }}
       classNames={{
@@ -77,7 +81,7 @@ function Calendar({
           defaultClassNames.dropdowns,
         ),
         dropdown_root: cn(
-          "relative rounded-(--cell-radius)",
+          "relative rounded-(--cell-radius) transition-colors hover:bg-muted has-focus-visible:ring-2 has-focus-visible:ring-ring",
           defaultClassNames.dropdown_root,
         ),
         dropdown: cn(
@@ -88,7 +92,7 @@ function Calendar({
           "font-medium select-none",
           captionLayout === "label"
             ? "text-sm"
-            : "flex items-center gap-1 rounded-(--cell-radius) text-sm [&>svg]:size-3.5 [&>svg]:text-muted-foreground",
+            : "flex h-8 items-center gap-1 rounded-(--cell-radius) border border-input px-2.5 text-sm [&>svg]:size-3.5 [&>svg]:text-muted-foreground",
           defaultClassNames.caption_label,
         ),
         month_grid: cn("w-full border-collapse", defaultClassNames.month_grid),
