@@ -105,14 +105,14 @@ async function JournalToday({
 
   return (
     <section
-      aria-labelledby="journal-today"
+      aria-label="Hôm nay"
       className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border bg-ember-soft px-5 py-5 sm:px-7"
     >
       <div className="flex min-w-0 flex-col gap-1.5">
         <p className="font-mono text-[11px] tracking-[0.12em] text-muted-foreground uppercase">
           {dateLabel}
         </p>
-        <h2 id="journal-today" className="font-display text-2xl">
+        <h2 className="font-display text-2xl">
           {entry
             ? `Hôm nay đã có một trang: ${entry.title || "Không có tiêu đề"}`
             : "Hôm nay chưa có trang nào."}
