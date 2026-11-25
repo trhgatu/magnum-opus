@@ -7,6 +7,13 @@ export class GardenPresenter {
     return {
       today: result.today,
       light: result.light,
+      lanterns: result.lanterns.map((lantern) => ({
+        id: lantern.id,
+        memoryId: lantern.memoryId,
+        occurredOn: lantern.occurredOn,
+        precision: lantern.precision,
+        placedOn: lantern.placedOn,
+      })),
       trees: result.trees.map((tree) => ({
         id: tree.id,
         subjectKind: tree.subjectKind,

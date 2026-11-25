@@ -34,9 +34,5 @@ export interface MemoryRepository {
     options: FindMemoriesOptions,
   ): Promise<FindMemoriesResult>;
 
-  deletePermanently(
-    id: string,
-    ownerId: string,
-    expectedRevision: number,
-  ): Promise<boolean>;
+  deletePermanently(memory: Memory, expectedRevision: number): Promise<boolean>;
 }

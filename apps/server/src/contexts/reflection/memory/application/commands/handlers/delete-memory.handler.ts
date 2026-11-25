@@ -51,9 +51,9 @@ export class DeleteMemoryHandler implements ICommandHandler<
       );
     }
 
+    memory.deletePermanently();
     const deleted = await this.memoryRepository.deletePermanently(
-      command.memoryId,
-      command.ownerId,
+      memory,
       command.expectedRevision,
     );
 

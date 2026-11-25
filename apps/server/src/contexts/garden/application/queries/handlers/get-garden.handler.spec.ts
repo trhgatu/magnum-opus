@@ -3,7 +3,11 @@ import { GetGardenQuery } from '../get-garden.query';
 import { GetGardenHandler } from './get-garden.handler';
 
 describe('GetGardenHandler', () => {
-  const ledger = { visibleSubjectsOf: jest.fn(), lastReflectedOn: jest.fn() };
+  const ledger = {
+    visibleSubjectsOf: jest.fn(),
+    visibleLanternsOf: jest.fn(),
+    lastReflectedOn: jest.fn(),
+  };
   const timeZoneReader = { getForUser: jest.fn() };
   const clock = { now: jest.fn() };
   const handler = new GetGardenHandler(ledger, timeZoneReader, clock);
@@ -28,6 +32,7 @@ describe('GetGardenHandler', () => {
     ledger.visibleSubjectsOf.mockResolvedValue([quitTree]);
     timeZoneReader.getForUser.mockResolvedValue('Asia/Ho_Chi_Minh');
     ledger.lastReflectedOn.mockResolvedValue(null);
+    ledger.visibleLanternsOf.mockResolvedValue([]);
   });
 
   // 17:30Z Chủ nhật 15/11 đã là thứ Hai 16/11 ở Việt Nam: sang tuần mới.
@@ -67,7 +72,12 @@ describe('GetGardenHandler', () => {
 
     await expect(
       handler.execute(new GetGardenQuery('owner-id')),
-    ).resolves.toEqual({ today: '2026-11-16', light: 0, trees: [] });
+    ).resolves.toEqual({
+      today: '2026-11-16',
+      light: 0,
+      trees: [],
+      lanterns: [],
+    });
   });
 
   // Sáng tỏ theo độ gần của lần nhìn lại gần nhất, tính theo hôm nay của owner.
@@ -83,5 +93,39 @@ describe('GetGardenHandler', () => {
       '2026-11-16',
     );
     expect(garden.light).toBe(0.75);
+  });
+
+  it('places each lantern on the path from its memory date', async () => {
+    ledger.visibleSubjectsOf.mockResolvedValue([]);
+    ledger.visibleLanternsOf.mockResolvedValue([
+      {
+        id: 'l1',
+        memoryId: 'm1',
+        occurredOn: '2018-08-01',
+        precision: 'MONTH',
+      },
+      { id: 'l2', memoryId: 'm2', occurredOn: null, precision: 'UNKNOWN' },
+    ]);
+    clock.now.mockReturnValue(new Date('2026-11-15T17:30:00.000Z'));
+
+    const garden = await handler.execute(new GetGardenQuery('owner-id'));
+
+    expect(ledger.visibleLanternsOf).toHaveBeenCalledWith('owner-id');
+    expect(garden.lanterns).toEqual([
+      {
+        id: 'l1',
+        memoryId: 'm1',
+        occurredOn: '2018-08-01',
+        precision: 'MONTH',
+        placedOn: '2018-08-15',
+      },
+      {
+        id: 'l2',
+        memoryId: 'm2',
+        occurredOn: null,
+        precision: 'UNKNOWN',
+        placedOn: null,
+      },
+    ]);
   });
 });

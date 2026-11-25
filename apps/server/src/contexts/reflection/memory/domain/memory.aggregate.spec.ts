@@ -1,9 +1,16 @@
 import { MemoryState } from './enums';
-import { MemoryCreatedEvent } from './events/memory-created.event';
+import {
+  MemoryCreatedEvent,
+  MemoryPermanentlyDeletedEvent,
+  MemoryRedatedEvent,
+  MemoryRestoredEvent,
+  MemoryTrashedEvent,
+} from './events';
 import {
   InvalidMemoryContentException,
   InvalidMemoryTitleException,
   InvalidMemoryTransitionException,
+  MemoryPermanentDeleteForbiddenException,
 } from './exceptions';
 import { Memory, type MemoryProps } from './memory.aggregate';
 import { MemoryId, MemoryOccurredOn } from './value-objects';
@@ -54,6 +61,7 @@ describe('Memory', () => {
       expect((event as MemoryCreatedEvent).memoryOccurredOn).toEqual(
         new Date('2024-08-01T00:00:00.000Z'),
       );
+      expect((event as MemoryCreatedEvent).precision).toBe('MONTH');
     });
 
     it('emits a null occurrence date on the event when the date is unknown', () => {
@@ -162,6 +170,69 @@ describe('Memory', () => {
       });
 
       expect(memory.sourceJournalEntryId).toBe('journal-id');
+    });
+  });
+
+  describe('events of a changing Memory', () => {
+    it('emits MemoryRedatedEvent with the new date and precision when the date changes', () => {
+      const memory = createMemory();
+      memory.clearDomainEvents();
+
+      memory.update({
+        title: memory.title,
+        content: memory.content,
+        occurredOn: MemoryOccurredOn.fromYear(2018),
+      });
+
+      const [event] = memory.getDomainEvents();
+      expect(event).toBeInstanceOf(MemoryRedatedEvent);
+      expect(event).toMatchObject({
+        memoryId: memory.id,
+        ownerId: 'owner-id',
+        memoryOccurredOn: new Date('2018-01-01T00:00:00.000Z'),
+        precision: 'YEAR',
+      });
+    });
+
+    it('emits nothing when only the text changes', () => {
+      const memory = createMemory();
+      memory.clearDomainEvents();
+
+      memory.update({
+        title: 'Another title',
+        content: 'Another content',
+        occurredOn: memory.occurredOn,
+      });
+
+      expect(memory.getDomainEvents()).toHaveLength(0);
+    });
+
+    it('emits MemoryTrashedEvent then MemoryRestoredEvent', () => {
+      const memory = createMemory();
+      memory.clearDomainEvents();
+
+      memory.moveToTrash();
+      memory.restore();
+
+      const [trashed, restored] = memory.getDomainEvents();
+      expect(trashed).toBeInstanceOf(MemoryTrashedEvent);
+      expect(restored).toBeInstanceOf(MemoryRestoredEvent);
+    });
+
+    it('emits MemoryPermanentlyDeletedEvent only from Trash', () => {
+      const memory = createMemory();
+
+      expect(() => memory.deletePermanently()).toThrow(
+        MemoryPermanentDeleteForbiddenException,
+      );
+
+      memory.moveToTrash();
+      memory.clearDomainEvents();
+      memory.deletePermanently();
+
+      const [event] = memory.getDomainEvents();
+      expect(event).toBeInstanceOf(MemoryPermanentlyDeletedEvent);
+      expect(event).toMatchObject({ memoryId: memory.id, ownerId: 'owner-id' });
     });
   });
 

@@ -8,6 +8,8 @@ import {
   GardenSchedule,
 } from '../../domain/garden-entry';
 
+import type { GardenDatePrecision } from '../../domain/garden-lantern';
+
 export const GARDEN_LEDGER_WRITER = Symbol('GARDEN_LEDGER_WRITER');
 
 export interface PlantedSubject {
@@ -65,4 +67,18 @@ export interface GardenLedgerWriter {
     occurredOn: Date;
     sourceEventId: string;
   }): Promise<void>;
+  hangLantern(lantern: {
+    ownerId: string;
+    memoryId: string;
+    occurredOn: Date | null;
+    precision: GardenDatePrecision;
+  }): Promise<void>;
+  moveLantern(
+    memoryId: string,
+    occurredOn: Date | null,
+    precision: GardenDatePrecision,
+  ): Promise<void>;
+  hideLantern(memoryId: string, hiddenAt: Date): Promise<void>;
+  showLantern(memoryId: string): Promise<void>;
+  removeLantern(memoryId: string): Promise<void>;
 }

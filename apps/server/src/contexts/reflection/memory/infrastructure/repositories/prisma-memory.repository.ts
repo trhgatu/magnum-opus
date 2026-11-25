@@ -52,25 +52,42 @@ export class PrismaMemoryRepository implements MemoryRepository {
     expectedRevision: number,
   ): Promise<boolean> {
     const raw = PrismaMemoryMapper.toPersistence(memory);
+    const outboxEvents = memory
+      .getDomainEvents()
+      .map((event) => this.outbox.serialize(event));
 
-    const result = await this.prisma.memory.updateMany({
-      where: {
-        id: raw.id,
-        ownerId: raw.ownerId,
-        revision: expectedRevision,
-      },
-      data: {
-        title: raw.title,
-        content: raw.content,
-        occurredOn: raw.occurredOn,
-        occurredOnPrecision: raw.occurredOnPrecision,
-        state: raw.state,
-        revision: raw.revision,
-        trashedAt: raw.trashedAt,
-        updatedAt: raw.updatedAt,
-      },
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.memory.updateMany({
+        where: {
+          id: raw.id,
+          ownerId: raw.ownerId,
+          revision: expectedRevision,
+        },
+        data: {
+          title: raw.title,
+          content: raw.content,
+          occurredOn: raw.occurredOn,
+          occurredOnPrecision: raw.occurredOnPrecision,
+          state: raw.state,
+          revision: raw.revision,
+          trashedAt: raw.trashedAt,
+          updatedAt: raw.updatedAt,
+        },
+      });
+      if (result.count !== 1) {
+        return false;
+      }
+
+      if (outboxEvents.length > 0) {
+        await tx.outboxEvent.createMany({ data: outboxEvents });
+      }
+      return true;
     });
-    return result.count === 1;
+
+    if (updated) {
+      memory.clearDomainEvents();
+    }
+    return updated;
   }
 
   public async findByIdForOwner(
@@ -141,19 +158,35 @@ export class PrismaMemoryRepository implements MemoryRepository {
   }
 
   public async deletePermanently(
-    id: string,
-    ownerId: string,
+    memory: Memory,
     expectedRevision: number,
   ): Promise<boolean> {
-    const result = await this.prisma.memory.deleteMany({
-      where: {
-        id,
-        ownerId,
-        revision: expectedRevision,
-        state: PrismaMemoryState.TRASHED,
-      },
+    const outboxEvents = memory
+      .getDomainEvents()
+      .map((event) => this.outbox.serialize(event));
+
+    const deleted = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.memory.deleteMany({
+        where: {
+          id: memory.id,
+          ownerId: memory.ownerId,
+          revision: expectedRevision,
+          state: PrismaMemoryState.TRASHED,
+        },
+      });
+
+      if (result.count !== 1) {
+        return false;
+      }
+
+      await tx.outboxEvent.createMany({ data: outboxEvents });
+      return true;
     });
-    return result.count === 1;
+
+    if (deleted) {
+      memory.clearDomainEvents();
+    }
+    return deleted;
   }
 
   private buildOrderBy(

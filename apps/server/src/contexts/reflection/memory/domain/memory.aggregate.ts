@@ -1,6 +1,12 @@
 import { AggregateRoot } from '@shared/domain/aggregate-root';
 
-import { MemoryCreatedEvent } from './events/memory-created.event';
+import {
+  MemoryCreatedEvent,
+  MemoryPermanentlyDeletedEvent,
+  MemoryRestoredEvent,
+  MemoryTrashedEvent,
+  MemoryRedatedEvent,
+} from './events';
 
 import { MemoryDatePrecision, MemoryState } from './enums';
 
@@ -8,6 +14,7 @@ import {
   InvalidMemoryContentException,
   InvalidMemoryTitleException,
   InvalidMemoryTransitionException,
+  MemoryPermanentDeleteForbiddenException,
 } from './exceptions';
 
 import { MemoryId, MemoryOccurredOn } from './value-objects';
@@ -76,6 +83,7 @@ export class Memory extends AggregateRoot {
         memory.id,
         memory.ownerId,
         occurredOn.value ? new Date(occurredOn.value) : null,
+        occurredOn.precision,
       ),
     );
     return memory;
@@ -138,11 +146,12 @@ export class Memory extends AggregateRoot {
 
     const nextTitle = Memory.normalizeTitle(input.title);
     const nextContent = Memory.normalizeContent(input.content);
-
+    const redated = !this.props.occurredOn.equals(input.occurredOn);
     const changed =
       this.props.title !== nextTitle ||
       this.props.content !== nextContent ||
-      !this.props.occurredOn.equals(input.occurredOn);
+      !this.props.occurredOn.equals(input.occurredOn) ||
+      redated;
 
     if (!changed) {
       return;
@@ -152,6 +161,17 @@ export class Memory extends AggregateRoot {
     this.props.content = nextContent;
     this.props.occurredOn = input.occurredOn;
     this.trackChange();
+
+    if (redated) {
+      this.addDomainEvent(
+        new MemoryRedatedEvent(
+          this.id,
+          this.ownerId,
+          input.occurredOn.value ? new Date(input.occurredOn.value) : null,
+          input.occurredOn.precision,
+        ),
+      );
+    }
   }
 
   public moveToTrash(): void {
@@ -160,6 +180,8 @@ export class Memory extends AggregateRoot {
     this.props.state = MemoryState.TRASHED;
     this.props.trashedAt = new Date();
     this.trackChange();
+
+    this.addDomainEvent(new MemoryTrashedEvent(this.id, this.ownerId));
   }
 
   public restore(): void {
@@ -168,6 +190,18 @@ export class Memory extends AggregateRoot {
     this.props.state = MemoryState.ACTIVE;
     this.props.trashedAt = null;
     this.trackChange();
+
+    this.addDomainEvent(new MemoryRestoredEvent(this.id, this.ownerId));
+  }
+
+  public deletePermanently(): void {
+    if (this.props.state !== MemoryState.TRASHED) {
+      throw new MemoryPermanentDeleteForbiddenException(this.id);
+    }
+
+    this.addDomainEvent(
+      new MemoryPermanentlyDeletedEvent(this.id, this.ownerId),
+    );
   }
 
   public toPrimitives(): MemoryPrimitives {

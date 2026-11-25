@@ -428,6 +428,73 @@ describe('Garden ledger (E2E)', () => {
     expect(garden.body.light).toBeGreaterThan(0.9);
   });
 
+  it('hangs, moves, hides and removes the lantern of a memory', async () => {
+    const created = await request(app.getHttpServer())
+      .post('/memories')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        title: 'Mùa hè ở quê',
+        content: 'Ngồi dưới gốc nhãn.',
+        occurredOn: '2018-08-01',
+        occurredOnPrecision: 'MONTH',
+      })
+      .expect(HttpStatus.CREATED);
+    const memoryId = created.body.id as string;
+    const lanternOf = () =>
+      prisma.gardenLantern.findUnique({ where: { memoryId } });
+    const lanternsInGarden = async () =>
+      (
+        await request(app.getHttpServer())
+          .get('/garden')
+          .set('Authorization', `Bearer ${token}`)
+          .expect(HttpStatus.OK)
+      ).body.lanterns as { memoryId: string; placedOn: string | null }[];
+
+    await eventually(lanternOf, (row) => row !== null);
+    expect(await lanternsInGarden()).toContainEqual(
+      expect.objectContaining({
+        memoryId,
+        occurredOn: '2018-08-01',
+        precision: 'MONTH',
+        placedOn: '2018-08-15',
+      }),
+    );
+
+    await request(app.getHttpServer())
+      .put(`/memories/${memoryId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        title: 'Mùa hè ở quê',
+        content: 'Ngồi dưới gốc nhãn.',
+        occurredOn: null,
+        occurredOnPrecision: 'UNKNOWN',
+        expectedRevision: 1,
+      })
+      .expect(HttpStatus.OK);
+    const moved = await eventually(
+      lanternOf,
+      (row) => row?.precision === 'UNKNOWN',
+    );
+    expect(moved).toMatchObject({ occurredOn: null, hiddenAt: null });
+
+    await request(app.getHttpServer())
+      .patch(`/memories/${memoryId}/trash`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ expectedRevision: 2 })
+      .expect(HttpStatus.OK);
+    await eventually(lanternOf, (row) => row?.hiddenAt != null);
+    expect(
+      (await lanternsInGarden()).some((l) => l.memoryId === memoryId),
+    ).toBe(false);
+
+    await request(app.getHttpServer())
+      .delete(`/memories/${memoryId}`)
+      .query({ expectedRevision: 3 })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(HttpStatus.NO_CONTENT);
+    expect(await eventually(lanternOf, (row) => row === null)).toBeNull();
+  });
+
   it('serves the garden as weekly series and leaves trashed trees out', async () => {
     const tendedId = await createPlantedBuildHabit('Read a page');
     const checkIn = await request(app.getHttpServer())

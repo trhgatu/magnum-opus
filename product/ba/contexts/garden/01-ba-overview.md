@@ -142,15 +142,18 @@ Không góp: `iam`, `audit`, `menu`, `notifications`, `storage`, `analytics`. Đ
 
 ### 5.3 Reflection — ánh sáng và đèn lồng (P2)
 
-| Nguồn                          | Trong vườn                             | Sự kiện nguồn         | Có sẵn?      |
-| ------------------------------ | -------------------------------------- | --------------------- | ------------ |
-| Niêm phong trang nhật ký       | ánh sáng                               | `JournalEntrySealed`  | Có           |
-| Tạo ký ức                      | đèn lồng tại `occurredOn`              | `MemoryCreated`       | Có           |
-| Mở ký ức từ "Ngày này năm xưa" | ánh sáng, đèn đó sáng lên              | `OnThisDayItemOpened` | **Cần thêm** |
-| Mood của trang                 | bầu trời (P4)                          | đi kèm trang nhật ký  | Có dữ liệu   |
-| Vào Thùng rác                  | đèn lồng ẩn; ánh sáng đã có giữ nguyên |                       | Kiểm tra lại |
-| Xóa vĩnh viễn                  | dòng sổ của nó bị xóa (§6.3)           |                       | Kiểm tra lại |
-| Timeline                       | chính là lối đá; Garden không làm lại  |                       |              |
+| Nguồn                          | Trong vườn                            | Sự kiện nguồn                     | Có sẵn?            |
+| ------------------------------ | ------------------------------------- | --------------------------------- | ------------------ |
+| Niêm phong trang nhật ký       | ánh sáng                              | `JournalEntrySealed`              | Có                 |
+| Tạo ký ức                      | đèn lồng tại `occurredOn` (§7.5)      | `MemoryCreated`                   | Có                 |
+| Sửa ngày ký ức                 | đèn dời chỗ                           | `MemoryRedated`                   | **Cần thêm**       |
+| Mở ký ức từ "Ngày này năm xưa" | ánh sáng, đèn đó sáng lên             | `OnThisDayItemOpened`             | **Cần thêm**       |
+| Mood của trang                 | bầu trời (P4)                         | đi kèm trang nhật ký              | Có dữ liệu         |
+| Ký ức vào / ra Thùng rác       | đèn lồng ẩn / hiện lại                | `MemoryTrashed`, `MemoryRestored` | **Cần thêm**       |
+| Xóa vĩnh viễn ký ức            | đèn lồng bị gỡ (§6.3)                 | `MemoryPermanentlyDeleted`        | **Cần thêm**       |
+| Trang nhật ký vào Thùng rác    | ánh sáng đã có giữ nguyên             |                                   |                    |
+| Xóa vĩnh viễn trang nhật ký    | dòng `REFLECTED` của nó bị xóa (§6.3) |                                   | Kiểm tra lại (P2d) |
+| Timeline                       | chính là lối đá; Garden không làm lại |                                   |                    |
 
 ### 5.4 Chronicle — mốc mùa (P4)
 
@@ -262,6 +265,17 @@ Theo ẩn dụ của James Allen (vườn là tâm trí), ánh sáng là **sự 
 - **BR-GDN-LT-004 — Độ gần, không đếm:** sáng tỏ nhất ngay sau một lần nhìn lại, nhạt dần trong khoảng 4 tuần. Không đếm số lần hay số tuần, không có tuần chốt hay chuỗi để lỡ. Thời gian nhạt chỉnh lại sau khi có dữ liệu thật.
 - **BR-GDN-LT-005 — Của cả vườn:** ánh sáng chung cho mọi cây, không gắn với cây nào. Sổ ghi một loại `REFLECTED` cho mọi nguồn, phân biệt bằng `source_ref`.
 
+### 7.5 Đèn lồng là ký ức (chốt 2026-11-23)
+
+Ký ức là một khoảnh khắc đã xảy ra: không lớn, không cần chăm, không phai. Nên nó không là cây, cũng không là ánh sáng, mà là một vật đứng yên tại đúng một điểm trên lối đá.
+
+- **BR-GDN-LN-001 — Một ký ức, một đèn:** tạo ký ức thì có một đèn lồng. Đèn là một hàng trong `garden_lanterns` (không phải `garden_subjects`, vì đèn không có giống cây, chuỗi kỳ, cỏ hay dáng mọc). Garden giữ đèn bằng sự kiện của Memory, không đọc bảng của Memory (KD-GDN-012).
+- **BR-GDN-LN-002 — Lối theo thứ tự:** lối đá xếp theo thứ tự ngày, không theo tỉ lệ thời gian. Đèn chen vào giữa các cây theo ngày của ký ức. Ký ức có trước khi dùng app nằm trước cây đầu tiên: đời người có trước khu vườn.
+- **BR-GDN-LN-003 — Ngày mờ:** ký ức chỉ biết tháng hoặc năm thì đèn xếp theo giữa kỳ đó và có quầng sáng rộng hơn để báo ngày ước chừng. Ký ức không rõ ngày thì gom thành một chùm ở đầu lối, trước cả ký ức cũ nhất; điền ngày thì đèn về đúng chỗ.
+- **BR-GDN-LN-004 — Đèn dời theo ngày:** sửa ngày ký ức thì đèn dời theo. Đây là ngoại lệ với "plot chốt lúc gieo": cây có chỗ vì đã gieo ở đó, đèn có chỗ vì ngày của ký ức.
+- **BR-GDN-LN-005 — Vòng đời:** ký ức vào Thùng rác thì đèn ẩn, khôi phục thì hiện lại (BR-GDN-SB-007); xóa vĩnh viễn thì đèn bị gỡ (BR-GDN-SB-006).
+- **BR-GDN-LN-006 — Không là ánh sáng:** tạo ký ức không thắp sáng vườn (BR-GDN-LT-003). Chỉ mở lại ký ức từ "Ngày này năm xưa" mới là ánh sáng, và đèn đó sáng lên (P2c).
+
 ## 8. P1: Habit
 
 ### BR-GDN-001 — Gieo
@@ -337,19 +351,20 @@ P0 và phần ghi sổ của P1 đi chung, theo từng lát. Mỗi lát gồm ev
 | P4  | Chronicle: vòng năm, tua thời gian (`?at=`); khí hậu: mùa của đời sống, bầu trời, Mood |
 | P5  | Rễ do người dùng nối; hình ảnh: phông nền giờ thật, thời tiết thật (người dùng tự bật) |
 
-## 11. Quyết định đã chốt (2026-11-13; Q-GDN-10 ngày 2026-11-21; Q-GDN-11 ngày 2026-11-23)
+## 11. Quyết định đã chốt (2026-11-13; Q-GDN-10 ngày 2026-11-21; Q-GDN-11, Q-GDN-12 ngày 2026-11-23)
 
-| Mã       | Câu hỏi                                        | Chốt                                                                                                                            |
-| -------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| Q-GDN-1  | Check-in ngày không đến lịch có tính là chăm?  | Có (BR-GDN-003)                                                                                                                 |
-| Q-GDN-2  | Nhiều lần tái phạm trong một tuần thì mấy sẹo? | Một (BR-GDN-004)                                                                                                                |
-| Q-GDN-3  | Habit tạo thử có thành cây?                    | Có; người dùng xóa ở Forge (Habit V4), Garden không có nút ẩn                                                                   |
-| Q-GDN-4  | Sửa `quitStartedAt` thì cây gieo lại?          | Có (BR-GDN-007)                                                                                                                 |
-| Q-GDN-5  | Ngưỡng mọc cỏ?                                 | 3 tuần RESTED liên tiếp; tối đa 5 bậc; mỗi tuần CARED gọn 1 bậc (trần và độ gọn chốt 2026-11-21). Chỉnh sau khi có dữ liệu thật |
-| —        | Garden đọc DB module khác hay tự đủ?           | Tự đủ ở mức tối thiểu (KD-GDN-012)                                                                                              |
-| —        | Dữ liệu nguồn bị xóa vĩnh viễn?                | Xóa theo (BR-GDN-SB-006)                                                                                                        |
-| Q-GDN-11 | Ánh sáng nghĩa là gì, lấy từ đâu, đo thế nào?  | Sự sáng tỏ (2026-11-23): từ những lần thật sự nhìn lại, đo theo độ gần, nhạt dần khoảng 4 tuần (§7.4)                           |
-| Q-GDN-10 | Đổi tên Habit thì cây đổi tên theo?            | Có (2026-11-21): Forge phát `HabitRenamed`, Garden giữ cả `name` hiện tại và `name_at_planting`                                 |
+| Mã       | Câu hỏi                                        | Chốt                                                                                                                                                       |
+| -------- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Q-GDN-1  | Check-in ngày không đến lịch có tính là chăm?  | Có (BR-GDN-003)                                                                                                                                            |
+| Q-GDN-2  | Nhiều lần tái phạm trong một tuần thì mấy sẹo? | Một (BR-GDN-004)                                                                                                                                           |
+| Q-GDN-3  | Habit tạo thử có thành cây?                    | Có; người dùng xóa ở Forge (Habit V4), Garden không có nút ẩn                                                                                              |
+| Q-GDN-4  | Sửa `quitStartedAt` thì cây gieo lại?          | Có (BR-GDN-007)                                                                                                                                            |
+| Q-GDN-5  | Ngưỡng mọc cỏ?                                 | 3 tuần RESTED liên tiếp; tối đa 5 bậc; mỗi tuần CARED gọn 1 bậc (trần và độ gọn chốt 2026-11-21). Chỉnh sau khi có dữ liệu thật                            |
+| —        | Garden đọc DB module khác hay tự đủ?           | Tự đủ ở mức tối thiểu (KD-GDN-012)                                                                                                                         |
+| —        | Dữ liệu nguồn bị xóa vĩnh viễn?                | Xóa theo (BR-GDN-SB-006)                                                                                                                                   |
+| Q-GDN-12 | Ký ức hiện ra trong vườn thế nào?              | Đèn lồng (2026-11-23): hàng `garden_lanterns` giữ bằng sự kiện của Memory; lối theo thứ tự; tháng/năm xếp giữa kỳ, không rõ ngày thì chùm ở đầu lối (§7.5) |
+| Q-GDN-11 | Ánh sáng nghĩa là gì, lấy từ đâu, đo thế nào?  | Sự sáng tỏ (2026-11-23): từ những lần thật sự nhìn lại, đo theo độ gần, nhạt dần khoảng 4 tuần (§7.4)                                                      |
+| Q-GDN-10 | Đổi tên Habit thì cây đổi tên theo?            | Có (2026-11-21): Forge phát `HabitRenamed`, Garden giữ cả `name` hiện tại và `name_at_planting`                                                            |
 
 ## 12. Câu hỏi mở
 

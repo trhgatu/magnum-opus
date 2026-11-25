@@ -22,18 +22,18 @@ describe('DeleteMemoryHandler', () => {
   });
 
   it('permanently deletes an owned trashed Memory at the expected revision', async () => {
-    repository.findByIdForOwner.mockResolvedValue(createMemory());
+    const memory = createMemory();
+    repository.findByIdForOwner.mockResolvedValue(memory);
 
     const result = await handler.execute(
       new DeleteMemoryCommand('memory-1', 'owner-1', 2),
     );
 
     expect(result.isSuccess).toBe(true);
-    expect(repository.deletePermanently).toHaveBeenCalledWith(
-      'memory-1',
-      'owner-1',
-      2,
-    );
+    expect(repository.deletePermanently).toHaveBeenCalledWith(memory, 2);
+    expect(memory.getDomainEvents()).toEqual([
+      expect.objectContaining({ memoryId: memory.id }),
+    ]);
   });
 
   it('returns not found for an inaccessible Memory', async () => {

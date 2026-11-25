@@ -12,6 +12,13 @@ import { HabitScheduleVersionStarted } from '@/contexts/forge/habit/contracts/ha
 import { JournalEntrySealed } from '@/contexts/reflection/journal/contracts/journal-entry-sealed.contract';
 import { RoutineHabitAdded } from '@/contexts/forge/routine/contracts/routine-habit-added.contract';
 import { HabitRenamed } from '@/contexts/forge/habit/contracts/habit-renamed.contract';
+import {
+  MemoryCreated,
+  MemoryPermanentlyDeleted,
+  MemoryRedated,
+  MemoryRestored,
+  MemoryTrashed,
+} from '@reflection/memory/contracts';
 
 import type { GardenLedgerWriter } from '../../application/ports/garden-ledger-writer.port';
 
@@ -28,6 +35,11 @@ import { RenameHabitTreeHandler } from './rename-habit-tree.handler';
 import { AssignHabitBedHandler } from './assign-habit-bed.handler';
 import { RecordJournalSealedHandler } from './record-journal-sealed.handler';
 import { UprootDeletedHabitHandler } from './uproot-deleted-habit.handler';
+import { HangCreatedMemoryHandler } from './hang-created-memory.handler';
+import { MoveRedatedMemoryHandler } from './move-redated-memory.handler';
+import { HideTrashedMemoryHandler } from './hide-trashed-memory.handler';
+import { ShowRestoredMemoryHandler } from './show-restored-memory.handler';
+import { RemoveDeletedMemoryHandler } from './remove-deleted-memory.handler';
 
 const ledger = {
   plant: jest.fn().mockResolvedValue(undefined),
@@ -39,6 +51,11 @@ const ledger = {
   rename: jest.fn().mockResolvedValue(undefined),
   assignBed: jest.fn().mockResolvedValue(undefined),
   recordReflection: jest.fn().mockResolvedValue(undefined),
+  hangLantern: jest.fn().mockResolvedValue(undefined),
+  moveLantern: jest.fn().mockResolvedValue(undefined),
+  hideLantern: jest.fn().mockResolvedValue(undefined),
+  showLantern: jest.fn().mockResolvedValue(undefined),
+  removeLantern: jest.fn().mockResolvedValue(undefined),
 } as unknown as jest.Mocked<GardenLedgerWriter>;
 const at = new Date('2026-11-18T03:00:00.000Z');
 
@@ -314,6 +331,80 @@ describe('garden outbox handlers', () => {
 
     expect(ledger.hide).toHaveBeenCalledWith('HABIT', 'habit-id', at);
     expect(ledger.show).toHaveBeenCalledWith('HABIT', 'habit-id');
+  });
+});
+
+describe('lantern handlers (BR-GDN-LN-001..005)', () => {
+  const occurredOn = new Date('2018-08-01T00:00:00.000Z');
+  const memory = { memoryId: 'memory-id', ownerId: 'owner-id' };
+  const message = <P>(payload: P) => ({
+    eventId: 'event-id',
+    occurredAt: at,
+    payload,
+  });
+
+  it('bind to the Memory events', () => {
+    expect(
+      [
+        HangCreatedMemoryHandler,
+        MoveRedatedMemoryHandler,
+        HideTrashedMemoryHandler,
+        ShowRestoredMemoryHandler,
+        RemoveDeletedMemoryHandler,
+      ].map((handler) => Reflect.getMetadata(OutboxHandler.KEY, handler)),
+    ).toEqual([
+      MemoryCreated,
+      MemoryRedated,
+      MemoryTrashed,
+      MemoryRestored,
+      MemoryPermanentlyDeleted,
+    ]);
+  });
+
+  it('hangs a lantern for a created memory', async () => {
+    await new HangCreatedMemoryHandler(ledger).handle(
+      message({ ...memory, memoryOccurredOn: occurredOn, precision: 'MONTH' }),
+    );
+
+    expect(ledger.hangLantern).toHaveBeenCalledWith({
+      ...memory,
+      occurredOn,
+      precision: 'MONTH',
+    });
+  });
+
+  it('hangs an undated lantern from an older event without a precision', async () => {
+    await new HangCreatedMemoryHandler(ledger).handle(
+      message({ ...memory, memoryOccurredOn: null, precision: null }),
+    );
+
+    expect(ledger.hangLantern).toHaveBeenCalledWith({
+      ...memory,
+      occurredOn: null,
+      precision: 'UNKNOWN',
+    });
+  });
+
+  it('moves the lantern when the memory is redated', async () => {
+    await new MoveRedatedMemoryHandler(ledger).handle(
+      message({ ...memory, memoryOccurredOn: occurredOn, precision: 'YEAR' }),
+    );
+
+    expect(ledger.moveLantern).toHaveBeenCalledWith(
+      'memory-id',
+      occurredOn,
+      'YEAR',
+    );
+  });
+
+  it('hides, shows and removes the lantern with the memory', async () => {
+    await new HideTrashedMemoryHandler(ledger).handle(message(memory));
+    await new ShowRestoredMemoryHandler(ledger).handle(message(memory));
+    await new RemoveDeletedMemoryHandler(ledger).handle(message(memory));
+
+    expect(ledger.hideLantern).toHaveBeenCalledWith('memory-id', at);
+    expect(ledger.showLantern).toHaveBeenCalledWith('memory-id');
+    expect(ledger.removeLantern).toHaveBeenCalledWith('memory-id');
   });
 });
 

@@ -3,10 +3,49 @@ import { PrismaGardenLedgerReader } from './prisma-garden-ledger.reader';
 describe('PrismaGardenLedgerReader', () => {
   const gardenSubject = { findMany: jest.fn() };
   const gardenEntry = { findFirst: jest.fn() };
+  const gardenLantern = { findMany: jest.fn() };
   const reader = new PrismaGardenLedgerReader({
     gardenSubject,
     gardenEntry,
+    gardenLantern,
   } as never);
+
+  it("reads the owner's visible lanterns as calendar days", async () => {
+    gardenLantern.findMany.mockResolvedValue([
+      {
+        id: 'lantern-1',
+        memoryId: 'memory-1',
+        occurredOn: new Date('2018-08-01T00:00:00.000Z'),
+        precision: 'MONTH',
+      },
+      {
+        id: 'lantern-2',
+        memoryId: 'memory-2',
+        occurredOn: null,
+        precision: 'UNKNOWN',
+      },
+    ]);
+
+    await expect(reader.visibleLanternsOf('owner-id')).resolves.toEqual([
+      {
+        id: 'lantern-1',
+        memoryId: 'memory-1',
+        occurredOn: '2018-08-01',
+        precision: 'MONTH',
+      },
+      {
+        id: 'lantern-2',
+        memoryId: 'memory-2',
+        occurredOn: null,
+        precision: 'UNKNOWN',
+      },
+    ]);
+    expect(gardenLantern.findMany).toHaveBeenCalledWith({
+      where: { ownerId: 'owner-id', hiddenAt: null },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true, memoryId: true, occurredOn: true, precision: true },
+    });
+  });
 
   it("reads the owner's latest reflection up to today", async () => {
     gardenEntry.findFirst.mockResolvedValue({

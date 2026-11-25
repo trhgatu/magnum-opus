@@ -164,6 +164,8 @@ Mỗi nguồn chỉ ghi phần sổ còn thiếu: ngày nào có n dòng nguồn
 
 **Ánh sáng** (đã có, P2a): niêm phong một trang nhật ký (`reflection.journal-entry.sealed.v1`) thành một dòng `REFLECTED` không thuộc cây nào (`subject_id` null, `source_ref` = id trang), vào ngày theo múi giờ tài khoản lúc niêm phong. Garden và Timeline cùng nghe event này. CHECK `garden_entries_subject_matches_kind` giữ chỉ dòng `REFLECTED` mới không có cây. Migration nạp lịch sử lấy các lần niêm phong cũ từ `reflection_timeline_entries`. `GET /garden` trả `light` 0..1 = `gardenLight(lần nhìn lại gần nhất, hôm nay)`: 1 trong ngày nhìn lại, nhạt đều về 0 sau 28 ngày (BA §7.4). Client đổi nắng và sương theo `light`; sương mang màu nền trang để vườn vẫn đủ màu. Đọc tổng kết tháng và "Ngày này năm xưa" sẽ thêm vào cùng loại `REFLECTED` ở lát sau.
 
+**Đèn lồng** (đã có phía server, P2b): mỗi ký ức là một hàng `garden_lanterns` (`memory_id` UNIQUE, `occurred_on`, `precision`, `hidden_at`), không nằm trong `garden_subjects` vì đèn không có giống cây, chuỗi kỳ hay cỏ. Memory phát `reflection.memory.created.v1` (treo đèn), `redated.v1` (dời đèn), `trashed.v1` / `restored.v1` (ẩn / hiện) và `permanently-deleted.v1` (gỡ đèn); Garden không đọc bảng `memories`. CHECK `garden_lanterns_date_matches_precision` giữ `UNKNOWN` đúng khi không có ngày. Migration nạp đèn cho mọi ký ức có sẵn (ký ức ở Thùng rác thì đèn ẩn). `GET /garden` trả `lanterns` với `placedOn` = `lanternPlacedOn`: đúng ngày với `DAY`, ngày 15 với `MONTH`, 01/07 với `YEAR`, null với `UNKNOWN` (chùm ở đầu lối, BA §7.5).
+
 **Đọc** (đã có, G2b) (người dùng mở vườn):
 
 ```
@@ -171,7 +173,7 @@ GET /garden → GetGardenHandler
 → PrismaGardenLedgerReader: garden_subjects không ẩn + garden_entries theo thứ tự ghi
 → hôm nay theo múi giờ tài khoản
 → garden-week.ts (thuần): gardenWeeks → chuỗi tuần CARED / PENDING / RESTED / SKIPPED + sẹo; weedsAfter → bậc cỏ
-→ GardenResponse { today, light, trees: [{ id, subjectKind, subjectId, variant, name, nameAtPlanting, bed, simVersion, plantedOn, weeks: [{ start, status, scarred }], weeds }] }
+→ GardenResponse { today, light, lanterns: [{ id, memoryId, occurredOn, precision, placedOn }], trees: [{ id, subjectKind, subjectId, variant, name, nameAtPlanting, bed, simVersion, plantedOn, weeks: [{ start, status, scarred }], weeds }] }
 → client (G3b, /garden): grow(tree.simVersion, { seed: tree.id, species: tree.variant === 'QUIT' ? 'thorn-bush' : 'tree', weeks: tree.weeks }) dựng hình học → three.js vẽ
 ```
 

@@ -1,6 +1,7 @@
 export type GardenSubjectKind = 'HABIT';
 export type GardenVariant = 'BUILD' | 'QUIT';
 export type GardenWeekStatus = 'CARED' | 'PENDING' | 'RESTED' | 'SKIPPED';
+export type GardenDatePrecision = 'DAY' | 'MONTH' | 'YEAR' | 'UNKNOWN';
 
 export interface GardenWeekResponse {
   /** Thứ Hai của tuần, `YYYY-MM-DD` theo múi giờ tài khoản. */
@@ -25,9 +26,19 @@ export interface GardenTreeResponse {
   weeds: number;
 }
 
+export interface GardenLanternResponse {
+  id: string;
+  memoryId: string;
+  occurredOn: string | null;
+  precision: GardenDatePrecision;
+  /** Chỗ trên lối; null là chùm đèn chưa rõ ngày ở đầu lối. */
+  placedOn: string | null;
+}
+
 export interface GardenResponse {
   /** Hôm nay theo múi giờ tài khoản. */
   today: string;
   trees: GardenTreeResponse[];
   light: number;
+  lanterns: GardenLanternResponse[];
 }
