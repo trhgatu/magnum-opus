@@ -59,6 +59,10 @@ export function MemoryDayPicker({
           selected={selectedDate}
           defaultMonth={selectedDate}
           locale={vi}
+          // Chọn tháng và năm bằng dropdown: ngày trong quá khứ xa vẫn tới được nhanh.
+          captionLayout="dropdown"
+          startMonth={new Date(1900, 0)}
+          endMonth={new Date()}
           onSelect={(date) => {
             if (!date) {
               return;
