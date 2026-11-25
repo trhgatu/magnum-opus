@@ -1,5 +1,5 @@
 import type { MemoryState } from "@repo/contracts";
-import { ArrowUpDown, Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import Link from "next/link";
 
 import {
@@ -8,14 +8,6 @@ import {
   type MemorySortOrder,
 } from "@/features/memory/lib/memory-url";
 import { cn } from "@/lib/utils";
-
-const stateOptions: ReadonlyArray<{
-  value: MemoryState | undefined;
-  label: string;
-}> = [
-  { value: undefined, label: "Đang lưu giữ" },
-  { value: "TRASHED", label: "Thùng rác" },
-];
 
 const sortFieldOptions: ReadonlyArray<{
   value: MemorySortField;
@@ -41,14 +33,6 @@ interface MemoryCollectionControlsProps {
   sortOrder: MemorySortOrder;
 }
 
-const stateOptionClassName = (active: boolean) =>
-  cn(
-    "shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-    active
-      ? "bg-primary text-primary-foreground shadow-sm"
-      : "text-muted-foreground hover:bg-muted hover:text-foreground",
-  );
-
 const sortOptionClassName = (active: boolean) =>
   cn(
     "flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
@@ -63,7 +47,6 @@ export function MemoryCollectionControls({
   sortBy,
   sortOrder,
 }: MemoryCollectionControlsProps) {
-  const activeState = state ?? "ACTIVE";
   const currentSortField = sortFieldOptions.find(
     (option) => option.value === sortBy,
   )!;
@@ -72,51 +55,19 @@ export function MemoryCollectionControls({
   )!;
 
   return (
-    <div className="flex min-w-0 flex-wrap items-center gap-2 lg:justify-end">
-      <nav
-        aria-label="Lọc ký ức theo trạng thái"
-        className="flex shrink-0 rounded-xl border bg-background/70 p-1"
-      >
-        {stateOptions.map((option) => {
-          const optionState = option.value ?? "ACTIVE";
-          const active = activeState === optionState;
-
-          return (
-            <Link
-              key={optionState}
-              href={buildMemoryHref({
-                search,
-                state: option.value,
-                sortBy,
-                sortOrder,
-              })}
-              aria-current={active ? "page" : undefined}
-              className={stateOptionClassName(active)}
-            >
-              {option.label}
-            </Link>
-          );
-        })}
-      </nav>
-
-      <div className="memory-sort-control min-w-0 flex-1 sm:flex-none">
+    <div className="flex min-w-0 flex-wrap items-center gap-2">
+      <div className="memory-sort-control min-w-0">
         <button
           type="button"
           popoverTarget="memory-sort-popover"
-          className="memory-sort-trigger flex h-10 w-full items-center gap-2 rounded-xl border bg-background/70 px-3 text-sm text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 sm:w-72"
+          className="memory-sort-trigger flex h-10 items-center gap-2 rounded-lg px-1 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <ArrowUpDown
-            className="memory-sort-chevron size-4 shrink-0 text-muted-foreground transition-transform"
-            aria-hidden="true"
-          />
           <span className="min-w-0 flex-1 truncate">
-            <span className="hidden text-muted-foreground sm:inline">
-              Sắp xếp:{" "}
-            </span>
-            {currentSortField.label} · {currentSortOrder.label}
+            Sắp theo {currentSortField.label.toLowerCase()} ·{" "}
+            {currentSortOrder.label.toLowerCase()}
           </span>
           <ChevronDown
-            className="size-4 shrink-0 text-muted-foreground"
+            className="memory-sort-chevron size-4 shrink-0 transition-transform"
             aria-hidden="true"
           />
         </button>
@@ -124,7 +75,7 @@ export function MemoryCollectionControls({
         <div
           id="memory-sort-popover"
           popover="auto"
-          className="memory-sort-popover w-[min(20rem,calc(100vw-2rem))] rounded-xl border bg-popover p-2 text-popover-foreground shadow-lg"
+          className="memory-sort-popover w-[min(20rem,calc(100vw-2rem))] rounded-xl border bg-popover p-2 text-popover-foreground"
         >
           <div className="space-y-1">
             <p

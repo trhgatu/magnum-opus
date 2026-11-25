@@ -271,7 +271,9 @@ test("keeps a Memory after its source Journal entry is deleted", async ({
   await expect(page.getByRole("heading", { name: journalTitle })).toBeVisible();
   await expect(page.getByText(memoryContent)).toBeVisible();
 
-  await page.getByRole("link", { name: "Mở Nhật ký nguồn" }).click();
+  await page
+    .getByRole("link", { name: "Được kết tinh từ một trang Nhật ký" })
+    .click();
   await expect(page).toHaveURL(journalUrl);
   await expect(page.getByLabel("Nội dung", { exact: true })).toHaveValue(
     journalContent,
@@ -293,7 +295,7 @@ test("keeps a Memory after its source Journal entry is deleted", async ({
   await expect(page.getByRole("heading", { name: journalTitle })).toBeVisible();
   await expect(page.getByText(memoryContent)).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "Mở Nhật ký nguồn" }),
+    page.getByRole("link", { name: "Được kết tinh từ một trang Nhật ký" }),
   ).not.toBeVisible();
 
   await page.getByRole("button", { name: "Đưa vào Thùng rác" }).click();

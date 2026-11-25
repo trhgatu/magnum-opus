@@ -4,8 +4,7 @@ import type { MemoryResponse } from "@repo/contracts";
 import { ArrowLeft, BookOpenText, Pencil } from "lucide-react";
 import Link from "next/link";
 
-import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   formatMemoryOccurredOn,
   memoryOccurredOnDateTime,
@@ -21,6 +20,9 @@ interface MemoryDetailProps {
   /** Múi giờ của tài khoản: server và trình duyệt định dạng giờ giống nhau. */
   timeZone: string;
 }
+
+const QUIET_LINK =
+  "inline-flex items-center gap-1.5 self-start rounded-sm text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 const formatUpdatedAt = (value: string, timeZone: string) =>
   new Intl.DateTimeFormat("vi-VN", {
@@ -44,49 +46,52 @@ function MemoryDetailBody({ timeZone }: { timeZone: string }) {
     memory.occurredOn,
     memory.occurredOnPrecision,
   );
-
   const occurredOnDateTime = memoryOccurredOnDateTime(
     memory.occurredOn,
     memory.occurredOnPrecision,
   );
+  const trashed = memory.state === "TRASHED";
 
   return (
     <article
-      className="flex w-full flex-col gap-6"
+      className="flex w-full flex-col gap-8"
       aria-labelledby="memory-title"
     >
-      <nav
-        aria-label="Điều hướng ký ức"
-        className="flex flex-wrap items-center justify-between gap-3"
-      >
-        <Link
-          href="/memories"
-          className={buttonVariants({
-            variant: "ghost",
-          })}
-        >
-          <ArrowLeft data-icon="inline-start" aria-hidden="true" />
-          Trở về ký ức
-        </Link>
+      <Link href="/memories" className={QUIET_LINK}>
+        <ArrowLeft className="size-4" aria-hidden="true" /> Tất cả ký ức
+      </Link>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {memory.state === "TRASHED" ? (
-            <Badge variant="destructive">Thùng rác</Badge>
-          ) : (
-            <>
-              <Badge variant="outline">Đang lưu giữ</Badge>
-
-              <Button
-                type="button"
-                variant="outline"
-                onClick={openEditor}
-                onPointerEnter={preloadEditor}
-                onFocus={preloadEditor}
-              >
-                <Pencil data-icon="inline-start" aria-hidden="true" />
-                Chỉnh sửa
-              </Button>
-            </>
+      <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-5">
+        <div className="flex max-w-3xl min-w-0 flex-col gap-2.5">
+          <p className="font-mono text-[11px] font-medium tracking-[0.16em] text-primary uppercase">
+            Reflection · Ký ức{trashed ? " · Thùng rác" : ""}
+          </p>
+          <h1
+            id="memory-title"
+            className="font-display text-4xl leading-[1.05] font-medium tracking-[-0.02em] text-balance sm:text-[46px]"
+          >
+            {memory.title}
+          </h1>
+          <p className="font-mono text-sm text-muted-foreground">
+            {occurredOnDateTime ? (
+              <time dateTime={occurredOnDateTime}>{occurredOnLabel}</time>
+            ) : (
+              occurredOnLabel
+            )}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2.5">
+          {trashed ? null : (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={openEditor}
+              onPointerEnter={preloadEditor}
+              onFocus={preloadEditor}
+            >
+              <Pencil data-icon="inline-start" aria-hidden="true" />
+              Chỉnh sửa
+            </Button>
           )}
           <MemoryLifecycleControls
             id={memory.id}
@@ -95,74 +100,32 @@ function MemoryDetailBody({ timeZone }: { timeZone: string }) {
             revision={memory.revision}
           />
         </div>
-      </nav>
+      </header>
 
-      <div className="relative overflow-hidden rounded-3xl border bg-card/70 shadow-sm">
-        <div
-          aria-hidden="true"
-          className="absolute inset-y-0 left-0 w-1 bg-primary/30"
-        />
-        <div className="flex items-center justify-between border-b bg-muted/20 px-6 py-3 font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground sm:px-10">
-          <span>Hồ sơ lưu trữ</span>
-        </div>
-        <div className="px-6 py-8 sm:px-10 sm:py-12 lg:px-14">
-          <header className="space-y-5">
-            {occurredOnDateTime ? (
-              <time
-                dateTime={occurredOnDateTime}
-                className="font-mono text-xs tracking-wide text-primary"
-              >
-                {occurredOnLabel}
-              </time>
-            ) : (
-              <p className="font-mono text-xs tracking-wide text-muted-foreground">
-                {occurredOnLabel}
-              </p>
-            )}
+      <section aria-labelledby="memory-content-heading" className="max-w-3xl">
+        <h2 id="memory-content-heading" className="sr-only">
+          Nội dung ký ức
+        </h2>
+        <p className="font-display text-lg leading-9 whitespace-pre-wrap text-foreground/90 sm:text-xl sm:leading-10">
+          {memory.content}
+        </p>
+      </section>
 
-            <h1
-              id="memory-title"
-              className="font-display text-3xl font-semibold tracking-tight text-balance sm:text-5xl"
-            >
-              {memory.title}
-            </h1>
+      {memory.sourceJournalEntryId ? (
+        <Link
+          href={`/journal/${memory.sourceJournalEntryId}`}
+          className={QUIET_LINK}
+        >
+          <BookOpenText className="size-4" aria-hidden="true" /> Được kết tinh
+          từ một trang Nhật ký
+        </Link>
+      ) : null}
 
-            {memory.sourceJournalEntryId ? (
-              <Link
-                href={`/journal/${memory.sourceJournalEntryId}`}
-                className={buttonVariants({
-                  variant: "outline",
-                  size: "sm",
-                })}
-              >
-                <BookOpenText data-icon="inline-start" aria-hidden="true" />
-                Mở Nhật ký nguồn
-              </Link>
-            ) : null}
-          </header>
-
-          <section
-            className="mt-9 border-t pt-8"
-            aria-labelledby="memory-content-heading"
-          >
-            <h2 id="memory-content-heading" className="sr-only">
-              Nội dung ký ức
-            </h2>
-
-            <p className="max-w-3xl whitespace-pre-wrap text-base leading-8 text-foreground/90 sm:text-lg sm:leading-9">
-              {memory.content}
-            </p>
-          </section>
-
-          <footer className="mt-10 flex flex-col gap-1 border-t pt-5 font-mono text-[11px] text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-            <time dateTime={memory.updatedAt}>
-              Cập nhật {formatUpdatedAt(memory.updatedAt, timeZone)}
-            </time>
-
-            <span>Magnum Opus · Reflection</span>
-          </footer>
-        </div>
-      </div>
+      <footer className="flex flex-wrap justify-end gap-2 border-t pt-4 font-mono text-xs text-muted-foreground">
+        <time dateTime={memory.updatedAt}>
+          Cập nhật {formatUpdatedAt(memory.updatedAt, timeZone)}
+        </time>
+      </footer>
     </article>
   );
 }

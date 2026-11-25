@@ -17,24 +17,9 @@ describe("MemoryCollectionControls", () => {
       />,
     );
 
-    const stateNavigation = screen.getByRole("navigation", {
-      name: "Lọc ký ức theo trạng thái",
-    });
-
-    expect(screen.getByText(/Thời điểm xảy ra · Mới trước/)).toBeTruthy();
-
-    const activeLink = within(stateNavigation).getByRole("link", {
-      name: "Đang lưu giữ",
-    });
-
-    expect(activeLink.getAttribute("aria-current")).toBe("page");
-    expect(activeLink.getAttribute("href")).toBe("/memories?search=summer");
-
     expect(
-      within(stateNavigation)
-        .getByRole("link", { name: "Thùng rác" })
-        .getAttribute("href"),
-    ).toBe("/memories?search=summer&state=TRASHED");
+      screen.getByText(/Sắp theo thời điểm xảy ra · mới trước/),
+    ).toBeTruthy();
 
     const sortNavigation = screen.getByRole("navigation", {
       name: "Sắp xếp theo",
@@ -69,10 +54,6 @@ describe("MemoryCollectionControls", () => {
       />,
     );
 
-    const trashLink = screen.getByRole("link", {
-      name: "Thùng rác",
-    });
-
     const updatedAtLink = screen.getByRole("link", {
       name: "Lần chỉnh sửa",
       hidden: true,
@@ -83,7 +64,6 @@ describe("MemoryCollectionControls", () => {
       hidden: true,
     });
 
-    expect(trashLink.getAttribute("aria-current")).toBe("page");
     expect(updatedAtLink.getAttribute("aria-current")).toBe("page");
     expect(ascendingLink.getAttribute("aria-current")).toBe("page");
 

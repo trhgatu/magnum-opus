@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { Gem } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { ContextHero } from "@/components/system/context-hero";
 import { getJournalEntry } from "@/features/journal/api/journal";
 import { MemoryEditor } from "@/features/memory/components/memory-editor";
 import type { MemoryCreationSeed } from "@/features/memory/components/memory-editor";
@@ -58,21 +58,31 @@ export default async function NewMemoryPage({
       className="flex flex-col gap-8"
       aria-labelledby="new-memory-heading"
     >
-      <ContextHero
-        id="new-memory-heading"
-        icon={Gem}
-        eyebrow="Reflection · Archive"
-        title="Lưu một ký ức"
-        description="Giữ lại một khoảnh khắc theo cách nó được nhớ: câu chuyện, cảm giác và thời điểm đã xảy ra."
-      />
+      <Link
+        href="/memories"
+        className="inline-flex items-center gap-1.5 self-start rounded-sm text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <ArrowLeft className="size-4" aria-hidden="true" /> Tất cả ký ức
+      </Link>
 
-      <div className="mx-auto w-full max-w-4xl overflow-hidden rounded-3xl border bg-card/70 shadow-sm">
-        <div className="border-b bg-muted/20 px-5 py-3 font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground sm:px-8">
-          New archive record
-        </div>
-        <div className="p-5 sm:p-8">
-          <MemoryEditor creationSeed={creationSeed} />
-        </div>
+      <header className="flex max-w-3xl flex-col gap-2.5">
+        <p className="font-mono text-[11px] font-medium tracking-[0.16em] text-primary uppercase">
+          Reflection · Ký ức mới
+        </p>
+        <h1
+          id="new-memory-heading"
+          className="font-display text-4xl leading-[1.05] font-medium tracking-[-0.02em] sm:text-[46px]"
+        >
+          Lưu một ký ức
+        </h1>
+        <p className="max-w-2xl text-base leading-relaxed text-muted-foreground">
+          Giữ lại một khoảnh khắc theo cách nó được nhớ: câu chuyện, cảm giác và
+          thời điểm đã xảy ra.
+        </p>
+      </header>
+
+      <div className="w-full max-w-3xl">
+        <MemoryEditor creationSeed={creationSeed} />
       </div>
     </section>
   );

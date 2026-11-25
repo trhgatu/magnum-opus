@@ -1,8 +1,6 @@
 import type { MemoryResponse } from "@repo/contracts";
-import { ArrowUpRight, BookOpenText, Gem, Trash2 } from "lucide-react";
 import Link from "next/link";
 
-import { Badge } from "@/components/ui/badge";
 import {
   formatMemoryOccurredOn,
   memoryOccurredOnDateTime,
@@ -12,82 +10,47 @@ interface MemoryCardProps {
   memory: MemoryResponse;
 }
 
+/**
+ * Một ký ức trong hồ sơ (thiết kế "Ký ức", Figma): ngày xảy ra, tiêu đề và
+ * đoạn trích; ký ức kết tinh từ Nhật ký có thêm dòng nguồn ở chân thẻ.
+ */
 export function MemoryCard({ memory }: MemoryCardProps) {
   const occurredOnLabel = formatMemoryOccurredOn(
     memory.occurredOn,
     memory.occurredOnPrecision,
   );
-
   const occurredOnDateTime = memoryOccurredOnDateTime(
     memory.occurredOn,
     memory.occurredOnPrecision,
   );
+  const trashed = memory.state === "TRASHED";
 
   return (
     <Link
       href={`/memories/${memory.id}`}
       aria-label={`Mở ký ức: ${memory.title}`}
-      className="group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-3"
+      className="group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
     >
-      <article className="relative flex min-h-72 flex-col overflow-hidden rounded-2xl border bg-card/75 transition duration-200 group-hover:-translate-y-1 group-hover:border-primary/30 group-hover:shadow-lg motion-reduce:transform-none">
-        <div
-          aria-hidden="true"
-          className="absolute inset-y-0 left-0 w-1 bg-primary/25"
-        />
-
-        <header className="flex items-start justify-between gap-4 px-5 pt-5 sm:px-6">
-          <div className="flex items-center gap-3">
-            <span className="grid size-9 place-items-center rounded-full border border-primary/20 bg-primary/10 text-primary">
-              <Gem className="size-4" aria-hidden="true" />
-            </span>
-            {occurredOnDateTime ? (
-              <time
-                dateTime={occurredOnDateTime}
-                className="font-mono text-xs tracking-wide text-primary"
-              >
-                {occurredOnLabel}
-              </time>
-            ) : (
-              <span className="font-mono text-xs tracking-wide text-muted-foreground">
-                {occurredOnLabel}
-              </span>
-            )}
-          </div>
-          <div className="flex flex-wrap justify-end gap-2">
-            {memory.sourceJournalEntryId ? (
-              <Badge variant="outline">
-                <BookOpenText className="size-3" aria-hidden="true" />
-                Từ Nhật ký
-              </Badge>
-            ) : null}
-            {memory.state === "TRASHED" ? (
-              <Badge variant="destructive">
-                <Trash2 className="size-3" aria-hidden="true" />
-                Thùng rác
-              </Badge>
-            ) : null}
-          </div>
+      <article className="flex flex-col gap-2.5 rounded-2xl border bg-card px-5 py-5 transition-colors group-hover:border-primary/40 sm:px-6">
+        <header className="flex items-center justify-between gap-3 font-mono text-[11px] tracking-[0.06em] text-muted-foreground uppercase">
+          {occurredOnDateTime ? (
+            <time dateTime={occurredOnDateTime}>{occurredOnLabel}</time>
+          ) : (
+            <span>{occurredOnLabel}</span>
+          )}
+          {trashed ? <span>Thùng rác</span> : null}
         </header>
-        <div className="flex flex-1 flex-col px-5 pb-5 pt-7 sm:px-6">
-          <h2 className="font-display line-clamp-2 text-2xl font-semibold tracking-tight text-balance transition-colors group-hover:text-primary">
-            {memory.title}
-          </h2>
-          <p className="mt-3 line-clamp-4 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
-            {memory.content}
-          </p>
-          <span
-            className="mt-auto h-px w-14 bg-primary/25"
-            aria-hidden="true"
-          />
-        </div>
-        <footer className="flex items-center justify-between border-t bg-muted/30 px-5 py-3 sm:px-6">
-          <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-            Hồ sơ lưu trữ
-          </span>
-          <span className="flex items-center gap-1 text-xs font-medium text-foreground/70 transition-colors group-hover:text-primary">
-            Mở ký ức <ArrowUpRight className="size-3.5" aria-hidden="true" />
-          </span>
-        </footer>
+        <h3 className="font-display text-xl leading-snug font-medium tracking-[-0.01em] text-balance">
+          {memory.title}
+        </h3>
+        <p className="line-clamp-3 font-display leading-relaxed whitespace-pre-wrap text-muted-foreground">
+          {memory.content}
+        </p>
+        {memory.sourceJournalEntryId ? (
+          <footer className="mt-1 border-t pt-2.5 text-sm text-muted-foreground">
+            Từ Nhật ký
+          </footer>
+        ) : null}
       </article>
     </Link>
   );
