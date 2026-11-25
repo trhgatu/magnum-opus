@@ -59,7 +59,9 @@ test("completes the private Journal lifecycle through the BFF", async ({
     page.getByRole("heading", { name: "Nhật ký", exact: true }),
   ).toBeVisible();
 
-  await page.getByRole("button", { name: "Viết trang mới" }).click();
+  await page
+    .getByRole("button", { name: /^Viết trang (mới|hôm nay)$/ })
+    .click();
   await expect(page).toHaveURL(/\/journal\/[0-9a-f-]+$/);
 
   await page.getByLabel("Tiêu đề").fill(title);
@@ -176,8 +178,8 @@ test("supports Journal search, reset and state filters", async ({ page }) => {
   await page.getByRole("link", { name: "Thùng rác", exact: true }).click();
   await expect(page).toHaveURL(/\/journal\?state=TRASHED$/);
   await expect(
-    page.getByRole("link", { name: "Thùng rác", exact: true }),
-  ).toHaveAttribute("aria-current", "page");
+    page.getByRole("heading", { name: "Nhật ký trong Thùng rác" }),
+  ).toBeVisible();
 });
 
 test("recovers an explicit concurrent-edit conflict without losing local work", async ({
@@ -190,7 +192,9 @@ test("recovers an explicit concurrent-edit conflict without losing local work", 
 
   await login(page);
   await page.goto("/journal");
-  await page.getByRole("button", { name: "Viết trang mới" }).click();
+  await page
+    .getByRole("button", { name: /^Viết trang (mới|hôm nay)$/ })
+    .click();
   await page.getByLabel("Tiêu đề").fill(title);
   await waitForAutosave(page);
 
@@ -225,7 +229,9 @@ test("guards unsaved navigation and supports editor shortcuts", async ({
 }) => {
   await login(page);
   await page.goto("/journal");
-  await page.getByRole("button", { name: "Viết trang mới" }).click();
+  await page
+    .getByRole("button", { name: /^Viết trang (mới|hôm nay)$/ })
+    .click();
 
   await page
     .getByLabel("Nội dung", { exact: true })
@@ -274,7 +280,9 @@ test("keeps the draft when the browser cannot reach the Server Action", async ({
 
   await login(page);
   await page.goto("/journal");
-  await page.getByRole("button", { name: "Viết trang mới" }).click();
+  await page
+    .getByRole("button", { name: /^Viết trang (mới|hôm nay)$/ })
+    .click();
 
   await page.route("**/journal/**", async (route) => {
     const request = route.request();
@@ -309,7 +317,9 @@ test("preserves local work when another tab moves the entry to Trash", async ({
 
   await login(page);
   await page.goto("/journal");
-  await page.getByRole("button", { name: "Viết trang mới" }).click();
+  await page
+    .getByRole("button", { name: /^Viết trang (mới|hôm nay)$/ })
+    .click();
   await page.getByLabel("Tiêu đề").fill(title);
   await waitForAutosave(page);
 
@@ -348,7 +358,9 @@ test("preserves local work when another tab permanently deletes the entry", asyn
 
   await login(page);
   await page.goto("/journal");
-  await page.getByRole("button", { name: "Viết trang mới" }).click();
+  await page
+    .getByRole("button", { name: /^Viết trang (mới|hôm nay)$/ })
+    .click();
   await page.getByLabel("Tiêu đề").fill(title);
   await waitForAutosave(page);
 

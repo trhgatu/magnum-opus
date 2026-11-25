@@ -1,6 +1,11 @@
 import "server-only";
 
-import type { JournalEntryResponse, JournalEntryState } from "@repo/contracts";
+import type {
+  JournalEntryListItemResponse,
+  JournalEntryResponse,
+  JournalEntryState,
+  JournalSummaryResponse,
+} from "@repo/contracts";
 import type { PaginatedResult } from "@repo/types";
 
 import { apiFetch } from "@/lib/api";
@@ -16,7 +21,7 @@ export interface JournalEntryListInput {
 
 export async function getJournalEntries(
   input: JournalEntryListInput = {},
-): Promise<PaginatedResult<JournalEntryResponse>> {
+): Promise<PaginatedResult<JournalEntryListItemResponse>> {
   const params = new URLSearchParams({
     page: String(input.page ?? 1),
     limit: String(input.limit ?? 20),
@@ -26,9 +31,14 @@ export async function getJournalEntries(
   if (input.state) params.set("state", input.state);
   if (input.sortBy) params.set("sortBy", input.sortBy);
 
-  return apiFetch<PaginatedResult<JournalEntryResponse>>(
+  return apiFetch<PaginatedResult<JournalEntryListItemResponse>>(
     "/journal/entries?" + params.toString(),
   );
+}
+
+/** Số ngày đã viết trong 7 ngày gần nhất, tính cả hôm nay. */
+export function getJournalSummary(): Promise<JournalSummaryResponse> {
+  return apiFetch<JournalSummaryResponse>("/journal/summary");
 }
 
 export function getJournalEntry(id: string): Promise<JournalEntryResponse> {

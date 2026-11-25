@@ -236,7 +236,9 @@ test("keeps a Memory after its source Journal entry is deleted", async ({
   await login(page);
 
   await page.goto("/journal");
-  await page.getByRole("button", { name: "Viết trang mới" }).click();
+  await page
+    .getByRole("button", { name: /^Viết trang (mới|hôm nay)$/ })
+    .click();
   await page.getByLabel("Tiêu đề").fill(journalTitle);
   await page.getByLabel("Nội dung", { exact: true }).fill(journalContent);
 

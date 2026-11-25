@@ -5,10 +5,9 @@ import { buildJournalHref } from "@/features/journal/lib/journal-url";
 import { cn } from "@/lib/utils";
 
 const filters = [
-  [undefined, "Đang lưu giữ"],
+  [undefined, "Tất cả"],
   ["DRAFT", "Nháp"],
   ["SEALED", "Đã niêm phong"],
-  ["TRASHED", "Thùng rác"],
 ] as const;
 
 export function JournalStateFilter({
@@ -21,7 +20,7 @@ export function JournalStateFilter({
   return (
     <nav
       aria-label="Lọc Nhật ký theo trạng thái"
-      className="flex max-w-full overflow-x-auto rounded-xl border bg-background/70 p-1 text-sm"
+      className="flex max-w-full gap-1.5 overflow-x-auto text-sm"
     >
       {filters.map(([value, label]) => {
         const active = state === value;
@@ -35,9 +34,9 @@ export function JournalStateFilter({
             })}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "shrink-0 rounded-lg px-3 py-1.5 font-medium transition-colors",
+              "inline-flex h-10 shrink-0 items-center rounded-xl px-3.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               active
-                ? "bg-primary text-primary-foreground shadow-sm"
+                ? "bg-accent font-medium text-accent-foreground"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground",
             )}
           >

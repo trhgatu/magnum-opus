@@ -223,6 +223,61 @@ describe('Journal (E2E)', () => {
       .expect(HttpStatus.NOT_FOUND);
   });
 
+  // Danh sách mang theo tâm trạng và số ký ức của từng trang; tóm tắt đếm số
+  // ngày đã viết trong 7 ngày qua. Chỉ dữ liệu của chính owner.
+  it('lists each page with its mood and memories, and summarises the week', async () => {
+    const token = await registerAndLogin('lister');
+    const write = async (title: string) =>
+      (
+        await request(app.getHttpServer())
+          .post('/journal/entries')
+          .set('Authorization', 'Bearer ' + token)
+          .send({ title, content: title })
+          .expect(HttpStatus.CREATED)
+      ).body.id as string;
+    const felt = await write('Một ngày yên');
+    const plain = await write('Một ngày thường');
+
+    await request(app.getHttpServer())
+      .put(`/journal/entries/${felt}/mood`)
+      .set('Authorization', 'Bearer ' + token)
+      .send({ label: 'CALM' })
+      .expect(HttpStatus.OK);
+    for (const title of ['Ký ức một', 'Ký ức hai']) {
+      await request(app.getHttpServer())
+        .post('/memories')
+        .set('Authorization', 'Bearer ' + token)
+        .send({ title, content: title, sourceJournalEntryId: felt })
+        .expect(HttpStatus.CREATED);
+    }
+
+    const list = await request(app.getHttpServer())
+      .get('/journal/entries')
+      .set('Authorization', 'Bearer ' + token)
+      .expect(HttpStatus.OK);
+    const byId = new Map(
+      (
+        list.body.data as {
+          id: string;
+          mood: string | null;
+          memoryCount: number;
+        }[]
+      ).map((entry) => [entry.id, entry]),
+    );
+    expect(byId.get(felt)).toMatchObject({ mood: 'CALM', memoryCount: 2 });
+    expect(byId.get(plain)).toMatchObject({ mood: null, memoryCount: 0 });
+
+    // Hai trang cùng hôm nay là một ngày đã viết.
+    await request(app.getHttpServer())
+      .get('/journal/summary')
+      .set('Authorization', 'Bearer ' + token)
+      .expect(HttpStatus.OK)
+      .expect(({ body }) => expect(body).toEqual({ writtenDaysLast7: 1 }));
+    await request(app.getHttpServer())
+      .get('/journal/summary')
+      .expect(HttpStatus.UNAUTHORIZED);
+  });
+
   async function ownerIdFor(token: string): Promise<string> {
     const response = await request(app.getHttpServer())
       .get('/users/me')

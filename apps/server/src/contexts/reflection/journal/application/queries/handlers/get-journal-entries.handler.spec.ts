@@ -7,7 +7,15 @@ describe('GetJournalEntriesHandler', () => {
     findAllForOwner: jest.fn(),
   };
 
-  const handler = new GetJournalEntriesHandler(journalEntryRepository as never);
+  const listReader = {
+    extrasFor: jest.fn().mockResolvedValue(new Map()),
+    writtenDaysLast7: jest.fn(),
+  };
+
+  const handler = new GetJournalEntriesHandler(
+    journalEntryRepository as never,
+    listReader,
+  );
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -35,6 +43,7 @@ describe('GetJournalEntriesHandler', () => {
     expect(result.getValue()).toEqual({
       entries: [],
       total: 0,
+      extras: new Map(),
     });
 
     expect(journalEntryRepository.findAllForOwner).toHaveBeenCalledWith(
@@ -48,6 +57,25 @@ describe('GetJournalEntriesHandler', () => {
         sortOrder: 'asc',
       },
     );
+  });
+
+  // Tâm trạng và số ký ức đọc chung một lần cho cả trang danh sách.
+  it('reads the extras of the listed entries in one go', async () => {
+    const entries = [{ id: 'entry-1' }, { id: 'entry-2' }];
+    const extras = new Map([['entry-1', { mood: 'CALM', memoryCount: 2 }]]);
+    journalEntryRepository.findAllForOwner.mockResolvedValue({
+      entries,
+      total: 2,
+    });
+    listReader.extrasFor.mockResolvedValue(extras);
+
+    const result = await handler.execute(new GetJournalEntriesQuery('owner-1'));
+
+    expect(listReader.extrasFor).toHaveBeenCalledWith('owner-1', [
+      'entry-1',
+      'entry-2',
+    ]);
+    expect(result.getValue()).toEqual({ entries, total: 2, extras });
   });
 
   it('uses the first page and default page size', async () => {

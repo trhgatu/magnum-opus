@@ -6,6 +6,13 @@ import {
   JOURNAL_ENTRY_REPOSITORY,
   type JournalEntryRepository,
 } from '../../../domain/ports/journal-entry.repository';
+
+import {
+  JOURNAL_LIST_READER,
+  type JournalEntryExtras,
+  type JournalListReader,
+} from '../../ports/journal-list-reader.port';
+
 import { DomainException } from '@shared/domain/exceptions/domain.exception';
 import { Result } from '@shared/domain/result';
 import { GetJournalEntriesQuery } from '../get-journal-entries.query';
@@ -13,6 +20,7 @@ import { GetJournalEntriesQuery } from '../get-journal-entries.query';
 export interface GetJournalEntriesResult {
   entries: JournalEntry[];
   total: number;
+  extras: Map<string, JournalEntryExtras>;
 }
 
 @QueryHandler(GetJournalEntriesQuery)
@@ -23,6 +31,8 @@ export class GetJournalEntriesHandler implements IQueryHandler<
   constructor(
     @Inject(JOURNAL_ENTRY_REPOSITORY)
     private readonly journalEntryRepository: JournalEntryRepository,
+    @Inject(JOURNAL_LIST_READER)
+    private readonly listReader: JournalListReader,
   ) {}
 
   public async execute(
@@ -42,6 +52,10 @@ export class GetJournalEntriesHandler implements IQueryHandler<
       },
     );
 
-    return Result.ok(result);
+    const extras = await this.listReader.extrasFor(
+      query.ownerId,
+      result.entries.map((entry) => entry.id),
+    );
+    return Result.ok({ ...result, extras });
   }
 }

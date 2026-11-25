@@ -82,7 +82,9 @@ test.describe("Client accessibility contract", () => {
     ).toBeVisible();
     await expectNoWcagViolations(page);
 
-    await page.getByRole("button", { name: "Viết trang mới" }).click();
+    await page
+      .getByRole("button", { name: /^Viết trang (mới|hôm nay)$/ })
+      .click();
     await expect(page.getByLabel("Tiêu đề")).toBeVisible();
     await expectNoWcagViolations(page);
   });

@@ -1,53 +1,38 @@
-import {
-  CollectionDividerSkeleton,
-  CollectionFilterBarSkeleton,
-} from "@/components/system/collection-skeleton";
-import { ContextHeroSkeleton } from "@/components/system/context-hero-skeleton";
 import { Skeleton } from "@/components/ui/skeleton";
-
-function JournalEntryCardSkeleton() {
-  return (
-    <div
-      aria-hidden="true"
-      className="flex min-h-64 flex-col overflow-hidden rounded-2xl bg-card/75 ring-1 ring-foreground/10"
-    >
-      <div className="flex items-center justify-between px-5 pt-5 sm:px-6">
-        <div className="flex items-center gap-3">
-          <Skeleton className="size-9 rounded-full" />
-          <Skeleton className="h-3 w-16" />
-        </div>
-        <Skeleton className="h-6 w-20 rounded-full" />
-      </div>
-      <div className="flex flex-1 flex-col px-5 pb-5 pt-7 sm:px-6">
-        <Skeleton className="h-8 w-3/4" />
-        <Skeleton className="mt-4 h-4 w-full" />
-        <Skeleton className="mt-2 h-4 w-5/6" />
-        <Skeleton className="mt-2 h-4 w-2/3" />
-        <Skeleton className="mt-auto h-px w-14" />
-      </div>
-      <div className="flex justify-between border-t bg-muted/30 px-5 py-3 sm:px-6">
-        <Skeleton className="h-3 w-28" />
-        <Skeleton className="h-3 w-20" />
-      </div>
-    </div>
-  );
-}
 
 export function JournalMetaSkeleton() {
   return (
-    <span className="flex gap-2" role="status" aria-live="polite">
+    <span className="inline-flex" role="status" aria-live="polite">
       <span className="sr-only">Đang tải thông tin Nhật ký…</span>
-      <Skeleton className="h-6 w-16 rounded-full" aria-hidden="true" />
-      <Skeleton className="h-6 w-28 rounded-full" aria-hidden="true" />
+      <Skeleton className="h-5 w-56" aria-hidden="true" />
     </span>
   );
 }
 
-function JournalEntryCardGridSkeleton() {
+export function JournalTodaySkeleton() {
   return (
-    <div aria-hidden="true" className="grid gap-4 sm:grid-cols-2">
-      {Array.from({ length: 4 }).map((_, index) => (
-        <JournalEntryCardSkeleton key={index} />
+    <div role="status" aria-live="polite">
+      <span className="sr-only">Đang tải trang hôm nay…</span>
+      <Skeleton aria-hidden="true" className="h-24 w-full rounded-3xl" />
+    </div>
+  );
+}
+
+function JournalMonthSkeleton() {
+  return (
+    <div aria-hidden="true" className="flex flex-col">
+      <Skeleton className="mb-3 h-7 w-40" />
+      {Array.from({ length: 3 }).map((_, index) => (
+        <div key={index} className="flex gap-5 border-t py-5 sm:gap-8">
+          <div className="flex w-12 flex-col gap-2 sm:w-16">
+            <Skeleton className="h-9 w-10" />
+            <Skeleton className="h-3 w-6" />
+          </div>
+          <div className="flex flex-1 flex-col gap-2.5">
+            <Skeleton className="h-6 w-1/2" />
+            <Skeleton className="h-4 w-full max-w-2xl" />
+          </div>
+        </div>
       ))}
     </div>
   );
@@ -55,22 +40,28 @@ function JournalEntryCardGridSkeleton() {
 
 export function JournalListSkeleton() {
   return (
-    <div className="space-y-4" role="status" aria-live="polite">
+    <div role="status" aria-live="polite">
       <span className="sr-only">Đang tải Nhật ký…</span>
-      <CollectionDividerSkeleton />
-      <JournalEntryCardGridSkeleton />
+      <JournalMonthSkeleton />
     </div>
   );
 }
 
 export function JournalCollectionSkeleton() {
   return (
-    <section className="flex flex-col gap-7" role="status" aria-live="polite">
+    <section className="flex flex-col gap-8" role="status" aria-live="polite">
       <span className="sr-only">Đang tải Nhật ký…</span>
-      <ContextHeroSkeleton />
-      <CollectionFilterBarSkeleton filterCount={1} />
-      <CollectionDividerSkeleton />
-      <JournalEntryCardGridSkeleton />
+      <div aria-hidden="true" className="flex flex-col gap-3">
+        <Skeleton className="h-3 w-24" />
+        <Skeleton className="h-11 w-48" />
+        <Skeleton className="h-5 w-64" />
+      </div>
+      <Skeleton aria-hidden="true" className="h-24 w-full rounded-3xl" />
+      <div aria-hidden="true" className="flex flex-col gap-3 lg:flex-row">
+        <Skeleton className="h-10 w-full rounded-lg lg:max-w-sm" />
+        <Skeleton className="h-10 w-72 rounded-xl lg:ml-auto" />
+      </div>
+      <JournalMonthSkeleton />
     </section>
   );
 }
