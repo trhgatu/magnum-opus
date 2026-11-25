@@ -130,10 +130,10 @@ describe("lanternStory", () => {
       { ...lantern(null, "UNKNOWN"), id: "c" },
     ]);
 
-    expect([...labels.values()]).toEqual([
-      "Chưa rõ ngày · 1",
-      "11/8/2018",
-      "Chưa rõ ngày · 2",
+    expect([...labels]).toEqual([
+      ["a", "Chưa rõ ngày · 1"],
+      ["b", "11/8/2018"],
+      ["c", "Chưa rõ ngày · 2"],
     ]);
   });
 
