@@ -73,6 +73,24 @@ async function MemoriesList({
 }) {
   const result = await memoriesPromise;
 
+  if (result.data.length === 0 && location.page > 1) {
+    // Trang vượt quá cuối (vd vừa xóa hết trang cuối): cho đường về trang đầu.
+    return (
+      <EmptyState
+        title="Trang này không còn ký ức"
+        description="Các ký ức đã nằm ở những trang trước."
+        action={
+          <Link
+            href={buildMemoryHref({ ...location, page: 1 })}
+            className={buttonVariants({ variant: "outline" })}
+          >
+            Về trang đầu
+          </Link>
+        }
+      />
+    );
+  }
+
   if (result.data.length === 0) {
     const emptyTitle = location.search
       ? "Không tìm thấy ký ức"

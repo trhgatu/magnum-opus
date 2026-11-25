@@ -11,11 +11,19 @@ export function MemoryMetaSkeleton() {
 
 function MemoryRowsSkeleton() {
   return (
-    <div aria-hidden="true" className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2.5">
-        <Skeleton className="h-6 w-16" />
-        {Array.from({ length: 4 }).map((_, index) => (
-          <Skeleton key={index} className="h-17 w-full rounded-2xl" />
+    <div aria-hidden="true" className="flex flex-col gap-4">
+      <Skeleton className="h-10 w-24" />
+      <div className="grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <div
+            key={index}
+            className="flex flex-col gap-2.5 rounded-2xl border px-5 py-5 sm:px-6"
+          >
+            <Skeleton className="h-3 w-28" />
+            <Skeleton className="h-6 w-4/5" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-2/3" />
+          </div>
         ))}
       </div>
     </div>

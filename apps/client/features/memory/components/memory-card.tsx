@@ -40,7 +40,7 @@ export function MemoryCard({ memory }: MemoryCardProps) {
           )}
           {trashed ? <span>Thùng rác</span> : null}
         </header>
-        <h3 className="font-display text-xl leading-snug font-medium tracking-[-0.01em] text-balance">
+        <h3 className="line-clamp-2 font-display text-xl leading-snug font-medium tracking-[-0.01em] text-balance">
           {memory.title}
         </h3>
         <p className="line-clamp-3 font-display leading-relaxed whitespace-pre-wrap text-muted-foreground">
