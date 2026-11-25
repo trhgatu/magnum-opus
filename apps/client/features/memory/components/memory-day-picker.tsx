@@ -61,8 +61,6 @@ export function MemoryDayPicker({
           locale={vi}
           // Chọn tháng và năm bằng dropdown: ngày trong quá khứ xa vẫn tới được nhanh.
           captionLayout="dropdown"
-          // Nút qua lại đứng hai bên dropdown, đúng thứ tự Tab với vị trí nhìn thấy.
-          navLayout="around"
           startMonth={new Date(1900, 0)}
           endMonth={new Date()}
           onSelect={(date) => {
