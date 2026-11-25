@@ -251,8 +251,7 @@ Nếu một route vượt budget:
 
 ## 14. Pattern tham chiếu trong codebase
 
-- Collection page: [`projects/page.tsx`](<../apps/client/app/(protected)/projects/page.tsx>), [`memories/page.tsx`](<../apps/client/app/(protected)/memories/page.tsx>)
-- Trang chi tiết: [`project-detail.tsx`](../apps/client/features/project/components/project-detail.tsx), [`memory-detail.tsx`](../apps/client/features/memory/components/memory-detail.tsx)
+- Collection page: `apps/client/app/(protected)/projects/page.tsx`, `apps/client/app/(protected)/memories/page.tsx`- Trang chi tiết: [`project-detail.tsx`](../apps/client/features/project/components/project-detail.tsx), [`memory-detail.tsx`](../apps/client/features/memory/components/memory-detail.tsx)
 - `ContextHero` (mẫu cũ, các trang Reflection khác vẫn dùng): [`context-hero.tsx`](../apps/client/components/system/context-hero.tsx)
 - Journal manuscript: [`journal-editor.tsx`](../apps/client/features/journal/components/journal-editor.tsx)
 - Ký ức archive card: [`memory-card.tsx`](../apps/client/features/memory/components/memory-card.tsx)

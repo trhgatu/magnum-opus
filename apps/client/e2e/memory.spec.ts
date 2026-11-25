@@ -149,14 +149,10 @@ test("completes the private Memory lifecycle through the BFF", async ({
   await expect(
     page.getByText(`Đã đưa "${updatedTitle}" vào Thùng rác`),
   ).toBeVisible();
-  // Trash không rời trang — ở lại đúng ký ức, chỉ đổi badge + nút tại chỗ.
+  // Trash không rời trang — ở lại đúng ký ức, chỉ đổi eyebrow + nút tại chỗ.
   await expect(page).toHaveURL(/\/memories\/[0-9a-f-]+$/);
 
-  await expect(
-    page.locator('[data-slot="badge"]').filter({
-      hasText: /^Thùng rác$/,
-    }),
-  ).toBeVisible();
+  await expect(page.getByText("Reflection · Ký ức · Thùng rác")).toBeVisible();
 
   await page
     .getByRole("button", {
