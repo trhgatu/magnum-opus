@@ -73,11 +73,13 @@ export interface GardenLedgerWriter {
     occurredOn: Date | null;
     precision: GardenDatePrecision;
   }): Promise<void>;
-  moveLantern(
-    memoryId: string,
-    occurredOn: Date | null,
-    precision: GardenDatePrecision,
-  ): Promise<void>;
+  /** Dời đèn; chưa có đèn (vd ký ức tạo lúc deploy) thì treo luôn. */
+  moveLantern(lantern: {
+    ownerId: string;
+    memoryId: string;
+    occurredOn: Date | null;
+    precision: GardenDatePrecision;
+  }): Promise<void>;
   hideLantern(memoryId: string, hiddenAt: Date): Promise<void>;
   showLantern(memoryId: string): Promise<void>;
   removeLantern(memoryId: string): Promise<void>;

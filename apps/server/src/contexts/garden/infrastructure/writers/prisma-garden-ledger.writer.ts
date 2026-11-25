@@ -174,14 +174,16 @@ export class PrismaGardenLedgerWriter implements GardenLedgerWriter {
     });
   }
 
-  async moveLantern(
-    memoryId: string,
-    occurredOn: Date | null,
-    precision: GardenDatePrecision,
-  ): Promise<void> {
-    await this.prisma.gardenLantern.updateMany({
-      where: { memoryId },
-      data: { occurredOn, precision },
+  async moveLantern(lantern: {
+    ownerId: string;
+    memoryId: string;
+    occurredOn: Date | null;
+    precision: GardenDatePrecision;
+  }): Promise<void> {
+    await this.prisma.gardenLantern.upsert({
+      where: { memoryId: lantern.memoryId },
+      create: lantern,
+      update: { occurredOn: lantern.occurredOn, precision: lantern.precision },
     });
   }
 

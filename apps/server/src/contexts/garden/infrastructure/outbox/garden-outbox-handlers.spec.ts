@@ -386,15 +386,17 @@ describe('lantern handlers (BR-GDN-LN-001..005)', () => {
   });
 
   it('moves the lantern when the memory is redated', async () => {
+    const newYear = new Date('2018-01-01T00:00:00.000Z');
+
     await new MoveRedatedMemoryHandler(ledger).handle(
-      message({ ...memory, memoryOccurredOn: occurredOn, precision: 'YEAR' }),
+      message({ ...memory, memoryOccurredOn: newYear, precision: 'YEAR' }),
     );
 
-    expect(ledger.moveLantern).toHaveBeenCalledWith(
-      'memory-id',
-      occurredOn,
-      'YEAR',
-    );
+    expect(ledger.moveLantern).toHaveBeenCalledWith({
+      ...memory,
+      occurredOn: newYear,
+      precision: 'YEAR',
+    });
   });
 
   it('hides, shows and removes the lantern with the memory', async () => {

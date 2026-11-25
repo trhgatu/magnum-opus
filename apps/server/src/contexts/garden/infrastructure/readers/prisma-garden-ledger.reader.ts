@@ -75,7 +75,11 @@ export class PrismaGardenLedgerReader implements GardenLedgerReader {
   async visibleLanternsOf(ownerId: string): Promise<GardenLanternRow[]> {
     const rows = await this.prisma.gardenLantern.findMany({
       where: { ownerId, hiddenAt: null },
-      orderBy: { createdAt: 'asc' },
+      orderBy: [
+        { occurredOn: { sort: 'asc', nulls: 'first' } },
+        { createdAt: 'asc' },
+        { id: 'asc' },
+      ],
       select: { id: true, memoryId: true, occurredOn: true, precision: true },
     });
     return rows.map((row) => ({

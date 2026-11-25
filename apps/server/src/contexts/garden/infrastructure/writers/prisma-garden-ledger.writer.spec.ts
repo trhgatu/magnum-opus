@@ -340,20 +340,30 @@ describe('PrismaGardenLedgerWriter', () => {
       });
     });
 
-    it('moves, hides and shows the lantern of a memory', async () => {
+    it('moves the lantern, hanging it when it is missing', async () => {
+      const lantern = {
+        ownerId: 'owner-id',
+        memoryId: 'memory-id',
+        occurredOn: null,
+        precision: 'UNKNOWN' as const,
+      };
+
+      await writer.moveLantern(lantern);
+
+      expect(gardenLantern.upsert).toHaveBeenCalledWith({
+        where: { memoryId: 'memory-id' },
+        create: lantern,
+        update: { occurredOn: null, precision: 'UNKNOWN' },
+      });
+    });
+
+    it('hides and shows the lantern of a memory', async () => {
       const hiddenAt = new Date('2026-11-23T03:00:00.000Z');
 
-      await writer.moveLantern('memory-id', null, 'UNKNOWN');
       await writer.hideLantern('memory-id', hiddenAt);
       await writer.showLantern('memory-id');
 
       expect(gardenLantern.updateMany.mock.calls).toEqual([
-        [
-          {
-            where: { memoryId: 'memory-id' },
-            data: { occurredOn: null, precision: 'UNKNOWN' },
-          },
-        ],
         [{ where: { memoryId: 'memory-id' }, data: { hiddenAt } }],
         [{ where: { memoryId: 'memory-id' }, data: { hiddenAt: null } }],
       ]);

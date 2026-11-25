@@ -23,10 +23,11 @@ export class MoveRedatedMemoryHandler implements OutboxEventHandler<Payload> {
   ) {}
 
   handle({ payload }: OutboxMessage<Payload>): Promise<void> {
-    return this.ledger.moveLantern(
-      payload.memoryId,
-      payload.memoryOccurredOn,
-      lanternPrecision(payload.precision, payload.memoryOccurredOn),
-    );
+    return this.ledger.moveLantern({
+      ownerId: payload.ownerId,
+      memoryId: payload.memoryId,
+      occurredOn: payload.memoryOccurredOn,
+      precision: lanternPrecision(payload.precision, payload.memoryOccurredOn),
+    });
   }
 }

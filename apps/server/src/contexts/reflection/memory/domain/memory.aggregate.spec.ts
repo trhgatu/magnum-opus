@@ -194,6 +194,46 @@ describe('Memory', () => {
       });
     });
 
+    it('emits MemoryRedatedEvent when only the precision changes', () => {
+      const memory = createMemory({
+        occurredOn: MemoryOccurredOn.fromMonth(2024, 8),
+      });
+      memory.clearDomainEvents();
+
+      memory.update({
+        title: memory.title,
+        content: memory.content,
+        occurredOn: MemoryOccurredOn.fromDay(2024, 8, 1),
+      });
+
+      expect(memory.getDomainEvents()).toEqual([
+        expect.objectContaining({
+          memoryOccurredOn: new Date('2024-08-01T00:00:00.000Z'),
+          precision: 'DAY',
+        }),
+      ]);
+    });
+
+    it('emits MemoryRedatedEvent without a date when the date becomes unknown', () => {
+      const memory = createMemory({
+        occurredOn: MemoryOccurredOn.fromDay(2024, 8, 11),
+      });
+      memory.clearDomainEvents();
+
+      memory.update({
+        title: memory.title,
+        content: memory.content,
+        occurredOn: MemoryOccurredOn.unknown(),
+      });
+
+      expect(memory.getDomainEvents()).toEqual([
+        expect.objectContaining({
+          memoryOccurredOn: null,
+          precision: 'UNKNOWN',
+        }),
+      ]);
+    });
+
     it('emits nothing when only the text changes', () => {
       const memory = createMemory();
       memory.clearDomainEvents();

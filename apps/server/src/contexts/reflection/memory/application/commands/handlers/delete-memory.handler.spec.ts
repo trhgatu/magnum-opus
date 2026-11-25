@@ -1,3 +1,4 @@
+import { MemoryPermanentlyDeletedEvent } from '../../../domain/events';
 import { MemoryState } from '../../../domain/enums';
 import {
   MemoryNotFoundException,
@@ -32,7 +33,7 @@ describe('DeleteMemoryHandler', () => {
     expect(result.isSuccess).toBe(true);
     expect(repository.deletePermanently).toHaveBeenCalledWith(memory, 2);
     expect(memory.getDomainEvents()).toEqual([
-      expect.objectContaining({ memoryId: memory.id }),
+      expect.any(MemoryPermanentlyDeletedEvent),
     ]);
   });
 
