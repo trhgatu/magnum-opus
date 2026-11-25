@@ -94,3 +94,22 @@ export function lanternLabels(
     }),
   );
 }
+
+/** Số ngày đèn nhạt dần sau khi được thắp, bằng ánh sáng của vườn (BR-GDN-LT-004). */
+export const LANTERN_FADE_DAYS = 28;
+
+/**
+ * Đèn sáng tới đâu, 0..1 (BR-GDN-LN-007): 1 trong ngày ký ức được mở lại từ
+ * "Ngày này năm xưa", nhạt đều về 0 sau 28 ngày.
+ */
+export function lanternLit(
+  lantern: GardenLanternResponse,
+  today: string,
+): number {
+  if (!lantern.litOn) return 0;
+  const days = Math.max(
+    0,
+    (Date.parse(today) - Date.parse(lantern.litOn)) / 86_400_000,
+  );
+  return Math.max(0, 1 - days / LANTERN_FADE_DAYS);
+}

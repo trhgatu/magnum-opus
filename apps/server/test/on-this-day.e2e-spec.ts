@@ -175,6 +175,83 @@ describe('On this day (E2E)', () => {
     }
   });
 
+  // Mở một mục của hôm nay là một lần nhìn lại: vườn sáng thêm và đèn của ký
+  // ức đó sáng lên; mục không có trong danh sách hôm nay thì không tính
+  // (BR-GDN-LT-003, BR-GDN-LN-007, BR-GDN-LN-008).
+  it('lights the garden and the lantern when an item from this day is opened', async () => {
+    const owner = await registerAndLogin('opener');
+    await prisma.user.update({
+      where: { id: owner.id },
+      data: { timeZone: TIME_ZONE },
+    });
+    const today = todayInVietnam();
+    if (today.slice(5) === '02-29') return;
+    const past = `${Number(today.slice(0, 4)) - 3}-${today.slice(5)}`;
+    const listed = await prisma.memory.create({
+      data: {
+        ownerId: owner.id,
+        title: 'Biển Quy Nhơn',
+        content: 'Sóng.',
+        occurredOn: new Date(`${past}T00:00:00.000Z`),
+        occurredOnPrecision: 'DAY',
+      },
+    });
+    // Tạo thẳng trong DB thì không có MemoryCreated: treo đèn như lần nạp lịch sử.
+    await prisma.gardenLantern.create({
+      data: {
+        ownerId: owner.id,
+        memoryId: listed.id,
+        occurredOn: listed.occurredOn,
+        precision: 'DAY',
+      },
+    });
+    const notToday = await prisma.memory.create({
+      data: {
+        ownerId: owner.id,
+        title: 'Không phải hôm nay',
+        content: 'x',
+        occurredOnPrecision: 'UNKNOWN',
+      },
+    });
+    const open = (kind: string, id: string) =>
+      request(app.getHttpServer())
+        .post('/reflection/on-this-day/opened')
+        .set('Authorization', `Bearer ${owner.token}`)
+        .send({ kind, id });
+
+    await open('MEMORY', notToday.id)
+      .expect(HttpStatus.NOT_FOUND)
+      .expect(({ body }) =>
+        expect(body.code).toBe('ON_THIS_DAY_ITEM_NOT_FOUND'),
+      );
+    await open('JOURNAL', listed.id).expect(HttpStatus.NOT_FOUND);
+    await open('MEMORY', listed.id).expect(HttpStatus.NO_CONTENT);
+    await open('MEMORY', listed.id).expect(HttpStatus.NO_CONTENT);
+
+    const deadline = Date.now() + 10_000;
+    let lantern: { memoryId: string; litOn: string | null } | undefined;
+    while (Date.now() < deadline) {
+      const garden = await request(app.getHttpServer())
+        .get('/garden')
+        .set('Authorization', `Bearer ${owner.token}`)
+        .expect(HttpStatus.OK);
+      lantern = (
+        garden.body.lanterns as { memoryId: string; litOn: string | null }[]
+      ).find((l) => l.memoryId === listed.id);
+      if (lantern?.litOn && garden.body.light === 1) break;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    expect(lantern?.litOn).toBe(today);
+
+    // Hai lần mở trong một ngày là một lần nhìn lại.
+    expect(
+      await prisma.gardenEntry.count({
+        where: { ownerId: owner.id, kind: 'REFLECTED', sourceRef: listed.id },
+      }),
+    ).toBe(1);
+    // Chờ outbox giao sự kiện cho Garden: dài hơn hạn 5s mặc định.
+  }, 20_000);
+
   async function registerAndLogin(
     label: string,
   ): Promise<{ id: string; token: string }> {

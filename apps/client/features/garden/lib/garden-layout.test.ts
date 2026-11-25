@@ -88,6 +88,7 @@ const lantern = (
   occurredOn: placedOn,
   precision: placedOn ? "DAY" : "UNKNOWN",
   placedOn,
+  litOn: null,
 });
 
 describe("gardenPath", () => {

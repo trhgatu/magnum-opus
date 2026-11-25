@@ -29,6 +29,7 @@ import { MoveRedatedMemoryHandler } from './infrastructure/outbox/move-redated-m
 import { RemoveDeletedMemoryHandler } from './infrastructure/outbox/remove-deleted-memory.handler';
 import { HideTrashedMemoryHandler } from './infrastructure/outbox/hide-trashed-memory.handler';
 import { ShowRestoredMemoryHandler } from './infrastructure/outbox/show-restored-memory.handler';
+import { RecordOnThisDayOpenedHandler } from './infrastructure/outbox/record-on-this-day-opened.handler';
 
 @Module({
   imports: [CqrsModule],
@@ -56,6 +57,7 @@ import { ShowRestoredMemoryHandler } from './infrastructure/outbox/show-restored
     MoveRedatedMemoryHandler,
     RemoveDeletedMemoryHandler,
     ShowRestoredMemoryHandler,
+    RecordOnThisDayOpenedHandler,
     { provide: GARDEN_LEDGER_WRITER, useClass: PrismaGardenLedgerWriter },
   ],
 })

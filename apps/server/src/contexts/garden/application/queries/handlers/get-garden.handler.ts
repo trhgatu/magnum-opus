@@ -51,6 +51,7 @@ export interface GardenLantern {
   precision: GardenDatePrecision;
   /** Chỗ trên lối; null là chùm đèn chưa rõ ngày ở đầu lối. */
   placedOn: CalendarDay | null;
+  litOn: CalendarDay | null;
 }
 
 export interface GardenResult {

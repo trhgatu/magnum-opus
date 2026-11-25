@@ -8,6 +8,7 @@ import {
   gardenStory,
   lanternDate,
   lanternLabels,
+  lanternLit,
   lanternStory,
 } from "./garden-story";
 
@@ -108,6 +109,7 @@ describe("lanternStory", () => {
     occurredOn,
     precision,
     placedOn: occurredOn,
+    litOn: null,
   });
 
   it("dates a memory only as precisely as it was written", () => {
@@ -142,5 +144,26 @@ describe("lanternStory", () => {
     expect(lanternStory(lantern("2018-08-01", "MONTH"))).toContain(
       "tháng 8/2018",
     );
+  });
+});
+
+describe("lanternLit (BR-GDN-LN-007)", () => {
+  const lit = (litOn: string | null): GardenLanternResponse => ({
+    id: "l",
+    memoryId: "m",
+    occurredOn: "2018-08-11",
+    precision: "DAY",
+    placedOn: "2018-08-11",
+    litOn,
+  });
+
+  it("is brightest the day it was reopened, then fades over 28 days", () => {
+    expect(lanternLit(lit("2026-11-25"), "2026-11-25")).toBe(1);
+    expect(lanternLit(lit("2026-11-11"), "2026-11-25")).toBe(0.5);
+    expect(lanternLit(lit("2026-10-01"), "2026-11-25")).toBe(0);
+  });
+
+  it("stays unlit when never reopened", () => {
+    expect(lanternLit(lit(null), "2026-11-25")).toBe(0);
   });
 });

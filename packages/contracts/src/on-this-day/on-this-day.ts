@@ -14,3 +14,8 @@ export interface OnThisDayResponse {
   date: string;
   items: OnThisDayItemResponse[];
 }
+
+export interface OpenOnThisDayItemRequest {
+  kind: OnThisDayKind;
+  id: string;
+}

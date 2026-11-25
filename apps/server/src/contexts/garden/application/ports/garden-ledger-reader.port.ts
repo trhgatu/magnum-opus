@@ -42,4 +42,5 @@ export interface GardenLanternRow {
   memoryId: string;
   occurredOn: CalendarDay | null;
   precision: GardenDatePrecision;
+  litOn: CalendarDay | null;
 }

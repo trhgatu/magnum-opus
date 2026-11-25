@@ -142,18 +142,18 @@ Không góp: `iam`, `audit`, `menu`, `notifications`, `storage`, `analytics`. Đ
 
 ### 5.3 Reflection — ánh sáng và đèn lồng (P2)
 
-| Nguồn                          | Trong vườn                            | Sự kiện nguồn                     | Có sẵn?      |
-| ------------------------------ | ------------------------------------- | --------------------------------- | ------------ |
-| Niêm phong trang nhật ký       | ánh sáng                              | `JournalEntrySealed`              | Có           |
-| Tạo ký ức                      | đèn lồng tại `occurredOn` (§7.5)      | `MemoryCreated`                   | Có           |
-| Sửa ngày ký ức                 | đèn dời chỗ                           | `MemoryRedated`                   | Có           |
-| Mở ký ức từ "Ngày này năm xưa" | ánh sáng, đèn đó sáng lên             | `OnThisDayItemOpened`             | **Cần thêm** |
-| Mood của trang                 | bầu trời (P4)                         | đi kèm trang nhật ký              | Có dữ liệu   |
-| Ký ức vào / ra Thùng rác       | đèn lồng ẩn / hiện lại                | `MemoryTrashed`, `MemoryRestored` | Có           |
-| Xóa vĩnh viễn ký ức            | đèn lồng bị gỡ (§6.3)                 | `MemoryPermanentlyDeleted`        | Có           |
-| Trang nhật ký vào Thùng rác    | ánh sáng đã có giữ nguyên             |                                   |              |
-| Xóa vĩnh viễn trang nhật ký    | dòng `REFLECTED` của nó bị xóa (§6.3) |                                   | Kiểm tra lại |
-| Timeline                       | chính là lối đá; Garden không làm lại |                                   |              |
+| Nguồn                            | Trong vườn                                        | Sự kiện nguồn                     | Có sẵn?      |
+| -------------------------------- | ------------------------------------------------- | --------------------------------- | ------------ |
+| Niêm phong trang nhật ký         | ánh sáng                                          | `JournalEntrySealed`              | Có           |
+| Tạo ký ức                        | đèn lồng tại `occurredOn` (§7.5)                  | `MemoryCreated`                   | Có           |
+| Sửa ngày ký ức                   | đèn dời chỗ                                       | `MemoryRedated`                   | Có           |
+| Mở một mục từ "Ngày này năm xưa" | ánh sáng; mục là ký ức thì đèn đó sáng lên (§7.4) | `OnThisDayItemOpened`             | **Cần thêm** |
+| Mood của trang                   | bầu trời (P4)                                     | đi kèm trang nhật ký              | Có dữ liệu   |
+| Ký ức vào / ra Thùng rác         | đèn lồng ẩn / hiện lại                            | `MemoryTrashed`, `MemoryRestored` | Có           |
+| Xóa vĩnh viễn ký ức              | đèn lồng bị gỡ (§6.3)                             | `MemoryPermanentlyDeleted`        | Có           |
+| Trang nhật ký vào Thùng rác      | ánh sáng đã có giữ nguyên                         |                                   |              |
+| Xóa vĩnh viễn trang nhật ký      | dòng `REFLECTED` của nó bị xóa (§6.3)             |                                   | Kiểm tra lại |
+| Timeline                         | chính là lối đá; Garden không làm lại             |                                   |              |
 
 ### 5.4 Chronicle — mốc mùa (P4)
 
@@ -268,7 +268,7 @@ Theo ẩn dụ của James Allen (vườn là tâm trí), ánh sáng là **sự 
 
 - **BR-GDN-LT-001 — Không đổi cây:** ánh sáng không làm cây lớn, nhỏ hay kém đi. Ít nhìn lại thì vườn vẫn y nguyên, chỉ hiện ra kém rõ, như có lớp sương sớm.
 - **BR-GDN-LT-002 — Sương là mô tả, không là trách:** lúc sáng tỏ thấp nhất, vườn vẫn đẹp và đủ màu; sương nhẹ, yên tĩnh, không u ám (KD-GDN-007). Người chưa từng nhìn lại ở mức đó.
-- **BR-GDN-LT-003 — Nguồn:** chỉ những lần người dùng thật sự dừng lại nhìn chính mình: niêm phong trang nhật ký; đọc tổng kết tháng của Chronicle; mở một ký ức từ "Ngày này năm xưa". Không lấy việc làm (đó là cây), Mood (đó là bầu trời), tạo ký ức (đó là đèn lồng) hay lượt xem trang. Mỗi hành động chỉ một vai (§4.3).
+- **BR-GDN-LT-003 — Nguồn:** chỉ những lần người dùng thật sự dừng lại nhìn chính mình: niêm phong trang nhật ký; đọc tổng kết tháng của Chronicle; mở một ký ức hay một trang nhật ký cũ từ "Ngày này năm xưa" (chốt 2026-11-25: cả hai đều là nhìn lại). Không lấy việc làm (đó là cây), Mood (đó là bầu trời), tạo ký ức (đó là đèn lồng) hay lượt xem trang. Mỗi hành động chỉ một vai (§4.3).
 - **BR-GDN-LT-004 — Độ gần, không đếm:** sáng tỏ nhất ngay sau một lần nhìn lại, nhạt dần trong khoảng 4 tuần. Không đếm số lần hay số tuần, không có tuần chốt hay chuỗi để lỡ. Thời gian nhạt chỉnh lại sau khi có dữ liệu thật.
 - **BR-GDN-LT-005 — Của cả vườn:** ánh sáng chung cho mọi cây, không gắn với cây nào. Sổ ghi một loại `REFLECTED` cho mọi nguồn, phân biệt bằng `source_ref`.
 
@@ -282,6 +282,8 @@ Ký ức là một khoảnh khắc đã xảy ra: không lớn, không cần ch�
 - **BR-GDN-LN-004 — Đèn dời theo ngày:** sửa ngày ký ức thì đèn dời theo. Đây là ngoại lệ với "plot chốt lúc gieo": cây có chỗ vì đã gieo ở đó, đèn có chỗ vì ngày của ký ức.
 - **BR-GDN-LN-005 — Vòng đời:** ký ức vào Thùng rác thì đèn ẩn, khôi phục thì hiện lại (BR-GDN-SB-007); xóa vĩnh viễn thì đèn bị gỡ (BR-GDN-SB-006).
 - **BR-GDN-LN-006 — Không là ánh sáng:** tạo ký ức không thắp sáng vườn (BR-GDN-LT-003). Chỉ mở lại ký ức từ "Ngày này năm xưa" mới là ánh sáng, và đèn đó sáng lên.
+- **BR-GDN-LN-007 — Đèn được thắp:** đèn sáng lên khi ký ức của nó được mở lại từ "Ngày này năm xưa", rồi nhạt dần như ánh sáng của vườn (BR-GDN-LT-004). Đèn sáng hơn chỉ ở màu giấy, không phát sáng (KD-GDN-007). Mở lại nhiều lần trong một ngày vẫn là một lần nhìn lại.
+- **BR-GDN-LN-008 — Chỉ khi thật sự mở:** chỉ tính khi người dùng chọn mục đó trong "Ngày này năm xưa" và mục đó đúng là của ngày này năm xưa hôm nay; mở ký ức từ nơi khác, hay trình duyệt tải trước trang, không tính.
 
 ## 8. P1: Habit
 
