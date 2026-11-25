@@ -178,8 +178,8 @@ test("supports Journal search, reset and state filters", async ({ page }) => {
   await page.getByRole("link", { name: "Thùng rác", exact: true }).click();
   await expect(page).toHaveURL(/\/journal\?state=TRASHED$/);
   await expect(
-    page.getByRole("link", { name: "Thùng rác", exact: true }),
-  ).toHaveAttribute("aria-current", "page");
+    page.getByRole("heading", { name: "Nhật ký trong Thùng rác" }),
+  ).toBeVisible();
 });
 
 test("recovers an explicit concurrent-edit conflict without losing local work", async ({
