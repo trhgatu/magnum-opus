@@ -28,7 +28,6 @@ export class PrismaGardenLedgerReader implements GardenLedgerReader {
         nameAtPlanting: true,
         simVersion: true,
         plantedOn: true,
-        // Thứ tự ghi: cùng ngày thì dòng ghi sau thắng (vd đổi lịch hai lần).
         entries: {
           orderBy: { sequence: 'asc' },
           select: { kind: true, occurredOn: true, mark: true, detail: true },
@@ -47,7 +46,6 @@ export class PrismaGardenLedgerReader implements GardenLedgerReader {
           kind: entry.kind,
           occurredOn: calendarDayOf(entry.occurredOn),
           mark: entry.mark,
-          // CHECK của DB chỉ cho detail trên dòng RHYTHM_SET, đúng dạng writer ghi.
           detail: entry.detail as GardenSchedule | null,
         })),
       }),
@@ -82,9 +80,27 @@ export class PrismaGardenLedgerReader implements GardenLedgerReader {
       ],
       select: { id: true, memoryId: true, occurredOn: true, precision: true },
     });
-    return rows.map((row) => ({
-      ...row,
-      occurredOn: row.occurredOn ? calendarDayOf(row.occurredOn) : null,
-    }));
+    const lit = rows.length
+      ? await this.prisma.gardenEntry.groupBy({
+          by: ['sourceRef'],
+          where: {
+            ownerId,
+            kind: 'REFLECTED',
+            sourceRef: { in: rows.map((row) => row.memoryId) },
+          },
+          _max: { occurredOn: true },
+        })
+      : [];
+    const litOn = new Map(
+      lit.map((row) => [row.sourceRef, row._max.occurredOn]),
+    );
+    return rows.map((row) => {
+      const last = litOn.get(row.memoryId);
+      return {
+        ...row,
+        occurredOn: row.occurredOn ? calendarDayOf(row.occurredOn) : null,
+        litOn: last ? calendarDayOf(last) : null,
+      };
+    });
   }
 }

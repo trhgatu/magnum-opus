@@ -2,7 +2,7 @@ import { PrismaGardenLedgerReader } from './prisma-garden-ledger.reader';
 
 describe('PrismaGardenLedgerReader', () => {
   const gardenSubject = { findMany: jest.fn() };
-  const gardenEntry = { findFirst: jest.fn() };
+  const gardenEntry = { findFirst: jest.fn(), groupBy: jest.fn() };
   const gardenLantern = { findMany: jest.fn() };
   const reader = new PrismaGardenLedgerReader({
     gardenSubject,
@@ -10,7 +10,13 @@ describe('PrismaGardenLedgerReader', () => {
     gardenLantern,
   } as never);
 
-  it("reads the owner's visible lanterns as calendar days", async () => {
+  it("reads the owner's visible lanterns with the day each was last lit", async () => {
+    gardenEntry.groupBy.mockResolvedValue([
+      {
+        sourceRef: 'memory-1',
+        _max: { occurredOn: new Date('2026-11-25T00:00:00.000Z') },
+      },
+    ]);
     gardenLantern.findMany.mockResolvedValue([
       {
         id: 'lantern-1',
@@ -32,14 +38,25 @@ describe('PrismaGardenLedgerReader', () => {
         memoryId: 'memory-1',
         occurredOn: '2018-08-01',
         precision: 'MONTH',
+        litOn: '2026-11-25',
       },
       {
         id: 'lantern-2',
         memoryId: 'memory-2',
         occurredOn: null,
         precision: 'UNKNOWN',
+        litOn: null,
       },
     ]);
+    expect(gardenEntry.groupBy).toHaveBeenCalledWith({
+      by: ['sourceRef'],
+      where: {
+        ownerId: 'owner-id',
+        kind: 'REFLECTED',
+        sourceRef: { in: ['memory-1', 'memory-2'] },
+      },
+      _max: { occurredOn: true },
+    });
     expect(gardenLantern.findMany).toHaveBeenCalledWith({
       where: { ownerId: 'owner-id', hiddenAt: null },
       orderBy: [
@@ -49,6 +66,14 @@ describe('PrismaGardenLedgerReader', () => {
       ],
       select: { id: true, memoryId: true, occurredOn: true, precision: true },
     });
+  });
+
+  it('skips the lit lookup for an owner without lanterns', async () => {
+    gardenLantern.findMany.mockResolvedValue([]);
+    gardenEntry.groupBy.mockClear();
+
+    await expect(reader.visibleLanternsOf('owner-id')).resolves.toEqual([]);
+    expect(gardenEntry.groupBy).not.toHaveBeenCalled();
   });
 
   it("reads the owner's latest reflection up to today", async () => {

@@ -34,6 +34,8 @@ import { RecordHabitRhythmHandler } from './record-habit-rhythm.handler';
 import { RenameHabitTreeHandler } from './rename-habit-tree.handler';
 import { AssignHabitBedHandler } from './assign-habit-bed.handler';
 import { RecordJournalSealedHandler } from './record-journal-sealed.handler';
+import { RecordOnThisDayOpenedHandler } from './record-on-this-day-opened.handler';
+import { OnThisDayItemOpened } from '@reflection/on-this-day/contracts/on-this-day-item-opened.contract';
 import { UprootDeletedHabitHandler } from './uproot-deleted-habit.handler';
 import { HangCreatedMemoryHandler } from './hang-created-memory.handler';
 import { MoveRedatedMemoryHandler } from './move-redated-memory.handler';
@@ -297,6 +299,35 @@ describe('garden outbox handlers', () => {
       ownerId: 'owner-id',
       sourceRef: 'journal-id',
       occurredOn: new Date('2026-11-23T00:00:00.000Z'),
+      sourceEventId: 'event-id',
+    });
+  });
+
+  // Mở lại một mục của "Ngày này năm xưa" là một lần nhìn lại (BR-GDN-LT-003).
+  it("records an opened on-this-day item as REFLECTED on the owner's day", async () => {
+    const timeZoneReader = {
+      getForUser: jest.fn().mockResolvedValue('Asia/Ho_Chi_Minh'),
+    };
+    expect(
+      Reflect.getMetadata(OutboxHandler.KEY, RecordOnThisDayOpenedHandler),
+    ).toBe(OnThisDayItemOpened);
+
+    await new RecordOnThisDayOpenedHandler(ledger, timeZoneReader).handle({
+      eventId: 'event-id',
+      occurredAt: at,
+      payload: {
+        ownerId: 'owner-id',
+        kind: 'MEMORY',
+        itemId: 'memory-id',
+        openedAt: new Date('2026-11-24T18:00:00.000Z'),
+      },
+    });
+
+    expect(timeZoneReader.getForUser).toHaveBeenCalledWith('owner-id');
+    expect(ledger.recordReflection).toHaveBeenCalledWith({
+      ownerId: 'owner-id',
+      sourceRef: 'memory-id',
+      occurredOn: new Date('2026-11-25T00:00:00.000Z'),
       sourceEventId: 'event-id',
     });
   });

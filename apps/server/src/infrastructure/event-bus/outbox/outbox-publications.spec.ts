@@ -14,6 +14,8 @@ import {
   MemoryTrashedEvent,
 } from '@reflection/memory/domain/events';
 import { MemoryDatePrecision } from '@reflection/memory/domain/enums';
+import { OnThisDayOutbox } from '@reflection/on-this-day/infrastructure/outbox/on-this-day.outbox';
+import { OnThisDayItemOpenedEvent } from '@reflection/on-this-day/domain/events/on-this-day-item-opened.event';
 import { ProjectOutbox } from '@/contexts/crucible/project/infrastructure/outbox/project.outbox';
 import { ProjectCycleClosedEvent } from '@/contexts/crucible/project/domain/events/project-cycle-closed.event';
 import { ProjectCycleEndReason } from '@/contexts/crucible/project/domain/enums';
@@ -148,6 +150,19 @@ const cases: PublicationCase[] = [
       ownerId: 'owner-id',
       memoryOccurredOn: at,
       precision: 'YEAR',
+    },
+  },
+  {
+    name: 'OnThisDayItemOpened',
+    publisher: OnThisDayOutbox,
+    event: new OnThisDayItemOpenedEvent('owner-id', 'MEMORY', 'memory-id', at),
+    type: 'reflection.on-this-day.item-opened.v1',
+    aggregateId: 'memory-id',
+    parsed: {
+      ownerId: 'owner-id',
+      kind: 'MEMORY',
+      itemId: 'memory-id',
+      openedAt: at,
     },
   },
   {

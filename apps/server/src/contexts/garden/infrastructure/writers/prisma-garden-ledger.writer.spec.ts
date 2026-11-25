@@ -13,6 +13,7 @@ describe('PrismaGardenLedgerWriter', () => {
   };
   const gardenEntry = {
     create: jest.fn(),
+    findFirst: jest.fn().mockResolvedValue(null),
   };
   const gardenLantern = {
     upsert: jest.fn(),
@@ -127,6 +128,30 @@ describe('PrismaGardenLedgerWriter', () => {
           kind: 'REFLECTED',
         },
       });
+    });
+
+    // Mở lại nhiều lần trong một ngày vẫn là một lần nhìn lại (BR-GDN-LN-007).
+    it('records a source once per day', async () => {
+      gardenEntry.findFirst.mockResolvedValueOnce({ id: 'entry-id' });
+      const day = new Date('2026-11-23T00:00:00.000Z');
+
+      await writer.recordReflection({
+        ownerId: 'owner-id',
+        sourceRef: 'memory-id',
+        occurredOn: day,
+        sourceEventId: 'second-event',
+      });
+
+      expect(gardenEntry.findFirst).toHaveBeenCalledWith({
+        where: {
+          ownerId: 'owner-id',
+          kind: 'REFLECTED',
+          sourceRef: 'memory-id',
+          occurredOn: day,
+        },
+        select: { id: true },
+      });
+      expect(gardenEntry.create).not.toHaveBeenCalled();
     });
 
     it('treats an already recorded reflection as done', async () => {

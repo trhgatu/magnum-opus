@@ -33,6 +33,7 @@ export interface GardenLanternResponse {
   precision: GardenDatePrecision;
   /** Chỗ trên lối; null là chùm đèn chưa rõ ngày ở đầu lối. */
   placedOn: string | null;
+  litOn: string | null;
 }
 
 export interface GardenResponse {

@@ -13,6 +13,7 @@ export class GardenPresenter {
         occurredOn: lantern.occurredOn,
         precision: lantern.precision,
         placedOn: lantern.placedOn,
+        litOn: lantern.litOn,
       })),
       trees: result.trees.map((tree) => ({
         id: tree.id,

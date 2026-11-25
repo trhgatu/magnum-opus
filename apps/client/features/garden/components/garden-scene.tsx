@@ -10,7 +10,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
 import { gardenPath, HIT_RADIUS } from "@/features/garden/lib/garden-layout";
-import { lanternDate } from "@/features/garden/lib/garden-story";
+import { lanternDate, lanternLit } from "@/features/garden/lib/garden-story";
 
 /**
  * Cảnh 3D của vườn, theo bản phác "Khu vườn của Tú 3D", chỉ phần P1: cây, bụi
@@ -22,6 +22,8 @@ interface GardenSceneProps {
   trees: readonly GardenTreeResponse[];
   /** Mỗi ký ức một đèn bên lối đá (BA §7.5). */
   lanterns: readonly GardenLanternResponse[];
+  /** Hôm nay theo múi giờ tài khoản, để biết đèn được thắp bao lâu rồi. */
+  today: string;
   /** Sáng tỏ 0..1 (BA §7.4): chỉ đổi sương và nắng, không đổi cây. */
   light: number;
   selectedId: string | null;
@@ -44,6 +46,7 @@ const PALETTE = {
     leaf: "#c08a3a",
     leaf2: "#9c4f2b",
     paper: "#e6b866",
+    paperLit: "#fbe7a6",
     halo: "#e3d9bf",
   },
   dark: {
@@ -61,6 +64,7 @@ const PALETTE = {
     leaf: "#c08a3a",
     leaf2: "#9c4f2b",
     paper: "#d9a24f",
+    paperLit: "#ffd987",
     halo: "#3d372e",
   },
 } as const;
@@ -101,6 +105,7 @@ const PATH = [
 export default function GardenScene({
   trees,
   lanterns,
+  today,
   light,
   selectedId,
   onSelect,
@@ -447,6 +452,10 @@ export default function GardenScene({
     haloGeometry.rotateX(-Math.PI / 2);
     const lanternHitGeometry = keep(new THREE.CylinderGeometry(24, 24, 96, 8));
     const lanternRingGeometry = keep(new THREE.RingGeometry(30, 35, 32));
+    // Đèn vừa được thắp (BR-GDN-LN-007): giấy sáng màu hơn rồi nhạt dần.
+    // Chỉ đổi màu giấy, không phát sáng.
+    const litPapers: { material: THREE.MeshLambertMaterial; lit: number }[] =
+      [];
     lanternRingGeometry.rotateX(-Math.PI / 2);
     for (const spot of path.lanterns) {
       const point = curve.getPointAt(spot.t);
@@ -463,7 +472,15 @@ export default function GardenScene({
         const group = new THREE.Group();
         group.position.copy(position);
         group.add(new THREE.Mesh(postGeometry, materials.bark));
-        const paper = new THREE.Mesh(paperGeometry, materials.paper);
+        const lit = lanternLit(lantern, today);
+        let paperMaterial = materials.paper;
+        if (lit > 0) {
+          paperMaterial = keep(
+            new THREE.MeshLambertMaterial({ flatShading: true }),
+          );
+          litPapers.push({ material: paperMaterial, lit });
+        }
+        const paper = new THREE.Mesh(paperGeometry, paperMaterial);
         paper.position.y = 56;
         group.add(paper);
         const cap = new THREE.Mesh(capGeometry, materials.ink);
@@ -518,6 +535,11 @@ export default function GardenScene({
         materials[tone].color.set(palette[tone]);
       }
       ringMaterial.color.set(palette.ember);
+      for (const { material, lit } of litPapers) {
+        material.color
+          .set(palette.paper)
+          .lerp(new THREE.Color(palette.paperLit), lit);
+      }
       scene.fog =
         light >= 0.99
           ? null
@@ -621,7 +643,7 @@ export default function GardenScene({
     };
     // Dựng lại cảnh khi dữ liệu vườn đổi; chọn cây chỉ đổi vòng sáng.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trees, lanterns, light]);
+  }, [trees, lanterns, today, light]);
 
   return (
     <div ref={stageRef} className="relative overflow-hidden">

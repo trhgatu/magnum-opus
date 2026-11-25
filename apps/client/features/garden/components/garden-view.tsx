@@ -27,6 +27,7 @@ const GardenScene = dynamic(() => import("./garden-scene"), {
 interface GardenViewProps {
   trees: readonly GardenTreeResponse[];
   lanterns: readonly GardenLanternResponse[];
+  today: string;
   light: number;
 }
 
@@ -34,7 +35,7 @@ const chip =
   "rounded-full border px-3 py-1 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
 const chipOn = "border-primary bg-primary text-primary-foreground";
 
-export function GardenView({ trees, lanterns, light }: GardenViewProps) {
+export function GardenView({ trees, lanterns, today, light }: GardenViewProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = trees.find((tree) => tree.id === selectedId) ?? null;
   const labels = lanternLabels(lanterns);
@@ -47,6 +48,7 @@ export function GardenView({ trees, lanterns, light }: GardenViewProps) {
         <GardenScene
           trees={trees}
           lanterns={lanterns}
+          today={today}
           light={light}
           selectedId={selectedId}
           onSelect={setSelectedId}

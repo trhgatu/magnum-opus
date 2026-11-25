@@ -32,6 +32,7 @@ export default async function GardenPage() {
         <GardenView
           trees={garden.trees}
           lanterns={garden.lanterns}
+          today={garden.today}
           light={garden.light}
         />
       ) : (

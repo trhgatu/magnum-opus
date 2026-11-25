@@ -6,6 +6,7 @@ import type {
 import Link from "next/link";
 
 import { createJournalEntry } from "@/features/journal/actions/journal";
+import { OnThisDayLink } from "@/features/today/components/on-this-day-link";
 import { WriteTodayButton } from "@/features/today/components/write-today-button";
 import { describeDaysAgo } from "@/features/today/lib/today-focus";
 import { cn } from "@/lib/utils";
@@ -47,16 +48,9 @@ function OnThisDay({ items }: { items: readonly OnThisDayItemResponse[] }) {
             <span className="shrink-0 tabular-nums opacity-70">
               {item.yearsAgo} năm trước ·
             </span>
-            <Link
-              href={
-                item.kind === "MEMORY"
-                  ? `/memories/${item.id}`
-                  : `/journal/${item.id}`
-              }
-              className={cn(LINK, "truncate")}
-            >
+            <OnThisDayLink item={item} className={cn(LINK, "truncate")}>
               {onThisDayLabel(item)}
-            </Link>
+            </OnThisDayLink>
           </li>
         ))}
       </ul>

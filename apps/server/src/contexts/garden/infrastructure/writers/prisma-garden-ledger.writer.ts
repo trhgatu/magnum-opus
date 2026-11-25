@@ -146,6 +146,16 @@ export class PrismaGardenLedgerWriter implements GardenLedgerWriter {
     occurredOn: Date;
     sourceEventId: string;
   }): Promise<void> {
+    const sameDay = await this.prisma.gardenEntry.findFirst({
+      where: {
+        ownerId: entry.ownerId,
+        kind: 'REFLECTED',
+        sourceRef: entry.sourceRef,
+        occurredOn: entry.occurredOn,
+      },
+      select: { id: true },
+    });
+    if (sameDay) return;
     try {
       await this.prisma.gardenEntry.create({
         data: { ...entry, kind: 'REFLECTED' },

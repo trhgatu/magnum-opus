@@ -540,6 +540,12 @@ export const Errors = {
     translationKey: 'exceptions.activity.source.not.found',
     statusCode: 404,
   },
+  // Reflection / On this day
+  ON_THIS_DAY_ITEM_NOT_FOUND: {
+    code: 'ON_THIS_DAY_ITEM_NOT_FOUND',
+    translationKey: 'exceptions.on.this.day.item.not.found',
+    statusCode: 404,
+  },
 } as const;
 
 export type ErrorDefinition = (typeof Errors)[keyof typeof Errors];
