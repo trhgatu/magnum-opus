@@ -105,7 +105,7 @@ export function HabitTraceGrid({
                     key={cell.date}
                     title={describeTraceDay(type, cell)}
                     className={cn(
-                      "grid size-[22px] place-items-center rounded-sm",
+                      "grid size-[22px] place-items-center rounded-md",
                       HABIT_DAY_MARK_CLASSES[cell.mark],
                       // Hôm nay đã làm thì thêm viền; chưa làm đã có kiểu
                       // PENDING. Tái phạm hôm nay giữ nguyên kiểu bỏ lỡ.
