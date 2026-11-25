@@ -81,7 +81,7 @@ function Calendar({
           defaultClassNames.dropdowns,
         ),
         dropdown_root: cn(
-          "relative rounded-(--cell-radius) has-focus-visible:ring-2 has-focus-visible:ring-ring",
+          "relative rounded-(--cell-radius) transition-colors hover:bg-muted has-focus-visible:ring-2 has-focus-visible:ring-ring",
           defaultClassNames.dropdown_root,
         ),
         dropdown: cn(
@@ -92,7 +92,7 @@ function Calendar({
           "font-medium select-none",
           captionLayout === "label"
             ? "text-sm"
-            : "flex h-8 items-center gap-1 rounded-(--cell-radius) border border-input px-2.5 text-sm transition-colors hover:bg-muted [&>svg]:size-3.5 [&>svg]:text-muted-foreground",
+            : "flex h-8 items-center gap-1 rounded-(--cell-radius) border border-input px-2.5 text-sm [&>svg]:size-3.5 [&>svg]:text-muted-foreground",
           defaultClassNames.caption_label,
         ),
         month_grid: cn("w-full border-collapse", defaultClassNames.month_grid),
