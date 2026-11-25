@@ -8,6 +8,15 @@ describe('GardenController', () => {
   it("returns the authenticated owner's garden", async () => {
     queryBus.execute.mockResolvedValue({
       today: '2026-11-16',
+      lanterns: [
+        {
+          id: 'lantern-id',
+          memoryId: 'memory-id',
+          occurredOn: '2018-08-01',
+          precision: 'MONTH',
+          placedOn: '2018-08-15',
+        },
+      ],
       trees: [
         {
           id: 'subject-id',
@@ -32,6 +41,15 @@ describe('GardenController', () => {
     );
     expect(response).toEqual({
       today: '2026-11-16',
+      lanterns: [
+        {
+          id: 'lantern-id',
+          memoryId: 'memory-id',
+          occurredOn: '2018-08-01',
+          precision: 'MONTH',
+          placedOn: '2018-08-15',
+        },
+      ],
       trees: [
         {
           id: 'subject-id',

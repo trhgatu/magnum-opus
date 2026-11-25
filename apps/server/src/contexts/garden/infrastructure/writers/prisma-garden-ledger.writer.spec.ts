@@ -14,9 +14,15 @@ describe('PrismaGardenLedgerWriter', () => {
   const gardenEntry = {
     create: jest.fn(),
   };
+  const gardenLantern = {
+    upsert: jest.fn(),
+    updateMany: jest.fn(),
+    deleteMany: jest.fn(),
+  };
   const writer = new PrismaGardenLedgerWriter({
     gardenSubject,
     gardenEntry,
+    gardenLantern,
   } as never);
 
   const subject = {
@@ -311,6 +317,64 @@ describe('PrismaGardenLedgerWriter', () => {
       gardenEntry.create.mockRejectedValue(new Error('connection lost'));
 
       await expect(writer.record(entry)).rejects.toThrow('connection lost');
+    });
+  });
+
+  describe('lanterns', () => {
+    const occurredOn = new Date('2018-08-01T00:00:00.000Z');
+
+    it('hangs a lantern once per memory', async () => {
+      const lantern = {
+        ownerId: 'owner-id',
+        memoryId: 'memory-id',
+        occurredOn,
+        precision: 'MONTH' as const,
+      };
+
+      await writer.hangLantern(lantern);
+
+      expect(gardenLantern.upsert).toHaveBeenCalledWith({
+        where: { memoryId: 'memory-id' },
+        create: lantern,
+        update: {},
+      });
+    });
+
+    it('moves the lantern, hanging it when it is missing', async () => {
+      const lantern = {
+        ownerId: 'owner-id',
+        memoryId: 'memory-id',
+        occurredOn: null,
+        precision: 'UNKNOWN' as const,
+      };
+
+      await writer.moveLantern(lantern);
+
+      expect(gardenLantern.upsert).toHaveBeenCalledWith({
+        where: { memoryId: 'memory-id' },
+        create: lantern,
+        update: { occurredOn: null, precision: 'UNKNOWN' },
+      });
+    });
+
+    it('hides and shows the lantern of a memory', async () => {
+      const hiddenAt = new Date('2026-11-23T03:00:00.000Z');
+
+      await writer.hideLantern('memory-id', hiddenAt);
+      await writer.showLantern('memory-id');
+
+      expect(gardenLantern.updateMany.mock.calls).toEqual([
+        [{ where: { memoryId: 'memory-id' }, data: { hiddenAt } }],
+        [{ where: { memoryId: 'memory-id' }, data: { hiddenAt: null } }],
+      ]);
+    });
+
+    it('removes the lantern of a deleted memory', async () => {
+      await writer.removeLantern('memory-id');
+
+      expect(gardenLantern.deleteMany).toHaveBeenCalledWith({
+        where: { memoryId: 'memory-id' },
+      });
     });
   });
 });

@@ -6,6 +6,7 @@ import type {
   GardenVariant,
 } from '../../domain/garden-subject';
 
+import type { GardenDatePrecision } from '../../domain/garden-lantern';
 export const GARDEN_LEDGER_READER = Symbol('GARDEN_LEDGER_READER');
 
 /** Một cây đang hiện trong vườn, kèm sổ của nó theo thứ tự ghi. */
@@ -33,4 +34,12 @@ export interface GardenLedgerReader {
     ownerId: string,
     today: CalendarDay,
   ): Promise<CalendarDay | null>;
+  visibleLanternsOf(ownerId: string): Promise<GardenLanternRow[]>;
+}
+
+export interface GardenLanternRow {
+  id: string;
+  memoryId: string;
+  occurredOn: CalendarDay | null;
+  precision: GardenDatePrecision;
 }

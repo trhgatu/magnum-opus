@@ -32,6 +32,7 @@ model User {
   chronicleSnapshots ChronicleSnapshot[]
   gardenSubjects GardenSubject[]
   gardenEntries GardenEntry[]
+  gardenLanterns GardenLantern[]
 
   userRoles               UserRole[]
   notifications           Notification[]
@@ -799,6 +800,27 @@ model GardenSubject {
   @@unique([id, ownerId])
   @@index([ownerId])
   @@map("garden_subjects")
+}
+
+enum GardenDatePrecision {
+  DAY
+  MONTH
+  YEAR
+  UNKNOWN
+}
+
+model GardenLantern {
+  id         String              @id @default(uuid())
+  ownerId    String              @map("owner_id")
+  memoryId   String              @unique @map("memory_id")
+  occurredOn DateTime?           @map("occurred_on") @db.Date
+  precision  GardenDatePrecision
+  hiddenAt   DateTime?           @map("hidden_at")
+  createdAt  DateTime            @default(now()) @map("created_at")
+  owner      User                @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+  @@map("garden_lanterns")
 }
 
 enum GardenEntryKind {

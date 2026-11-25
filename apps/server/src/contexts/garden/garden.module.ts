@@ -24,6 +24,11 @@ import { PrismaGardenLedgerReader } from './infrastructure/readers/prisma-garden
 import { PrismaUserTimeZoneReader } from './infrastructure/readers/prisma-user-time-zone.reader';
 import { GardenController } from './presentation/controllers/garden.controller';
 import { RecordJournalSealedHandler } from './infrastructure/outbox/record-journal-sealed.handler';
+import { HangCreatedMemoryHandler } from './infrastructure/outbox/hang-created-memory.handler';
+import { MoveRedatedMemoryHandler } from './infrastructure/outbox/move-redated-memory.handler';
+import { RemoveDeletedMemoryHandler } from './infrastructure/outbox/remove-deleted-memory.handler';
+import { HideTrashedMemoryHandler } from './infrastructure/outbox/hide-trashed-memory.handler';
+import { ShowRestoredMemoryHandler } from './infrastructure/outbox/show-restored-memory.handler';
 
 @Module({
   imports: [CqrsModule],
@@ -46,6 +51,11 @@ import { RecordJournalSealedHandler } from './infrastructure/outbox/record-journ
     RenameHabitTreeHandler,
     AssignHabitBedHandler,
     RecordJournalSealedHandler,
+    HangCreatedMemoryHandler,
+    HideTrashedMemoryHandler,
+    MoveRedatedMemoryHandler,
+    RemoveDeletedMemoryHandler,
+    ShowRestoredMemoryHandler,
     { provide: GARDEN_LEDGER_WRITER, useClass: PrismaGardenLedgerWriter },
   ],
 })

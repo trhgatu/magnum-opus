@@ -53,6 +53,7 @@ describe('timeline outbox handlers', () => {
         memoryId: 'memory-id',
         ownerId: 'owner-id',
         memoryOccurredOn: null,
+        precision: 'UNKNOWN',
       },
     });
 

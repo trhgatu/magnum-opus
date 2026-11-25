@@ -12,5 +12,6 @@ export const MemoryCreated = defineIntegrationEvent(
       typeof payload.memoryOccurredOn === 'string'
         ? new Date(payload.memoryOccurredOn)
         : null,
+    precision: typeof payload.precision === 'string' ? payload.precision : null,
   }),
 );

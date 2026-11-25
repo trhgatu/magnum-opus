@@ -7,6 +7,12 @@ import type {
   GardenSubjectKind,
   GardenVariant,
 } from '../../../domain/garden-subject';
+
+import {
+  type GardenDatePrecision,
+  lanternPlacedOn,
+} from '../../../domain/garden-lantern';
+
 import {
   type GardenWeek,
   gardenWeeks,
@@ -38,10 +44,20 @@ export interface GardenTree {
   weeds: number;
 }
 
+export interface GardenLantern {
+  id: string;
+  memoryId: string;
+  occurredOn: CalendarDay | null;
+  precision: GardenDatePrecision;
+  /** Chỗ trên lối; null là chùm đèn chưa rõ ngày ở đầu lối. */
+  placedOn: CalendarDay | null;
+}
+
 export interface GardenResult {
   today: CalendarDay;
   trees: GardenTree[];
   light: number;
+  lanterns: GardenLantern[];
 }
 
 /** Vườn của owner: mỗi cây là chuỗi tuần tính lại từ sổ (BA §7). */
@@ -64,8 +80,9 @@ export class GetGardenHandler implements IQueryHandler<
     // rơi (unhandled rejection làm sập process).
     const now = this.clock.now();
     const timeZonePromise = this.timeZoneReader.getForUser(query.ownerId);
-    const [subjects, today, lastReflectedOn] = await Promise.all([
+    const [subjects, lanterns, today, lastReflectedOn] = await Promise.all([
       this.ledger.visibleSubjectsOf(query.ownerId),
+      this.ledger.visibleLanternsOf(query.ownerId),
       timeZonePromise.then((timeZone) => calendarDayAt(now, timeZone)),
       timeZonePromise.then((timeZone) =>
         this.ledger.lastReflectedOn(
@@ -78,6 +95,10 @@ export class GetGardenHandler implements IQueryHandler<
     return {
       today,
       light: gardenLight(lastReflectedOn, today),
+      lanterns: lanterns.map((lantern) => ({
+        ...lantern,
+        placedOn: lanternPlacedOn(lantern.occurredOn, lantern.precision),
+      })),
       trees: subjects.map(({ entries, ...subject }) => {
         const weeks = gardenWeeks({
           variant: subject.variant,

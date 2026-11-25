@@ -7,6 +7,7 @@ import { calendarDayToDate } from '@shared/domain/calendar-day';
 import type {
   GardenLedgerReader,
   GardenSubjectLedger,
+  GardenLanternRow,
 } from '../../application/ports/garden-ledger-reader.port';
 import type { GardenSchedule } from '../../domain/garden-entry';
 
@@ -69,5 +70,21 @@ export class PrismaGardenLedgerReader implements GardenLedgerReader {
       select: { occurredOn: true },
     });
     return row ? calendarDayOf(row.occurredOn) : null;
+  }
+
+  async visibleLanternsOf(ownerId: string): Promise<GardenLanternRow[]> {
+    const rows = await this.prisma.gardenLantern.findMany({
+      where: { ownerId, hiddenAt: null },
+      orderBy: [
+        { occurredOn: { sort: 'asc', nulls: 'first' } },
+        { createdAt: 'asc' },
+        { id: 'asc' },
+      ],
+      select: { id: true, memoryId: true, occurredOn: true, precision: true },
+    });
+    return rows.map((row) => ({
+      ...row,
+      occurredOn: row.occurredOn ? calendarDayOf(row.occurredOn) : null,
+    }));
   }
 }

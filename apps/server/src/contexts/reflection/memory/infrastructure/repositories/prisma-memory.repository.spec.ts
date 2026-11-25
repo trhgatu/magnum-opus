@@ -90,6 +90,7 @@ describe('PrismaMemoryRepository', () => {
               memoryId: aggregate.id,
               ownerId: aggregate.ownerId,
               memoryOccurredOn: '2024-08-01T00:00:00.000Z',
+              precision: 'MONTH',
             },
           }),
         ],
@@ -132,6 +133,52 @@ describe('PrismaMemoryRepository', () => {
           updatedAt: aggregate.updatedAt,
         },
       });
+    });
+
+    it('records a date change in the outbox inside the same transaction', async () => {
+      memory.updateMany.mockResolvedValue({ count: 1 });
+      const aggregate = createDomainMemory();
+
+      aggregate.update({
+        title: aggregate.title,
+        content: aggregate.content,
+        occurredOn: MemoryOccurredOn.fromYear(2018),
+      });
+      await repository.update(aggregate, 1);
+
+      expect(outboxEvent.createMany).toHaveBeenCalledWith({
+        data: [
+          expect.objectContaining({
+            type: 'reflection.memory.redated.v1',
+            aggregateId: 'memory-id',
+          }),
+        ],
+      });
+      expect(aggregate.getDomainEvents()).toHaveLength(0);
+    });
+
+    it('writes no outbox row when only the text changes', async () => {
+      memory.updateMany.mockResolvedValue({ count: 1 });
+      const aggregate = createDomainMemory();
+
+      aggregate.update({
+        title: 'Updated title',
+        content: aggregate.content,
+        occurredOn: aggregate.occurredOn,
+      });
+      await repository.update(aggregate, 1);
+
+      expect(outboxEvent.createMany).not.toHaveBeenCalled();
+    });
+
+    it('keeps the events when the revision is stale', async () => {
+      memory.updateMany.mockResolvedValue({ count: 0 });
+      const aggregate = createDomainMemory();
+      aggregate.moveToTrash();
+
+      expect(await repository.update(aggregate, 1)).toBe(false);
+      expect(outboxEvent.createMany).not.toHaveBeenCalled();
+      expect(aggregate.getDomainEvents()).toHaveLength(1);
     });
 
     it('returns false when the expected revision is stale', async () => {
@@ -344,16 +391,14 @@ describe('PrismaMemoryRepository', () => {
   });
 
   describe('deletePermanently', () => {
-    it('deletes only an owned trashed Memory at the expected revision', async () => {
+    it('deletes only an owned trashed Memory and records the event in the same transaction', async () => {
       memory.deleteMany.mockResolvedValue({
         count: 1,
       });
+      const aggregate = trashedDomainMemory();
+      aggregate.deletePermanently();
 
-      const deleted = await repository.deletePermanently(
-        'memory-id',
-        'owner-id',
-        4,
-      );
+      const deleted = await repository.deletePermanently(aggregate, 4);
 
       expect(deleted).toBe(true);
       expect(memory.deleteMany).toHaveBeenCalledWith({
@@ -364,6 +409,15 @@ describe('PrismaMemoryRepository', () => {
           state: PrismaMemoryState.TRASHED,
         },
       });
+      expect(outboxEvent.createMany).toHaveBeenCalledWith({
+        data: [
+          expect.objectContaining({
+            type: 'reflection.memory.permanently-deleted.v1',
+            aggregateId: 'memory-id',
+          }),
+        ],
+      });
+      expect(aggregate.getDomainEvents()).toHaveLength(0);
     });
 
     it('returns false when nothing matches all delete conditions', async () => {
@@ -371,19 +425,30 @@ describe('PrismaMemoryRepository', () => {
         count: 0,
       });
 
-      const deleted = await repository.deletePermanently(
-        'memory-id',
-        'owner-id',
-        3,
-      );
+      const aggregate = trashedDomainMemory();
+      aggregate.deletePermanently();
+
+      const deleted = await repository.deletePermanently(aggregate, 3);
 
       expect(deleted).toBe(false);
+      expect(outboxEvent.createMany).not.toHaveBeenCalled();
+      expect(aggregate.getDomainEvents()).toHaveLength(1);
     });
   });
 });
 
 function createDomainMemory(): Memory {
   return Memory.rehydrate(createProps());
+}
+
+function trashedDomainMemory(): Memory {
+  return Memory.rehydrate(
+    createProps({
+      state: MemoryState.TRASHED,
+      revision: 4,
+      trashedAt: new Date('2026-08-02T10:00:00.000Z'),
+    }),
+  );
 }
 
 function createProps(overrides: Partial<MemoryProps> = {}): MemoryProps {

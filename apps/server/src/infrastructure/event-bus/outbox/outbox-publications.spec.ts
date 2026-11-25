@@ -6,7 +6,14 @@ import { NotificationCreatedEvent } from '@/contexts/notifications/domain/events
 import { JournalOutbox } from '@reflection/journal/infrastructure/outbox/journal.outbox';
 import { JournalEntrySealedEvent } from '@reflection/journal/domain/events/journal-entry-sealed.event';
 import { MemoryOutbox } from '@reflection/memory/infrastructure/outbox/memory.outbox';
-import { MemoryCreatedEvent } from '@reflection/memory/domain/events/memory-created.event';
+import {
+  MemoryCreatedEvent,
+  MemoryPermanentlyDeletedEvent,
+  MemoryRedatedEvent,
+  MemoryRestoredEvent,
+  MemoryTrashedEvent,
+} from '@reflection/memory/domain/events';
+import { MemoryDatePrecision } from '@reflection/memory/domain/enums';
 import { ProjectOutbox } from '@/contexts/crucible/project/infrastructure/outbox/project.outbox';
 import { ProjectCycleClosedEvent } from '@/contexts/crucible/project/domain/events/project-cycle-closed.event';
 import { ProjectCycleEndReason } from '@/contexts/crucible/project/domain/enums';
@@ -92,26 +99,80 @@ const cases: PublicationCase[] = [
   {
     name: 'MemoryCreated with a date',
     publisher: MemoryOutbox,
-    event: new MemoryCreatedEvent('memory-id', 'owner-id', at),
+    event: new MemoryCreatedEvent(
+      'memory-id',
+      'owner-id',
+      at,
+      MemoryDatePrecision.MONTH,
+    ),
     type: 'reflection.memory.created.v1',
     aggregateId: 'memory-id',
     parsed: {
       memoryId: 'memory-id',
       ownerId: 'owner-id',
       memoryOccurredOn: at,
+      precision: 'MONTH',
     },
   },
   {
     name: 'MemoryCreated without a date',
     publisher: MemoryOutbox,
-    event: new MemoryCreatedEvent('memory-id', 'owner-id', null),
+    event: new MemoryCreatedEvent(
+      'memory-id',
+      'owner-id',
+      null,
+      MemoryDatePrecision.UNKNOWN,
+    ),
     type: 'reflection.memory.created.v1',
     aggregateId: 'memory-id',
     parsed: {
       memoryId: 'memory-id',
       ownerId: 'owner-id',
       memoryOccurredOn: null,
+      precision: 'UNKNOWN',
     },
+  },
+  {
+    name: 'MemoryRedated',
+    publisher: MemoryOutbox,
+    event: new MemoryRedatedEvent(
+      'memory-id',
+      'owner-id',
+      at,
+      MemoryDatePrecision.YEAR,
+    ),
+    type: 'reflection.memory.redated.v1',
+    aggregateId: 'memory-id',
+    parsed: {
+      memoryId: 'memory-id',
+      ownerId: 'owner-id',
+      memoryOccurredOn: at,
+      precision: 'YEAR',
+    },
+  },
+  {
+    name: 'MemoryTrashed',
+    publisher: MemoryOutbox,
+    event: new MemoryTrashedEvent('memory-id', 'owner-id'),
+    type: 'reflection.memory.trashed.v1',
+    aggregateId: 'memory-id',
+    parsed: { memoryId: 'memory-id', ownerId: 'owner-id' },
+  },
+  {
+    name: 'MemoryRestored',
+    publisher: MemoryOutbox,
+    event: new MemoryRestoredEvent('memory-id', 'owner-id'),
+    type: 'reflection.memory.restored.v1',
+    aggregateId: 'memory-id',
+    parsed: { memoryId: 'memory-id', ownerId: 'owner-id' },
+  },
+  {
+    name: 'MemoryPermanentlyDeleted',
+    publisher: MemoryOutbox,
+    event: new MemoryPermanentlyDeletedEvent('memory-id', 'owner-id'),
+    type: 'reflection.memory.permanently-deleted.v1',
+    aggregateId: 'memory-id',
+    parsed: { memoryId: 'memory-id', ownerId: 'owner-id' },
   },
   {
     name: 'ProjectCycleClosed',

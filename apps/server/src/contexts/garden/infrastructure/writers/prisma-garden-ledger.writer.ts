@@ -12,6 +12,7 @@ import {
   CURRENT_SIM_VERSION,
   type GardenSubjectKind,
 } from '../../domain/garden-subject';
+import { GardenDatePrecision } from '../../domain/garden-lantern';
 
 @Injectable()
 export class PrismaGardenLedgerWriter implements GardenLedgerWriter {
@@ -158,5 +159,49 @@ export class PrismaGardenLedgerWriter implements GardenLedgerWriter {
       }
       throw error;
     }
+  }
+
+  async hangLantern(lantern: {
+    ownerId: string;
+    memoryId: string;
+    occurredOn: Date | null;
+    precision: GardenDatePrecision;
+  }): Promise<void> {
+    await this.prisma.gardenLantern.upsert({
+      where: { memoryId: lantern.memoryId },
+      create: lantern,
+      update: {},
+    });
+  }
+
+  async moveLantern(lantern: {
+    ownerId: string;
+    memoryId: string;
+    occurredOn: Date | null;
+    precision: GardenDatePrecision;
+  }): Promise<void> {
+    await this.prisma.gardenLantern.upsert({
+      where: { memoryId: lantern.memoryId },
+      create: lantern,
+      update: { occurredOn: lantern.occurredOn, precision: lantern.precision },
+    });
+  }
+
+  async hideLantern(memoryId: string, hiddenAt: Date): Promise<void> {
+    await this.prisma.gardenLantern.updateMany({
+      where: { memoryId },
+      data: { hiddenAt },
+    });
+  }
+
+  async showLantern(memoryId: string): Promise<void> {
+    await this.prisma.gardenLantern.updateMany({
+      where: { memoryId },
+      data: { hiddenAt: null },
+    });
+  }
+
+  async removeLantern(memoryId: string): Promise<void> {
+    await this.prisma.gardenLantern.deleteMany({ where: { memoryId } });
   }
 }
