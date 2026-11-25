@@ -78,7 +78,7 @@ Không hard-code màu thương hiệu trực tiếp trong feature component. Khi
 - Hero và bề mặt nội dung chính: `rounded-3xl`.
 - Card collection và toolbar: `rounded-2xl`.
 - Input, button và control nhỏ: theo primitive shadcn hiện có.
-- Dùng border mảnh và shadow nhẹ. Hover có thể nâng tối đa khoảng `-translate-y-1`.
+- Dùng border mảnh, không đổ bóng. Hover đổi màu viền (`hover:border-primary/40`), không nâng thẻ.
 - Luôn tôn trọng `motion-reduce`; animation không được là điều kiện để hiểu trạng thái.
 
 ## 5. Ngôn ngữ theo context
@@ -107,46 +107,39 @@ Nếu thêm context mới, trước tiên xác định ẩn dụ chức năng c�
 
 ## 6. Cấu trúc chuẩn của một collection page
 
-Một trang danh sách thường có bốn tầng:
+Mẫu hiện tại (Project, Thói quen, Ký ức; bản vẽ trong file Figma "Magnum Opus UI"). Trang không còn `ContextHero` hay khung workbench; nội dung đứng thẳng trên nền.
 
-1. `ContextHero`: context, title, lời giải thích, metadata và primary action.
-2. Workbench/filter surface: search, filter và sort nằm trong một vùng duy nhất.
-3. Section divider: một label nhỏ cùng đường kẻ để chuyển từ control sang content.
-4. Collection: card grid hoặc timeline, sau đó mới đến pagination.
-
-Ví dụ:
+1. Header: eyebrow `font-mono` uppercase màu `primary` (tên context), `h1` `font-display` cỡ lớn, một câu tóm tắt bằng chữ thay cho badge số lượng, primary action bên phải.
+2. Hàng điều khiển: ô tìm kiếm và kiểu sắp xếp nằm cùng một hàng, không bọc trong card. Lối vào phụ (Đã lưu trữ, Thùng rác) là link nhẹ màu `muted-foreground`, không phải tab.
+3. Collection: hàng (`rounded-2xl border bg-card`) hoặc lưới thẻ; nhóm theo mốc tự nhiên của nội dung khi có (Ký ức nhóm theo năm xảy ra, tiêu đề năm `font-display` màu nhạt). Pagination ở cuối.
 
 ```tsx
-<section className="flex flex-col gap-7" aria-labelledby="feature-heading">
-  <ContextHero
-    id="feature-heading"
-    icon={FeatureIcon}
-    eyebrow="Context · Capability"
-    title="Feature"
-    description="Một câu giải thích giá trị của màn hình."
-    meta={<Badge variant="outline">{total} mục</Badge>}
-    actions={<PrimaryAction />}
-  />
-
-  <section
-    aria-label="Tìm kiếm và lọc"
-    className="rounded-2xl border bg-card/55 p-3 shadow-sm sm:p-4"
-  >
-    <FilterControls />
-  </section>
-
-  <div className="flex items-center gap-3">
-    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-      Nội dung đang hiển thị
-    </p>
-    <span className="h-px flex-1 bg-border" aria-hidden="true" />
-  </div>
-
+<section className="flex flex-col gap-8" aria-labelledby="feature-heading">
+  <header className="flex flex-wrap items-end justify-between gap-5">
+    <div className="flex flex-col gap-2.5">
+      <p className="font-mono text-[11px] font-medium tracking-[0.16em] text-primary uppercase">
+        Context
+      </p>
+      <h1
+        id="feature-heading"
+        className="font-display text-4xl leading-[1.05] font-medium tracking-[-0.02em] sm:text-[46px]"
+      >
+        Feature
+      </h1>
+      <p className="text-base text-muted-foreground sm:text-[17px]">
+        Một câu tóm tắt bằng chữ.
+      </p>
+    </div>
+    <PrimaryAction />
+  </header>
+  <Controls />
   <FeatureCollection />
 </section>
 ```
 
-Không render số lượng kết quả thành một metric card riêng. Metadata thuộc hero hoặc section label.
+Trang chi tiết theo cùng nhịp: link quay về dạng chữ, header như trên với các hành động bên phải, nội dung trong một cột đọc `max-w-3xl`, footer `font-mono` có đường kẻ trên.
+
+Không render số lượng kết quả thành một metric card riêng. Không dùng đổ bóng, gradient hay glow để tách lớp; dùng viền mảnh và khoảng trắng.
 
 ## 7. Card pattern
 
@@ -258,8 +251,8 @@ Nếu một route vượt budget:
 
 ## 14. Pattern tham chiếu trong codebase
 
-- Shared hero: [`context-hero.tsx`](../apps/client/components/system/context-hero.tsx)
-- Shared hero skeleton: [`context-hero-skeleton.tsx`](../apps/client/components/system/context-hero-skeleton.tsx)
+- Collection page: `apps/client/app/(protected)/projects/page.tsx`, `apps/client/app/(protected)/memories/page.tsx`- Trang chi tiết: [`project-detail.tsx`](../apps/client/features/project/components/project-detail.tsx), [`memory-detail.tsx`](../apps/client/features/memory/components/memory-detail.tsx)
+- `ContextHero` (mẫu cũ, các trang Reflection khác vẫn dùng): [`context-hero.tsx`](../apps/client/components/system/context-hero.tsx)
 - Journal manuscript: [`journal-editor.tsx`](../apps/client/features/journal/components/journal-editor.tsx)
 - Ký ức archive card: [`memory-card.tsx`](../apps/client/features/memory/components/memory-card.tsx)
 - Timeline chronology: [`timeline-entry-card.tsx`](../apps/client/features/timeline/components/timeline-entry-card.tsx)

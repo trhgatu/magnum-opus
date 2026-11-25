@@ -86,7 +86,7 @@ describe("MemoryDetail", () => {
     expect(
       screen
         .getByRole("link", {
-          name: "Mở Nhật ký nguồn",
+          name: "Được kết tinh từ một trang Nhật ký",
         })
         .getAttribute("href"),
     ).toBe("/journal/cc2a5d7a-72ba-41ce-9ad8-c82941270f35");
@@ -161,7 +161,7 @@ describe("MemoryDetail", () => {
       />,
     );
 
-    expect(screen.getByText("Thùng rác")).toBeTruthy();
+    expect(screen.getByText(/Thùng rác/)).toBeTruthy();
 
     expect(
       screen.queryByRole("button", {

@@ -149,14 +149,10 @@ test("completes the private Memory lifecycle through the BFF", async ({
   await expect(
     page.getByText(`Đã đưa "${updatedTitle}" vào Thùng rác`),
   ).toBeVisible();
-  // Trash không rời trang — ở lại đúng ký ức, chỉ đổi badge + nút tại chỗ.
+  // Trash không rời trang — ở lại đúng ký ức, chỉ đổi eyebrow + nút tại chỗ.
   await expect(page).toHaveURL(/\/memories\/[0-9a-f-]+$/);
 
-  await expect(
-    page.locator('[data-slot="badge"]').filter({
-      hasText: /^Thùng rác$/,
-    }),
-  ).toBeVisible();
+  await expect(page.getByText("Reflection · Ký ức · Thùng rác")).toBeVisible();
 
   await page
     .getByRole("button", {
@@ -271,7 +267,9 @@ test("keeps a Memory after its source Journal entry is deleted", async ({
   await expect(page.getByRole("heading", { name: journalTitle })).toBeVisible();
   await expect(page.getByText(memoryContent)).toBeVisible();
 
-  await page.getByRole("link", { name: "Mở Nhật ký nguồn" }).click();
+  await page
+    .getByRole("link", { name: "Được kết tinh từ một trang Nhật ký" })
+    .click();
   await expect(page).toHaveURL(journalUrl);
   await expect(page.getByLabel("Nội dung", { exact: true })).toHaveValue(
     journalContent,
@@ -293,7 +291,7 @@ test("keeps a Memory after its source Journal entry is deleted", async ({
   await expect(page.getByRole("heading", { name: journalTitle })).toBeVisible();
   await expect(page.getByText(memoryContent)).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "Mở Nhật ký nguồn" }),
+    page.getByRole("link", { name: "Được kết tinh từ một trang Nhật ký" }),
   ).not.toBeVisible();
 
   await page.getByRole("button", { name: "Đưa vào Thùng rác" }).click();
